@@ -111,4 +111,41 @@ class BillingPolicyConfigTest {
             guestGroupsCount = 0
         )
     }
+
+    @Test
+    fun `D40 KeystoreEncryptedTokenStore encrypts refreshToken with AES256-GCM and never stores plaintext`() {
+        val store = com.rutabikersync.app.core.network.KeystoreEncryptedTokenStore(context = null)
+        val rawToken = "eyJ0eXAiOiJyZWZyZXNoIiwia2lkIjoidjEifQ.secret_signature_payload"
+        store.saveRefreshToken(rawToken)
+
+        val storedCiphertext = store.rawStoredCiphertextForAudit()
+        org.junit.Assert.assertNotNull(storedCiphertext)
+        org.junit.Assert.assertNotEquals(rawToken, storedCiphertext)
+        org.junit.Assert.assertFalse(storedCiphertext!!.contains("secret_signature_payload"))
+        assertEquals(rawToken, store.loadRefreshToken())
+
+        store.clear()
+        org.junit.Assert.assertNull(store.loadRefreshToken())
+    }
+
+    @Test
+    fun `D41 Play Billing 8_1_plus and 9_1_0 exposes includeSuspendedSubscriptions and Purchase isSuspended`() {
+        val paramsBuilderClass = com.android.billingclient.api.QueryPurchasesParams.Builder::class.java
+        val includeSuspendedMethod = paramsBuilderClass.methods.firstOrNull {
+            it.name == "includeSuspendedSubscriptions"
+        }
+        org.junit.Assert.assertNotNull(
+            "QueryPurchasesParams.Builder debe incluir includeSuspendedSubscriptions(boolean) (8.1.0+)",
+            includeSuspendedMethod
+        )
+
+        val purchaseClass = com.android.billingclient.api.Purchase::class.java
+        val isSuspendedMethod = purchaseClass.methods.firstOrNull {
+            it.name == "isSuspended"
+        }
+        org.junit.Assert.assertNotNull(
+            "Purchase debe incluir isSuspended() para detectar on_hold (8.1.0+)",
+            isSuspendedMethod
+        )
+    }
 }

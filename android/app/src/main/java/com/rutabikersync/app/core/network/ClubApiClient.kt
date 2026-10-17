@@ -17,12 +17,26 @@ import java.net.URL
  * Soporta autenticación con Authorization: Bearer <accessToken> (D35) y cabecera x-user-id de respaldo.
  */
 class ClubApiClient(
-    var baseUrl: String = "http://10.0.2.2:3000"
+    var baseUrl: String = "http://10.0.2.2:3000",
+    val tokenStore: TokenCipherStore = KeystoreEncryptedTokenStore()
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
+    // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
+    @Volatile
     var accessToken: String? = null
-    var refreshToken: String? = null
+
+    // refreshToken (30 días) se cifra/descifra con AES-256-GCM en AndroidKeyStore (D40)
+    var refreshToken: String?
+        get() = tokenStore.loadRefreshToken()
+        set(value) {
+            if (value.isNullOrBlank()) {
+                tokenStore.clear()
+            } else {
+                tokenStore.saveRefreshToken(value)
+            }
+        }
+
     var currentUserId: String? = null
 
     data class ApiResponse(
@@ -48,7 +62,19 @@ class ClubApiClient(
             put("acceptedTermsAndConvivencia", acceptedTermsAndConvivencia)
             put("activateLeaderDemo", activateLeaderDemo)
         }
-        executeRequest("POST", "/v1/auth/login", payload)
+        val res = executeRequest("POST", "/v1/auth/login", payload)
+        res.getOrNull()?.let { apiRes ->
+            if (apiRes.isSuccess && apiRes.body != null) {
+                apiRes.body["accessToken"]?.let {
+                    accessToken = (it as? kotlinx.serialization.json.JsonPrimitive)?.content ?: accessToken
+                }
+                apiRes.body["refreshToken"]?.let {
+                    val rt = (it as? kotlinx.serialization.json.JsonPrimitive)?.content
+                    if (!rt.isNullOrBlank()) refreshToken = rt
+                }
+            }
+        }
+        res
     }
 
     suspend fun refreshSession(token: String? = refreshToken): Result<ApiResponse> =
@@ -78,7 +104,7 @@ class ClubApiClient(
             val res = executeRequest("POST", "/v1/auth/logout", payload)
             if (res.getOrNull()?.isSuccess == true) {
                 accessToken = null
-                refreshToken = null
+                tokenStore.clear()
             }
             res
         }

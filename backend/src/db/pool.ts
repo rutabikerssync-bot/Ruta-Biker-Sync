@@ -16,7 +16,7 @@ export function createPgPool(connectionString?: string): Pool {
       connectionString ??
       process.env.PG_TEST_URL ??
       process.env.DATABASE_URL ??
-      'postgres://rbs:rbs_dev_password@localhost:5432/rbs'
+      'postgres://localhost:5432/rbs'
   });
 }
 

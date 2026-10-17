@@ -1,7 +1,6 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { newDb, DataType } from 'pg-mem';
 import { buildApp } from '../src/app.js';
 import { createPgPool, readInitMigrationSql, type DbExecutor } from '../src/db/pool.js';
 import { checkGroupNameCollision, normalizeGroupName, toLeetSkeleton } from '../src/lib/normalizer.js';
@@ -9,79 +8,60 @@ import { computePhashHammingDistance, evaluateLogoUniqueness } from '../src/lib/
 import { computePaymentSemaphore } from '../src/lib/roles.js';
 import type { FastifyInstance } from 'fastify';
 
-async function createTestDb(): Promise<{ db: DbExecutor; usingRealPostgres: boolean }> {
-  // 1. Intentar conectar a PostgreSQL real si está disponible (docker compose up -d)
-  try {
-    const pool = createPgPool();
-    await pool.query('SELECT 1');
-    const sql = readInitMigrationSql();
-    await pool.query(sql);
-    await pool.query(`
-      TRUNCATE TABLE
-        refresh_tokens,
-        imitation_reports,
-        play_events,
-        ride_mesh_metrics,
-        leader_vote_ballots,
-        leader_votes,
-        moderation_reports,
-        consents,
-        emergency_access_log,
-        badges,
-        rank_progress,
-        ride_participants,
-        ride_groups,
-        rides,
-        group_transfers,
-        invitations,
-        memberships,
-        group_leaders,
-        groups,
-        subscriptions,
-        users
-      RESTART IDENTITY CASCADE
-    `);
-    console.info('[createTestDb] Conectado a PostgreSQL 16 REAL (usingRealPostgres = true)');
-    return { db: pool, usingRealPostgres: true };
-  } catch (err) {
-    if (process.env.PG_TEST_URL) {
-      throw new Error(`PG_TEST_URL fue especificado pero falló la conexión a PostgreSQL real: ${(err as Error).message}`);
-    }
-    // 2. Fallback determinista en memoria (pg-mem) solo cuando no se exige PG_TEST_URL
-    const mem = newDb();
-    mem.public.registerFunction({
-      name: 'lower',
-      args: [DataType.text],
-      returns: DataType.text,
-      implementation: (x: string) => (x ? x.toLowerCase() : x)
-    });
-
-    // Adaptar tipos específicos (CITEXT -> TEXT), índices parciales y bloques PL/pgSQL para pg-mem
-    const rawSql = readInitMigrationSql();
-    const cleanedSql = rawSql
-      .replace(/CREATE EXTENSION[^;]+;/gi, '')
-      .replace(/\bCITEXT\b/gi, 'TEXT')
-      .replace(/CREATE UNIQUE INDEX[\s\S]*?WHERE[\s\S]*?;/gi, '')
-      .replace(/CREATE OR REPLACE FUNCTION[\s\S]*?\$\$ LANGUAGE plpgsql;/gi, '')
-      .replace(/DROP TRIGGER[^;]+;/gi, '')
-      .replace(/CREATE TRIGGER[\s\S]*?EXECUTE FUNCTION[^;]+;/gi, '');
-
-    mem.public.none(cleanedSql);
-    const pgAdapter = mem.adapters.createPg();
-    const rawPool = new pgAdapter.Pool();
-    const wrappedDb: DbExecutor = {
-      async query(text: string, params?: unknown[]) {
-        const safeParams = params?.map((p) =>
-          Buffer.isBuffer(p) ? `\\x${p.toString('hex')}` : p
-        );
-        return rawPool.query(text, safeParams);
-      },
-      async end() {
-        await rawPool.end();
-      }
-    };
-    return { db: wrappedDb, usingRealPostgres: false };
+function resolveTestDatabaseUrl(): string | undefined {
+  if (process.env.PG_TEST_URL || process.env.DATABASE_URL) {
+    return process.env.PG_TEST_URL ?? process.env.DATABASE_URL;
   }
+  for (const filename of ['.env', '.env.example']) {
+    const filePath = join(process.cwd(), filename);
+    if (existsSync(filePath)) {
+      const content = readFileSync(filePath, 'utf8');
+      const pgTestMatch = content.match(/^PG_TEST_URL=(.+)$/m);
+      if (pgTestMatch?.[1]) {
+        return pgTestMatch[1].trim();
+      }
+      const dbUrlMatch = content.match(/^DATABASE_URL=(.+)$/m);
+      if (dbUrlMatch?.[1]) {
+        return dbUrlMatch[1].trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+async function createTestDb(): Promise<{ db: DbExecutor; usingRealPostgres: boolean }> {
+  const connectionString = resolveTestDatabaseUrl();
+  const pool = createPgPool(connectionString);
+  await pool.query('SELECT 1');
+  const sql = readInitMigrationSql();
+  await pool.query(sql);
+  await pool.query(`
+    TRUNCATE TABLE
+      refresh_tokens,
+      imitation_reports,
+      play_events,
+      ride_mesh_metrics,
+      leader_vote_ballots,
+      leader_votes,
+      moderation_reports,
+      consents,
+      emergency_access_log,
+      badges,
+      rank_progress,
+      ride_participants,
+      ride_groups,
+      rides,
+      group_transfers,
+      invitations,
+      memberships,
+      group_leaders,
+      groups,
+      subscriptions,
+      users
+    RESTART IDENTITY CASCADE
+  `);
+  console.info('[createTestDb] Conectado a PostgreSQL 16 REAL (usingRealPostgres = true)');
+  return { db: pool, usingRealPostgres: true };
 }
 
 describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y Reglas (RULES.md)', () => {
@@ -702,6 +682,82 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
         headers: { 'x-user-id': thirdLeaderId }
       });
       expect(delCoLeader.statusCode).toBe(200);
+
+      // 6. Separación estricta access vs refresh: un refreshToken NO sirve como Bearer en endpoints y un accessToken NO sirve en /v1/auth/refresh
+      const refreshAsBearer = await app.inject({
+        method: 'GET',
+        url: '/v1/users/me',
+        headers: { authorization: `Bearer ${legitLogin.json().refreshToken}` }
+      });
+      expect(refreshAsBearer.statusCode).toBe(401);
+
+      const accessAsRefresh = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { refreshToken: legitLogin.json().accessToken }
+      });
+      expect(accessAsRefresh.statusCode).toBe(401);
+
+      // 7. Rotación de claves de firma (kid + SessionKeyring), algoritmo fijo HS256 y exp obligatorio
+      const {
+        AUTH_POLICY: policy,
+        ScryptConcurrencyLimiter,
+        issueSessionToken,
+        verifySessionToken
+      } = await import('../src/lib/auth.js');
+      expect(policy.TOKEN_ALGORITHM).toBe('HS256');
+      expect(policy.SCRYPT_MAXMEM).toBe(256 * 1024 * 1024);
+      expect(policy.MAX_FAILED_ATTEMPTS_PER_IP).toBe(100);
+
+      const keyringV1 = {
+        activeKid: 'k1',
+        keys: { k1: 'secret-key-v1-32-bytes-minimum!!' }
+      };
+      const keyringRotatedV2 = {
+        activeKid: 'k2',
+        keys: {
+          k1: 'secret-key-v1-32-bytes-minimum!!',
+          k2: 'secret-key-v2-rotated-32-bytes!!'
+        }
+      };
+      const keyringRetiredV1 = {
+        activeKid: 'k2',
+        keys: { k2: 'secret-key-v2-rotated-32-bytes!!' }
+      };
+
+      const tokenK1 = issueSessionToken(founderLeaderId, 'access', 1_700_000_000, keyringV1);
+      expect(tokenK1.kid).toBe('k1');
+      // Durante ventana de rotación (k1 + k2 vigentes), el token emitido con k1 sigue siendo válido
+      expect(verifySessionToken(tokenK1.token, 1_700_000_100, 'access', keyringRotatedV2)?.sub).toBe(
+        founderLeaderId
+      );
+      // Una vez retirada k1 del llavero, el token k1 se rechaza inmediatamente
+      expect(verifySessionToken(tokenK1.token, 1_700_000_100, 'access', keyringRetiredV1)).toBeNull();
+      // Si exp <= nowSec, se rechaza
+      expect(verifySessionToken(tokenK1.token, 1_700_005_000, 'access', keyringRotatedV2)).toBeNull();
+
+      // 8. Semáforo de concurrencia de scrypt (128 MiB por hash)
+      const limiter = new ScryptConcurrencyLimiter(2);
+      let peakActive = 0;
+      await Promise.all(
+        Array.from({ length: 6 }, (_, idx) =>
+          limiter.run(async () => {
+            peakActive = Math.max(peakActive, limiter.activeCount);
+            await new Promise((r) => setTimeout(r, 15));
+            return idx;
+          })
+        )
+      );
+      expect(peakActive).toBeLessThanOrEqual(2);
+
+      // 9. Alias /v1/users/me/profile eliminado (devuelve 404; solo existe PATCH /v1/users/me)
+      const removedAlias = await app.inject({
+        method: 'PATCH',
+        url: '/v1/users/me/profile',
+        headers: { 'x-user-id': founderLeaderId },
+        payload: { displayName: 'No Existe Alias' }
+      });
+      expect(removedAlias.statusCode).toBe(404);
     }
   );
 });

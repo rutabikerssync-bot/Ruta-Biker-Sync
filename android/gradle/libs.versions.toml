@@ -11,7 +11,7 @@ coroutines = "1.9.0"
 serialization = "1.7.3"
 datastore = "1.1.1"
 workmanager = "2.10.0"
-billing = "7.1.1"
+billing = "8.3.0"
 nearby = "19.3.0"
 maplibre = "11.5.2"
 tink = "1.15.0"
@@ -42,7 +42,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-serialization-cbor = { module = "org.jetbrains.kotlinx:kotlinx-serialization-cbor", version.ref = "serialization" }
 androidx-datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 androidx-work = { module = "androidx.work:work-runtime-ktx", version.ref = "workmanager" }
-play-billing = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
+play-billing = { module = "com.android.billingclient:billing", version.ref = "billing" }
 play-nearby = { module = "com.google.android.gms:play-services-nearby", version.ref = "nearby" }
 play-integrity = { module = "com.google.android.play:integrity", version.ref = "playIntegrity" }
 maplibre = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibre" }

@@ -353,11 +353,11 @@ Formato (CBOR o JSON firmado con Ed25519):
 | Método | Ruta | Función |
 |---|---|---|
 | POST | `/v1/auth/register` | Registro de cuenta (`email`, `password` hasheado con `scrypt N=2^17`, `displayName`, `countryCode`, `termsAccepted`, devuelve `accessToken` 30 min + `refreshToken` 30 días, D35/D37) |
-| POST | `/v1/auth/login` | Inicio de sesión (`scrypt N=2^17`, devuelve `accessToken` 30 min + `refreshToken` 30 días; bloqueo 15 min tras 5 fallos por `(correo, IP)` o 15 por IP, D35/D40) |
+| POST | `/v1/auth/login` | Inicio de sesión (`scrypt N=2^17`, devuelve `accessToken` 30 min + `refreshToken` 30 días; bloqueo 15 min tras 5 fallos por `(correo, IP)` o 100 por IP con retardo progresivo, D35/D40) |
 | POST | `/v1/auth/refresh` | Rotación de sesión: recibe `refreshToken`, verifica su hash SHA-256 en `refresh_tokens`, lo revoca y emite un nuevo par `accessToken` (30 min) + `refreshToken` (30 días) (D36/D37/D40) |
 | POST | `/v1/auth/logout` | Cierre de sesión: revoca inmediatamente el `refreshToken` en base de datos (`revoked_at = now()`) (D36/D37/D40) |
 | GET | `/v1/users/me` | Perfil propio, rango (`valid_rides`) e insignias |
-| PATCH | `/v1/users/me` | Actualizar perfil (`displayName`, `bikeModel`, `mapColorHex`, `avatarWebpBase64` máx. 64×64 WebP ≤ 24 KB). Incluye alias retrocompatible `PATCH /v1/users/me/profile` (D39) |
+| PATCH | `/v1/users/me` | Actualizar perfil (`displayName`, `bikeModel`, `mapColor`, `avatarWebpBase64` máx. 64×64 WebP ≤ 12 KB) (D39) |
 | POST | `/v1/subscriptions/verify` | Verificar compra de Play (`leader_monthly` o `member_slot_1..5`) |
 | GET | `/v1/subscriptions/me` | Estado de mis suscripciones (6 estados: `active`, `grace` 3 días según R7.3, `on_hold`, `canceled`, `expired`, `refunded`) |
 | POST | `/v1/play/rtdn` | Notificaciones de Play (idempotente en `play_events`; suspensión de grupo si caen los 3 líderes según R4.6; promoción de líder principal a los 7 días según R4.5) |
@@ -410,12 +410,17 @@ Se envían por FCM (gratis) y correo transaccional. Las alarmas de documentos so
 
 ## 10. Seguridad y Autenticación (D35 / D36 / D40)
 
-- **Autenticación (Decisiones D35, D36 y D40):**
-  - **Hashing de contraseñas (OWASP):** `scrypt` con factor de costo **`N = 131072` (`2^17`)**, `r = 8`, `p = 1`, `keylen = 64` y sal aleatoria CSPRNG de 16 bytes por usuario (`scrypt-N131072-r8-p1-k64$<salt_hex>$<hash_hex>`), verificado en tiempo constante (`timingSafeEqual`).
-  - **Tokens de sesión de corta duración:** `accessToken` firmado con HMAC-SHA256 con vigencia de **30 minutos (`1800 s`)**.
-  - **Refresh tokens rotativos y revocables:** `refreshToken` de **30 días (`2592000 s`)** con `jti` único; el backend **solo persiste su hash SHA-256** (`token_hash`) en la tabla `refresh_tokens` (`D36`). Cada llamada a `POST /v1/auth/refresh` invalida el token anterior (`replaced_by_jti`) y emite uno nuevo; si se detecta reutilización de un `refreshToken` ya rotado, se revoca toda la familia del usuario. `POST /v1/auth/logout` y `DELETE /v1/users/me` revocan inmediatamente los tokens activos.
-  - **Protección contra fuerza bruta sin denegación de servicio a terceros:** límite combinado por par `(correo, IP)` (**5 intentos fallidos** en 15 minutos) y por `IP` origen (**15 intentos fallidos** en 15 minutos). Así, un atacante desde otra IP no bloquea al dueño legítimo de la cuenta.
-  - **Almacenamiento seguro en Android (`D40`):** `accessToken` en memoria volátil del cliente HTTP; `refreshToken` cifrado en reposo mediante Android Keystore (`MasterKey` AES256-GCM).
+- **Autenticación y Modelo de Amenazas de Sesión (Decisiones D35, D36 y D40):**
+  - **Hashing de contraseñas (OWASP) con control de memoria:** `scrypt` con factor de costo **`N = 131072` (`2^17`)**, `r = 8`, `p = 1`, `keylen = 64`, sal aleatoria CSPRNG de 16 bytes (`scrypt-N131072-r8-p1-k64`) y **`maxmem = 268435456` (256 MiB explícito)**. Dado que cada derivación consume `128 * N * r * p = 128 MiB`, el backend aplica un semáforo FIFO (`ScryptConcurrencyLimiter`, `MAX_CONCURRENT_SCRYPT_HASHES = 4`) que acota el pico de memoria a 512 MiB ante ráfagas de logins concurrentes.
+  - **Token de sesión propio firmado con HMAC-SHA256 (`backend/src/lib/auth.ts`):** formato compacto `<payload_base64url>.<hmac_sha256_base64url>` que cumple 5 invariantes verificados en tests:
+    1. **Algoritmo fijo (`alg === 'HS256'`):** rechaza cualquier token con otro `alg` (impide ataques `alg: none` o confusión de algoritmo).
+    2. **Expiración obligatoria (`exp`):** `exp` debe ser número finito y `exp > nowSec` (`accessToken` = **30 min / `1800 s`**; `refreshToken` = **30 días / `2592000 s`**).
+    3. **Comparación en tiempo constante:** firma verificada con `timingSafeEqual` sobre los 32 bytes binarios del digest HMAC-SHA256.
+    4. **Aislamiento de tipos (`kind: 'access' | 'refresh'`):** el middleware `requireUserId` exige `kind === 'access'` (un `refreshToken` es rechazado con `401`), y `/v1/auth/refresh` exige `kind === 'refresh'` (un `accessToken` es rechazado con `401`).
+    5. **Rotación de clave de firma (`kid` + `SessionKeyring`):** cada token incluye el identificador de clave `kid`; el servidor mantiene un llavero (`AUTH_TOKEN_ACTIVE_KID` + `AUTH_TOKEN_KEYS_JSON`) que permite firmar con la clave nueva y verificar tokens vigentes con la clave saliente hasta su expiración natural de 30 minutos.
+  - **Refresh tokens rotativos y revocables en BD:** el backend **solo persiste el hash SHA-256** (`token_hash`) en `refresh_tokens` (`D36`). Cada llamada a `POST /v1/auth/refresh` invalida el token anterior (`replaced_by_hash`) y emite uno nuevo; si se detecta reutilización de un `refreshToken` ya rotado, se revocan todos los tokens activos del usuario.
+  - **Protección contra fuerza bruta compatible con CGNAT móvil y proxy inverso:** bloqueo por par `(correo, IP)` (**5 intentos fallidos** en 15 minutos) y umbral por `IP` de **100 intentos fallidos** en 15 minutos con retardo progresivo (`backoffDelayMs`: 250 ms → 2000 ms), evitando bloquear a usuarios legítimos que comparten IP móvil tras CGNAT. Fastify configura `trustProxy` (`TRUST_PROXY=true` en despliegue detrás de proxy inverso).
+  - **Almacenamiento seguro en Android (`SecureTokenStore.kt`, `D40`):** `accessToken` vive solo en memoria volátil (`@Volatile`); `refreshToken` se cifra con AES-256-GCM mediante clave maestra en **`AndroidKeyStore`** (`rbs_session_master_key_v1`) antes de persistirse, nunca en preferencias planas.
 - TLS en todo; autenticación con tokens de corta duración y renovación.
 - Claves de firma en KMS, rotación anual y `kid` en cada credencial.
 - Verificación de integridad de la app con Play Integrity API.

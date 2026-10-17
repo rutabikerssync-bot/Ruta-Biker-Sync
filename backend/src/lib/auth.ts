@@ -1,28 +1,172 @@
-import { createHash, createHmac, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import {
+  createHash,
+  createHmac,
+  randomBytes,
+  randomUUID,
+  scrypt,
+  scryptSync,
+  timingSafeEqual
+} from 'node:crypto';
 
 /**
- * Especificación de Autenticación P0 endurecida según OWASP (BACKEND_LICENSING.md §§8, 10 — Decisiones D35 y D40):
+ * Especificación de Autenticación P0 endurecida según OWASP (BACKEND_LICENSING.md §§8, 10 — Decisiones D35, D36, D40):
  * - Algoritmo de hash de contraseñas: scrypt con N=2^17 (131072), r=8, p=1, keylen=64 bytes, salt=16 bytes CSPRNG.
- * - Token de acceso firmado (HMAC-SHA256): corta duración de 30 minutos (1 800 s).
- * - Token de refresco rotativo: vigencia de 30 días (2 592 000 s), almacenado en PostgreSQL únicamente como hash SHA-256 (`refresh_tokens.token_hash`), revocable en `/v1/auth/logout` y rotado en `/v1/auth/refresh`.
- * - Protección contra fuerza bruta sin DoS a terceros: bloqueo por par `(email, ip)` tras 5 intentos fallidos y límite global por `ip` tras 15 intentos fallidos en ventana de 15 minutos.
+ * - Memoria por hash: 128 * N * r * p = 134 217 728 bytes (128 MiB). Se fija `SCRYPT_MAXMEM` explícito en
+ *   268 435 456 bytes (256 MiB) y un semáforo de concurrencia (`MAX_CONCURRENT_SCRYPT_HASHES = 4`) para
+ *   acotar el pico de RAM a 512 MiB ante ráfagas de inicios de sesión concurrentes.
+ * - Token propio firmado con HMAC-SHA256:
+ *   1. Algoritmo fijo obligatorio (`alg === 'HS256'`).
+ *   2. Expiración obligatoria (`exp` numérico finito y `exp > nowSec`).
+ *   3. Comparación de firma en tiempo constante (`timingSafeEqual` sobre digest binario de 32 bytes).
+ *   4. Separación estricta de tipos (`kind: 'access' | 'refresh'`): un `refresh` no sirve como Bearer de API y un `access` no sirve en `/v1/auth/refresh`.
+ *   5. Rotación de claves de firma mediante `kid` y llavero (`SessionKeyring`).
+ * - Protección contra fuerza bruta compatible con CGNAT móvil: bloqueo por par `(email, ip)` tras 5 intentos fallidos
+ *   y umbral por `ip` elevado a 100 intentos en 15 minutos con retardo progresivo (`getProgressiveDelayMs`).
  */
 export const AUTH_POLICY = {
   HASH_ALGORITHM: 'scrypt-N131072-r8-p1-k64',
-  SCRYPT_N: 131072, // 2^17 según guía OWASP Password Storage Cheat Sheet
+  TOKEN_ALGORITHM: 'HS256' as const,
+  SCRYPT_N: 131072, // 2^17 según guía OWASP Password Storage Cheat Sheet (128 MiB por derivación)
   SCRYPT_R: 8,
   SCRYPT_P: 1,
-  SCRYPT_MAXMEM: 256 * 1024 * 1024, // 256 MB para permitir N=2^17, r=8
+  SCRYPT_MAXMEM: 256 * 1024 * 1024, // 268 435 456 bytes (256 MiB explícito)
+  MAX_CONCURRENT_SCRYPT_HASHES: Number(process.env.MAX_CONCURRENT_SCRYPT_HASHES ?? 4),
   KEY_LEN: 64,
   SALT_BYTES: 16,
-  ACCESS_TOKEN_TTL_SECONDS: 30 * 60, // 30 minutos (rango 15–60 min)
+  ACCESS_TOKEN_TTL_SECONDS: 30 * 60, // 30 minutos
   REFRESH_TOKEN_TTL_SECONDS: 30 * 24 * 60 * 60, // 30 días
-  MAX_FAILED_ATTEMPTS: 5,
-  MAX_FAILED_ATTEMPTS_PER_IP: 15,
+  MAX_FAILED_ATTEMPTS: 5, // Por par (correo, IP)
+  MAX_FAILED_ATTEMPTS_PER_IP: 100, // Umbral por IP apto para redes móviles con CGNAT
   LOCKOUT_WINDOW_MS: 15 * 60 * 1000 // 15 minutos
 } as const;
 
-const TOKEN_SECRET = process.env.AUTH_TOKEN_SECRET ?? 'rbs-dev-hmac-secret-change-in-prod-32b';
+export interface SessionKeyring {
+  activeKid: string;
+  keys: Record<string, string>;
+}
+
+function loadDefaultKeyring(): SessionKeyring {
+  const activeKid = process.env.AUTH_TOKEN_ACTIVE_KID ?? 'k1';
+  const defaultSecret = process.env.AUTH_TOKEN_SECRET ?? 'rbs-dev-hmac-secret-change-in-prod-32b';
+  if (process.env.AUTH_TOKEN_KEYS_JSON) {
+    try {
+      const parsed = JSON.parse(process.env.AUTH_TOKEN_KEYS_JSON) as Record<string, string>;
+      if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+        return {
+          activeKid: parsed[activeKid] ? activeKid : Object.keys(parsed)[0],
+          keys: parsed
+        };
+      }
+    } catch {
+      // Fallback al secreto único si el JSON es inválido
+    }
+  }
+  return {
+    activeKid,
+    keys: { [activeKid]: defaultSecret }
+  };
+}
+
+let currentKeyring: SessionKeyring = loadDefaultKeyring();
+
+export function getSessionKeyring(): SessionKeyring {
+  return currentKeyring;
+}
+
+export function setSessionKeyring(keyring: SessionKeyring): void {
+  if (!keyring.keys[keyring.activeKid]) {
+    throw new Error(`ACTIVE_KID_NOT_IN_KEYRING:${keyring.activeKid}`);
+  }
+  currentKeyring = {
+    activeKid: keyring.activeKid,
+    keys: { ...keyring.keys }
+  };
+}
+
+/**
+ * Semáforo FIFO para limitar la cantidad de derivaciones `scrypt` (128 MiB c/u) ejecutándose en paralelo.
+ */
+export class ScryptConcurrencyLimiter {
+  private active = 0;
+  private readonly queue: Array<() => void> = [];
+
+  constructor(public readonly maxConcurrent: number = AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES) {}
+
+  get activeCount(): number {
+    return this.active;
+  }
+
+  get queuedCount(): number {
+    return this.queue.length;
+  }
+
+  async run<T>(task: () => Promise<T>): Promise<T> {
+    if (this.active >= this.maxConcurrent) {
+      await new Promise<void>((resolve) => this.queue.push(resolve));
+    }
+    this.active += 1;
+    try {
+      return await task();
+    } finally {
+      this.active -= 1;
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+}
+
+export const defaultScryptLimiter = new ScryptConcurrencyLimiter(
+  AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES
+);
+
+function scryptAsync(password: string, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(
+      password,
+      salt,
+      AUTH_POLICY.KEY_LEN,
+      {
+        N: AUTH_POLICY.SCRYPT_N,
+        r: AUTH_POLICY.SCRYPT_R,
+        p: AUTH_POLICY.SCRYPT_P,
+        maxmem: AUTH_POLICY.SCRYPT_MAXMEM
+      },
+      (err, derivedKey) => {
+        if (err) reject(err);
+        else resolve(derivedKey);
+      }
+    );
+  });
+}
+
+export async function hashPasswordAsync(
+  plainPassword: string,
+  limiter: ScryptConcurrencyLimiter = defaultScryptLimiter
+): Promise<string> {
+  return limiter.run(async () => {
+    const salt = randomBytes(AUTH_POLICY.SALT_BYTES);
+    const derived = await scryptAsync(plainPassword, salt);
+    return `scrypt$${salt.toString('hex')}$${derived.toString('hex')}`;
+  });
+}
+
+export async function verifyPasswordAsync(
+  plainPassword: string,
+  storedHash: string,
+  limiter: ScryptConcurrencyLimiter = defaultScryptLimiter
+): Promise<boolean> {
+  const parts = storedHash.split('$');
+  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const salt = Buffer.from(parts[1], 'hex');
+  const expected = Buffer.from(parts[2], 'hex');
+  if (salt.length !== AUTH_POLICY.SALT_BYTES || expected.length !== AUTH_POLICY.KEY_LEN) {
+    return false;
+  }
+  return limiter.run(async () => {
+    const actual = await scryptAsync(plainPassword, salt);
+    return timingSafeEqual(actual, expected);
+  });
+}
 
 export function hashPassword(plainPassword: string): string {
   const salt = randomBytes(AUTH_POLICY.SALT_BYTES);
@@ -60,6 +204,8 @@ export function hashRefreshToken(rawToken: string): string {
 }
 
 export interface SignedSessionTokenPayload {
+  alg: 'HS256';
+  kid: string;
   sub: string; // user UUID
   jti: string; // identificador único de emisión para rotación
   iat: number;
@@ -70,14 +216,28 @@ export interface SignedSessionTokenPayload {
 export function issueSessionToken(
   userId: string,
   kind: 'access' | 'refresh' = 'access',
-  nowSec: number = Math.floor(Date.now() / 1000)
-): { token: string; tokenHash: string; expiresAtIso: string; ttlSeconds: number; jti: string } {
+  nowSec: number = Math.floor(Date.now() / 1000),
+  keyring: SessionKeyring = currentKeyring
+): {
+  token: string;
+  tokenHash: string;
+  expiresAtIso: string;
+  ttlSeconds: number;
+  jti: string;
+  kid: string;
+} {
+  const secret = keyring.keys[keyring.activeKid];
+  if (!secret) {
+    throw new Error(`MISSING_SIGNING_KEY:${keyring.activeKid}`);
+  }
   const ttlSeconds =
     kind === 'access'
       ? AUTH_POLICY.ACCESS_TOKEN_TTL_SECONDS
       : AUTH_POLICY.REFRESH_TOKEN_TTL_SECONDS;
   const jti = randomUUID();
   const payload: SignedSessionTokenPayload = {
+    alg: AUTH_POLICY.TOKEN_ALGORITHM,
+    kid: keyring.activeKid,
     sub: userId,
     jti,
     iat: nowSec,
@@ -85,37 +245,67 @@ export function issueSessionToken(
     kind
   };
   const bodyB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
-  const sigB64 = createHmac('sha256', TOKEN_SECRET).update(bodyB64).digest('base64url');
+  const sigB64 = createHmac('sha256', secret).update(bodyB64).digest('base64url');
   const token = `${bodyB64}.${sigB64}`;
   return {
     token,
     tokenHash: hashRefreshToken(token),
     expiresAtIso: new Date((nowSec + ttlSeconds) * 1000).toISOString(),
     ttlSeconds,
-    jti
+    jti,
+    kid: keyring.activeKid
   };
 }
 
 export function verifySessionToken(
   token: string,
-  nowSec: number = Math.floor(Date.now() / 1000)
+  nowSec: number = Math.floor(Date.now() / 1000),
+  expectedKind?: 'access' | 'refresh',
+  keyring: SessionKeyring = currentKeyring
 ): SignedSessionTokenPayload | null {
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [bodyB64, sigB64] = parts;
-  const expectedSig = createHmac('sha256', TOKEN_SECRET).update(bodyB64).digest('base64url');
-  const a = Buffer.from(sigB64);
-  const b = Buffer.from(expectedSig);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+  if (!bodyB64 || !sigB64) return null;
+
+  let parsed: SignedSessionTokenPayload;
   try {
-    const parsed = JSON.parse(
+    parsed = JSON.parse(
       Buffer.from(bodyB64, 'base64url').toString('utf8')
     ) as SignedSessionTokenPayload;
-    if (parsed.exp <= nowSec) return null;
-    return parsed;
   } catch {
     return null;
   }
+
+  // 1. Algoritmo fijo obligatorio ('HS256')
+  if (!parsed || parsed.alg !== AUTH_POLICY.TOKEN_ALGORITHM) return null;
+
+  // 2. Separación estricta de tipos ('access' vs 'refresh')
+  if (parsed.kind !== 'access' && parsed.kind !== 'refresh') return null;
+  if (expectedKind && parsed.kind !== expectedKind) return null;
+
+  // 3. Expiración obligatoria
+  if (typeof parsed.exp !== 'number' || !Number.isFinite(parsed.exp) || parsed.exp <= nowSec) {
+    return null;
+  }
+
+  // 4. Selección de clave por `kid` (soporta rotación de claves sin invalidar sesiones en vuelo)
+  if (typeof parsed.kid !== 'string' || !parsed.kid) return null;
+  const secret = keyring.keys[parsed.kid];
+  if (!secret) return null;
+
+  // 5. Comparación de firma HMAC-SHA256 en tiempo constante sobre digest binario de 32 bytes
+  let actualSigBuf: Buffer;
+  try {
+    actualSigBuf = Buffer.from(sigB64, 'base64url');
+  } catch {
+    return null;
+  }
+  const expectedSigBuf = createHmac('sha256', secret).update(bodyB64).digest();
+  if (actualSigBuf.length !== expectedSigBuf.length) return null;
+  if (!timingSafeEqual(actualSigBuf, expectedSigBuf)) return null;
+
+  return parsed;
 }
 
 export class LoginAttemptTracker {
@@ -148,6 +338,27 @@ export class LoginAttemptTracker {
     }
 
     return false;
+  }
+
+  /**
+   * Calcula un retardo progresivo en milisegundos según los fallos acumulados para frenar ataques
+   * distribuidos o tras CGNAT sin bloquear prematuramente a toda una IP móvil compartida.
+   */
+  getProgressiveDelayMs(email: string, ip: string = '127.0.0.1', nowMs: number = Date.now()): number {
+    const acctEntry = this.accountIpAttempts.get(this.makeAccountIpKey(email, ip));
+    const acctCount =
+      acctEntry && nowMs - acctEntry.firstAttemptMs <= AUTH_POLICY.LOCKOUT_WINDOW_MS
+        ? acctEntry.count
+        : 0;
+    const ipEntry = this.ipAttempts.get(ip.trim());
+    const ipCount =
+      ipEntry && nowMs - ipEntry.firstAttemptMs <= AUTH_POLICY.LOCKOUT_WINDOW_MS
+        ? ipEntry.count
+        : 0;
+
+    if (acctCount <= 1 && ipCount <= 5) return 0;
+    const step = Math.min(4, Math.max(acctCount - 1, Math.floor(ipCount / 10)));
+    return Math.min(2000, 250 * Math.pow(2, step - 1));
   }
 
   recordFailure(email: string, ip: string = '127.0.0.1', nowMs: number = Date.now()): number {

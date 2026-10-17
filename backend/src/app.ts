@@ -20,16 +20,17 @@ import {
 import {
   AUTH_POLICY,
   LoginAttemptTracker,
-  hashPassword,
+  hashPasswordAsync,
   hashRefreshToken,
   issueSessionToken,
-  verifyPassword,
+  verifyPasswordAsync,
   verifySessionToken
 } from './lib/auth.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
   logger?: boolean;
+  trustProxy?: boolean;
 }
 
 const CountryCodeSchema = z
@@ -125,8 +126,8 @@ function requireUserId(req: FastifyRequest, reply: FastifyReply): string | null 
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
     const rawToken = authHeader.slice(7).trim();
-    const verified = verifySessionToken(rawToken);
-    if (verified && verified.kind === 'access') {
+    const verified = verifySessionToken(rawToken, undefined, 'access');
+    if (verified) {
       return verified.sub;
     }
     reply.code(401).send({ error: 'UNAUTHORIZED', message: 'Token Bearer inválido o caducado' });
@@ -180,8 +181,12 @@ function parseBytea(raw: unknown): Buffer | null {
   return null;
 }
 
-export async function buildApp({ db, logger = false }: BuildAppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger });
+export async function buildApp({
+  db,
+  logger = false,
+  trustProxy = process.env.TRUST_PROXY === 'true'
+}: BuildAppOptions): Promise<FastifyInstance> {
+  const app = Fastify({ logger, trustProxy });
   const loginTracker = new LoginAttemptTracker();
 
   await app.register(helmet);
@@ -233,7 +238,7 @@ export async function buildApp({ db, logger = false }: BuildAppOptions): Promise
     if (!user) {
       const id = randomUUID();
       const accountType = activateLeaderDemo ? 'leader' : 'member';
-      const pwdHash = password ? hashPassword(password) : null;
+      const pwdHash = password ? await hashPasswordAsync(password) : null;
       const ins = await db.query(
         `INSERT INTO users (id, email, password_hash, display_name, country_code, account_type, map_color, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
@@ -270,11 +275,15 @@ export async function buildApp({ db, logger = false }: BuildAppOptions): Promise
         hashAlgorithm: pwdHash ? AUTH_POLICY.HASH_ALGORITHM : 'none'
       });
     } else {
-      if (user.password_hash && (!password || !verifyPassword(password, user.password_hash))) {
+      const validPwd =
+        !user.password_hash || (Boolean(password) && (await verifyPasswordAsync(password!, user.password_hash)));
+      if (!validPwd) {
         const attempts = loginTracker.recordFailure(email, clientIp);
+        const backoffDelayMs = loginTracker.getProgressiveDelayMs(email, clientIp);
         return reply.code(401).send({
           error: 'INVALID_CREDENTIALS',
           remainingAttempts: Math.max(0, AUTH_POLICY.MAX_FAILED_ATTEMPTS - attempts),
+          backoffDelayMs,
           message: 'Correo o contraseña incorrectos'
         });
       }
@@ -341,8 +350,8 @@ export async function buildApp({ db, logger = false }: BuildAppOptions): Promise
       return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     }
     const { refreshToken } = parsed.data;
-    const payload = verifySessionToken(refreshToken);
-    if (!payload || payload.kind !== 'refresh') {
+    const payload = verifySessionToken(refreshToken, undefined, 'refresh');
+    if (!payload) {
       return reply.code(401).send({ error: 'INVALID_REFRESH_TOKEN', message: 'Refresh token inválido o expirado' });
     }
 
@@ -502,7 +511,6 @@ export async function buildApp({ db, logger = false }: BuildAppOptions): Promise
   };
 
   app.patch('/v1/users/me', handlePatchProfile);
-  app.patch('/v1/users/me/profile', handlePatchProfile);
 
   // ---------------------------------------------------------------------------
   // 3. Crear grupo con unicidad de nombre (leet) y logo (pHash) por país (RULES R4, R5, R8.2)

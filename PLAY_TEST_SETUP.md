@@ -118,9 +118,9 @@ Las suscripciones de cuentas de prueba renuevan más rápido, según el blog ofi
 3. Probar `purchases.subscriptionsv2.get` con un token real de la prueba P4-1.
 4. **Backend:** guardar el evento con su `message_id` (tabla `play_events`) antes de procesarlo, y reconsultar siempre a la API el estado real del token (`BACKEND_LICENSING.md` §6.3).
 
-## 9. Biblioteca de facturación (Play Billing 8.x)
+## 9. Biblioteca de facturación (Play Billing 8.3.0)
 
-La documentación oficial de Android Developers establece que, desde el **31 de agosto de 2026**, todas las aplicaciones nuevas y actualizaciones enviadas a Google Play deben usar **Play Billing Library 8 o superior**. El `libs.versions.toml` generado originalmente por `setup.sh` fijaba `billing = "7.1.1"`. Ver la propuesta completa de versiones y cambios de API en la **sección 14**.
+La documentación oficial de Android Developers establece que todas las aplicaciones nuevas y actualizaciones enviadas a Google Play deben usar **Play Billing Library 8 o superior** (requisito vigente desde el 31 de agosto de 2026, con prórroga solicitable hasta el 1 de noviembre de 2026). El `libs.versions.toml` ha sido actualizado a **`com.android.billingclient:billing:8.3.0`** tras evaluar la serie 8.x y 9.x (`9.1.0`). Ver la matriz de compatibilidad y las notas de versión oficiales verificadas en la **sección 14**.
 
 ## 10. Evidencia y entregable
 
@@ -137,11 +137,13 @@ Crear `docs/PLAY_P4_RESULTS.md` con:
 - No poner claves de cuenta de servicio ni tokens reales en el repositorio.
 - Las compras de prueba no deben mezclarse con las de producción: usar solo cuentas de licencia.
 - Mantener los IDs de producto tal cual; un ID borrado no se puede reutilizar.
+- **No crear `ride_pass_guest` en Play Console por adelantado:** crearlo únicamente si falla `P4-2` (y se descarta `AO-3`), para no quemar un ID de producto permanente en vano.
 - La política de pagos de Play para bienes digitales restringe cobrar fuera de la tienda: revisar antes de ofrecer otro método de pago.
 - Esto no es asesoría legal ni fiscal. Los impuestos y la comisión varían por país.
 
 ## 12. Fuentes
 
+- [Google Play Billing Library release notes — Android Developers](https://developer.android.com/google/play/billing/release-notes?hl=en)
 - [Subscription with add-ons — Android Developers](https://developer.android.com/google/play/billing/subscription-with-addons)
 - [Faster renewals for test subscriptions — Android Developers Blog](https://android-developers.googleblog.com/2018/01/faster-renewals-for-test-subscriptions.html)
 - [Sobre las suscripciones — Android Developers](https://developer.android.com/google/play/billing/subs)
@@ -155,42 +157,42 @@ Para proteger la regla de negocio **`RULES.md` R2.3** (*"El usuario puede salirs
 |---|---|---|---|
 | **Plan A (Por defecto)** | **Cupos numerados independientes** | `leader_monthly` (\$15) + `member_slot_1..5` (\$2.50 c/u) | Se adopta si **P4-2**, **P4-4** y **P4-7** pasan (compras independientes y cancelación aislada por cupo). |
 | **Plan B (Evaluación condicional)** | **Suscripción con add-ons** | Compra agrupada con ítems adicionales | **Regla de descarte inmediato:** si **AO-3** confirma que cancelar desde Google Play cancela toda la compra (o si AO-5 confirma que un fallo de pago tumba todos los grupos sin posibilidad de aislamiento), **los add-ons quedan descartados** y no se usan en producción. |
-| **Plan C (Contingencia definitiva)** | **Pase por rodada para invitados (P5)** | `leader_monthly` (\$15) + `member_slot_1` (\$2.50 miembro único) + `ride_pass_guest` (consumible/pase por rodada) | Se activa directamente si falla el Plan A y se descarta el Plan B por AO-3. Ya está modelado en `BillingPolicyConfig.MultiSlotStrategy.RIDE_PASS_FALLBACK`. |
+| **Plan C (Contingencia definitiva)** | **Pase por rodada para invitados (P5)** | `leader_monthly` (\$15) + `member_slot_1` (\$2.50 miembro único) + `ride_pass_guest` *(⚠️ **NO CREAR todavía en Play Console**; crear solo si `P4-2` falla)* | Se activa directamente si falla el Plan A y se descarta el Plan B por AO-3. Ya está modelado en `BillingPolicyConfig.MultiSlotStrategy.RIDE_PASS_FALLBACK`. |
 
-## 14. Propuesta de versiones de Play Billing 8.x y compatibilidad (Decisión D41)
+## 14. Versión aplicada de Play Billing 8.3.0 y evaluación de 9.x (Decisión D41)
 
-De acuerdo con la regla de gobernanza (§4.3: no modificar versiones fijadas sin proponerlas primero), se documenta la matriz de compatibilidad y los cambios de API entre `7.1.1` y `8.0.0`:
+De acuerdo con las [notas de versión oficiales de Google Play Billing Library](https://developer.android.com/google/play/billing/release-notes?hl=en), se evaluaron las versiones `8.0.0`, `8.1.0`, `8.3.0` y `9.1.0` contra el stack actual (`AGP 8.7.3`, `Kotlin 2.0.21`, `KSP 2.0.21-1.0.28`, `compileSdk = 35`):
 
-### 14.1 Matriz de compatibilidad propuesta (`gradle/libs.versions.toml`)
+### 14.1 Matriz de compatibilidad verificada (`gradle/libs.versions.toml`)
 
-| Componente | Versión actual (`libs.versions.toml`) | Versión propuesta | Compatibilidad verificada |
+| Componente | Versión anterior | Versión aplicada (`D41`) | Resultado de verificación con AGP `8.7.3` y Kotlin `2.0.21` |
 |---|---|---|---|
-| `com.android.billingclient:billing-ktx` | `7.1.1` (obsoleta el 31-ago-2026) | **`8.0.0`** | Compatible con `minSdk = 26`, `compileSdk = 35`, `targetSdk = 35` y Kotlin `2.0.x` (metadata Kotlin 2.0 soportada nativamente). |
-| Android Gradle Plugin (`agp`) | `8.7.3` | **`8.7.3`** (sin cambio) | Soporta `compileSdk = 35` y AARs de Billing `8.0.0`. *(Plan B si una versión futura 8.1+ exigiera `compileSdk = 36`: subir `agp = "8.8.0"` y `compileSdk = 36` manteniendo `minSdk = 26`)*. |
-| Kotlin (`kotlin`) | `2.0.21` | **`2.0.21`** (sin cambio) | Totalmente compatible con `billing-ktx:8.0.0`. |
-| KSP (`ksp`) | `2.0.21-1.0.28` | **`2.0.21-1.0.28`** (sin cambio) | Alineado con Kotlin `2.0.21` y Room `2.6.1`. |
-| Compose BOM (`composeBom`) | `2024.10.01` | **`2024.10.01`** (sin cambio) | Estable con Kotlin `2.0.21` (`org.jetbrains.kotlin.plugin.compose`). |
+| `com.android.billingclient:billing` | `7.1.1` (`billing-ktx`) | **`8.3.0`** | **Compila y pasa tests (`BUILD SUCCESSFUL`).** Incluye `includeSuspendedSubscriptions(boolean)` y `Purchase.isSuspended()` de `8.1.0+`. *(Nota técnica: el artefacto satélite `billing-ktx:8.3.0` y `9.1.0` empaqueta `.kotlin_module` con metadata Kotlin `2.2.0`/`2.3.0` que rompe `KSP 2.0.21-1.0.28`; usando `com.android.billingclient:billing:8.3.0` compila limpiamente con Kotlin `2.0.21` sin tocar AGP ni KSP).* |
+| Evaluación serie `9.x` (`9.1.0`, 2026-06-18) | — | Evaluada (`9.1.0`) | `9.1.0` añade APIs de `BillingChoiceInfo` (`getBillingChoiceInfoAsync`) y `showBillingProgramInformationDialog`, y su artefacto `-ktx` exige Kotlin metadata `2.3.0`. Para nuestro alcance de suscripciones estándar y detección de `on_hold`, **`8.3.0`** es la versión estable verificada con el compilador actual. |
+| Android Gradle Plugin (`agp`) | `8.7.3` | **`8.7.3`** (sin cambio) | Estable con `compileSdk = 35` y `billing:8.3.0`. |
+| Kotlin (`kotlin`) / KSP (`ksp`) | `2.0.21` / `2.0.21-1.0.28` | **`2.0.21` / `2.0.21-1.0.28`** (sin cambio) | Estable. |
+| Compose BOM (`composeBom`) | `2024.10.01` | **`2024.10.01`** (sin cambio) | Estable. |
 
-### 14.2 Cambios de API obligatorios entre Play Billing 7.1.1 y 8.0.0
+### 14.2 Cambios de API verificados en las notas de versión oficiales (`8.0.0` → `8.3.0`)
 
-1. **`queryProductDetailsAsync` y `ProductDetailsResponseListener`:**
-   - **En PBL 7.x:** `onProductDetailsResponse(billingResult: BillingResult, productDetailsList: List<ProductDetails>)`.
-   - **En PBL 8.0.0:** `onProductDetailsResponse(billingResult: BillingResult, queryProductDetailsResult: QueryProductDetailsResult)`. La lista de productos válidos viene en `queryProductDetailsResult.productDetailsList` y los productos no recuperables o mal configurados vienen en `queryProductDetailsResult.unfetchedProductList`.
-2. **`BillingFlowParams.SubscriptionUpdateParams.Builder`:**
-   - Se eliminan definitivamente `setOldSkuPurchaseToken(...)`, `setReplaceProrationMode(...)` y `setReplaceSkusProrationMode(...)`.
-   - Se usan únicamente `setOldPurchaseToken(oldToken)` y `setSubscriptionReplacementMode(SubscriptionUpdateParams.ReplacementMode.*)`.
-3. **Compras pendientes (`PendingPurchasesParams`):**
-   - `BillingClient.newBuilder(context).enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())` es obligatorio al construir el cliente.
-4. **Reconexión automática del servicio:**
-   - PBL 8.0.0 introduce `BillingClient.Builder.enableAutoServiceReconnection()`, reduciendo el código manual de reintento ante `BillingResponseCode.SERVICE_DISCONNECTED`.
-5. **Eliminación de `queryPurchaseHistoryAsync`:**
-   - Para restaurar o auditar compras expiradas no se usa el cliente local, sino el backend (`GET /v1/subscriptions/me` + reconciliación contra `purchases.subscriptionsv2.get`).
+1. **PBL `8.1.0` — Suscripciones suspendidas en `queryPurchasesAsync()` (crítico para `on_hold`):**
+   - `QueryPurchasesParams.Builder.includeSuspendedSubscriptions(true)` permite incluir suscripciones suspendidas (`on_hold`, p. ej. por método de pago rechazado tras el periodo de gracia) al llamar a `BillingClient.queryPurchasesAsync()`.
+   - `Purchase.isSuspended()` devuelve `true` cuando la suscripción está en retención de cuenta (`on_hold`), lo que nos permite reflejar los 6 estados de `BACKEND_LICENSING.md` §5 también desde el cliente.
+2. **PBL `8.0.0` — `queryProductDetailsAsync`, reconexión automática, sub-códigos y limpieza de APIs heredadas:**
+   - `ProductDetailsResponseListener.onProductDetailsResponse(BillingResult, QueryProductDetailsResult)` entrega tanto `productDetailsList` como `unfetchedProductList`.
+   - `BillingClient.Builder.enableAutoServiceReconnection()` automatiza la reconexión del servicio ante desconexiones transitorias.
+   - `BillingResult.getOnPurchasesUpdatedSubResponseCode()` expone sub-códigos detallados de fallo en el flujo de compra.
+   - Se eliminan definitivamente `querySkuDetailsAsync()`, `SkuDetailsParams`, `queryPurchaseHistoryAsync()` y `enablePendingPurchases()` sin parámetros (debe pasarse `PendingPurchasesParams`).
+   - *(Corrección documental: `SubscriptionUpdateParams.ReplacementMode` fue introducido en Play Billing `5.0.0` en reemplazo de `ProrationMode`, no es un cambio introducido en `8.0.0`).*
+3. **PBL `8.3.0` — Programas de pago externo:**
+   - Añade `BillingProgram.EXTERNAL_PAYMENTS`, `EnableBillingProgramParams` y `DeveloperBillingOptionParams` (no utilizados en nuestro flujo estándar dentro de Play).
 
 ## 15. Dependencia con el modelo de sesión, Refresh Token y Logout (Prueba P4-14)
 
 La prueba **P4-14** (*"Reinstalar la app e iniciar sesión con T1"*) requiere que el flujo de sesión en Android y backend esté cerrado antes de ejecutar la matriz:
 - **En el backend (`backend/src/lib/auth.ts` y `0001_init.sql`):**
-  - El `accessToken` tiene una duración corta (**30 minutos** = `1800 s`).
-  - El `refreshToken` (vigencia **30 días**) se almacena en PostgreSQL **únicamente como hash SHA-256** en la tabla `refresh_tokens`, con soporte de **rotación en cada uso** (`POST /v1/auth/refresh`) y **revocación explícita** (`POST /v1/auth/logout`).
-- **En Android (Decisión D40):**
-  - El `refreshToken` y el par de claves del dispositivo se resguardan mediante **Android Keystore** (`MasterKey` AES256-GCM) y almacenamiento local cifrado, nunca en `SharedPreferences` en texto plano.
+   - El `accessToken` tiene una duración corta (**30 minutos** = `1800 s`) con algoritmo fijo `HS256`, `exp` obligatorio, comparación en tiempo constante (`timingSafeEqual`), distinción estricta `kind: 'access' | 'refresh'` y rotación de claves por `kid` (`SessionKeyring`).
+   - El `refreshToken` (vigencia **30 días**) se almacena en PostgreSQL **únicamente como hash SHA-256** en la tabla `refresh_tokens`, con soporte de **rotación en cada uso** (`POST /v1/auth/refresh`) y **revocación explícita** (`POST /v1/auth/logout`).
+- **En Android (`SecureTokenStore.kt` + `ClubApiClient.kt` — Decisión D40):**
+   - El `accessToken` vive exclusivamente en memoria volátil (`@Volatile var accessToken`) y el `refreshToken` se cifra con **AES-256-GCM** mediante **`AndroidKeyStore`** (`KeystoreEncryptedTokenStore`, alias `rbs_session_master_key_v1`), nunca en `SharedPreferences` en texto plano.
+
