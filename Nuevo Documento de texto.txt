@@ -1,0 +1,28 @@
+Voy a escribir un único script setup.sh que crea la estructura del proyecto, instala las herramientas y deja los esqueletos de Android y del backend, y luego lo pruebo aquí.
+
+setup.sh está listo. Lo probé en este entorno solo con --no-install y --dry-run: la sintaxis es válida, la generación de archivos corre sin errores y una segunda ejecución no sobrescribe nada. No probé las instalaciones reales (JDK, Android SDK, npm, Gradle), así que esa parte queda sin verificar.
+
+Cómo usarlo (Linux con apt o macOS con Homebrew; en Windows, con WSL2):
+
+bash
+chmod +x setup.sh
+./setup.sh --dry-run     # ver qué haría, sin cambiar nada
+./setup.sh               # ejecución completa
+
+Ponlo en la misma carpeta que los .md si quieres que los copie a docs/. Opciones útiles: --no-install (solo estructura), --skip-android-sdk, --skip-npm, --with-brouter y --dir <ruta>.
+
+Qué hace:
+
+Herramientas: revisa git, curl, unzip y JDK 17, e instala Node LTS con nvm si falta. Con apt o brew instala los paquetes faltantes. Si encuentra Docker lo usa; si no, solo avisa.
+Android: descarga las herramientas de línea de comandos, acepta licencias e instala platform-tools, la plataforma 35 y build-tools. También genera el Gradle wrapper.
+Estructura: unas 90 carpetas, con core/ (transport, mesh, crypto, audio) y feature/ (grupos, rodadas, mapa, SOS, bóveda, billing…) en Android. El backend tiene un módulo por área de BACKEND_LICENSING.md, y además hay docs/, infra/, field-tests/ y CI.
+Esqueletos: proyecto Android con Compose, Room, MapLibre, Play Billing, Nearby, Tink y ML Kit; manifiesto con permisos de BLE, ubicación, servicio en primer plano y audio. Backend con Fastify, TypeScript y PostgreSQL, más docker-compose y variables en .env.example.
+
+Pendiente de tu parte:
+
+Las versiones de libs.versions.toml son las que conozco y pueden estar desactualizadas; actualízalas antes de compilar. Las del backend sí salen vigentes, porque las resuelve npm.
+Si la descarga de las herramientas de Android falla, actualiza el número CMDLINE_TOOLS_REV en el script (la propia línea indica de dónde sacarlo).
+El backend aún no tiene las tablas: 0001_init.sql solo activa las extensiones, y el esquema de BACKEND_LICENSING.md se pega ahí.
+El servicio de rodada está comentado en el manifiesto hasta que exista la clase.
+
+Siguiente paso: la migración SQL completa del esquema, o el esqueleto en Kotlin de la capa Transport con el reenvío por TTL.

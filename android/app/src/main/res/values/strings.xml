@@ -1,0 +1,85 @@
+<resources>
+    <string name="app_name">Ruta Biker Sync</string>
+    <string name="phase0_title">Fase 0 · Validación BLE Mesh en Campo</string>
+    <string name="phase0_subtitle">Emisión/escucha con inundación controlada (TTL + dedup + pérdida a 5 latidos)</string>
+    <string name="ble_capabilities_label">Capacidades BLE del dispositivo</string>
+    <string name="mode_real_ble">BLE Real (Hardware)</string>
+    <string name="mode_simulated_mesh">Simulador Convoy (5 motos)</string>
+    <string name="mode_sim_convoy">Simulador Convoy (5 motos)</string>
+    <string name="mesh_status_solo">SOLO (Sin riders en rango)</string>
+    <string name="mesh_status_partial">MESH PARCIAL (Convoy dividido en islas)</string>
+    <string name="mesh_status_connected">MESH CONECTADA</string>
+    <string name="mesh_status_searching">BUSCANDO RIDERS BLE…</string>
+    <string name="metric_delivery_pct">Entrega estimada</string>
+    <string name="metric_avg_hops">Saltos promedio</string>
+    <string name="metric_emitted_received">Emitidos / Recibidos</string>
+    <string name="metric_relayed_dedup">Reenviados / Deduplicados</string>
+    <string name="metric_islands_peers">Cortes de isla / Nodos</string>
+    <string name="btn_start_test">INICIAR MESH</string>
+    <string name="btn_stop_test">DETENER MESH</string>
+    <string name="btn_force_island">SIMULAR CORTE DE CONVOY (ISLAS)</string>
+    <string name="osm_attribution">© OpenStreetMap contributors</string>
+    <string name="btn_start_mesh">INICIAR MESH</string>
+    <string name="btn_stop_mesh">DETENER MESH</string>
+    <string name="btn_emit_sos">EMITIR SOS</string>
+    <string name="btn_split_island">SIMULAR CORTE DE CONVOY (ISLAS)</string>
+    <string name="btn_rejoin_island">REAGRUPAR CONVOY</string>
+    <string name="btn_export_report">EXPORTAR MÉTRICAS JSON</string>
+    <string name="label_capabilities">Capacidades BLE del dispositivo</string>
+    <string name="label_metrics">Métricas de malla en tiempo real</string>
+    <string name="label_nodes">Estado de nodos en el convoy</string>
+    <string name="status_in_mesh">EN MESH</string>
+    <string name="status_lost">FUERA DE MESH (&gt;5 latidos)</string>
+    <string name="gloves_hint">Modo Guantes Activo: botones ≥ 72 dp, alto contraste solar</string>
+
+    <!-- Navegación inferior (SCREENS.md §2) -->
+    <string name="nav_rides">Rodadas</string>
+    <string name="nav_groups">Grupo</string>
+    <string name="nav_routes">Rutas</string>
+    <string name="nav_profile">Perfil</string>
+
+    <!-- Skeletons y estados (SKELETONS.md §5 y §9) -->
+    <string name="skeleton_loading_a11y">Cargando</string>
+    <string name="skeleton_slow_hint">Esto está tardando más de lo normal…</string>
+    <string name="state_stale_banner">Sin conexión · mostrando datos guardados mientras actualizamos</string>
+    <string name="state_error_network_title">No pudimos cargar los datos</string>
+    <string name="state_error_network_desc">Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="state_error_server_title">Error temporal del servidor (500)</string>
+    <string name="state_error_server_desc">Nuestros servidores no respondieron a tiempo.</string>
+    <string name="state_error_forbidden_title">No tienes permiso para ver esto</string>
+    <string name="state_error_forbidden_desc">Esta sección requiere permisos de líder del grupo.</string>
+    <string name="state_error_sub_expired_title">Suscripción vencida</string>
+    <string name="state_error_sub_expired_desc">Tu acceso a grupos y rodadas está pausado hasta renovar ($2.50/mes o $15/mes líder).</string>
+    <string name="state_offline_title">Sin conexión</string>
+    <string name="state_offline_desc">Conéctate una vez para cargar esta información.</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_renew_subscription">Renovar suscripción</string>
+
+    <!-- Fase 1: Grupos, Invitaciones, Perfil y Onboarding -->
+    <string name="groups_title">Mis Grupos y Clubes</string>
+    <string name="groups_empty_title">No perteneces a ningún grupo</string>
+    <string name="groups_empty_desc">Pide a un líder que te invite mediante tu ID o código QR.</string>
+    <string name="groups_pending_invites">Invitaciones pendientes</string>
+    <string name="groups_create_btn">Crear grupo (Líder $15/mes)</string>
+    <string name="groups_invite_btn">Invitar miembro</string>
+    <string name="groups_leaders_title">Líderes del grupo (máx. 3)</string>
+    <string name="groups_members_title">Miembros del club</string>
+    <string name="groups_votes_title">Votaciones sensibles (mayoría 2/3)</string>
+    <string name="groups_transfer_title">Transferencia de grupo (espera 7 días)</string>
+    <string name="sem_green">Al día</string>
+    <string name="sem_yellow">Por vencer</string>
+    <string name="sem_red">Vencida</string>
+    <string name="invite_cost_notice">Costo de membresía: $2.50 USD/mes (cobrado en Google Play al aceptar)</string>
+    <string name="consent_membership">Acepto pertenecer a este grupo (obligatorio)</string>
+    <string name="consent_location">Acepto compartir mi ubicación en rodadas activas (obligatorio)</string>
+    <string name="consent_emergency">Autorizo paquete de emergencia sellado para líderes (opcional)</string>
+    <string name="consent_notifications">Acepto avisos y convocatorias de rodada (opcional)</string>
+    <string name="action_accept_invite">Aceptar e ir a Play ($2.50/mes)</string>
+    <string name="action_reject_invite">Rechazar</string>
+    <string name="profile_title">Mi Perfil Biker</string>
+    <string name="profile_save">Guardar perfil</string>
+    <string name="profile_open_auth">Login / Onboarding</string>
+    <string name="dev_panel_btn">DEV</string>
+    <string name="dev_panel_title">Panel de Desarrollador (Solo Debug)</string>
+    <string name="dev_load_demo">Cargar datos demo (3 grupos, 10 miembros)</string>
+</resources>

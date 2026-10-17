@@ -1,0 +1,106 @@
+{
+  "version": "1.0",
+  "description": "Vectores de prueba canónicos compartidos entre Backend (TypeScript/Vitest) y Android (Kotlin/JUnit) para RULES.md R5.1, R5.2 y R7.3.",
+  "normalizationCases": [
+    {
+      "input": "¡Halcónes del Asfálto! - M.C.",
+      "expectedNormalized": "halconesdelasfaltomc",
+      "expectedLeetSkeleton": "halconesdelasfaltomc"
+    },
+    {
+      "input": "H4lc0n3s d3l 4sf4lt0",
+      "expectedNormalized": "h4lc0n3sd3l4sf4lt0",
+      "expectedLeetSkeleton": "halconesdelasfalto"
+    },
+    {
+      "input": "C0y0t3ss   d3   l4   S13rr4!!!",
+      "expectedNormalized": "c0y0t3ssd3l4s13rr4",
+      "expectedLeetSkeleton": "coyotesdelasiera"
+    }
+  ],
+  "collisionCases": [
+    {
+      "candidate": "HALCONES DEL ASFALTO!",
+      "existing": "Halcones del Asfalto",
+      "expectedCollides": true,
+      "expectedReason": "EXACT_NORMALIZED"
+    },
+    {
+      "candidate": "H4lc0n3s d3l 4sf4lt0",
+      "existing": "Halcones del Asfalto",
+      "expectedCollides": true,
+      "expectedReason": "LEET_EQUIVALENT"
+    },
+    {
+      "candidate": "Halcones del Asfaltoo",
+      "existing": "Halcones del Asfalto",
+      "expectedCollides": true,
+      "expectedReason": "LEET_EQUIVALENT"
+    },
+    {
+      "candidate": "Halcones del Asfalta",
+      "existing": "Halcones del Asfalto",
+      "expectedCollides": true,
+      "expectedReason": "NEAR_DUPLICATE"
+    },
+    {
+      "candidate": "Guerreros del Norte",
+      "existing": "Halcones del Asfalto",
+      "expectedCollides": false,
+      "expectedReason": null
+    }
+  ],
+  "phashCases": [
+    {
+      "candidateHex": "a5a5a5a5a5a5a5a4",
+      "existingHex": "a5a5a5a5a5a5a5a5",
+      "expectedDistance": 1,
+      "expectedRejected": true,
+      "expectedManualReview": false
+    },
+    {
+      "candidateHex": "a5a5a5a5a5a50000",
+      "existingHex": "a5a5a5a5a5a5a5a5",
+      "expectedDistance": 8,
+      "expectedRejected": false,
+      "expectedManualReview": true
+    },
+    {
+      "candidateHex": "5a5a5a5a5a5a5a5a",
+      "existingHex": "a5a5a5a5a5a5a5a5",
+      "expectedDistance": 64,
+      "expectedRejected": false,
+      "expectedManualReview": false
+    }
+  ],
+  "semaphoreCases": [
+    {
+      "name": "Activa (>5 días)",
+      "nowEpochMs": 1700000000000,
+      "paidUntilEpochMs": 1700864000000,
+      "graceUntilEpochMs": null,
+      "expectedSemaphore": "green"
+    },
+    {
+      "name": "Por vencer (3 días)",
+      "nowEpochMs": 1700000000000,
+      "paidUntilEpochMs": 1700259200000,
+      "graceUntilEpochMs": null,
+      "expectedSemaphore": "yellow"
+    },
+    {
+      "name": "En periodo de gracia (venció ayer, gracia +2 días)",
+      "nowEpochMs": 1700000000000,
+      "paidUntilEpochMs": 1699913600000,
+      "graceUntilEpochMs": 1700172800000,
+      "expectedSemaphore": "yellow"
+    },
+    {
+      "name": "Vencida sin gracia",
+      "nowEpochMs": 1700000000000,
+      "paidUntilEpochMs": 1699913600000,
+      "graceUntilEpochMs": null,
+      "expectedSemaphore": "red"
+    }
+  ]
+}

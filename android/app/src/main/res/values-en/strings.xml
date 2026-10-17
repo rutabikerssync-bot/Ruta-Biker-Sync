@@ -1,0 +1,85 @@
+<resources>
+    <string name="app_name">Ruta Biker Sync</string>
+    <string name="phase0_title">Phase 0 · Field BLE Mesh Validation</string>
+    <string name="phase0_subtitle">Broadcast/scan with controlled flooding (TTL + dedup + 5-beat loss)</string>
+    <string name="ble_capabilities_label">Device BLE Capabilities</string>
+    <string name="mode_real_ble">Real BLE (Hardware)</string>
+    <string name="mode_simulated_mesh">Convoy Simulator (5 bikes)</string>
+    <string name="mode_sim_convoy">Convoy Simulator (5 bikes)</string>
+    <string name="mesh_status_solo">SOLO (No riders in range)</string>
+    <string name="mesh_status_partial">PARTIAL MESH (Convoy split in islands)</string>
+    <string name="mesh_status_connected">MESH CONNECTED</string>
+    <string name="mesh_status_searching">SEARCHING BLE RIDERS…</string>
+    <string name="metric_delivery_pct">Est. Delivery</string>
+    <string name="metric_avg_hops">Average Hops</string>
+    <string name="metric_emitted_received">Emitted / Received</string>
+    <string name="metric_relayed_dedup">Relayed / Deduplicated</string>
+    <string name="metric_islands_peers">Island Splits / Nodes</string>
+    <string name="btn_start_test">START MESH</string>
+    <string name="btn_stop_test">STOP MESH</string>
+    <string name="btn_force_island">SIMULATE CONVOY SPLIT (ISLANDS)</string>
+    <string name="osm_attribution">© OpenStreetMap contributors</string>
+    <string name="btn_start_mesh">START MESH</string>
+    <string name="btn_stop_mesh">STOP MESH</string>
+    <string name="btn_emit_sos">TRIGGER SOS</string>
+    <string name="btn_split_island">SIMULATE CONVOY SPLIT (ISLANDS)</string>
+    <string name="btn_rejoin_island">REJOIN CONVOY</string>
+    <string name="btn_export_report">EXPORT JSON METRICS</string>
+    <string name="label_capabilities">Device BLE Capabilities</string>
+    <string name="label_metrics">Real-Time Mesh Metrics</string>
+    <string name="label_nodes">Convoy Node Status</string>
+    <string name="status_in_mesh">IN MESH</string>
+    <string name="status_lost">LOST (&gt;5 beats)</string>
+    <string name="gloves_hint">Gloves Mode Active: buttons ≥ 72 dp, high sunlight contrast</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_rides">Rides</string>
+    <string name="nav_groups">Groups</string>
+    <string name="nav_routes">Routes</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Skeletons and states -->
+    <string name="skeleton_loading_a11y">Loading</string>
+    <string name="skeleton_slow_hint">This is taking longer than usual…</string>
+    <string name="state_stale_banner">Offline · showing cached data while refreshing</string>
+    <string name="state_error_network_title">Could not load data</string>
+    <string name="state_error_network_desc">Check your connection and try again.</string>
+    <string name="state_error_server_title">Temporary server error (500)</string>
+    <string name="state_error_server_desc">Our servers did not respond in time.</string>
+    <string name="state_error_forbidden_title">You do not have permission to view this</string>
+    <string name="state_error_forbidden_desc">This section requires group leader permissions.</string>
+    <string name="state_error_sub_expired_title">Subscription expired</string>
+    <string name="state_error_sub_expired_desc">Access to groups and rides is paused until renewal ($2.50/mo or $15/mo leader).</string>
+    <string name="state_offline_title">Offline</string>
+    <string name="state_offline_desc">Connect once to load this information.</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_renew_subscription">Renew subscription</string>
+
+    <!-- Phase 1: Groups, Invitations, Profile and Onboarding -->
+    <string name="groups_title">My Groups &amp; Clubs</string>
+    <string name="groups_empty_title">You do not belong to any group</string>
+    <string name="groups_empty_desc">Ask a leader to invite you using your ID or QR code.</string>
+    <string name="groups_pending_invites">Pending invitations</string>
+    <string name="groups_create_btn">Create group (Leader $15/mo)</string>
+    <string name="groups_invite_btn">Invite member</string>
+    <string name="groups_leaders_title">Group leaders (max 3)</string>
+    <string name="groups_members_title">Club members</string>
+    <string name="groups_votes_title">Sensitive votes (2/3 majority)</string>
+    <string name="groups_transfer_title">Group transfer (7-day hold)</string>
+    <string name="sem_green">Active</string>
+    <string name="sem_yellow">Expiring soon</string>
+    <string name="sem_red">Expired</string>
+    <string name="invite_cost_notice">Membership cost: $2.50 USD/month (billed via Google Play upon acceptance)</string>
+    <string name="consent_membership">I agree to join this group (required)</string>
+    <string name="consent_location">I agree to share my location during active rides (required)</string>
+    <string name="consent_emergency">I authorize sealed emergency package for leaders (optional)</string>
+    <string name="consent_notifications">I agree to receive ride alerts and invitations (optional)</string>
+    <string name="action_accept_invite">Accept &amp; subscribe ($2.50/mo)</string>
+    <string name="action_reject_invite">Decline</string>
+    <string name="profile_title">My Biker Profile</string>
+    <string name="profile_save">Save profile</string>
+    <string name="profile_open_auth">Login / Onboarding</string>
+    <string name="dev_panel_btn">DEV</string>
+    <string name="dev_panel_title">Developer Panel (Debug Only)</string>
+    <string name="dev_load_demo">Load demo data (3 groups, 10 members)</string>
+</resources>

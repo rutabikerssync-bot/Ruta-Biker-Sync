@@ -1,0 +1,35 @@
+# Android
+*.iml
+.gradle/
+build/
+local.properties
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.keystore
+*.jks
+keystore.properties
+google-services.json
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+*.pem
+signing-keys/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Herramientas descargadas
+tools/brouter/
+tools/gradle-*/

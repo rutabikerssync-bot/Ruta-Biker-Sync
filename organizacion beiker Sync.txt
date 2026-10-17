@@ -1,0 +1,105 @@
+beiker Sync
+
+🏍️ Riding Club (RC)
+Concepto: El objetivo principal es andar en moto y socializar. Es un grupo de amigos que se reúnen para rodar, sin necesidad de compromiso de por vida, ni necesidad de apadrinamiento de un MC. La estructura es flexible, las decisiones suelen ser democráticas y tanto hombres como mujeres pueden participar por igual.
+
+Requisitos de ascenso: No aplica. El RC es el punto de partida y no requiere ascenso desde un nivel inferior.
+
+Tiempo estimado: No aplica.
+
+Requisitos clave para la transición (si se desea ascender): Si un RC desea ascender a MG, generalmente necesita encontrar un MC dispuesto a apadrinarlo, y comenzar a adoptar reglas más estrictas y una estructura organizativa más clara.
+
+🛡️ MotoGroup (MG)
+Concepto: Un tipo de grupo intermedio entre una asociación y un MC, a menudo llamado "club familiar". Las mujeres pueden ser miembros formales e incluso participar en la directiva. Las reglas son más estrictas que las de un RC, pero más flexibles que las de un MC. Muchos MG permanecen en esta etapa y no ascienden.
+
+Requisitos de ascenso (de RC a MG):
+
+Contar con un MC que lo apadrine (el padrino presenta a los oficiales del grupo y los colores del club ante el "comité" para su aprobación).
+
+Tener al menos 5 miembros fundadores.
+
+Usar un parche de una sola pieza (redondo u ovalado), sin las letras "MC".
+
+Tiempo estimado: No existe un tiempo fijo. Depende de si se encuentra un MC padrino y si el grupo está dispuesto a aceptar reglas más estrictas.
+
+⛓️ Gang (etapa de transición)
+Concepto: Después de operar como MG durante varios años, si se desea continuar evolucionando hacia un MC, se entra en la etapa de Gang. Las reglas se acercan a las de un MC, las mujeres ya no pueden formar parte de la directiva ni llevar los colores del club. El parche se actualiza a tres piezas, pero sin las letras "MC".
+
+Requisitos de ascenso (de MG a Gang):
+
+Haber operado como MG durante al menos 3 años.
+
+Cumplir requisitos adicionales como celebrar aniversarios, participar en eventos importantes de la región, etc..
+
+Las motos de los miembros deben tener una cilindrada superior a 500cc.
+
+Obtener la aprobación del "comité" (generalmente compuesto por los líderes del MC padrino).
+
+Tiempo estimado: Al menos 3 años como MG, más el tiempo de revisión y aprobación del comité.
+
+💀 MotoClub (MC)
+Concepto: El nivel más alto de organización de motociclistas. Tiene estatutos estrictos, una jerarquía clara (presidente, vicepresidente, sargento de armas, capitán de ruta, etc.) y un fuerte sentido de hermandad y lealtad. Entrar en un MC generalmente significa un compromiso de por vida, y la mayoría de los MC tradicionales solo aceptan hombres como miembros de pleno derecho.
+
+Requisitos de ascenso (de Gang a MC):
+
+Contar con el respaldo y la recomendación del MC padrino.
+
+Tener una estructura organizativa completa (presidente, vicepresidente, secretario, tesorero, etc.).
+
+Usar parches de tres piezas que incluyan las letras "MC".
+
+La evaluación del comité del MC padrino es aprobada.
+
+Tiempo estimado: Después de varios años de operación como Gang (tiempo específico variable), más el tiempo de revisión del MC padrino. En el caso de ingresar directamente a un MC (sin pasar por la evolución RC→MG→Gang), el tiempo desde "conocido" hasta "miembro de pleno derecho" (Full Patch) es de aproximadamente 3 a 3.5 años según investigaciones. El proceso específico es: Support/Hangaround (aproximadamente 6 meses) → Prospect (aproximadamente 1 a 2 años) → Full Patch (se requiere aprobación unánime de todos los miembros).
+
+📝 Resumen de la ruta de ascenso
+text
+RC (sin requisitos) 
+  → [encontrar MC padrino, mínimo 5 personas] 
+  → MG (parche de una pieza) 
+  → [operar al menos 3 años, cumplir requisitos, aprobación del comité] 
+  → Gang (parche de tres piezas sin "MC") 
+  → [aprobación del MC padrino, estructura completa] 
+  → MC (parche de tres piezas con "MC")
+Advertencia final: Lo anterior es un marco de referencia común en la comunidad. En la realidad, cada MC tiene sus propias reglas, y el tiempo y los requisitos pueden ser mucho más flexibles o estrictos. Para el diseño de tu app, se recomienda tratar estos procesos como "plantillas predeterminadas de referencia", permitiendo que el creador del grupo los personalice.
+
+
+
+Rangos e insignias
+
+La Mesa Directiva (Officers / The Table)
+Dentro de los "Miembros de Parche Completo", se elige democráticamente (o por designación del presidente saliente, según el club) a los oficiales que dirigen el capítulo local:
+1. Presidente (Presidente)
+La máxima autoridad del capítulo. Su palabra es ley. Toma las decisiones finales sobre membresías, conflictos y la dirección del club. Se le debe respeto absoluto.
+2. Vicepresidente (VP)
+La mano derecha del presidente. Lo suple en su ausencia. A menudo se encarga de la administración diaria, la resolución de conflictos internos y de asegurar que las órdenes del presidente se cumplan.
+3. Sargento de Armas
+El encargado de la seguridad, la disciplina y el orden. Protege físicamente al presidente, maneja el armamento del club (si aplica), registra a los visitantes en las reuniones y se asegura de que se cumplan las reglas (bylaws). Es el "músculo" del club.
+4. Capitán de Ruta 
+El líder durante los viajes en motocicleta. Planifica las rutas, decide las paradas para gasolina o comida, establece la formación de las motos en la carretera y toma decisiones tácticas durante el rodado.
+5. Secretario 
+El administrador. Toma las actas de las reuniones, maneja la correspondencia oficial, lleva el registro de los miembros, sus multas y gestiona la comunicación con otros capítulos del mismo club.
+6. Tesorero 
+Maneja las finanzas. Cobra las cuotas mensuales (dues), paga las facturas del clubhouse, administra el fondo de ayuda para miembros encarcelados o enfermos, y lleva la contabilidad.
+7. Full Patch Member (Miembro de Parche Completo / Miembro Pleno)
+ Qué es: Alguien que ha sido aceptado formalmente en el proceso de iniciación. Usa un parche en la espalda que dice "Prospect" debajo del logo del club.
+8. Prospecto (Prospecto)
+Qué es: Alguien que ha sido aceptado formalmente en el proceso de iniciación. Usa un parche en la espalda que dice "Prospect" debajo del logo del club.
+Privilegios: Puede asistir a algunas reuniones (pero no votar).
+Función: Hace el "trabajo sucio". Cuida las motos de los miembros plenos durante los viajes, limpia el clubhouse, compra bebidas, corre mandados y demuestra lealtad absoluta. Es la fase más dura y puede durar desde varios meses hasta más de un año. Si falla, es expulsado ("censurado")
+
+Los rangos son medallas (forma de escudo/medalla), las insignias de honor llevan el logo del grupo.
+
+Elemento	Icono	Notas
+🥉 Novato	PROPIO medalla bronce	Distinto de forma, no solo de color
+🥈 Rider	PROPIO medalla plata	
+🥇 Veterano	PROPIO medalla oro	
+💎 Élite	PROPIO gema	
+👑 Leyenda	PROPIO corona	Evitar confundir con el de líder: usar corona con laurel
+🔥 Fundador	PROPIO llama	Marca permanente, no rango
+Insignia de logro (genérica)	EmojiEvents	Con icono interior según el logro
+Insignia de honor	PROPIO sello con el logo del grupo	
+Progreso de rango	Barra + medalla actual	
+Rodada válida	CheckCircle
+
+
