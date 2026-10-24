@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Excluir siempre el almacén cifrado de tokens de sesión (AndroidKeyStore no es transferible entre dispositivos) -->
+    <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
+</full-backup-content>

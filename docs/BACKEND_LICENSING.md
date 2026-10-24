@@ -1,11 +1,11 @@
 # BACKEND_LICENSING — Licencias y cobros de Ruta Biker Sync
 
-Versión 1.1 · Estado: borrador de diseño · Fecha: 2026-10-17
-**Cambio v1.1:** unificación de nomenclatura de cupos a `member_slot_1..5` según D30 (antes `guest_slot_1..N` en §3). Ver MEMORY.md.
+Versión 1.2 · Estado: borrador de diseño · Fecha: 2026-10-23
+**Cambio v1.2:** Incorporación de decisiones aprobadas del 2026-10-23 (D42–D46): un líder = un solo grupo, pertenencia estricta sin membresías cruzadas, tabla `ride_guest_invitations`, directiva mínima de apertura y jerarquía de clubes (`tier`, `sponsor_group_id`).
 
 ## 1. Objetivo
 
-Cobrar suscripciones mensuales (líder $15, miembro/invitado $2.50 por grupo), mantener una lista autorizada por grupo y emitir **credenciales firmadas** que los teléfonos validen **sin internet** durante una rodada.
+Cobrar suscripciones mensuales (líder $15, miembro $2.50 por grupo), mantener una lista autorizada por grupo y emitir **credenciales firmadas** que los teléfonos validen **sin internet** durante una rodada.
 
 El backend guarda lo mínimo: identidad, suscripciones, grupos, membresías y registros de auditoría. **Nunca** guarda ubicación, audio, documentos ni datos de salud.
 
@@ -13,9 +13,9 @@ El backend guarda lo mínimo: identidad, suscripciones, grupos, membresías y re
 
 | # | Regla |
 |---|---|
-| B1 | Líder: $15/mes por persona. Hasta 3 líderes por grupo, cada uno paga el suyo |
-| B2 | Full member y Prospecto: $2.50/mes en su grupo; pertenecen a un solo grupo |
-| B3 | Invitado: $2.50/mes por cada grupo que lo agregue, ruede o no |
+| B1 | Líder: $15/mes por persona. Exactamente 1 grupo por líder (`trg_group_leaders_single_group_per_user`). Hasta 3 líderes por grupo |
+| B2 | Full member y Prospecto: $2.50/mes en su grupo; pertenecen a un solo grupo (`trg_memberships_no_cross_membership`) |
+| B3 | Invitados a rodadas: participación temporal por rodada mediante `ride_guest_invitations` (sin membresía fija) |
 | B4 | Nadie entra a un grupo sin aceptar invitación (consentimiento) |
 | B5 | Nombre de grupo único por país (normalizado) |
 | B6 | Logo único por país (huella perceptual) |
@@ -23,15 +23,19 @@ El backend guarda lo mínimo: identidad, suscripciones, grupos, membresías y re
 | B8 | Si vence el pago, la credencial caduca y la mesh lo rechaza |
 | B9 | Gracia de 3 días (configurable) tras un fallo de pago |
 | B10 | El grupo sigue activo mientras al menos un líder esté al día |
+| B11 | Mínimo para crear un grupo: 3 cargos de Mesa Directiva (Presidente, Vicepresidente, Sargento de Armas) vía `trg_groups_minimum_directiva` |
+| B12 | Jerarquía de clubes soportada: `RC` (inmediato) → `MG` (1-3 años) → `Gang` (3 años + >500cc) → `MC` (apadrinamiento con `sponsor_group_id`) |
+| B13 | Insignias de Mesa Directiva exclusivas para miembros oficiales; insignias de honor cruzables solo con rodada previa como invitado |
 
-**Puntos abiertos que afectan al cobro** (ver RULES.md, sección Pendientes):
-- P1: ¿líder invitado en otro grupo paga $2.50 o es gratis?
-- P2: ¿un líder de varios grupos paga $15 una vez o por grupo? Este esquema asume **una vez por persona**.
-- P3: reembolsos y retiro a mitad de mes. Este esquema asume **acceso hasta fin del periodo pagado**.
+**Decisiones de cobro y membresía resueltas (2026-10-23):**
+- P1: Cerrado (D43). Sin membresías `guest` cruzadas permanentes. Solo invitados temporales por rodada.
+- P2: Cerrado (D42). 1 líder = 1 grupo ($15/mes).
+- P6: Cerrado (D42). Prohibido liderar múltiples grupos.
+- P3: Sigue abierto (reembolsos y retiro: acceso hasta fin del periodo pagado).
 
 ## 3. Riesgo técnico principal: Google Play Billing
 
-Play no permite que una misma cuenta compre el mismo producto de suscripción varias veces simultáneamente. Un invitado en 3 grupos necesitaría 3 cobros de $2.50.
+Play no permite que una misma cuenta compre el mismo producto de suscripción varias veces simultáneamente. Al limitarse la membresía a un solo grupo por usuario, cada miembro requiere únicamente una suscripción activa de $2.50/mes (`member_slot_1`), reduciendo drásticamente la fricción multi-cupo.
 
 Opciones a validar **en la consola de Play antes de programar**:
 
@@ -87,6 +91,8 @@ CREATE TABLE groups (
   logo_phash       BYTEA NOT NULL,        -- huella perceptual
   principal_leader UUID NOT NULL REFERENCES users(id),
   status           TEXT NOT NULL DEFAULT 'active', -- active|suspended|transfer_pending|deleted
+  tier             TEXT NOT NULL DEFAULT 'RC' CHECK (tier IN ('RC','MG','Gang','MC')),
+  sponsor_group_id UUID REFERENCES groups(id),     -- MC padrino requerido para nivel MC
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (country_code, name_normalized)
 );
@@ -100,25 +106,26 @@ CREATE TABLE group_leaders (
   added_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (group_id, user_id)
 );
--- Regla: trigger que limita a 3 filas por group_id y exactamente 1 principal.
+-- Regla: trigger trg_enforce_max_three_leaders (máx 3 líderes por group_id y 1 principal).
+-- Regla: trigger trg_group_leaders_single_group_per_user (un user_id solo puede pertenecer a 1 grupo como líder).
 
 -- Membresías
 CREATE TABLE memberships (
   id            UUID PRIMARY KEY,
   group_id      UUID NOT NULL REFERENCES groups(id),
   user_id       UUID NOT NULL REFERENCES users(id),
-  status_kind   TEXT NOT NULL CHECK (status_kind IN ('full','prospect','guest')),
-  club_role     TEXT,                     -- presidente, vice, capitan_ruta, sargento_armas,
-                                          -- secretario, tesorero, road_marshal
+  status_kind   TEXT NOT NULL CHECK (status_kind IN ('full','prospect')),
+  club_role     TEXT,                     -- presidente, vicepresidente, sargento_armas, capitan_ruta,
+                                          -- secretario, tesorero, full_patch_member, prospecto
   invite_state  TEXT NOT NULL,            -- pending|accepted|declined|left|removed
   accepted_at   TIMESTAMPTZ,
   paid_until    TIMESTAMPTZ,              -- derivado de la suscripción asignada
   UNIQUE (group_id, user_id)
 );
--- Regla: un usuario con status_kind en ('full','prospect') y invite_state='accepted'
--- solo puede tener UNA membresía así (índice único parcial).
+-- Regla: trigger trg_memberships_no_cross_membership (un usuario con invite_state='accepted' solo puede tener 1 membresía).
+-- Regla: trigger trg_groups_minimum_directiva (no permite crear un grupo sin Presidente, Vicepresidente y Sargento de Armas).
 
--- Invitaciones
+-- Invitaciones a unirse al club
 CREATE TABLE invitations (
   id           UUID PRIMARY KEY,
   group_id     UUID NOT NULL REFERENCES groups(id),
@@ -128,6 +135,19 @@ CREATE TABLE invitations (
   state        TEXT NOT NULL DEFAULT 'pending', -- pending|accepted|declined|expired
   expires_at   TIMESTAMPTZ NOT NULL,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Invitaciones temporales a rodadas específicas (participación cruzada como invitado)
+CREATE TABLE ride_guest_invitations (
+  id           UUID PRIMARY KEY,
+  ride_id      UUID NOT NULL REFERENCES rides(id),
+  user_id      UUID NOT NULL REFERENCES users(id),
+  invited_by   UUID NOT NULL REFERENCES users(id), -- líder del grupo anfitrión
+  state        TEXT NOT NULL DEFAULT 'pending',    -- pending|accepted|declined|expired
+  accepted_at  TIMESTAMPTZ,
+  expires_at   TIMESTAMPTZ NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (ride_id, user_id)
 );
 
 -- Transferencias de grupo
@@ -170,13 +190,16 @@ CREATE TABLE rank_progress (
 );
 CREATE TABLE badges (
   id          UUID PRIMARY KEY,
-  family      TEXT NOT NULL CHECK (family IN ('rank','achievement','honor')),
+  family      TEXT NOT NULL CHECK (family IN ('rank','achievement','honor','officer')),
   code        TEXT NOT NULL,
   issuer_group UUID REFERENCES groups(id),
   issuer_user  UUID REFERENCES users(id), -- cualquier líder del grupo puede otorgar honor
   receiver     UUID NOT NULL REFERENCES users(id),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Regla: trigger trg_badges_officer_must_be_member (insignias de directiva solo para miembros del grupo emisor).
+-- Regla: trigger trg_badges_honor_requires_guest_ride (insignias de honor hacia externos exigen haber participado en al menos una rodada como invitado).
+```
 
 -- Auditoría (inmutable, solo inserción)
 CREATE TABLE audit_log (

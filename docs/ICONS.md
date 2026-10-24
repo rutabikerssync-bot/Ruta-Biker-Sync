@@ -104,7 +104,7 @@ Complementa SCREENS.md y SKELETONS.md. Base: Material Icons (ya incluido con `ma
 | Sargento de Armas | `Security` | |
 | Secretario | `EditNote` | |
 | Tesorero | `AccountBalanceWallet` | |
-| Road Marshal | `TrafficCone` | **PROPIO** si no se acepta |
+| Road Marshal (rol de rodada) | `TrafficCone` | **PROPIO** si no se acepta |
 | Invitar miembro | `PersonAdd` | |
 | Retirar miembro | `PersonRemove` | |
 | Transferir grupo | `SwapHoriz` | |

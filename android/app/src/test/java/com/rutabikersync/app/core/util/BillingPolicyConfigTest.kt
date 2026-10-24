@@ -113,8 +113,15 @@ class BillingPolicyConfigTest {
     }
 
     @Test
-    fun `D40 KeystoreEncryptedTokenStore encrypts refreshToken with AES256-GCM and never stores plaintext`() {
-        val store = com.rutabikersync.app.core.network.KeystoreEncryptedTokenStore(context = null)
+    fun `D40 KeystoreEncryptedTokenStore encrypts refreshToken with AES256-GCM and recovers gracefully on key loss`() {
+        var reloginTriggered = false
+        val store = com.rutabikersync.app.core.network.KeystoreEncryptedTokenStore(
+            context = null,
+            onKeyInvalidated = { reloginTriggered = true }
+        )
+        // En pruebas unitarias JVM, AndroidKeyStore del hardware no está montado (`isUsingHardwareAndroidKeystore == false`)
+        org.junit.Assert.assertFalse(store.isUsingHardwareAndroidKeystore)
+
         val rawToken = "eyJ0eXAiOiJyZWZyZXNoIiwia2lkIjoidjEifQ.secret_signature_payload"
         store.saveRefreshToken(rawToken)
 
@@ -123,9 +130,15 @@ class BillingPolicyConfigTest {
         org.junit.Assert.assertNotEquals(rawToken, storedCiphertext)
         org.junit.Assert.assertFalse(storedCiphertext!!.contains("secret_signature_payload"))
         assertEquals(rawToken, store.loadRefreshToken())
+        org.junit.Assert.assertFalse(store.requiresRelogin)
 
-        store.clear()
+        // Simular pérdida o invalidación de la clave del Keystore (p. ej. restauración en otro teléfono o cambio de bloqueo):
+        // no debe cerrar la app (sin excepción), debe limpiar el ciphertext ilegible y activar `requiresRelogin = true`
+        store.simulateKeyLossOrInvalidationForTest()
         org.junit.Assert.assertNull(store.loadRefreshToken())
+        org.junit.Assert.assertTrue(store.requiresRelogin)
+        org.junit.Assert.assertTrue(reloginTriggered)
+        org.junit.Assert.assertNull(store.rawStoredCiphertextForAudit())
     }
 
     @Test
@@ -146,6 +159,133 @@ class BillingPolicyConfigTest {
         org.junit.Assert.assertNotNull(
             "Purchase debe incluir isSuspended() para detectar on_hold (8.1.0+)",
             isSuspendedMethod
+        )
+    }
+
+    @Test
+    fun `Fase 2 SubscriptionStateMachine 6 states FakeBillingClient and 7-3-1 day alarms`() {
+        val fakeBilling = com.rutabikersync.app.feature.billing.FakeBillingClient()
+        val now = 1_760_000_000_000L
+        val dayMs = 24L * 60L * 60L * 1000L
+
+        val purchase = fakeBilling.purchaseSubscription(
+            userId = "u-rider-1",
+            productId = "member_slot_1",
+            assignedGroupId = "grp-1",
+            nowEpochMs = now
+        ).getOrThrow()
+
+        // 1. ACTIVE recién comprado -> acceso concedido, semáforo GREEN
+        val evalActive = com.rutabikersync.app.feature.billing.SubscriptionStateMachine.evaluate(purchase, now)
+        assertEquals(com.rutabikersync.app.feature.billing.SubscriptionState.ACTIVE, evalActive.effectiveState)
+        org.junit.Assert.assertTrue(evalActive.accessGranted)
+        assertEquals(com.rutabikersync.app.feature.groups.PaymentSemaphore.GREEN, evalActive.paymentSemaphore)
+
+        // 2. A 3 días de vencer -> alarma EXPIRES_IN_3_DAYS y semáforo YELLOW
+        val eval3DaysLeft = com.rutabikersync.app.feature.billing.SubscriptionStateMachine.evaluate(
+            purchase,
+            now + 27L * dayMs
+        )
+        org.junit.Assert.assertTrue(
+            eval3DaysLeft.alarms.contains(com.rutabikersync.app.feature.billing.SubscriptionAlarm.EXPIRES_IN_3_DAYS)
+        )
+        assertEquals(com.rutabikersync.app.feature.groups.PaymentSemaphore.YELLOW, eval3DaysLeft.paymentSemaphore)
+
+        // 3. Fallo de pago -> GRACE (3 días según RULES R7.3): conserva acceso con alerta y semáforo YELLOW
+        val inGrace = fakeBilling.transitionState(
+            purchase.purchaseToken,
+            com.rutabikersync.app.feature.billing.SubscriptionState.GRACE,
+            nowEpochMs = now
+        ).getOrThrow()
+        val evalGrace = com.rutabikersync.app.feature.billing.SubscriptionStateMachine.evaluate(inGrace, now + dayMs)
+        assertEquals(com.rutabikersync.app.feature.billing.SubscriptionState.GRACE, evalGrace.effectiveState)
+        org.junit.Assert.assertTrue(evalGrace.accessGranted)
+        assertEquals(com.rutabikersync.app.feature.groups.PaymentSemaphore.YELLOW, evalGrace.paymentSemaphore)
+
+        // 4. Al vencer los 3 días de gracia sin pago -> pasa automáticamente a ON_HOLD, pierde acceso y semáforo RED
+        val evalOnHold = com.rutabikersync.app.feature.billing.SubscriptionStateMachine.evaluate(
+            inGrace,
+            now + 4L * dayMs
+        )
+        assertEquals(com.rutabikersync.app.feature.billing.SubscriptionState.ON_HOLD, evalOnHold.effectiveState)
+        org.junit.Assert.assertFalse(evalOnHold.accessGranted)
+        assertEquals(com.rutabikersync.app.feature.groups.PaymentSemaphore.RED, evalOnHold.paymentSemaphore)
+
+        // 5. Reembolso (REFUNDED) -> revoca acceso inmediatamente
+        val refunded = fakeBilling.transitionState(
+            purchase.purchaseToken,
+            com.rutabikersync.app.feature.billing.SubscriptionState.REFUNDED,
+            nowEpochMs = now
+        ).getOrThrow()
+        val evalRefunded = com.rutabikersync.app.feature.billing.SubscriptionStateMachine.evaluate(refunded, now)
+        assertEquals(com.rutabikersync.app.feature.billing.SubscriptionState.REFUNDED, evalRefunded.effectiveState)
+        org.junit.Assert.assertFalse(evalRefunded.accessGranted)
+        assertEquals(com.rutabikersync.app.feature.groups.PaymentSemaphore.RED, evalRefunded.paymentSemaphore)
+    }
+
+    @Test
+    fun `Fase 2 OfflineCredentialVerifier Ed25519 signature kid rotation exp cap and revocation list`() {
+        val keyring = com.rutabikersync.app.core.crypto.AndroidCredentialKeyring("ed25519-k1")
+        val nowSec = 1_760_000_000L
+        // Usuario en gracia con solo 2 días restantes (< 7 días TTL máximo)
+        val twoDaysLaterSec = nowSec + 2L * 24L * 60L * 60L
+
+        val credK1 = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.issueCredential(
+            uid = "u-rider-1",
+            gid = "grp-halcones",
+            kind = "full",
+            devicePkBase64 = "pk-device-1",
+            effectiveAccessUntilEpochSec = twoDaysLaterSec,
+            nowEpochSec = nowSec,
+            keyring = keyring
+        )
+
+        // Rotar clave a ed25519-k2 y emitir segunda credencial
+        keyring.generateAndRegisterKeyPair("ed25519-k2")
+        val credK2 = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.issueCredential(
+            uid = "u-leader-1",
+            gid = "grp-halcones",
+            kind = "leader",
+            devicePkBase64 = "pk-leader-1",
+            effectiveAccessUntilEpochSec = nowSec + 30L * 24L * 60L * 60L,
+            nowEpochSec = nowSec,
+            keyring = keyring
+        )
+
+        // Ambas credenciales (k1 anterior y k2 nueva) son válidas offline con el llavero rotado
+        val verifyK1 = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.verifyCredential(
+            token = credK1,
+            keyring = keyring,
+            nowEpochSec = nowSec + 3600L,
+            expectedGroupIds = setOf("grp-halcones"),
+            expectedDevicePkBase64 = "pk-device-1"
+        )
+        org.junit.Assert.assertTrue(verifyK1.valid)
+        assertEquals(twoDaysLaterSec, verifyK1.payload!!.exp)
+
+        val verifyK2 = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.verifyCredential(
+            token = credK2,
+            keyring = keyring,
+            nowEpochSec = nowSec + 3600L,
+            expectedGroupIds = setOf("grp-halcones"),
+            expectedDevicePkBase64 = "pk-leader-1"
+        )
+        org.junit.Assert.assertTrue(verifyK2.valid)
+        // La credencial del líder con 30 días de vigencia queda acotada a 7 días (TTL máximo)
+        assertEquals(nowSec + 7L * 24L * 60L * 60L, verifyK2.payload!!.exp)
+
+        // Si el usuario aparece en la lista de revocación sincronizada antes de salir a rodar, es rechazado
+        val verifyRevoked = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.verifyCredential(
+            token = credK1,
+            keyring = keyring,
+            nowEpochSec = nowSec + 3600L,
+            expectedGroupIds = setOf("grp-halcones"),
+            revokedUserIds = setOf("u-rider-1")
+        )
+        org.junit.Assert.assertFalse(verifyRevoked.valid)
+        assertEquals(
+            com.rutabikersync.app.core.crypto.CredentialRejectionReason.REVOKED_USER_OR_CREDENTIAL,
+            verifyRevoked.rejectionReason
         )
     }
 }

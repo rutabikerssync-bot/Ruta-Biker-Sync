@@ -21,7 +21,7 @@ data class DevPanelOverrides(
     val forceInGracePeriod: Boolean = false,
     val forceExpiredCredential: Boolean = false,
     val forceLowBattery: Boolean = false,
-    val forbidGuestClubRoles: Boolean = false // Propuesta P7 en RULES.md §12 (pendiente de aprobación del dueño)
+    val forbidGuestClubRoles: Boolean = true // Regla P7 APROBADA en RULES.md §3 y §12 (MEMORY.md D42): los guest no reciben cargos honoríficos
 )
 
 /**

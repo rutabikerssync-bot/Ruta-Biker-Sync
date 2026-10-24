@@ -244,11 +244,24 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
     expect(logoClone.statusCode).toBe(409);
     expect(logoClone.json().error).toBe('GROUP_LOGO_TAKEN_IN_COUNTRY');
 
-    // Mismo nombre y logo en OTRO país (CO) sí se permite (R5.1, R5.2)
+    // Mismo nombre y logo en OTRO país (CO) sí se permite (R5.1, R5.2) con su propio líder (D42: 1 líder = 1 grupo)
+    const coLeaderReg = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: {
+        email: 'leader-co@rbs.co',
+        displayName: 'Líder Colombia',
+        countryCode: 'CO',
+        acceptedTermsAndConvivencia: true,
+        activateLeaderDemo: true
+      }
+    });
+    const coLeaderId = coLeaderReg.json().user.id as string;
+
     const otherCountry = await app.inject({
       method: 'POST',
       url: '/v1/groups',
-      headers: { 'x-user-id': secondLeaderId },
+      headers: { 'x-user-id': coLeaderId },
       payload: {
         countryCode: 'CO',
         name: 'Lobos del Sur',
@@ -628,7 +641,7 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
         const bad = await app.inject({
           method: 'POST',
           url: '/v1/auth/login',
-          headers: { 'x-forwarded-for': '203.0.113.99' },
+          remoteAddress: '203.0.113.99',
           payload: {
             email: 'secure-biker@rbs.mx',
             password: 'WrongPassword000',
@@ -641,7 +654,7 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
       const lockedAttacker = await app.inject({
         method: 'POST',
         url: '/v1/auth/login',
-        headers: { 'x-forwarded-for': '203.0.113.99' },
+        remoteAddress: '203.0.113.99',
         payload: {
           email: 'secure-biker@rbs.mx',
           password: 'MotoPassword2026!',
@@ -656,7 +669,7 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
       const legitLogin = await app.inject({
         method: 'POST',
         url: '/v1/auth/login',
-        headers: { 'x-forwarded-for': '198.51.100.10' },
+        remoteAddress: '198.51.100.10',
         payload: {
           email: 'secure-biker@rbs.mx',
           password: 'MotoPassword2026!',

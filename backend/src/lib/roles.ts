@@ -122,3 +122,24 @@ export function computePaymentSemaphore(
   }
   return 'green';
 }
+
+/**
+ * Regla P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42):
+ * Los invitados (`guest`) NO reciben cargos honoríficos del club (`presidente`, `vice`, etc.).
+ * Solo `full` y `prospect` pueden recibir cargos honoríficos.
+ */
+export const P7_FORBID_GUEST_CLUB_ROLES: boolean =
+  process.env.FORBID_GUEST_CLUB_ROLES !== 'false';
+
+export function canMemberHoldClubRole(
+  statusKind: MemberStatusKind,
+  clubRole: ClubRole | null | undefined,
+  forbidGuestRoles: boolean = P7_FORBID_GUEST_CLUB_ROLES
+): boolean {
+  if (!clubRole) return true;
+  if (statusKind === 'guest' && forbidGuestRoles) {
+    return false;
+  }
+  return true;
+}
+

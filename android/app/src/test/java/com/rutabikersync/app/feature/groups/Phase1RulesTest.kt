@@ -155,8 +155,8 @@ class Phase1RulesTest {
         )
         assertTrue(accepted.isSuccess)
 
-        // 5. Por defecto forbidGuestClubRoles = false (propuesta P7 en RULES.md §12 pendiente del dueño):
-        //    no bloquea salvo que se active el parámetro P7.
+        // 5. Regla P7 APROBADA (forbidGuestClubRoles = true por defecto en RULES.md §3 y §12):
+        //    los invitados (GUEST) no reciben cargos honoríficos del club.
         val guestRoleDefault = repo.assignMemberRoleOrStatus(
             groupId = "grp-coyotes-mx",
             actorUserId = "u-leader-2",
@@ -164,18 +164,8 @@ class Phase1RulesTest {
             newStatusKind = MemberStatusKind.GUEST,
             newClubRole = ClubRole.ROAD_CAPTAIN
         )
-        assertTrue(guestRoleDefault.isSuccess)
-
-        repo.updateDevOverrides { it.copy(forbidGuestClubRoles = true) }
-        val guestRoleFail = repo.assignMemberRoleOrStatus(
-            groupId = "grp-coyotes-mx",
-            actorUserId = "u-leader-2",
-            memberUserId = "u-member-1",
-            newStatusKind = MemberStatusKind.GUEST,
-            newClubRole = ClubRole.ROAD_CAPTAIN
-        )
-        assertTrue(guestRoleFail.isFailure)
-        assertEquals("GUEST_CANNOT_HAVE_CLUB_ROLE", guestRoleFail.exceptionOrNull()?.message)
+        assertTrue(guestRoleDefault.isFailure)
+        assertEquals("GUEST_CANNOT_HAVE_CLUB_ROLE", guestRoleDefault.exceptionOrNull()?.message)
     }
 
     @Test

@@ -1,6 +1,6 @@
 # FIELD_TEST_PLAN — Plan de prueba de campo BLE de Ruta Biker Sync
 
-Versión 1.1 · 2026-10-17
+Versión 1.2 · 2026-10-23
 Complementa `field-tests/FIELD_TEST_GUIDE.md` y `FIELD_TEST_REPORT.md` (generados en la Fase 0). Objetivo: medir con teléfonos reales, en moto y con casco, si la mesh BLE sirve para un grupo en marcha, y decidir con números el transporte (legacy, extendido, LoRa).
 
 > **Todos los umbrales de este documento son propuestas** para calibrar con la primera ronda de datos. Ninguno es un resultado medido.
@@ -30,17 +30,20 @@ Complementa `field-tests/FIELD_TEST_GUIDE.md` y `FIELD_TEST_REPORT.md` (generado
 
 ## 3. Equipo
 
-### 3.1 Teléfonos (completar)
+### 3.1 Teléfonos del banco de pruebas (Fase 0)
 
-Meta: **al menos 5 teléfonos, 3 marcas distintas y al menos 1 de gama baja.**
+Banco confirmado para la prueba de campo inicial (3 marcas distintas, abarcando gama media-alta, entrada y procesador sin GMS):
 
-| # | Marca y modelo | Android | RAM | ¿BLE 5? | ¿Advertising extendido? | ¿Coded PHY? | Ahorro de batería de fábrica |
-|---|---|---|---|---|---|---|---|
-| 1 | _por completar_ | | | | | | |
-| 2 | | | | | | | |
-| 3 | | | | | | | |
-| 4 | | | | | | | |
-| 5 | | | | | | | |
+| # | Marca y modelo | Sistema Operativo | RAM | ¿BLE 5? | ¿Advertising extendido? | ¿Coded PHY? | Ahorro de batería de fábrica | Rol en la prueba |
+|---|---|---|---|---|---|---|---|---|
+| 1 | **Xiaomi Redmi Note 13 Pro** | Android 13/14 (HyperOS) | 8/12 GB | Sí | Sí | Sí | Optimización MIUI/HyperOS (desactivar) | Nodo central / líder de prueba |
+| 2 | **Tecno Spark 10C** | Android 12 (HiOS / Go) | 4/8 GB | Sí | _por medir en app_ | _por medir en app_ | HiOS Power Marathon (agresivo) | Nodo de gama de entrada |
+| 3 | **Huawei Nova 13 Pro** | HarmonyOS / EMUI | 12 GB | Sí | Sí | Sí | Gestión agresiva de EMUI | Nodo mesh / radio BLE |
+
+> ⚠️ **ALERTA CRÍTICA — Google Play Services (GMS) y Play Billing (P4):**
+> El **Huawei Nova 13 Pro** carece de servicios de Google Play (GMS). **NO sirve para probar Play Billing (`P4`) ni compras en Play Console.** Su participación queda reservada **exclusivamente para pruebas de radio mesh BLE** (alcance, reenvío TTL multi-salto y supervivencia de servicio en segundo plano bajo EMUI/HarmonyOS).
+>
+> 📌 **Alcance de la muestra:** La prueba física se ejecutará con estos **3 teléfonos disponibles** (el dueño cuenta además con un **Redmi C2** Android de gama de entrada disponible inmediatamente junto al **Redmi Note 13 Pro** para pruebas locales en par gama media-alta / gama baja). El informe final de pruebas (`FIELD_TEST_REPORT.md`) documentará explícitamente esta limitación metodológica inicial frente a la meta teórica de 5 dispositivos, centrando los resultados en la interoperabilidad cruzada de chipsets (Qualcomm Snapdragon, Unisoc/MediaTek y Kirin).
 
 La app de pruebas debe **mostrar y registrar** las capacidades reales de cada teléfono (extendido, Coded PHY, PHY 2M, máximo de datos anunciados), no solo las del fabricante.
 

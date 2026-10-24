@@ -1,6 +1,6 @@
 # RULES — Reglas de negocio de Ruta Biker Sync
 
-Versión 1.0 · 2026-10-16
+Versión 1.1 · 2026-10-23
 Este documento es la **fuente de verdad** de las reglas. Si otro documento lo contradice, manda este.
 
 ## 1. Cuentas
@@ -11,38 +11,44 @@ Este documento es la **fuente de verdad** de las reglas. Si otro documento lo co
 ## 2. Estatus en un grupo (lo asigna un líder)
 | Estatus | Pertenece a otros grupos | Invitable a rodadas de otros | Cuota |
 |---|---|---|---|
-| Full member | No, un solo grupo | Sí | $2.50/mes |
-| Prospecto | No, un solo grupo | Sí | $2.50/mes |
-| Invitado | Sí, a varios | Sí | $2.50/mes por cada grupo |
+| Full member | No, un solo grupo | Sí (como invitado a rodada) | $2.50/mes |
+| Prospecto | No, un solo grupo | Sí (como invitado a rodada) | $2.50/mes |
+| Invitado a rodada | Pertenece a su propio club (o independiente) | Sí | Sin cuota mensual (acceso temporal a la rodada) |
 
-- R2.1 Nadie entra a un grupo sin su consentimiento: un líder envía invitación y el usuario acepta.
-- R2.2 El invitado paga mensualidad en cada grupo aunque no ruede.
-- R2.3 El usuario puede salirse; el acceso dura hasta el fin del periodo pagado.
-- R2.4 El líder puede retirar a un miembro.
+- R2.1 Nadie entra a un grupo ni a una rodada sin su consentimiento explícito: un líder envía invitación y el usuario acepta.
+- R2.2 **Sin membresías cruzadas:** Un usuario no puede tener estatus de `leader`, `full` ni `prospect` en más de un grupo simultáneamente (`trg_memberships_no_cross_membership`). Se prohíbe la membresía permanente de `guest` entre múltiples grupos.
+- R2.3 **Invitaciones temporales por rodada:** La única forma de participar con otro grupo es como invitado temporal a una rodada específica (`ride_guest_invitations`), sin crear membresía permanente de club ni cuotas recurrentes adicionales.
+- R2.4 El usuario puede salirse de su grupo; el acceso dura hasta el fin del periodo pagado.
+- R2.5 El líder puede retirar a un miembro de su grupo.
 
-## 3. Cargos del club
-Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tesorero, Road Marshal.
-- R3.1 Los cargos son **etiquetas con permisos delegados**, no son lo mismo que ser líder.
-- R3.2 Solo los líderes crean, asignan o cambian cargos y estatus.
-- R3.3 Los permisos por cargo son configurables por grupo. Valores por defecto:
+## 3. Mesa Directiva y Cargos del club
+Cargos de la Mesa Directiva: **Presidente**, **Vicepresidente**, **Sargento de Armas**, **Secretario**, **Tesorero**, **Capitán de Ruta**, **Full Patch Member** y **Prospecto**.
+- R3.1 **Requisito mínimo para crear un grupo:** Es obligatorio contar con al menos 3 cargos mínimos asignados: **Presidente**, **Vicepresidente** y **Sargento de Armas**. Sin estos 3 cargos cubiertos por miembros del grupo, la plataforma no permite crear el grupo (`trg_groups_minimum_directiva`).
+- R3.2 **Capitán de Ruta:** Es un cargo formal de la Directiva pero **opcional** para la apertura del grupo. Si el cargo está vacante en el club, los líderes pueden asignar temporalmente a cualquier miembro calificado el rol de Capitán de rodada para una salida específica.
+- R3.3 **Road Marshal:** Deja de ser cargo de la Directiva y pasa a ser exclusivamente un **rol de rodada** (responsable de la seguridad, bloqueos y señales dinámicas durante la marcha).
+- R3.4 Los cargos son **etiquetas de gobernanza con permisos delegados** y son **exclusivos para miembros del grupo** (`trg_badges_officer_must_be_member`). Un invitado a rodada no puede ostentar cargos de Mesa Directiva.
+- R3.5 Solo los líderes crean, asignan o cambian cargos y estatus.
+- R3.6 Los permisos por cargo son configurables por grupo. Valores por defecto:
 
 | Cargo | Permiso por defecto |
 |---|---|
-| Presidente / Vicepresidente | Honorífico (líder solo si se le asigna) |
-| Capitán de Ruta | Propone rutas y orden de marcha |
-| Road Marshal | Seguridad y señales en la rodada |
-| Sargento de Armas | Asistencia y orden en eventos |
-| Secretario | Ve asistencia e historial |
-| Tesorero | Ve el semáforo de pagos (solo lectura) |
+| Presidente / Vicepresidente | Máxima autoridad y representación honorífica (líder administrativo solo si se le asigna) |
+| Sargento de Armas | Asistencia, disciplina, seguridad en eventos y cumplimiento de estatutos |
+| Capitán de Ruta | Propone rutas oficiales, paradas y orden de marcha |
+| Secretario | Custodia de actas, historial de rodadas, asistencia y registros |
+| Tesorero | Semáforo de pagos (solo lectura) y balances del club |
+| Full Patch Member | Miembro pleno con derecho a voz y voto en decisiones del club |
+| Prospecto | Miembro en periodo de prueba con deberes pero sin derecho a voto |
 
 ## 4. Líderes
-- R4.1 Hasta **3 líderes por grupo**, cada uno paga **$15/mes** individualmente.
-- R4.2 Los líderes tienen todas las funciones: administrar miembros, cargos, estatus, rodadas, rutas e **insignias**.
-- R4.3 Hay un **líder principal (Fundador)**, único con poder de: nombrar o retirar a otros líderes y transferir el grupo.
-- R4.4 El líder paga solo $15 y no paga $2.50 en su propio grupo.
-- R4.5 Si el principal no paga durante 7 días, el rol pasa al siguiente líder y se avisa a todos.
-- R4.6 Si fallan los 3 líderes, el grupo se suspende: no se inician rodadas, pero el historial e insignias se conservan.
-- R4.7 Nota: la regla previa de que solo el líder principal entrega insignias de honor queda **reemplazada**: cualquier líder del grupo puede asignarlas.
+- R4.1 **Un líder = un solo grupo.** Cada líder administra y responde únicamente por su propio grupo y paga **$15/mes**. Un usuario no puede estar registrado como líder en más de un grupo (`trg_group_leaders_single_group_per_user`). No existe tarifa ni estatus de líder multi-grupo.
+- R4.2 Hasta **3 líderes por grupo**, cada uno paga **$15/mes** individualmente.
+- R4.3 Los líderes tienen todas las funciones: administrar miembros, cargos, estatus, rodadas, rutas e **insignias**.
+- R4.4 Hay un **líder principal (Fundador)**, único con poder de: nombrar o retirar a otros líderes y transferir el grupo.
+- R4.5 El líder paga solo $15 y no paga $2.50 en su propio grupo. Un líder no puede ser líder, full member ni prospecto en otro grupo (solo invitado temporal a rodadas específicas de otros clubes).
+- R4.6 Si el principal no paga durante 7 días, el rol pasa al siguiente líder y se avisa a todos.
+- R4.7 Si fallan los 3 líderes, el grupo se suspende: no se inician rodadas, pero el historial e insignias se conservan.
+- R4.8 Cualquier líder del grupo puede asignar insignias de honor.
 
 ## 5. Grupos
 - R5.1 Nombre único por país (normalizado: sin acentos, mayúsculas, símbolos ni sustituciones leet).
@@ -54,7 +60,7 @@ Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tes
 - R6.1 La mesh, el mapa compartido y la voz **solo existen dentro de una rodada activa**.
 - R6.2 La rodada tiene lista cerrada de participantes, con su estatus.
 - R6.3 Si participan dos grupos, hay un anfitrión (quien crea la rodada) y un coanfitrión. **Cada líder controla a su propio grupo** y ve solo el estado de su gente.
-- R6.4 Un invitado de otro grupo solo entra si fue agregado a ese grupo.
+- R6.4 Un invitado de otro grupo solo entra si recibió y aceptó una invitación temporal a esa rodada (`ride_guest_invitations`).
 - R6.5 Cierre de la rodada: se borran las notas de voz y el acceso temporal a datos de emergencia.
 - R6.6 Una rodada cuenta para el rango si: ≥2 participantes con contacto real en la mesh, >15 km y >30 min en movimiento, presencia ≥70 % del recorrido, cierre confirmado por un líder y máximo 3 rodadas contadas por día.
 
@@ -66,7 +72,7 @@ Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tes
 - R7.5 Alarmas de vencimiento: miembro a 7, 3 y 1 día; líder con resumen previo a cada rodada y aviso de su propia suscripción.
 
 ## 8. Rangos, insignias y roles de rodada
-| Rango | Rodadas válidas | Rol que habilita |
+| Rango | Rodadas válidas | Rol de rodada que habilita |
 |---|---|---|
 | 🥉 Novato | 0–4 | Participante |
 | 🥈 Rider | 5–19 | Proponer rutas |
@@ -74,11 +80,15 @@ Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tes
 | 💎 Élite | 50–99 | Sweep (cierre) |
 | 👑 Leyenda | 100+ | Capitán de rodada |
 
-- R8.1 El rango es personal, global y automático. Cuentan las rodadas con cualquier grupo, incluso como invitado.
+- R8.1 El rango es personal, global y automático. Cuentan las rodadas con su grupo y las rodadas válidas en las que haya participado como invitado temporal en otros clubes.
 - R8.2 🔥 **Fundador** no es un rango: es una marca permanente del creador del grupo.
-- R8.3 Los líderes pueden asignar un rol de rodada saltándose el requisito de rango.
-- R8.4 Familias de insignias: **Rango** (automática), **Logros** (automática), **Honor** (la otorga un líder del grupo, lleva el logo del grupo emisor y puede darse a invitados).
-- R8.5 Las insignias de honor no suman para el rango. Hay límite mensual de entrega y registro de quién las dio.
+- R8.3 Los líderes pueden asignar roles de rodada (Scout, Sweep, Capitán de rodada, **Road Marshal**) saltándose el requisito de rango si la logística lo amerita.
+- R8.4 **Familias y reglas de cruce de insignias:**
+  - **Insignias de Mesa Directiva** (Presidente, Vicepresidente, Sargento de Armas, Capitán de Ruta, Secretario, Tesorero, Full Patch Member, Prospecto): **NO son cruzables entre grupos**. Solo pueden ser asignadas a miembros oficiales del grupo emisor (`trg_badges_officer_must_be_member`).
+  - **Insignias de Rango y Logros:** Automáticas y personales (Novato, Rider, Veterano, Élite, Leyenda, Rodada Nocturna, 500 km, Sin Cobertura, 3 Grupos, etc.).
+  - **Insignias de Honor:** Las otorga un líder del grupo y llevan el logo del grupo emisor. **SÍ son cruzables** hacia usuarios de otros grupos, con el requisito estricto de que el receptor haya participado previamente como invitado en al menos una rodada del grupo emisor (`trg_badges_honor_requires_guest_ride`). Quedan registradas en su expediente.
+- R8.5 Las insignias de honor no suman para el rango. Hay límite mensual de entrega y registro de auditoría de quién las otorgó.
+- R8.6 **Gamificación y Logros (Fase 6):** El sistema integral de logros de kilometraje acumulativo (10 km a 100.000 km), constancia (racha mensual ininterrumpida), logros de experiencia e hitos únicos, y el cálculo de rangos mediante XP se especifican en detalle en [GAMIFICATION.md](file:///d:/Ruta-Biker-Sync/docs/GAMIFICATION.md).
 
 ## 9. Voz
 - R9.1 Solo por **clips** (máx. 15 s) y solo dentro de rodadas.
@@ -98,16 +108,17 @@ Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tes
 - R11.3 Idiomas: español, inglés y portugués.
 - R11.4 Esto es orientación general; se requiere revisión legal.
 
-## 12. Pendientes por decidir
-| # | Tema | Propuesta actual |
+## 12. Decisiones y Pendientes
+| # | Tema | Estado y Resolución |
 |---|---|---|
-| P1 | ¿Un líder pagando solo $15 es invitado gratis en otros grupos? | Propuesta: paga $2.50 como invitado para evitar evasión. **Por confirmar** |
-| P2 | ¿Un líder de varios grupos paga $15 una vez o por grupo? | Propuesta: $15 por persona. **Por confirmar** |
-| P3 | Retiro o reembolso a mitad de mes | Acceso hasta fin del periodo pagado |
-| P4 | Cómo cobrar varios cupos de invitado en Google Play | Probar cupos numerados en consola (ver `BACKEND_LICENSING.md` y `PLAY_TEST_SETUP.md`). **Plan B si falla:** pase por rodada para invitados |
-| P5 | ¿Pase por rodada para invitados ocasionales? | Fuera del alcance inicial; pasa a ser el plan B de P4 |
-| P6 | ¿Existe un límite de grupos donde una misma cuenta de líder puede ser líder principal? | Propuesta: máximo 2 grupos principales por cuenta de líder (`MAX_PRINCIPAL_GROUPS_PER_LEADER` en `app.ts`, desactivado por defecto hasta confirmación del dueño). **Por confirmar** |
-| P7 | ¿Un invitado (`guest`) puede ostentar cargos honoríficos del club (`R3`)? | Propuesta: los cargos del club (`R3.1`) se reservan a miembros `full` (`forbidGuestClubRoles = false` por defecto hasta confirmación del dueño). **Por confirmar** |
+| **P1** | ¿Un líder puede ser `guest` en otro grupo? | **CERRADO (2026-10-23, D43):** No como membresía. Solo puede ser invitado temporal a una rodada específica (`ride_guest_invitations`). |
+| **P2** | ¿Un líder de varios grupos paga $15 una vez o por grupo? | **CERRADO (2026-10-23, D42):** Un líder = un solo grupo. Paga $15/mes por su único grupo. Prohibido liderar múltiples grupos. |
+| **P3** | Retiro o reembolso a mitad de mes | **Propuesta activa:** Acceso hasta el fin del periodo pagado. |
+| **P4** | Cómo cobrar varios cupos de invitado en Google Play | Validar cupos numerados (`member_slot_1..5`) en consola Play. **Plan B:** pase por rodada consumible (`ride_pass_guest`). |
+| **P5** | Pase por rodada para invitados ocasionales | Plan B de P4 para acceso temporal a rodadas. |
+| **P6** | ¿Límite de grupos principales por cuenta de líder? | **CERRADO (2026-10-23, D42):** No aplica. Quedó prohibido liderar más de un grupo. |
+| **P7** | ¿Un invitado puede ostentar cargos de la Directiva? | **CERRADO (2026-10-23, D44 y D46):** No. Los cargos de Mesa Directiva se reservan exclusivamente a miembros oficiales del grupo. |
+| **P9** | Sistema de logros de kilometraje, racha y progresión por XP | **CERRADO (2026-10-23, D48 y D49):** Aprobada curva de 10 km a 100.000 km (P9.1), logros personales no cruzables (P9.2) y progresión por XP para Fase 6 (P9.3). Consolidado en `GAMIFICATION.md`. |
 
 ## 13. Moderación y convivencia
 - R13.1 Las notas de voz no se guardan, pero cualquier participante puede usar el botón **"Reportar rider"** durante o después de la rodada, indicando motivo (insultos, acoso, conducta peligrosa, otro).
@@ -131,6 +142,17 @@ Presidente, Vicepresidente, Capitán de Ruta, Sargento de Armas, Secretario, Tes
 - R15.1 Los consentimientos son **por grupo y por tipo**, nunca globales: (a) pertenencia y cuota, (b) compartir ubicación en rodadas, (c) paquete de emergencia, (d) notificaciones.
 - R15.2 El usuario puede ver y revocar sus consentimientos en cualquier momento (`GET /v1/users/me/consents`); revocar (b) lo saca de las rodadas de ese grupo, revocar (c) invalida el paquete sellado.
 - R15.3 Al **borrar la cuenta** se cancelan las membresías, se notifica a los líderes de cada grupo afectado, se eliminan los datos del backend y se conservan solo los registros que la ley exija, anonimizados.
-- R15.4 Un invitado en varios grupos decide por separado en cada uno.
+- R15.4 Un invitado a una rodada consiente específicamente para esa salida.
 - R15.5 La exportación de datos incluye membresías, suscripciones, consentimientos e historial de rodadas; los datos locales (bóveda, ficha) se exportan desde el teléfono.
 - R15.6 Las insignias recibidas se conservan como registro del grupo emisor, anonimizadas si el usuario elimina su cuenta.
+
+## 16. Jerarquía de Clubes (RC / MG / Gang / MC)
+Integrada dentro del alcance oficial en Fase 6 (Gamificación y documentos), regulando la progresión estructural del motociclismo organizado mediante las columnas `groups.tier` y `groups.sponsor_group_id`:
+
+| Nivel | Nombre | Concepto y Requisitos | Estructura y Parche |
+|---|---|---|---|
+| **RC** | Riding Club | Punto de partida inmediato al crear el grupo con la directiva mínima (Presidente, VP, Sargento). Enfoque en rodar y socializar sin compromisos vitalicios ni apadrinamiento. | Parche libre de 1 pieza. Estructura flexible. |
+| **MG** | MotoGroup | "Club familiar". Requiere entre 1 y 3 años de operación formal activa y estatutos internos más estrictos. | Parche de 1 pieza (redondo u ovalado) sin las letras "MC". Admite mujeres en directiva. |
+| **Gang** | Gang (Transición) | Etapa de transición previa a MC. Requiere mínimo 3 años previos como MG, cilindrada superior a 500cc en todas las motos de los miembros y participación en eventos regionales/aniversarios. | Parche de 3 piezas pero sin las letras "MC". |
+| **MC** | MotoClub | Máximo estatus tradicional. Requiere apadrinamiento formal por un MC padrino registrado (`sponsor_group_id`), aprobación del comité de líderes del MC padrino y directiva completa. | Parche de 3 piezas tradicional con corte territorial y las letras "MC". Estatutos estrictos de hermandad. |
+

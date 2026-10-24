@@ -31,6 +31,7 @@ export const AUTH_POLICY = {
   SCRYPT_P: 1,
   SCRYPT_MAXMEM: 256 * 1024 * 1024, // 268 435 456 bytes (256 MiB explícito)
   MAX_CONCURRENT_SCRYPT_HASHES: Number(process.env.MAX_CONCURRENT_SCRYPT_HASHES ?? 4),
+  MAX_SCRYPT_QUEUE_SIZE: Number(process.env.MAX_SCRYPT_QUEUE_SIZE ?? 32),
   KEY_LEN: 64,
   SALT_BYTES: 16,
   ACCESS_TOKEN_TTL_SECONDS: 30 * 60, // 30 minutos
@@ -40,17 +41,61 @@ export const AUTH_POLICY = {
   LOCKOUT_WINDOW_MS: 15 * 60 * 1000 // 15 minutos
 } as const;
 
+export const DEV_DEFAULT_HMAC_SECRET = 'rbs-dev-hmac-secret-change-in-prod-32b';
+
 export interface SessionKeyring {
   activeKid: string;
   keys: Record<string, string>;
 }
 
-function loadDefaultKeyring(): SessionKeyring {
-  const activeKid = process.env.AUTH_TOKEN_ACTIVE_KID ?? 'k1';
-  const defaultSecret = process.env.AUTH_TOKEN_SECRET ?? 'rbs-dev-hmac-secret-change-in-prod-32b';
-  if (process.env.AUTH_TOKEN_KEYS_JSON) {
+/**
+ * En producción (`NODE_ENV === 'production'`), el backend se niega a arrancar si no existe
+ * `AUTH_TOKEN_KEYS_JSON` válido con claves fuertes (>= 32 bytes y distintas del secreto de desarrollo).
+ */
+export function validateProductionAuthConfig(env: NodeJS.ProcessEnv = process.env): SessionKeyring {
+  const isProd = env.NODE_ENV === 'production';
+  const activeKid = env.AUTH_TOKEN_ACTIVE_KID ?? 'k1';
+  const rawJson = env.AUTH_TOKEN_KEYS_JSON?.trim();
+
+  if (isProd) {
+    if (!rawJson) {
+      throw new Error(
+        'FATAL_AUTH_CONFIG: En producción AUTH_TOKEN_KEYS_JSON es obligatorio y el servidor no puede usar una clave por defecto.'
+      );
+    }
+    let parsed: Record<string, string>;
     try {
-      const parsed = JSON.parse(process.env.AUTH_TOKEN_KEYS_JSON) as Record<string, string>;
+      parsed = JSON.parse(rawJson) as Record<string, string>;
+    } catch {
+      throw new Error('FATAL_AUTH_CONFIG: AUTH_TOKEN_KEYS_JSON no es un JSON válido.');
+    }
+    if (!parsed || typeof parsed !== 'object' || Object.keys(parsed).length === 0) {
+      throw new Error('FATAL_AUTH_CONFIG: AUTH_TOKEN_KEYS_JSON debe contener al menos una clave.');
+    }
+    for (const [kid, secret] of Object.entries(parsed)) {
+      if (
+        typeof secret !== 'string' ||
+        secret.length < 32 ||
+        secret === DEV_DEFAULT_HMAC_SECRET ||
+        secret.includes('rbs-dev-hmac-secret')
+      ) {
+        throw new Error(
+          `FATAL_AUTH_CONFIG: La clave '${kid}' en AUTH_TOKEN_KEYS_JSON es insegura o usa el valor de desarrollo.`
+        );
+      }
+    }
+    if (!parsed[activeKid]) {
+      throw new Error(
+        `FATAL_AUTH_CONFIG: AUTH_TOKEN_ACTIVE_KID ('${activeKid}') no existe en AUTH_TOKEN_KEYS_JSON.`
+      );
+    }
+    return { activeKid, keys: { ...parsed } };
+  }
+
+  const defaultSecret = env.AUTH_TOKEN_SECRET ?? DEV_DEFAULT_HMAC_SECRET;
+  if (rawJson) {
+    try {
+      const parsed = JSON.parse(rawJson) as Record<string, string>;
       if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
         return {
           activeKid: parsed[activeKid] ? activeKid : Object.keys(parsed)[0],
@@ -58,7 +103,7 @@ function loadDefaultKeyring(): SessionKeyring {
         };
       }
     } catch {
-      // Fallback al secreto único si el JSON es inválido
+      // Fallback al secreto único en desarrollo si el JSON es inválido
     }
   }
   return {
@@ -67,7 +112,7 @@ function loadDefaultKeyring(): SessionKeyring {
   };
 }
 
-let currentKeyring: SessionKeyring = loadDefaultKeyring();
+let currentKeyring: SessionKeyring = validateProductionAuthConfig();
 
 export function getSessionKeyring(): SessionKeyring {
   return currentKeyring;
@@ -83,14 +128,32 @@ export function setSessionKeyring(keyring: SessionKeyring): void {
   };
 }
 
+export class ScryptQueueOverflowError extends Error {
+  public readonly code = 'SCRYPT_QUEUE_FULL';
+  public readonly statusCode = 503;
+  public readonly retryAfterSeconds = 2;
+
+  constructor(maxQueueSize: number) {
+    super(
+      `Cola de derivación scrypt llena (máximo ${maxQueueSize} en espera). Intente de nuevo en unos segundos.`
+    );
+    this.name = 'ScryptQueueOverflowError';
+  }
+}
+
 /**
- * Semáforo FIFO para limitar la cantidad de derivaciones `scrypt` (128 MiB c/u) ejecutándose en paralelo.
+ * Semáforo FIFO con cola acotada para limitar la cantidad de derivaciones `scrypt` (128 MiB c/u)
+ * ejecutándose en paralelo. Si la cola alcanza `maxQueueSize`, lanza `ScryptQueueOverflowError` (503)
+ * para no acumular solicitudes ni agotar descriptores de conexión.
  */
 export class ScryptConcurrencyLimiter {
   private active = 0;
   private readonly queue: Array<() => void> = [];
 
-  constructor(public readonly maxConcurrent: number = AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES) {}
+  constructor(
+    public readonly maxConcurrent: number = AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES,
+    public readonly maxQueueSize: number = AUTH_POLICY.MAX_SCRYPT_QUEUE_SIZE
+  ) {}
 
   get activeCount(): number {
     return this.active;
@@ -102,6 +165,9 @@ export class ScryptConcurrencyLimiter {
 
   async run<T>(task: () => Promise<T>): Promise<T> {
     if (this.active >= this.maxConcurrent) {
+      if (this.queue.length >= this.maxQueueSize) {
+        throw new ScryptQueueOverflowError(this.maxQueueSize);
+      }
       await new Promise<void>((resolve) => this.queue.push(resolve));
     }
     this.active += 1;
@@ -116,7 +182,8 @@ export class ScryptConcurrencyLimiter {
 }
 
 export const defaultScryptLimiter = new ScryptConcurrencyLimiter(
-  AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES
+  AUTH_POLICY.MAX_CONCURRENT_SCRYPT_HASHES,
+  AUTH_POLICY.MAX_SCRYPT_QUEUE_SIZE
 );
 
 function scryptAsync(password: string, salt: Buffer): Promise<Buffer> {
@@ -387,3 +454,63 @@ export class LoginAttemptTracker {
     this.accountIpAttempts.delete(this.makeAccountIpKey(email, ip));
   }
 }
+
+export type TrustProxyConfig =
+  | boolean
+  | string
+  | string[]
+  | ((address: string, hop: number) => boolean);
+
+/**
+ * Convierte un número máximo de saltos en la función `TrustProxyFunction` nativa de Fastify v5.
+ */
+export function createHopLimitTrustProxy(
+  maxHops: number
+): (address: string, hop: number) => boolean {
+  return (_address: string, hop: number) => hop <= maxHops;
+}
+
+/**
+ * Configura `trustProxy` en Fastify usando número explícito de saltos (`TRUST_PROXY_HOPS`) o
+ * lista de IPs/CIDR de confianza (`TRUST_PROXY_IPS`), evitando `true` global que permitiría
+ * falsificar `X-Forwarded-For` si el proceso queda expuesto directamente.
+ */
+export function parseTrustProxyConfig(
+  env: NodeJS.ProcessEnv = process.env
+): TrustProxyConfig {
+  const ipsRaw = env.TRUST_PROXY_IPS?.trim();
+  if (ipsRaw) {
+    const ips = ipsRaw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ips.length > 0) return ips;
+  }
+
+  const hopsRaw = env.TRUST_PROXY_HOPS?.trim();
+  if (hopsRaw) {
+    const hops = Number(hopsRaw);
+    if (Number.isInteger(hops) && hops >= 1) {
+      return createHopLimitTrustProxy(hops);
+    }
+  }
+
+  const legacyRaw = env.TRUST_PROXY?.trim();
+  if (legacyRaw) {
+    const asNum = Number(legacyRaw);
+    if (Number.isInteger(asNum) && asNum >= 1) return createHopLimitTrustProxy(asNum);
+    if (legacyRaw === 'true') {
+      // Nunca confiar en una cadena ilimitada de proxies: 1 salto como máximo si se activa sin lista de IPs
+      return createHopLimitTrustProxy(1);
+    }
+    if (legacyRaw !== 'false' && legacyRaw !== '0') {
+      return legacyRaw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return false;
+}
+

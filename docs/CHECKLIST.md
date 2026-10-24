@@ -1,40 +1,43 @@
 # CHECKLIST — Ruta Biker Sync
 
-Versión 1.1 · 2026-10-17
+Versión 1.2 · 2026-10-23
 Listas de verificación para revisar antes de cada hito o lanzamiento.
 
 ## A. Antes de empezar a programar
 - [~] Cobro de cupos múltiples probado en Play Console (P4) *(guion operativo de 15 secciones en `PLAY_TEST_SETUP.md`; pendiente ejecución en cuenta Play Console del dueño)*
-- [~] Decisiones P1, P2 y P3 de RULES.md cerradas *(parametrizadas en `BillingPolicyConfig.kt` con propuestas actuales por defecto)*
-- [~] Prueba de campo BLE con al menos 3 marcas de teléfono *(app de prueba, simulador de 5 nodos y protocolo operativo de 14 secciones listos en `FIELD_TEST_PLAN.md`; pendiente medición física en carretera)*
+- [x] Decisiones P1, P2 y P6 de RULES.md cerradas por el dueño *(2026-10-23: líder en un solo grupo, invitado solo por rodada, sin multi-grupo; P3 parametrizado)*
+- [~] Prueba de campo BLE con banco de 3 teléfonos confirmados *(Redmi Note 13 Pro, Tecno Spark 10C, Huawei Nova 13 Pro; alerta GMS y protocolo en `FIELD_TEST_PLAN.md`; pendiente salida física)*
 - [ ] Revisión legal inicial hecha
 - [ ] Nombre comercial verificado (marca, dominios, tienda)
 
 ## B. Cuentas y grupos
 - [x] Un usuario no puede entrar a un grupo sin aceptar
-- [x] Full member y prospecto solo en un grupo
-- [x] Invitado en varios grupos con cuota por cada uno
-- [x] Máximo 3 líderes por grupo (comprobado en base de datos)
+- [x] Full member, prospecto y líder solo en un grupo (sin membresías cruzadas, `trg_memberships_no_cross_membership`)
+- [x] Invitados participan únicamente por rodada específica (`ride_guest_invitations`, sin cuota recurrente fija)
+- [x] Máximo 3 líderes por grupo y un usuario solo puede liderar 1 grupo (`trg_group_leaders_single_group_per_user`)
+- [x] Requisito mínimo de apertura: 3 cargos de Mesa Directiva (Presidente, Vicepresidente, Sargento de Armas) comprobado en BD (`trg_groups_minimum_directiva`)
 - [x] Nombre único por país, incluso con acentos, símbolos y sustituciones leet
 - [x] Logo único por país, incluso con cambios mínimos o de color
 - [x] Transferencia solo entre miembros, con espera de 7 días y cancelación
 - [x] Solo los líderes cambian cargos y estatus
+- [x] Insignias de Mesa Directiva exclusivas para miembros oficiales; honor cruzable condicionado a rodada previa
+- [x] Jerarquía de clubes (RC/MG/Gang/MC) con apadrinamiento incorporada al modelo
 
 ## C. Cobros
-- [ ] Compra, renovación, cancelación y reembolso probados
-- [ ] Periodo de gracia de 3 días funciona
-- [ ] Notificaciones RTDN idempotentes y conciliación diaria
-- [ ] El líder ve semáforo, nunca datos de pago
-- [ ] Alarmas de vencimiento (7, 3 y 1 día) llegan
-- [ ] Pago vencido implica credencial no renovada y rechazo en la mesh
-- [ ] Líder principal sin pago: rol pasa al siguiente en 7 días
-- [ ] Tres líderes sin pago: grupo suspendido, historial intacto
+- [~] Compra, renovación, cancelación y reembolso probados *(verificados contra PostgreSQL 16 real y JUnit con `FakePlayBillingVerifier` / `FakeBillingClient`; **NO VERIFICADO EN DISPOSITIVO / PLAY CONSOLE REAL** hasta contar con `docs/PLAY_P4_RESULTS.md`)*
+- [x] Periodo de gracia de 3 días funciona *(verificado en `phase2_subscriptions_credentials.test.ts` y `BillingPolicyConfigTest.kt`)*
+- [x] Notificaciones RTDN idempotentes y conciliación diaria *(verificadas en `POST /v1/play/rtdn` con clave única `event_id` en `play_events` en PostgreSQL 16 real)*
+- [x] El líder ve semáforo, nunca datos de pago *(verificado: `paymentSemaphore` expone solo `green`/`yellow`/`red`)*
+- [x] Alarmas de vencimiento (7, 3 y 1 día) llegan *(verificadas en backend y Android)*
+- [x] Pago vencido implica credencial no renovada y rechazo en la mesh *(verificado: `GET /v1/credentials` devuelve `402 SUBSCRIPTION_INACTIVE` en `on_hold`/`expired`/`refunded` y el verificador offline rechaza credenciales caducadas o revocadas)*
+- [x] Líder principal sin pago: rol pasa al siguiente en 7 días *(verificado en PostgreSQL 16 real según `RULES.md` R4.5)*
+- [x] Tres líderes sin pago: grupo suspendido, historial intacto *(verificado en PostgreSQL 16 real según `RULES.md` R4.6, incluyendo reactivación al volver a pagar)*
 
 ## D. Credenciales y seguridad
-- [ ] Credenciales firmadas y verificadas sin internet
-- [ ] Rotación de claves de firma probada
-- [ ] Credencial caducada rechazada en rodada
-- [ ] Lista de revocación sincronizada antes de salir
+- [x] Credenciales firmadas y verificadas sin internet *(Ed25519 verificadas en `credentials.ts` y `OfflineCredentialVerifier.kt`; nota sobre almacén de sesión Android: `KeystoreEncryptedTokenStore` usa sustituto JCE en memoria en tests JVM locales y cuenta con prueba instrumentada `KeystoreEncryptedTokenStoreInstrumentedTest.kt` marcada como **NO VERIFICADO EN DISPOSITIVO**)*
+- [x] Rotación de claves de firma probada *(verificada con `kid` antiguo y nuevo coexistiendo en `CredentialKeyring` y `OfflineCredentialVerifier`)*
+- [x] Credencial caducada rechazada en rodada *(verificada con `EXPIRED_CREDENTIAL` en backend y Android)*
+- [x] Lista de revocación sincronizada antes de salir *(verificada en `GET /v1/revocations` firmada con Ed25519 y aplicada en `OfflineCredentialVerifier`)*
 - [ ] Manifiesto de rodada con dos grupos validado
 - [ ] Play Integrity y ofuscación activos
 - [ ] Mensajes de la mesh cifrados y firmados
@@ -74,11 +77,14 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [ ] Detección de caída con cancelación de 20 s
 
 ## I. Rangos e insignias
-- [ ] Rangos sin solapamiento (0–4, 5–19, 20–49, 50–99, 100+)
+- [ ] Rangos sin solapamiento (0–4, 5–19, 20–49, 50–99, 100+) y progresión por XP en Fase 6 (`GAMIFICATION.md`)
 - [ ] Reglas anti-trampa de rodada validadas
-- [ ] Insignias de honor con límite mensual y registro
+- [ ] Insignias de honor con límite mensual y registro (requiere haber sido invitado a una rodada del grupo)
 - [ ] Honor no suma para el rango
 - [ ] Fundador es marca permanente, no rango
+- [ ] Insignias de Mesa Directiva exclusivas para miembros oficiales del club (`trg_badges_officer_must_be_member`)
+- [ ] Logros de kilometraje acumulativo (10 km a 100.000 km) calculados localmente en Android (`GAMIFICATION.md`)
+- [ ] Logros de constancia (racha mensual ininterrumpida) y experiencia (noche, lluvia, offline, SOS, montaña) (`GAMIFICATION.md`)
 
 ## J. Privacidad y legal
 - [ ] Política de privacidad y términos publicados

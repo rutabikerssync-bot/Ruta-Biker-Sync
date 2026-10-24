@@ -40,6 +40,18 @@ object BillingPolicyConfig {
      */
     var p4MultiSlotStrategy: MultiSlotStrategy = MultiSlotStrategy.NUMBERED_SLOTS
 
+    /**
+     * P6 (RULES.md §12): Límite de grupos principales por líder.
+     * Sigue apagada y sin decidir hasta confirmación explícita del dueño (null = sin límite adicional).
+     */
+    var p6MaxPrincipalGroupsPerLeader: Int? = null
+
+    /**
+     * P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42):
+     * Los invitados (`guest`) NO reciben cargos honoríficos del club (`forbidGuestClubRoles = true`).
+     */
+    var p7ForbidGuestClubRoles: Boolean = true
+
     enum class MultiSlotStrategy {
         NUMBERED_SLOTS,
         SUBSCRIPTION_ADDONS,

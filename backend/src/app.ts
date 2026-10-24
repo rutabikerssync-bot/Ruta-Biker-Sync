@@ -1,4 +1,9 @@
-import Fastify, { type FastifyInstance, type FastifyRequest, type FastifyReply } from 'fastify';
+import Fastify, {
+  type FastifyInstance,
+  type FastifyRequest,
+  type FastifyReply,
+  type FastifyServerOptions
+} from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -14,23 +19,56 @@ import {
   CLUB_ROLES,
   DEFAULT_ROLE_PERMISSIONS,
   MEMBER_STATUS_KINDS,
+  P7_FORBID_GUEST_CLUB_ROLES,
+  canMemberHoldClubRole,
   computePaymentSemaphore,
   requiredLeaderVotesForMajority
 } from './lib/roles.js';
 import {
   AUTH_POLICY,
   LoginAttemptTracker,
+  ScryptConcurrencyLimiter,
+  ScryptQueueOverflowError,
+  createHopLimitTrustProxy,
+  defaultScryptLimiter,
   hashPasswordAsync,
   hashRefreshToken,
   issueSessionToken,
+  parseTrustProxyConfig,
+  setSessionKeyring,
+  validateProductionAuthConfig,
   verifyPasswordAsync,
-  verifySessionToken
+  verifySessionToken,
+  type TrustProxyConfig
 } from './lib/auth.js';
+import {
+  CredentialKeyring,
+  defaultCredentialKeyring,
+  issueOfflineCredential,
+  signRevocationList,
+  type RevocationEntry
+} from './lib/credentials.js';
+import {
+  FakePlayBillingVerifier,
+  defaultFakePlayVerifier,
+  evaluateSubscriptionState,
+  isPlayP4ResultsDocumentPresent,
+  reconcileGroupLeaderSubscriptions,
+  type RtdnNotificationType,
+  type SubscriptionKind,
+  type SubscriptionState
+} from './lib/subscriptions.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
   logger?: boolean;
-  trustProxy?: boolean;
+  trustProxy?: boolean | number | string | string[];
+  scryptLimiter?: ScryptConcurrencyLimiter;
+  forbidGuestClubRoles?: boolean;
+  useFakeBilling?: boolean;
+  playVerifier?: FakePlayBillingVerifier;
+  credentialKeyring?: CredentialKeyring;
+  env?: NodeJS.ProcessEnv;
 }
 
 const CountryCodeSchema = z
@@ -78,7 +116,8 @@ const AddLeaderSchema = z.object({
 
 const CreateInvitationSchema = z.object({
   invitedUserId: z.string().uuid(),
-  statusKind: z.enum(MEMBER_STATUS_KINDS)
+  statusKind: z.enum(MEMBER_STATUS_KINDS),
+  clubRole: z.enum(CLUB_ROLES).nullable().optional()
 });
 
 const AcceptInvitationSchema = z.object({
@@ -114,11 +153,35 @@ const BallotSchema = z.object({
   approve: z.boolean()
 });
 
+const VerifySubscriptionSchema = z.object({
+  productId: z.string().min(3),
+  purchaseToken: z.string().min(8),
+  assignedGroupId: z.string().uuid().optional()
+});
+
+const RtdnWebhookSchema = z.object({
+  messageId: z.string().min(3),
+  purchaseToken: z.string().min(8),
+  productId: z.string().min(3),
+  notificationType: z.enum([
+    'SUBSCRIPTION_PURCHASED',
+    'SUBSCRIPTION_RENEWED',
+    'SUBSCRIPTION_RECOVERED',
+    'SUBSCRIPTION_IN_GRACE_PERIOD',
+    'SUBSCRIPTION_ON_HOLD',
+    'SUBSCRIPTION_CANCELED',
+    'SUBSCRIPTION_EXPIRED',
+    'SUBSCRIPTION_REVOKED'
+  ]),
+  eventTimestampIso: z.string().datetime().optional()
+});
+
+/**
+ * Usa exclusivamente `req.ip` calculado por Fastify según `trustProxy` (saltos o IPs de confianza).
+ * Si `trustProxy` es `false` (o si hay más saltos que los permitidos), un atacante no puede falsificar
+ * `X-Forwarded-For` para eludir el bloqueo de intentos fallidos.
+ */
 function getClientIp(req: FastifyRequest): string {
-  const xff = req.headers['x-forwarded-for'];
-  if (typeof xff === 'string' && xff.trim().length > 0) {
-    return xff.split(',')[0].trim();
-  }
   return req.ip || '127.0.0.1';
 }
 
@@ -184,9 +247,29 @@ function parseBytea(raw: unknown): Buffer | null {
 export async function buildApp({
   db,
   logger = false,
-  trustProxy = process.env.TRUST_PROXY === 'true'
+  trustProxy,
+  scryptLimiter = defaultScryptLimiter,
+  forbidGuestClubRoles = P7_FORBID_GUEST_CLUB_ROLES,
+  useFakeBilling = process.env.USE_FAKE_BILLING !== 'false',
+  playVerifier = defaultFakePlayVerifier,
+  credentialKeyring = defaultCredentialKeyring,
+  env = process.env
 }: BuildAppOptions): Promise<FastifyInstance> {
-  const app = Fastify({ logger, trustProxy });
+  // En producción, exigir AUTH_TOKEN_KEYS_JSON explícito y rechazar arranque con claves por defecto
+  const verifiedKeyring = validateProductionAuthConfig(env);
+  if (env.NODE_ENV === 'production') {
+    setSessionKeyring(verifiedKeyring);
+  }
+
+  const resolvedTrustProxy: TrustProxyConfig =
+    typeof trustProxy === 'number'
+      ? createHopLimitTrustProxy(trustProxy)
+      : (trustProxy ?? parseTrustProxyConfig(env));
+  const fastifyOpts: FastifyServerOptions = {
+    logger,
+    trustProxy: resolvedTrustProxy
+  };
+  const app = Fastify(fastifyOpts);
   const loginTracker = new LoginAttemptTracker();
 
   await app.register(helmet);
@@ -235,72 +318,89 @@ export async function buildApp({
     );
 
     let user = existing.rows[0];
-    if (!user) {
-      const id = randomUUID();
-      const accountType = activateLeaderDemo ? 'leader' : 'member';
-      const pwdHash = password ? await hashPasswordAsync(password) : null;
-      const ins = await db.query(
-        `INSERT INTO users (id, email, password_hash, display_name, country_code, account_type, map_color, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
-         RETURNING id, email, password_hash, display_name, country_code, account_type, bike_model, map_color, status`,
-        [id, email.toLowerCase(), pwdHash, displayName ?? email.split('@')[0], countryCode, accountType, '#FFB300']
-      );
-      user = ins.rows[0];
-
-      await db.query(
-        `INSERT INTO rank_progress (user_id, valid_rides) VALUES ($1, 0)`,
-        [user.id]
-      );
-
-      await db.query(
-        `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
-         VALUES ($1, $2, NULL, 'terms', true, $3)`,
-        [randomUUID(), user.id, policyVersion]
-      );
-
-      if (activateLeaderDemo) {
-        const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        await db.query(
-          `INSERT INTO subscriptions (
-             id, user_id, kind, play_product_id, play_purchase_token,
-             state, current_period_end, auto_renewing, last_verified_at
-           ) VALUES ($1, $2, 'leader', 'leader_monthly', $3, 'active', $4, true, now())`,
-          [randomUUID(), user.id, `demo-leader-token-${user.id}`, periodEnd]
+    try {
+      if (!user) {
+        const id = randomUUID();
+        const accountType = activateLeaderDemo ? 'leader' : 'member';
+        const pwdHash = password ? await hashPasswordAsync(password, scryptLimiter) : null;
+        const ins = await db.query(
+          `INSERT INTO users (id, email, password_hash, display_name, country_code, account_type, map_color, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+           RETURNING id, email, password_hash, display_name, country_code, account_type, bike_model, map_color, status`,
+          [id, email.toLowerCase(), pwdHash, displayName ?? email.split('@')[0], countryCode, accountType, '#FFB300']
         );
-      }
+        user = ins.rows[0];
 
-      await appendAudit(db, user.id, 'USER_REGISTERED', 'user', user.id, {
-        accountType: user.account_type,
-        countryCode: user.country_code,
-        hashAlgorithm: pwdHash ? AUTH_POLICY.HASH_ALGORITHM : 'none'
-      });
-    } else {
-      const validPwd =
-        !user.password_hash || (Boolean(password) && (await verifyPasswordAsync(password!, user.password_hash)));
-      if (!validPwd) {
-        const attempts = loginTracker.recordFailure(email, clientIp);
-        const backoffDelayMs = loginTracker.getProgressiveDelayMs(email, clientIp);
-        return reply.code(401).send({
-          error: 'INVALID_CREDENTIALS',
-          remainingAttempts: Math.max(0, AUTH_POLICY.MAX_FAILED_ATTEMPTS - attempts),
-          backoffDelayMs,
-          message: 'Correo o contraseña incorrectos'
+        await db.query(
+          `INSERT INTO rank_progress (user_id, valid_rides) VALUES ($1, 0)`,
+          [user.id]
+        );
+
+        await db.query(
+          `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
+           VALUES ($1, $2, NULL, 'terms', true, $3)`,
+          [randomUUID(), user.id, policyVersion]
+        );
+
+        if (activateLeaderDemo) {
+          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await db.query(
+            `INSERT INTO subscriptions (
+               id, user_id, kind, play_product_id, play_purchase_token,
+               state, current_period_end, auto_renewing, last_verified_at
+             ) VALUES ($1, $2, 'leader', 'leader_monthly', $3, 'active', $4, true, now())`,
+            [randomUUID(), user.id, `demo-leader-token-${user.id}`, periodEnd]
+          );
+        }
+
+        await appendAudit(db, user.id, 'USER_REGISTERED', 'user', user.id, {
+          accountType: user.account_type,
+          countryCode: user.country_code,
+          hashAlgorithm: pwdHash ? AUTH_POLICY.HASH_ALGORITHM : 'none'
         });
-      }
-      loginTracker.reset(email, clientIp);
+      } else {
+        const validPwd =
+          !user.password_hash ||
+          (Boolean(password) && (await verifyPasswordAsync(password!, user.password_hash, scryptLimiter)));
+        if (!validPwd) {
+          const attempts = loginTracker.recordFailure(email, clientIp);
+          // El retardo progresivo se informa en el cuerpo JSON cerrando la respuesta de inmediato,
+          // nunca reteniendo el socket HTTP abierto en el servidor.
+          const backoffDelayMs = loginTracker.getProgressiveDelayMs(email, clientIp);
+          return reply.code(401).send({
+            error: 'INVALID_CREDENTIALS',
+            remainingAttempts: Math.max(0, AUTH_POLICY.MAX_FAILED_ATTEMPTS - attempts),
+            backoffDelayMs,
+            message: 'Correo o contraseña incorrectos'
+          });
+        }
+        loginTracker.reset(email, clientIp);
 
-      if (activateLeaderDemo && user.account_type !== 'leader') {
-        await db.query(`UPDATE users SET account_type = 'leader' WHERE id = $1`, [user.id]);
-        user.account_type = 'leader';
-        const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-        await db.query(
-          `INSERT INTO subscriptions (
-             id, user_id, kind, play_product_id, play_purchase_token,
-             state, current_period_end, auto_renewing, last_verified_at
-           ) VALUES ($1, $2, 'leader', 'leader_monthly', $3, 'active', $4, true, now())`,
-          [randomUUID(), user.id, `demo-leader-token-${randomUUID()}`, periodEnd]
-        );
+        if (activateLeaderDemo && user.account_type !== 'leader') {
+          await db.query(`UPDATE users SET account_type = 'leader' WHERE id = $1`, [user.id]);
+          user.account_type = 'leader';
+          const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          await db.query(
+            `INSERT INTO subscriptions (
+               id, user_id, kind, play_product_id, play_purchase_token,
+               state, current_period_end, auto_renewing, last_verified_at
+             ) VALUES ($1, $2, 'leader', 'leader_monthly', $3, 'active', $4, true, now())`,
+            [randomUUID(), user.id, `demo-leader-token-${randomUUID()}`, periodEnd]
+          );
+        }
       }
+    } catch (err) {
+      if (err instanceof ScryptQueueOverflowError) {
+        return reply
+          .header('Retry-After', String(err.retryAfterSeconds))
+          .code(503)
+          .send({
+            error: err.code,
+            retryAfterSeconds: err.retryAfterSeconds,
+            message: err.message
+          });
+      }
+      throw err;
     }
 
     const access = issueSessionToken(user.id, 'access');
@@ -605,8 +705,8 @@ export async function buildApp({
     );
 
     await db.query(
-      `INSERT INTO group_leaders (group_id, user_id, is_principal)
-       VALUES ($1, $2, true)`,
+      `INSERT INTO group_leaders (group_id, user_id, is_principal, club_role)
+       VALUES ($1, $2, true, 'Presidente')`,
       [groupId, uid]
     );
 
@@ -933,7 +1033,15 @@ export async function buildApp({
     if (!parsed.success) {
       return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     }
-    const { invitedUserId, statusKind } = parsed.data;
+    const { invitedUserId, statusKind, clubRole } = parsed.data;
+
+    // P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42): Los invitados (`guest`) no reciben cargos honoríficos
+    if (!canMemberHoldClubRole(statusKind, clubRole, forbidGuestClubRoles)) {
+      return reply.code(400).send({
+        error: 'GUEST_CANNOT_HOLD_CLUB_ROLE',
+        message: 'Los invitados (guest) no pueden recibir cargos honoríficos del club (RULES R3, P7 / D42)'
+      });
+    }
 
     const leaderRes = await db.query(
       `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
@@ -1175,6 +1283,14 @@ export async function buildApp({
 
     const nextStatus = statusKind ?? mem.status_kind;
     const nextRole = clubRole !== undefined ? clubRole : mem.club_role;
+
+    // P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42): Los invitados (`guest`) no reciben cargos honoríficos
+    if (!canMemberHoldClubRole(nextStatus, nextRole, forbidGuestClubRoles)) {
+      return reply.code(400).send({
+        error: 'GUEST_CANNOT_HOLD_CLUB_ROLE',
+        message: 'Los invitados (guest) no pueden recibir cargos honoríficos del club (RULES R3, P7 / D42)'
+      });
+    }
 
     await db.query(
       `UPDATE memberships SET status_kind = $1, club_role = $2 WHERE id = $3`,
@@ -1588,6 +1704,547 @@ export async function buildApp({
       deleted: true,
       notifiedLeaderGroups: affectedGroupIds
     };
+  });
+
+  // ---------------------------------------------------------------------------
+  // 13. Fase 2 — Suscripciones (6 estados), RTDN idempotente, Credenciales Ed25519 (kid) y Revocaciones
+  //     (BACKEND_LICENSING.md §§5, 6, 7, 8, 9 y RULES R4.4, R4.5, R4.6, R7.1, R7.2, R7.3)
+  // ---------------------------------------------------------------------------
+  app.post('/v1/subscriptions/verify', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = VerifySubscriptionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { productId, purchaseToken, assignedGroupId } = parsed.data;
+
+    // Bloqueo deliberado si se desactiva el cliente simulado antes de tener docs/PLAY_P4_RESULTS.md
+    if (!useFakeBilling && !isPlayP4ResultsDocumentPresent()) {
+      return reply.code(503).send({
+        error: 'PLAY_INTEGRATION_STANDBY_AWAITING_P4',
+        message:
+          'La verificación contra Google Play Developer API real está en standby hasta que exista docs/PLAY_P4_RESULTS.md (ver PLAY_TEST_SETUP.md)'
+      });
+    }
+
+    let verified: ReturnType<FakePlayBillingVerifier['verifyPurchaseToken']>;
+    try {
+      verified = playVerifier.verifyPurchaseToken(productId, purchaseToken);
+    } catch (err) {
+      return reply.code(400).send({
+        error: 'INVALID_PLAY_PRODUCT_ID',
+        message: (err as Error).message
+      });
+    }
+
+    const subId = randomUUID();
+    const periodEndIso = verified.currentPeriodEnd.toISOString();
+    const graceUntilIso = verified.graceUntil ? verified.graceUntil.toISOString() : null;
+
+    await db.query(
+      `INSERT INTO subscriptions (
+         id, user_id, kind, play_product_id, play_purchase_token,
+         state, current_period_end, grace_until, auto_renewing, assigned_group_id, last_verified_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
+       ON CONFLICT (play_purchase_token) DO UPDATE SET
+         state = EXCLUDED.state,
+         current_period_end = EXCLUDED.current_period_end,
+         grace_until = EXCLUDED.grace_until,
+         auto_renewing = EXCLUDED.auto_renewing,
+         assigned_group_id = COALESCE(EXCLUDED.assigned_group_id, subscriptions.assigned_group_id),
+         last_verified_at = now()`,
+      [
+        subId,
+        uid,
+        verified.kind,
+        verified.productId,
+        verified.purchaseToken,
+        verified.state,
+        periodEndIso,
+        graceUntilIso,
+        verified.autoRenewing,
+        assignedGroupId ?? null
+      ]
+    );
+
+    const evalStatus = evaluateSubscriptionState({
+      state: verified.state,
+      currentPeriodEnd: verified.currentPeriodEnd,
+      graceUntil: verified.graceUntil,
+      autoRenewing: verified.autoRenewing
+    });
+
+    if (verified.kind === 'leader' && evalStatus.accessGranted) {
+      await db.query(`UPDATE users SET account_type = 'leader' WHERE id = $1`, [uid]);
+      const ledGroups = await db.query(
+        `SELECT group_id FROM group_leaders WHERE user_id = $1`,
+        [uid]
+      );
+      for (const row of ledGroups.rows) {
+        await reconcileGroupLeaderSubscriptions(db, String(row.group_id));
+      }
+    } else if (verified.kind === 'member_slot' && assignedGroupId && evalStatus.accessGranted) {
+      await db.query(
+        `UPDATE memberships SET paid_until = $1 WHERE group_id = $2 AND user_id = $3`,
+        [periodEndIso, assignedGroupId, uid]
+      );
+    }
+
+    await appendAudit(db, uid, 'SUBSCRIPTION_VERIFIED', 'subscription', subId, {
+      productId: verified.productId,
+      kind: verified.kind,
+      state: evalStatus.effectiveState,
+      assignedGroupId: assignedGroupId ?? null,
+      simulated: useFakeBilling
+    });
+
+    return reply.code(200).send({
+      productId: verified.productId,
+      kind: verified.kind,
+      state: evalStatus.effectiveState,
+      accessGranted: evalStatus.accessGranted,
+      alert: evalStatus.alert,
+      currentPeriodEnd: periodEndIso,
+      graceUntil: graceUntilIso,
+      effectiveAccessUntil: evalStatus.effectiveAccessUntil?.toISOString() ?? null,
+      paymentSemaphore: evalStatus.paymentSemaphore,
+      alarms: evalStatus.alarms,
+      assignedGroupId: assignedGroupId ?? null
+    });
+  });
+
+  app.get('/v1/subscriptions/me', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const res = await db.query(
+      `SELECT id, user_id, kind, play_product_id, play_purchase_token,
+              state, current_period_end, grace_until, auto_renewing, assigned_group_id, last_verified_at
+       FROM subscriptions
+       WHERE user_id = $1
+       ORDER BY last_verified_at DESC`,
+      [uid]
+    );
+
+    const now = new Date();
+    const subscriptions = res.rows.map((r) => {
+      const periodEnd = new Date(r.current_period_end);
+      const graceUntil = r.grace_until ? new Date(r.grace_until) : null;
+      const evaluated = evaluateSubscriptionState(
+        {
+          state: r.state as SubscriptionState,
+          currentPeriodEnd: periodEnd,
+          graceUntil,
+          autoRenewing: Boolean(r.auto_renewing)
+        },
+        now
+      );
+      return {
+        id: r.id,
+        kind: r.kind as SubscriptionKind,
+        productId: r.play_product_id,
+        state: evaluated.effectiveState,
+        storedState: r.state,
+        accessGranted: evaluated.accessGranted,
+        alert: evaluated.alert,
+        currentPeriodEnd: periodEnd.toISOString(),
+        graceUntil: graceUntil ? graceUntil.toISOString() : null,
+        effectiveAccessUntil: evaluated.effectiveAccessUntil?.toISOString() ?? null,
+        autoRenewing: Boolean(r.auto_renewing),
+        assignedGroupId: r.assigned_group_id ?? null,
+        paymentSemaphore: evaluated.paymentSemaphore,
+        alarms: evaluated.alarms,
+        daysRemaining: evaluated.daysRemaining
+      };
+    });
+
+    return { subscriptions };
+  });
+
+  app.post('/v1/play/rtdn', async (req, reply) => {
+    const parsed = RtdnWebhookSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { messageId, purchaseToken, productId, notificationType, eventTimestampIso } =
+      parsed.data;
+
+    // 1. Idempotencia estricta sobre la tabla `play_events` (BACKEND_LICENSING.md §§4, 6.3)
+    const existingEvt = await db.query(
+      `SELECT message_id FROM play_events WHERE message_id = $1`,
+      [messageId]
+    );
+    if (existingEvt.rows.length > 0) {
+      return reply.code(200).send({
+        messageId,
+        status: 'duplicate_ignored',
+        idempotent: true
+      });
+    }
+
+    await db.query(
+      `INSERT INTO play_events (message_id, payload) VALUES ($1, $2)`,
+      [messageId, JSON.stringify(parsed.data)]
+    );
+
+    const subRes = await db.query(
+      `SELECT id, user_id, kind, play_product_id, state, current_period_end, grace_until, auto_renewing, assigned_group_id
+       FROM subscriptions WHERE play_purchase_token = $1`,
+      [purchaseToken]
+    );
+    const subRow = subRes.rows[0];
+    if (!subRow) {
+      return reply.code(200).send({
+        messageId,
+        status: 'unknown_purchase_token_recorded',
+        idempotent: false
+      });
+    }
+
+    const now = eventTimestampIso ? new Date(eventTimestampIso) : new Date();
+    playVerifier.seedPurchase({
+      purchaseToken,
+      productId: String(subRow.play_product_id),
+      kind: subRow.kind as SubscriptionKind,
+      state: subRow.state as SubscriptionState,
+      currentPeriodEnd: new Date(subRow.current_period_end),
+      graceUntil: subRow.grace_until ? new Date(subRow.grace_until) : null,
+      autoRenewing: Boolean(subRow.auto_renewing)
+    });
+
+    const updated = playVerifier.applyRtdnTransition(
+      purchaseToken,
+      productId,
+      notificationType as RtdnNotificationType,
+      now
+    );
+
+    await db.query(
+      `UPDATE subscriptions
+       SET state = $1,
+           current_period_end = $2,
+           grace_until = $3,
+           auto_renewing = $4,
+           last_verified_at = now()
+       WHERE id = $5`,
+      [
+        updated.state,
+        updated.currentPeriodEnd.toISOString(),
+        updated.graceUntil ? updated.graceUntil.toISOString() : null,
+        updated.autoRenewing,
+        subRow.id
+      ]
+    );
+
+    const evalStatus = evaluateSubscriptionState(updated, now);
+
+    // Actualizar paid_until de membresía si es un cupo de miembro asignado a un grupo
+    if (subRow.kind === 'member_slot' && subRow.assigned_group_id) {
+      const nextPaidUntil = evalStatus.accessGranted
+        ? updated.currentPeriodEnd.toISOString()
+        : now.toISOString();
+      await db.query(
+        `UPDATE memberships SET paid_until = $1 WHERE group_id = $2 AND user_id = $3`,
+        [nextPaidUntil, subRow.assigned_group_id, subRow.user_id]
+      );
+    }
+
+    // Si es suscripción de líder, evaluar reglas R4.5 (promoción a los 7 días) y R4.6 (suspensión si caen los 3 líderes)
+    const reconciliations = [];
+    if (subRow.kind === 'leader') {
+      const ledGroups = await db.query(
+        `SELECT group_id FROM group_leaders WHERE user_id = $1`,
+        [subRow.user_id]
+      );
+      for (const row of ledGroups.rows) {
+        const rec = await reconcileGroupLeaderSubscriptions(db, String(row.group_id), now);
+        if (rec) reconciliations.push(rec);
+      }
+    }
+
+    await appendAudit(db, String(subRow.user_id), 'RTDN_PROCESSED', 'subscription', String(subRow.id), {
+      messageId,
+      notificationType,
+      resultingState: evalStatus.effectiveState,
+      accessGranted: evalStatus.accessGranted,
+      reconciliations
+    });
+
+    return reply.code(200).send({
+      messageId,
+      status: 'processed',
+      idempotent: false,
+      subscriptionId: subRow.id,
+      state: evalStatus.effectiveState,
+      accessGranted: evalStatus.accessGranted,
+      paymentSemaphore: evalStatus.paymentSemaphore,
+      reconciliations
+    });
+  });
+
+  app.get('/v1/credentials', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const userRes = await db.query(
+      `SELECT id, public_key, status FROM users WHERE id = $1`,
+      [uid]
+    );
+    const user = userRes.rows[0];
+    if (!user || user.status !== 'active') {
+      return reply.code(403).send({ error: 'USER_INACTIVE' });
+    }
+
+    const devicePkBase64 =
+      parseBytea(user.public_key)?.toString('base64') ??
+      Buffer.from(`dev-pk-${uid}`, 'utf8').toString('base64');
+
+    const now = new Date();
+    const nowSec = Math.floor(now.getTime() / 1000);
+    const credentials = [];
+
+    // 1. Credenciales como líder en grupos activos donde su suscripción `leader` tenga acceso efectivo (R4.4)
+    const leaderSubRes = await db.query(
+      `SELECT state, current_period_end, grace_until, auto_renewing
+       FROM subscriptions
+       WHERE user_id = $1 AND kind = 'leader'
+       ORDER BY current_period_end DESC LIMIT 1`,
+      [uid]
+    );
+    const leaderSub = leaderSubRes.rows[0];
+    if (leaderSub) {
+      const evalLeader = evaluateSubscriptionState(
+        {
+          state: leaderSub.state as SubscriptionState,
+          currentPeriodEnd: new Date(leaderSub.current_period_end),
+          graceUntil: leaderSub.grace_until ? new Date(leaderSub.grace_until) : null,
+          autoRenewing: Boolean(leaderSub.auto_renewing)
+        },
+        now
+      );
+      if (evalLeader.accessGranted && evalLeader.effectiveAccessUntil) {
+        const ledGroups = await db.query(
+          `SELECT g.id
+           FROM group_leaders gl
+           JOIN groups g ON g.id = gl.group_id
+           WHERE gl.user_id = $1 AND g.status = 'active'`,
+          [uid]
+        );
+        const accessUntilSec = Math.floor(evalLeader.effectiveAccessUntil.getTime() / 1000);
+        for (const grp of ledGroups.rows) {
+          const signed = issueOfflineCredential(
+            {
+              uid,
+              gid: String(grp.id),
+              kind: 'leader',
+              devicePublicKeyBase64: devicePkBase64,
+              effectiveAccessUntilSec: accessUntilSec,
+              nowSec
+            },
+            credentialKeyring
+          );
+          credentials.push(signed);
+        }
+      }
+    }
+
+    // 2. Credenciales como miembro (full, prospect, guest) en grupos activos con pago/gracia vigente
+    const memberGroupsRes = await db.query(
+      `SELECT m.group_id, m.status_kind, m.paid_until,
+              s.state AS sub_state, s.current_period_end, s.grace_until, s.auto_renewing
+       FROM memberships m
+       JOIN groups g ON g.id = m.group_id
+       LEFT JOIN subscriptions s
+         ON s.user_id = m.user_id AND s.kind = 'member_slot' AND s.assigned_group_id = m.group_id
+       WHERE m.user_id = $1 AND m.invite_state = 'accepted' AND g.status = 'active'`,
+      [uid]
+    );
+
+    for (const row of memberGroupsRes.rows) {
+      let accessUntilSec: number | null = null;
+      if (row.sub_state && row.current_period_end) {
+        const evalSub = evaluateSubscriptionState(
+          {
+            state: row.sub_state as SubscriptionState,
+            currentPeriodEnd: new Date(row.current_period_end),
+            graceUntil: row.grace_until ? new Date(row.grace_until) : null,
+            autoRenewing: Boolean(row.auto_renewing)
+          },
+          now
+        );
+        if (evalSub.accessGranted && evalSub.effectiveAccessUntil) {
+          accessUntilSec = Math.floor(evalSub.effectiveAccessUntil.getTime() / 1000);
+        }
+      } else if (row.paid_until && new Date(row.paid_until).getTime() > now.getTime()) {
+        accessUntilSec = Math.floor(new Date(row.paid_until).getTime() / 1000);
+      }
+
+      if (accessUntilSec && accessUntilSec > nowSec) {
+        const signed = issueOfflineCredential(
+          {
+            uid,
+            gid: String(row.group_id),
+            kind: row.status_kind,
+            devicePublicKeyBase64: devicePkBase64,
+            effectiveAccessUntilSec: accessUntilSec,
+            nowSec
+          },
+          credentialKeyring
+        );
+        credentials.push(signed);
+      }
+    }
+
+    return {
+      activeKid: credentialKeyring.getActiveKid(),
+      publicKeys: credentialKeyring.getPublicKeyMap(),
+      credentials
+    };
+  });
+
+  app.get('/v1/revocations', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const query = req.query as { groupId?: string };
+    const filterGroupId = query?.groupId;
+
+    const revocations: RevocationEntry[] = [];
+    const nowIso = new Date().toISOString();
+
+    // 1. Suscripciones reembolsadas o sin acceso (`refunded`, `on_hold`, `expired`)
+    const subRevRes = await db.query(
+      `SELECT user_id, assigned_group_id, state, last_verified_at
+       FROM subscriptions
+       WHERE state IN ('refunded', 'on_hold', 'expired')
+         AND ($1::uuid IS NULL OR assigned_group_id = $1::uuid OR kind = 'leader')`,
+      [filterGroupId ?? null]
+    );
+    for (const r of subRevRes.rows) {
+      revocations.push({
+        userId: String(r.user_id),
+        groupId: r.assigned_group_id ? String(r.assigned_group_id) : null,
+        reason: r.state === 'refunded' ? 'refunded' : 'subscription_inactive',
+        revokedAtIso: r.last_verified_at ? new Date(r.last_verified_at).toISOString() : nowIso
+      });
+    }
+
+    // 2. Membresías retiradas o dadas de baja (`removed`, `left`)
+    const memRevRes = await db.query(
+      `SELECT user_id, group_id, invite_state
+       FROM memberships
+       WHERE invite_state IN ('removed', 'left')
+         AND ($1::uuid IS NULL OR group_id = $1::uuid)`,
+      [filterGroupId ?? null]
+    );
+    for (const r of memRevRes.rows) {
+      revocations.push({
+        userId: String(r.user_id),
+        groupId: String(r.group_id),
+        reason: r.invite_state === 'removed' ? 'membership_removed' : 'membership_left',
+        revokedAtIso: nowIso
+      });
+    }
+
+    const signedList = signRevocationList(
+      revocations,
+      Math.floor(Date.now() / 1000),
+      credentialKeyring
+    );
+
+    return {
+      ...signedList,
+      publicKeys: credentialKeyring.getPublicKeyMap()
+    };
+  });
+
+  // ---------------------------------------------------------------------------
+  // 16. Fase 2 — Certificación, Jerarquía (RC/MG/Gang/MC) e Invitados por Rodada (D42-D46)
+  // ---------------------------------------------------------------------------
+  app.get('/v1/groups/:id/tier-eligibility', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    try {
+      const { evaluateTierEligibility } = await import('./modules/groups/tier.js');
+      const result = await evaluateTierEligibility(id, db);
+      return reply.send(result);
+    } catch {
+      return reply.code(404).send({ error: 'Grupo no encontrado' });
+    }
+  });
+
+  app.get('/v1/founder-nucleus/:country', async (req, reply) => {
+    const { country } = req.params as { country: string };
+    const { evaluateFounderNucleus } = await import('./modules/groups/tier.js');
+    const result = await evaluateFounderNucleus(country.toUpperCase(), db);
+    return reply.send(result);
+  });
+
+  app.post('/v1/groups/:id/certifications', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { certification_type, certified_by_group_id } = (req.body ?? {}) as {
+      certification_type: 'mutual_founder' | 'standard_padrino' | 'platform_support';
+      certified_by_group_id?: string;
+    };
+
+    if (!['mutual_founder', 'standard_padrino', 'platform_support'].includes(certification_type)) {
+      return reply.code(400).send({ error: 'Tipo de certificación inválido' });
+    }
+
+    const { rows } = await db.query(
+      `INSERT INTO group_certifications (group_id, certified_by_group_id, certification_type)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [id, certified_by_group_id || null, certification_type]
+    );
+    await db.query(`UPDATE groups SET is_certified = true WHERE id = $1`, [id]);
+    return reply.code(201).send(rows[0]);
+  });
+
+  app.get('/v1/groups/:id/certifications', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const { rows } = await db.query(
+      `SELECT * FROM group_certifications WHERE group_id = $1 ORDER BY certified_at DESC`,
+      [id]
+    );
+    return reply.send(rows);
+  });
+
+  app.get('/v1/padrinos/:country', async (req, reply) => {
+    const { country } = req.params as { country: string };
+    const { rows } = await db.query(
+      `SELECT g.id, g.name, g.tier, g.created_at, g.legacy_since
+       FROM groups g
+       JOIN group_certifications gc ON gc.group_id = g.id AND gc.revoked_at IS NULL
+       WHERE g.country_code = $1
+         AND g.tier = 'MC'
+         AND g.is_certified = true
+         AND (g.legacy_since <= now() - interval '7 years' OR g.created_at <= now() - interval '7 years')
+       ORDER BY g.legacy_since NULLS LAST, g.created_at ASC`,
+      [country.toUpperCase()]
+    );
+    return reply.send(rows);
+  });
+
+  app.post('/v1/rides/:rideId/guest-invitations', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { rideId } = req.params as { rideId: string };
+    const { userId, expiresInHours } = (req.body ?? {}) as {
+      userId?: string;
+      expiresInHours?: number;
+    };
+    if (!userId) {
+      return reply.code(400).send({ error: 'USER_ID_REQUIRED' });
+    }
+    const hours = Math.max(1, Math.min(168, Number(expiresInHours ?? 168)));
+    const { rows } = await db.query(
+      `INSERT INTO ride_guest_invitations (id, ride_id, user_id, invited_by, expires_at)
+       VALUES ($1, $2, $3, $4, now() + ($5 || ' hours')::interval)
+       RETURNING *`,
+      [randomUUID(), rideId, userId, uid, String(hours)]
+    );
+    return reply.code(201).send(rows[0]);
   });
 
   return app;
