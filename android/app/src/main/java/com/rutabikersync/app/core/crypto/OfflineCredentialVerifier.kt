@@ -186,4 +186,135 @@ object OfflineCredentialVerifier {
 
         return CredentialVerificationOutcome(true, null, payload)
     }
+
+    fun issueRideManifest(
+        rideId: String,
+        hostGroupId: String,
+        cohostGroupId: String? = null,
+        hostLeaderId: String,
+        cohostLeaderId: String? = null,
+        routeHash: String? = null,
+        participants: List<RideManifestParticipantPayload>,
+        nowEpochSec: Long = System.currentTimeMillis() / 1000L,
+        ttlSeconds: Long = 24L * 60L * 60L,
+        keyring: AndroidCredentialKeyring
+    ): String {
+        val groupIds = if (cohostGroupId != null) {
+            listOf(hostGroupId, cohostGroupId).distinct()
+        } else {
+            listOf(hostGroupId)
+        }
+        require(groupIds.size in 1..2) {
+            "R6.3: Un manifiesto de rodada solo admite 1 o 2 grupos"
+        }
+        val privKey = keyring.getActivePrivateKey()
+            ?: error("MISSING_ACTIVE_ED25519_PRIVATE_KEY:${keyring.activeKid}")
+        val payload = RideManifestPayload(
+            v = 1,
+            type = "ride_manifest",
+            rideId = rideId,
+            hostGroupId = hostGroupId,
+            cohostGroupId = cohostGroupId,
+            groupIds = groupIds,
+            hostLeaderId = hostLeaderId,
+            cohostLeaderId = cohostLeaderId,
+            routeHash = routeHash,
+            participants = participants,
+            iat = nowEpochSec,
+            exp = nowEpochSec + ttlSeconds,
+            kid = keyring.activeKid
+        )
+        val payloadB64 = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(json.encodeToString(payload).toByteArray(Charsets.UTF_8))
+        val signer = Signature.getInstance("Ed25519")
+        signer.initSign(privKey)
+        signer.update(payloadB64.toByteArray(Charsets.UTF_8))
+        val sigB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(signer.sign())
+        return "$payloadB64.$sigB64"
+    }
+
+    fun verifyRideManifest(
+        manifestToken: String,
+        keyring: AndroidCredentialKeyring,
+        nowEpochSec: Long = System.currentTimeMillis() / 1000L,
+        requireParticipantUid: String? = null
+    ): RideManifestVerificationOutcome {
+        val parts = manifestToken.split(".")
+        if (parts.size != 2 || parts[0].isBlank() || parts[1].isBlank()) {
+            return RideManifestVerificationOutcome(false, "MALFORMED_MANIFEST")
+        }
+        val payloadB64 = parts[0]
+        val sigB64 = parts[1]
+
+        val payload = runCatching {
+            val decoded = String(Base64.getUrlDecoder().decode(payloadB64), Charsets.UTF_8)
+            json.decodeFromString<RideManifestPayload>(decoded)
+        }.getOrElse {
+            return RideManifestVerificationOutcome(false, "MALFORMED_MANIFEST")
+        }
+
+        if (payload.v != 1 || payload.type != "ride_manifest") {
+            return RideManifestVerificationOutcome(false, "UNSUPPORTED_VERSION", payload)
+        }
+        if (payload.groupIds.size !in 1..2) {
+            return RideManifestVerificationOutcome(false, "INVALID_GROUP_COUNT", payload)
+        }
+
+        val pubKey = keyring.getPublicKey(payload.kid)
+            ?: return RideManifestVerificationOutcome(false, "UNKNOWN_KID", payload)
+
+        val sigBytes = runCatching { Base64.getUrlDecoder().decode(sigB64) }.getOrElse {
+            return RideManifestVerificationOutcome(false, "MALFORMED_MANIFEST", payload)
+        }
+
+        val sigValid = runCatching {
+            val verifier = Signature.getInstance("Ed25519")
+            verifier.initVerify(pubKey)
+            verifier.update(payloadB64.toByteArray(Charsets.UTF_8))
+            verifier.verify(sigBytes)
+        }.getOrDefault(false)
+
+        if (!sigValid) {
+            return RideManifestVerificationOutcome(false, "INVALID_SIGNATURE", payload)
+        }
+        if (payload.exp <= nowEpochSec) {
+            return RideManifestVerificationOutcome(false, "MANIFEST_EXPIRED", payload)
+        }
+        if (requireParticipantUid != null && payload.participants.none { it.uid == requireParticipantUid }) {
+            return RideManifestVerificationOutcome(false, "PARTICIPANT_NOT_AUTHORIZED", payload)
+        }
+        return RideManifestVerificationOutcome(true, null, payload)
+    }
 }
+
+@Serializable
+data class RideManifestParticipantPayload(
+    val uid: String,
+    val gid: String,
+    val statusKind: String,
+    val rideRole: String? = null,
+    val pk: String? = null
+)
+
+@Serializable
+data class RideManifestPayload(
+    val v: Int = 1,
+    val type: String = "ride_manifest",
+    val rideId: String,
+    val hostGroupId: String,
+    val cohostGroupId: String? = null,
+    val groupIds: List<String>,
+    val hostLeaderId: String,
+    val cohostLeaderId: String? = null,
+    val routeHash: String? = null,
+    val participants: List<RideManifestParticipantPayload>,
+    val iat: Long,
+    val exp: Long,
+    val kid: String
+)
+
+data class RideManifestVerificationOutcome(
+    val valid: Boolean,
+    val rejectionReason: String? = null,
+    val payload: RideManifestPayload? = null
+)

@@ -40,11 +40,16 @@ export function createPgPool(connectionString?: string): Pool {
 export const pool: Pool = createPgPool();
 
 export function readInitMigrationSql(): string {
-  const m1Path = path.join(__dirname, 'migrations', '0001_init.sql');
-  const m2Path = path.join(__dirname, 'migrations', '0002_phase2_rules.sql');
-  const m1 = fs.readFileSync(m1Path, 'utf8');
-  const m2 = fs.existsSync(m2Path) ? fs.readFileSync(m2Path, 'utf8') : '';
-  return m2 ? `${m1}\n${m2}` : m1;
+  const migrationFiles = [
+    '0001_init.sql',
+    '0002_phase2_rules.sql',
+    '0003_phase3_rides_manifest.sql'
+  ];
+  return migrationFiles
+    .map((file) => path.join(__dirname, 'migrations', file))
+    .filter((filePath) => fs.existsSync(filePath))
+    .map((filePath) => fs.readFileSync(filePath, 'utf8'))
+    .join('\n');
 }
 
 export async function runMigrations(db: DbExecutor): Promise<void> {

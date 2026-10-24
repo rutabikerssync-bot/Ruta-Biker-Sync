@@ -288,4 +288,55 @@ class BillingPolicyConfigTest {
             verifyRevoked.rejectionReason
         )
     }
+
+    @Test
+    fun `Fase 3 Bloque 3_1 RideManifest Ed25519 two groups joint ride and closed participant list`() {
+        val keyring = com.rutabikersync.app.core.crypto.AndroidCredentialKeyring("ed25519-f3-k1")
+        val nowSec = 1_760_100_000L
+
+        val manifestToken = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.issueRideManifest(
+            rideId = "ride-joint-01",
+            hostGroupId = "grp-aguilas",
+            cohostGroupId = "grp-lobos",
+            hostLeaderId = "u-leader-aguilas",
+            cohostLeaderId = "u-leader-lobos",
+            routeHash = "sha256:demo-route",
+            participants = listOf(
+                com.rutabikersync.app.core.crypto.RideManifestParticipantPayload(
+                    uid = "u-leader-aguilas",
+                    gid = "grp-aguilas",
+                    statusKind = "leader",
+                    rideRole = "capitan_rodada",
+                    pk = "pk-aguilas-1"
+                ),
+                com.rutabikersync.app.core.crypto.RideManifestParticipantPayload(
+                    uid = "u-member-lobos",
+                    gid = "grp-lobos",
+                    statusKind = "full",
+                    rideRole = "sweep",
+                    pk = "pk-lobos-1"
+                )
+            ),
+            nowEpochSec = nowSec,
+            keyring = keyring
+        )
+
+        val verifyOk = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.verifyRideManifest(
+            manifestToken = manifestToken,
+            keyring = keyring,
+            nowEpochSec = nowSec + 60L,
+            requireParticipantUid = "u-member-lobos"
+        )
+        org.junit.Assert.assertTrue(verifyOk.valid)
+        assertEquals(listOf("grp-aguilas", "grp-lobos"), verifyOk.payload!!.groupIds)
+
+        val verifyUnauthorized = com.rutabikersync.app.core.crypto.OfflineCredentialVerifier.verifyRideManifest(
+            manifestToken = manifestToken,
+            keyring = keyring,
+            nowEpochSec = nowSec + 60L,
+            requireParticipantUid = "u-intruder"
+        )
+        org.junit.Assert.assertFalse(verifyUnauthorized.valid)
+        assertEquals("PARTICIPANT_NOT_AUTHORIZED", verifyUnauthorized.rejectionReason)
+    }
 }

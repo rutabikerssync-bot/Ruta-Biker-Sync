@@ -45,8 +45,12 @@ import {
   CredentialKeyring,
   defaultCredentialKeyring,
   issueOfflineCredential,
+  issueRideManifest,
   signRevocationList,
-  type RevocationEntry
+  type CredentialRoleKind,
+  type RevocationEntry,
+  type RideManifestParticipant,
+  type RideRoleKind
 } from './lib/credentials.js';
 import {
   FakePlayBillingVerifier,
@@ -2241,10 +2245,515 @@ export async function buildApp({
     const { rows } = await db.query(
       `INSERT INTO ride_guest_invitations (id, ride_id, user_id, invited_by, expires_at)
        VALUES ($1, $2, $3, $4, now() + ($5 || ' hours')::interval)
+       ON CONFLICT (ride_id, user_id) DO UPDATE SET
+         state = 'pending',
+         invited_by = EXCLUDED.invited_by,
+         expires_at = EXCLUDED.expires_at
        RETURNING *`,
       [randomUUID(), rideId, userId, uid, String(hours)]
     );
     return reply.code(201).send(rows[0]);
+  });
+
+  app.post('/v1/rides/:rideId/guest-invitations/:invitationId/accept', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { rideId, invitationId } = req.params as { rideId: string; invitationId: string };
+    const { consentLocation } = (req.body ?? {}) as { consentLocation?: boolean };
+    if (consentLocation === false) {
+      return reply.code(400).send({
+        error: 'RIDE_LOCATION_CONSENT_REQUIRED',
+        message: 'Un invitado a una rodada debe consentir explícitamente para esa salida (RULES R2.1, R15.4)'
+      });
+    }
+
+    const invRes = await db.query(
+      `SELECT id, ride_id, user_id, state, expires_at
+       FROM ride_guest_invitations
+       WHERE id = $1 AND ride_id = $2`,
+      [invitationId, rideId]
+    );
+    const inv = invRes.rows[0];
+    if (!inv) return reply.code(404).send({ error: 'GUEST_INVITATION_NOT_FOUND' });
+    if (String(inv.user_id) !== uid) return reply.code(403).send({ error: 'FORBIDDEN' });
+    if (new Date(inv.expires_at).getTime() <= Date.now()) {
+      await db.query(`UPDATE ride_guest_invitations SET state = 'expired' WHERE id = $1`, [invitationId]);
+      return reply.code(410).send({ error: 'GUEST_INVITATION_EXPIRED' });
+    }
+
+    const { rows } = await db.query(
+      `UPDATE ride_guest_invitations
+       SET state = 'accepted', accepted_at = now()
+       WHERE id = $1
+       RETURNING *`,
+      [invitationId]
+    );
+
+    const rideRes = await db.query(`SELECT host_group FROM rides WHERE id = $1`, [rideId]);
+    const hostGroupId = rideRes.rows[0]?.host_group;
+    if (hostGroupId) {
+      await db.query(
+        `INSERT INTO ride_participants (ride_id, user_id, group_id, status_kind, ride_role)
+         VALUES ($1, $2, $3, 'guest', 'participante')
+         ON CONFLICT (ride_id, user_id) DO NOTHING`,
+        [rideId, uid, hostGroupId]
+      );
+    }
+
+    return reply.code(200).send(rows[0]);
+  });
+
+  // ---------------------------------------------------------------------------
+  // 17. Fase 3 (Bloque 3.1) — Ciclo de vida de la Rodada, Manifiesto firmado Ed25519
+  //     y cierre con validación anti-trampa R6.6 (RULES.md §§6.1–6.6, BACKEND_LICENSING.md §§7, 8)
+  // ---------------------------------------------------------------------------
+  app.post('/v1/rides', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const body = (req.body ?? {}) as {
+      hostGroupId?: string;
+      cohostGroupId?: string | null;
+      cohostLeaderId?: string | null;
+      title?: string;
+      routeHash?: string;
+      state?: 'planned' | 'active';
+      participants?: Array<{
+        userId: string;
+        groupId?: string;
+        statusKind?: CredentialRoleKind;
+        rideRole?: RideRoleKind;
+      }>;
+    };
+
+    if (!body.hostGroupId) {
+      return reply.code(400).send({ error: 'HOST_GROUP_REQUIRED' });
+    }
+
+    // Verificar que el grupo anfitrión existe y está activo (R4.7: un grupo suspendido no inicia rodadas)
+    const grpRes = await db.query(
+      `SELECT id, status FROM groups WHERE id = $1`,
+      [body.hostGroupId]
+    );
+    const hostGroup = grpRes.rows[0];
+    if (!hostGroup) return reply.code(404).send({ error: 'HOST_GROUP_NOT_FOUND' });
+    if (hostGroup.status !== 'active') {
+      return reply.code(403).send({
+        error: 'GROUP_SUSPENDED',
+        message: 'Un grupo suspendido no puede iniciar rodadas (RULES R4.7)'
+      });
+    }
+
+    // Solo un líder del grupo anfitrión puede crear la rodada (R6.3, R14.1)
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [body.hostGroupId, uid]
+    );
+    if (leaderRes.rows.length === 0) {
+      return reply.code(403).send({
+        error: 'LEADER_REQUIRED',
+        message: 'Solo un líder del grupo anfitrión puede crear la rodada'
+      });
+    }
+
+    // Si hay grupo coanfitrión (rodada conjunta de 2 grupos — R6.3), verificar que exista y esté activo
+    if (body.cohostGroupId) {
+      if (body.cohostGroupId === body.hostGroupId) {
+        return reply.code(400).send({ error: 'COHOST_MUST_BE_DIFFERENT_GROUP' });
+      }
+      const coGrpRes = await db.query(
+        `SELECT id, status FROM groups WHERE id = $1`,
+        [body.cohostGroupId]
+      );
+      if (!coGrpRes.rows[0] || coGrpRes.rows[0].status !== 'active') {
+        return reply.code(400).send({ error: 'INVALID_OR_INACTIVE_COHOST_GROUP' });
+      }
+    }
+
+    const rideId = randomUUID();
+    const initialState = body.state === 'planned' ? 'planned' : 'active';
+
+    await db.query(
+      `INSERT INTO rides (
+         id, host_group, host_leader, cohost_group, cohost_leader,
+         title, route_hash, state, starts_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`,
+      [
+        rideId,
+        body.hostGroupId,
+        uid,
+        body.cohostGroupId ?? null,
+        body.cohostLeaderId ?? null,
+        body.title ?? null,
+        body.routeHash ?? null,
+        initialState
+      ]
+    );
+
+    await db.query(
+      `INSERT INTO ride_groups (ride_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [rideId, body.hostGroupId]
+    );
+    if (body.cohostGroupId) {
+      await db.query(
+        `INSERT INTO ride_groups (ride_id, group_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [rideId, body.cohostGroupId]
+      );
+    }
+
+    // El líder anfitrión entra automáticamente como participante de la rodada
+    await db.query(
+      `INSERT INTO ride_participants (ride_id, user_id, group_id, status_kind, ride_role)
+       VALUES ($1, $2, $3, 'leader', 'capitan_rodada')
+       ON CONFLICT (ride_id, user_id) DO NOTHING`,
+      [rideId, uid, body.hostGroupId]
+    );
+
+    if (Array.isArray(body.participants)) {
+      for (const p of body.participants) {
+        await db.query(
+          `INSERT INTO ride_participants (ride_id, user_id, group_id, status_kind, ride_role)
+           VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (ride_id, user_id) DO UPDATE SET
+             status_kind = EXCLUDED.status_kind,
+             ride_role = COALESCE(EXCLUDED.ride_role, ride_participants.ride_role)`,
+          [
+            rideId,
+            p.userId,
+            p.groupId ?? body.hostGroupId,
+            p.statusKind ?? 'full',
+            p.rideRole ?? 'participante'
+          ]
+        );
+      }
+    }
+
+    await appendAudit(db, uid, 'RIDE_CREATED', 'ride', rideId, {
+      hostGroupId: body.hostGroupId,
+      cohostGroupId: body.cohostGroupId ?? null,
+      state: initialState
+    });
+
+    return reply.code(201).send({
+      id: rideId,
+      hostGroupId: body.hostGroupId,
+      cohostGroupId: body.cohostGroupId ?? null,
+      hostLeaderId: uid,
+      cohostLeaderId: body.cohostLeaderId ?? null,
+      title: body.title ?? null,
+      routeHash: body.routeHash ?? null,
+      state: initialState
+    });
+  });
+
+  app.post('/v1/rides/:id/participants', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: rideId } = req.params as { id: string };
+
+    const body = (req.body ?? {}) as {
+      userId?: string;
+      groupId?: string;
+      statusKind?: CredentialRoleKind;
+      rideRole?: RideRoleKind;
+    };
+    if (!body.userId) {
+      return reply.code(400).send({ error: 'USER_ID_REQUIRED' });
+    }
+
+    const rideRes = await db.query(
+      `SELECT id, host_group, cohost_group, state FROM rides WHERE id = $1`,
+      [rideId]
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+
+    const targetGroupId = body.groupId ?? String(ride.host_group);
+
+    // R6.3 y R14.7: En una rodada conjunta de dos grupos, cada líder controla únicamente a su propio grupo
+    const callerLeaderGroupsRes = await db.query(
+      `SELECT group_id FROM group_leaders WHERE user_id = $1`,
+      [uid]
+    );
+    const callerLeaderGroupIds = callerLeaderGroupsRes.rows.map((r) => String(r.group_id));
+    if (!callerLeaderGroupIds.includes(targetGroupId)) {
+      return reply.code(403).send({
+        error: 'CANNOT_CONTROL_OTHER_GROUP_IN_JOINT_RIDE',
+        message: 'Cada líder controla únicamente a su propio grupo en rodadas conjuntas (RULES R6.3, R14.7)'
+      });
+    }
+
+    try {
+      const { rows } = await db.query(
+        `INSERT INTO ride_participants (ride_id, user_id, group_id, status_kind, ride_role)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (ride_id, user_id) DO UPDATE SET
+           status_kind = EXCLUDED.status_kind,
+           ride_role = COALESCE(EXCLUDED.ride_role, ride_participants.ride_role)
+         RETURNING *`,
+        [
+          rideId,
+          body.userId,
+          targetGroupId,
+          body.statusKind ?? 'full',
+          body.rideRole ?? 'participante'
+        ]
+      );
+      return reply.code(201).send(rows[0]);
+    } catch (err) {
+      return reply.code(403).send({
+        error: 'UNAUTHORIZED_RIDE_PARTICIPANT',
+        message: (err as Error).message
+      });
+    }
+  });
+
+  const handleIssueRideManifest = async (req: FastifyRequest, reply: FastifyReply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: rideId } = req.params as { id: string };
+
+    const rideRes = await db.query(
+      `SELECT id, host_group, host_leader, cohost_group, cohost_leader, route_hash, state
+       FROM rides WHERE id = $1`,
+      [rideId]
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+
+    const partRes = await db.query(
+      `SELECT rp.user_id, rp.group_id, rp.status_kind, rp.ride_role, u.public_key
+       FROM ride_participants rp
+       JOIN users u ON u.id = rp.user_id
+       WHERE rp.ride_id = $1
+       ORDER BY rp.joined_at ASC`,
+      [rideId]
+    );
+
+    const isParticipant = partRes.rows.some((r) => String(r.user_id) === uid);
+    const isHostOrCohostLeader =
+      String(ride.host_leader) === uid ||
+      (ride.cohost_leader && String(ride.cohost_leader) === uid);
+    if (!isParticipant && !isHostOrCohostLeader) {
+      return reply.code(403).send({ error: 'NOT_IN_RIDE' });
+    }
+
+    const participants: RideManifestParticipant[] = partRes.rows.map((r) => ({
+      uid: String(r.user_id),
+      gid: String(r.group_id),
+      statusKind: (r.status_kind ?? 'full') as CredentialRoleKind,
+      rideRole: (r.ride_role ?? 'participante') as RideRoleKind,
+      pk:
+        parseBytea(r.public_key)?.toString('base64') ??
+        Buffer.from(`dev-pk-${r.user_id}`, 'utf8').toString('base64')
+    }));
+
+    const signed = issueRideManifest(
+      {
+        rideId: String(ride.id),
+        hostGroupId: String(ride.host_group),
+        cohostGroupId: ride.cohost_group ? String(ride.cohost_group) : null,
+        hostLeaderId: String(ride.host_leader),
+        cohostLeaderId: ride.cohost_leader ? String(ride.cohost_leader) : null,
+        routeHash: ride.route_hash ? String(ride.route_hash) : null,
+        participants
+      },
+      credentialKeyring
+    );
+
+    await db.query(
+      `UPDATE rides SET manifest_kid = $1, manifest_issued_at = now() WHERE id = $2`,
+      [signed.payload.kid, rideId]
+    );
+
+    return reply.code(200).send({
+      ...signed,
+      publicKeys: credentialKeyring.getPublicKeyMap()
+    });
+  };
+
+  app.post('/v1/rides/:id/manifest', handleIssueRideManifest);
+  app.get('/v1/rides/:id/manifest', handleIssueRideManifest);
+
+  app.post('/v1/rides/:id/close', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: rideId } = req.params as { id: string };
+
+    const body = (req.body ?? {}) as {
+      distanceKm?: number;
+      durationMinutes?: number;
+      elevationGainM?: number;
+      startedAtNight?: boolean;
+      rained?: boolean;
+      offlineMinutes?: number;
+      closedAtIso?: string;
+      participants?: Array<{
+        userId: string;
+        hasMeshContact: boolean;
+        presencePct: number;
+      }>;
+    };
+
+    const rideRes = await db.query(
+      `SELECT id, host_group, cohost_group, state FROM rides WHERE id = $1`,
+      [rideId]
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+
+    // Confirmar que quien cierra es un líder del grupo anfitrión (o coanfitrión) — R6.6
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders
+       WHERE user_id = $1 AND (group_id = $2 OR ($3::uuid IS NOT NULL AND group_id = $3::uuid))`,
+      [uid, ride.host_group, ride.cohost_group ?? null]
+    );
+    if (leaderRes.rows.length === 0) {
+      return reply.code(403).send({
+        error: 'LEADER_REQUIRED_TO_CLOSE_RIDE',
+        message: 'El cierre de la rodada debe ser confirmado por un líder (RULES R6.6)'
+      });
+    }
+
+    const distanceKm = Number(body.distanceKm ?? 0);
+    const durationMinutes = Math.floor(Number(body.durationMinutes ?? 0));
+    const elevationGainM = Number(body.elevationGainM ?? 0);
+    const startedAtNight = Boolean(body.startedAtNight ?? false);
+    const rained = Boolean(body.rained ?? false);
+    const offlineMinutes = Math.floor(Number(body.offlineMinutes ?? 0));
+    const closedAtIso = body.closedAtIso ? new Date(body.closedAtIso).toISOString() : new Date().toISOString();
+
+    await db.query(
+      `UPDATE rides
+       SET distance_km = $1,
+           duration_minutes = $2,
+           elevation_gain_m = $3,
+           started_at_night = $4,
+           rained = $5,
+           offline_minutes = $6,
+           closed_by_leader = $7,
+           closed_at = $8
+       WHERE id = $9`,
+      [
+        distanceKm,
+        durationMinutes,
+        elevationGainM,
+        startedAtNight,
+        rained,
+        offlineMinutes,
+        uid,
+        closedAtIso,
+        rideId
+      ]
+    );
+
+    if (Array.isArray(body.participants)) {
+      for (const p of body.participants) {
+        await db.query(
+          `UPDATE ride_participants
+           SET has_mesh_contact = $1,
+               presence_pct = $2
+           WHERE ride_id = $3 AND user_id = $4`,
+          [Boolean(p.hasMeshContact), Number(p.presencePct ?? 0), rideId, p.userId]
+        );
+      }
+    }
+
+    // Evaluar R6.6 a nivel de rodada y participante:
+    // 1. >= 2 participantes con contacto real en la mesh
+    // 2. > 15 km
+    // 3. > 30 min en movimiento
+    // 4. presencia >= 70% del recorrido por participante
+    // 5. cierre confirmado por líder
+    // 6. máximo 3 rodadas contadas por día por usuario
+    const allPartsRes = await db.query(
+      `SELECT user_id, has_mesh_contact, presence_pct, counted_for_rank
+       FROM ride_participants WHERE ride_id = $1`,
+      [rideId]
+    );
+    const meshContactCount = allPartsRes.rows.filter((r) => Boolean(r.has_mesh_contact)).length;
+    const rideMeetsR66 =
+      distanceKm > 15 && durationMinutes > 30 && meshContactCount >= 2;
+
+    const countedUsers: string[] = [];
+    const skippedUsers: Array<{ userId: string; reason: string }> = [];
+
+    if (rideMeetsR66) {
+      for (const p of allPartsRes.rows) {
+        const userId = String(p.user_id);
+        if (Boolean(p.counted_for_rank)) {
+          countedUsers.push(userId);
+          continue;
+        }
+        if (!p.has_mesh_contact) {
+          skippedUsers.push({ userId, reason: 'NO_MESH_CONTACT' });
+          continue;
+        }
+        if (Number(p.presence_pct ?? 0) < 70) {
+          skippedUsers.push({ userId, reason: 'PRESENCE_BELOW_70_PCT' });
+          continue;
+        }
+
+        try {
+          // El trigger `trg_ride_participants_enforce_r66` en PostgreSQL 16 valida todas las condiciones R6.6
+          // incluyendo el tope de máximo 3 rodadas válidas por día
+          await db.query(
+            `UPDATE ride_participants
+             SET counted_for_rank = true, counted_at = $1
+             WHERE ride_id = $2 AND user_id = $3`,
+            [closedAtIso, rideId, userId]
+          );
+          await db.query(
+            `INSERT INTO rank_progress (user_id, valid_rides, total_km)
+             VALUES ($1, 1, $2)
+             ON CONFLICT (user_id) DO UPDATE SET
+               valid_rides = rank_progress.valid_rides + 1,
+               total_km = rank_progress.total_km + $2`,
+            [userId, distanceKm]
+          );
+          countedUsers.push(userId);
+        } catch (err) {
+          skippedUsers.push({ userId, reason: (err as Error).message });
+        }
+      }
+    } else {
+      for (const p of allPartsRes.rows) {
+        skippedUsers.push({
+          userId: String(p.user_id),
+          reason:
+            distanceKm <= 15
+              ? 'DISTANCE_NOT_OVER_15_KM'
+              : durationMinutes <= 30
+                ? 'DURATION_NOT_OVER_30_MIN'
+                : 'FEWER_THAN_2_MESH_CONTACTS'
+        });
+      }
+    }
+
+    const finalState = rideMeetsR66 && countedUsers.length > 0 ? 'validated' : 'closed';
+    await db.query(`UPDATE rides SET state = $1 WHERE id = $2`, [finalState, rideId]);
+
+    await appendAudit(db, uid, 'RIDE_CLOSED', 'ride', rideId, {
+      finalState,
+      distanceKm,
+      durationMinutes,
+      meshContactCount,
+      countedUsers,
+      skippedUsers
+    });
+
+    return reply.code(200).send({
+      id: rideId,
+      state: finalState,
+      rideMeetsR66,
+      distanceKm,
+      durationMinutes,
+      meshContactCount,
+      countedUsers,
+      skippedUsers,
+      voiceClipsPurged: true, // R6.5: al cerrar la rodada se borran las notas de voz y el acceso temporal a emergencia
+      emergencyAccessRevoked: true
+    });
   });
 
   return app;

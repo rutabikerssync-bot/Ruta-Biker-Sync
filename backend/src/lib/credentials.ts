@@ -322,3 +322,174 @@ export function signRevocationList(
     signatureBase64Url: sigBuf.toString('base64url')
   };
 }
+
+export type RideRoleKind = 'participante' | 'scout' | 'sweep' | 'capitan_rodada' | 'road_marshal';
+
+export interface RideManifestParticipant {
+  uid: string;
+  gid: string;
+  statusKind: CredentialRoleKind;
+  rideRole?: RideRoleKind | null;
+  pk?: string | null;
+}
+
+export interface RideManifestPayload {
+  v: 1;
+  type: 'ride_manifest';
+  rideId: string;
+  hostGroupId: string;
+  cohostGroupId: string | null;
+  groupIds: string[];
+  hostLeaderId: string;
+  cohostLeaderId: string | null;
+  routeHash: string | null;
+  participants: RideManifestParticipant[];
+  iat: number;
+  exp: number;
+  kid: string;
+}
+
+export interface SignedRideManifest {
+  manifest: string; // <payload_base64url>.<ed25519_sig_base64url>
+  payload: RideManifestPayload;
+  signatureBase64Url: string;
+}
+
+export interface RideManifestVerificationResult {
+  valid: boolean;
+  reason?:
+    | 'MALFORMED_MANIFEST'
+    | 'UNSUPPORTED_VERSION'
+    | 'INVALID_GROUP_COUNT'
+    | 'UNKNOWN_KID'
+    | 'INVALID_SIGNATURE'
+    | 'MANIFEST_EXPIRED'
+    | 'PARTICIPANT_NOT_AUTHORIZED';
+  payload?: RideManifestPayload;
+}
+
+export function issueRideManifest(
+  params: {
+    rideId: string;
+    hostGroupId: string;
+    cohostGroupId?: string | null;
+    hostLeaderId: string;
+    cohostLeaderId?: string | null;
+    routeHash?: string | null;
+    participants: RideManifestParticipant[];
+    nowSec?: number;
+    ttlSeconds?: number;
+  },
+  keyring: CredentialKeyring = defaultCredentialKeyring
+): SignedRideManifest {
+  const groupIds = params.cohostGroupId
+    ? Array.from(new Set([params.hostGroupId, params.cohostGroupId]))
+    : [params.hostGroupId];
+
+  if (groupIds.length < 1 || groupIds.length > 2) {
+    throw new Error('R6.3: Un manifiesto de rodada solo admite 1 o 2 grupos');
+  }
+
+  const nowSec = params.nowSec ?? Math.floor(Date.now() / 1000);
+  const ttlSeconds = params.ttlSeconds ?? 24 * 60 * 60; // 24 horas por defecto
+  const activeKid = keyring.getActiveKid();
+  const keyEntry = keyring.getEntry(activeKid);
+  if (!keyEntry || !keyEntry.privateKey) {
+    throw new Error(`MISSING_ACTIVE_ED25519_KEY:${activeKid}`);
+  }
+
+  const payload: RideManifestPayload = {
+    v: 1,
+    type: 'ride_manifest',
+    rideId: params.rideId,
+    hostGroupId: params.hostGroupId,
+    cohostGroupId: params.cohostGroupId ?? null,
+    groupIds,
+    hostLeaderId: params.hostLeaderId,
+    cohostLeaderId: params.cohostLeaderId ?? null,
+    routeHash: params.routeHash ?? null,
+    participants: params.participants,
+    iat: nowSec,
+    exp: nowSec + ttlSeconds,
+    kid: activeKid
+  };
+
+  const payloadB64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const sigBuf = sign(null, Buffer.from(payloadB64, 'utf8'), keyEntry.privateKey);
+  const signatureBase64Url = sigBuf.toString('base64url');
+
+  return {
+    manifest: `${payloadB64}.${signatureBase64Url}`,
+    payload,
+    signatureBase64Url
+  };
+}
+
+export function verifyRideManifest(
+  manifestToken: string,
+  options: {
+    nowSec?: number;
+    requireParticipantUid?: string;
+    keyring?: CredentialKeyring;
+  } = {}
+): RideManifestVerificationResult {
+  const parts = manifestToken.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return { valid: false, reason: 'MALFORMED_MANIFEST' };
+  }
+  const [payloadB64, sigB64] = parts;
+
+  let payload: RideManifestPayload;
+  try {
+    payload = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8')
+    ) as RideManifestPayload;
+  } catch {
+    return { valid: false, reason: 'MALFORMED_MANIFEST' };
+  }
+
+  if (
+    !payload ||
+    payload.v !== 1 ||
+    payload.type !== 'ride_manifest' ||
+    typeof payload.kid !== 'string'
+  ) {
+    return { valid: false, reason: 'UNSUPPORTED_VERSION' };
+  }
+
+  if (!Array.isArray(payload.groupIds) || payload.groupIds.length < 1 || payload.groupIds.length > 2) {
+    return { valid: false, reason: 'INVALID_GROUP_COUNT', payload };
+  }
+
+  const keyring = options.keyring ?? defaultCredentialKeyring;
+  const keyEntry = keyring.getEntry(payload.kid);
+  if (!keyEntry) {
+    return { valid: false, reason: 'UNKNOWN_KID', payload };
+  }
+
+  let sigBuf: Buffer;
+  try {
+    sigBuf = Buffer.from(sigB64, 'base64url');
+  } catch {
+    return { valid: false, reason: 'MALFORMED_MANIFEST', payload };
+  }
+
+  const sigOk = verify(null, Buffer.from(payloadB64, 'utf8'), keyEntry.publicKey, sigBuf);
+  if (!sigOk) {
+    return { valid: false, reason: 'INVALID_SIGNATURE', payload };
+  }
+
+  const nowSec = options.nowSec ?? Math.floor(Date.now() / 1000);
+  if (typeof payload.exp !== 'number' || payload.exp <= nowSec) {
+    return { valid: false, reason: 'MANIFEST_EXPIRED', payload };
+  }
+
+  if (options.requireParticipantUid) {
+    const found = payload.participants.some((p) => p.uid === options.requireParticipantUid);
+    if (!found) {
+      return { valid: false, reason: 'PARTICIPANT_NOT_AUTHORIZED', payload };
+    }
+  }
+
+  return { valid: true, payload };
+}

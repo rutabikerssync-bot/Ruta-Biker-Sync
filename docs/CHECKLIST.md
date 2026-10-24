@@ -38,7 +38,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [x] Rotación de claves de firma probada *(verificada con `kid` antiguo y nuevo coexistiendo en `CredentialKeyring` y `OfflineCredentialVerifier`)*
 - [x] Credencial caducada rechazada en rodada *(verificada con `EXPIRED_CREDENTIAL` en backend y Android)*
 - [x] Lista de revocación sincronizada antes de salir *(verificada en `GET /v1/revocations` firmada con Ed25519 y aplicada en `OfflineCredentialVerifier`)*
-- [ ] Manifiesto de rodada con dos grupos validado
+- [x] Manifiesto de rodada con dos grupos validado *(verificado con firma Ed25519 en `POST /v1/rides/:id/manifest`, `verifyRideManifest` en TypeScript y Kotlin, y triggers `trg_ride_groups_max_two` + `trg_ride_participants_authorize_entry` en PostgreSQL 16 real)*
 - [ ] Play Integrity y ofuscación activos
 - [ ] Mensajes de la mesh cifrados y firmados
 
@@ -78,7 +78,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 
 ## I. Rangos e insignias
 - [ ] Rangos sin solapamiento (0–4, 5–19, 20–49, 50–99, 100+) y progresión por XP en Fase 6 (`GAMIFICATION.md`)
-- [ ] Reglas anti-trampa de rodada validadas
+- [x] Reglas anti-trampa de rodada validadas *(verificadas en PostgreSQL 16 real mediante `trg_ride_participants_enforce_r66` y `POST /v1/rides/:id/close`: ≥2 nodos con contacto mesh, >15 km, >30 min, ≥70 % presencia, cierre por líder y máx. 3 rodadas válidas/día — R6.6)*
 - [ ] Insignias de honor con límite mensual y registro (requiere haber sido invitado a una rodada del grupo)
 - [ ] Honor no suma para el rango
 - [ ] Fundador es marca permanente, no rango
