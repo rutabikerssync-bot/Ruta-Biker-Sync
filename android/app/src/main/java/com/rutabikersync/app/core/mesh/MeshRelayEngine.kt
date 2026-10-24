@@ -5,14 +5,19 @@ import com.rutabikersync.app.core.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.PriorityQueue
+import kotlin.math.roundToInt
 
 /**
  * Motor de reenvío por inundación controlada (Controlled Flooding), seguimiento de Heartbeats
@@ -53,6 +58,18 @@ class MeshRelayEngine(
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
         val lastHops: Int
+    )
+
+    /**
+     * Señal corta `ANNOUNCED(eventId, announcerShortId)` de prioridad alta (`Transport.Priority.PEER_EVENT`)
+     * para el algoritmo de Anunciador Único (DESIGN.md §11).
+     */
+    data class AnnouncedMeshSignal(
+        val eventId: String,
+        val announcerShortId: UShort,
+        val subjectShortId: UShort,
+        val eventKindCode: Int,
+        val eventCycle: Int
     )
 
     @Serializable
@@ -113,6 +130,13 @@ class MeshRelayEngine(
     private val _peers = MutableStateFlow<Map<UShort, PeerTrack>>(emptyMap())
     val peers: StateFlow<Map<UShort, PeerTrack>> = _peers.asStateFlow()
 
+    private val _announcedSignals = MutableSharedFlow<AnnouncedMeshSignal>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val announcedSignals: SharedFlow<AnnouncedMeshSignal> = _announcedSignals.asSharedFlow()
+
     suspend fun start(scope: CoroutineScope) {
         transport.start()
         collectJob?.cancel()
@@ -171,6 +195,46 @@ class MeshRelayEngine(
     }
 
     /**
+     * Emite una señal corta `ANNOUNCED(eventId, mi_id)` con prioridad alta (`Transport.Priority.PEER_EVENT`)
+     * para cancelar anuncios pendientes de otros nodos en la mesh (DESIGN.md §11).
+     */
+    suspend fun emitAnnouncedSignal(
+        subjectShortId: UShort,
+        eventKindCode: Int,
+        eventCycle: Int,
+        ttl: Int = MeshPacket.DEFAULT_TTL
+    ): MeshPacket {
+        val seq = sequenceCounter
+        sequenceCounter = (sequenceCounter + 1) and MeshPacket.MAX_SEQUENCE_NUMBER
+
+        val encodedLatMicro = ((subjectShortId.toInt() and 0xFFFF) shl 8) or (eventKindCode and 0xFF)
+        val encodedLonMicro = eventCycle
+
+        val packet = MeshPacket.createSigned(
+            shortId = localShortId,
+            latitude = encodedLatMicro / 1e7,
+            longitude = encodedLonMicro / 1e7,
+            speedKmh = 0,
+            bearingDegrees = 0f,
+            batteryPercent = 100,
+            isSos = false,
+            isExtendedBle = false,
+            priority = Transport.Priority.PEER_EVENT,
+            sequenceNumber = seq,
+            ttl = ttl,
+            rideSecretKey = rideSecretKey
+        )
+
+        synchronized(this) {
+            seenKeys[packet.dedupKey] = true
+            packetsEmitted++
+        }
+        transport.send(packet.toByteArray(), packet.priority)
+        refreshStateFlows()
+        return packet
+    }
+
+    /**
      * Procesa un paquete entrante crudo (20 bytes), actualiza métricas de entrega/saltos,
      * y si corresponde reenviarlo (TTL > 1 y no visto antes), lo encola por prioridad y lo emite.
      */
@@ -192,6 +256,7 @@ class MeshRelayEngine(
         }
 
         var relayCandidate: MeshPacket? = null
+        var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
         synchronized(this) {
             if (seenKeys.containsKey(packet.dedupKey)) {
                 duplicatesDropped++
@@ -202,7 +267,22 @@ class MeshRelayEngine(
             packetsReceivedValid++
             totalHopsAccumulated += packet.hopsTaken
 
-            updatePeerTrackLocked(packet, nowEpochMs)
+            if (packet.priority == Transport.Priority.PEER_EVENT) {
+                val latMicro = (packet.latitude * 1e7).roundToInt()
+                val lonMicro = (packet.longitude * 1e7).roundToInt()
+                val subjectId = ((latMicro ushr 8) and 0xFFFF).toUShort()
+                val kindCode = latMicro and 0xFF
+                val cycle = lonMicro
+                decodedAnnouncedSignal = AnnouncedMeshSignal(
+                    eventId = "EVT:$kindCode:${subjectId.toInt()}:$cycle",
+                    announcerShortId = packet.shortId,
+                    subjectShortId = subjectId,
+                    eventKindCode = kindCode,
+                    eventCycle = cycle
+                )
+            } else {
+                updatePeerTrackLocked(packet, nowEpochMs)
+            }
 
             val decremented = packet.decrementTtlForRelay()
             if (decremented != null) {
@@ -213,6 +293,10 @@ class MeshRelayEngine(
                 }
             }
             refreshStateFlowsLocked()
+        }
+
+        decodedAnnouncedSignal?.let { signal ->
+            _announcedSignals.tryEmit(signal)
         }
 
         relayCandidate?.let { toRelay ->

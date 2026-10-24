@@ -114,8 +114,12 @@ al recibir PEER_BACK(x): cancelar anuncios pendientes y decir "x se reconectó" 
 ```
 
 - Si dos nodos anuncian a la vez, gana el de menor ID y el otro corta su TTS en cuanto lo detecta.
-- Máximo 2 anuncios por evento; si se pierde el mismo rider más de 3 veces en 10 min, se agrupa en un aviso ("Juan con conexión inestable").
-- La mesh puede partirse en islas: cada isla elige su propio anunciador y al reunirse se unifican los eventos por `eventId`.
+- Máximo 2 anuncios por evento; si se pierde el mismo rider 3 o más veces en 10 min, se agrupa en un único aviso (`"X tiene conexión inestable"` — Decisión D55 / 3.4 C).
+- La mesh puede partirse en islas: cada isla elige su propio anunciador y al reunirse se unifican los eventos por `eventId` (`UniqueAnnouncer.mergeIslandEvents`).
+- **Implementación Android (`UniqueAnnouncer.kt`, `TtsAnnouncer.kt`, `AnnouncerTracker.kt`, Decisión D55):**
+  - **Motor TTS (3.1 C):** voz del sistema por defecto con fallback automático a `com.google.android.tts`.
+  - **Foco de audio (3.2 B):** *ducking* (`AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`) para bajar el volumen de la música en el casco sin detenerla.
+  - **Privacidad en locución (3.3 A + C):** pronuncia el nombre completo si es del mismo grupo o amigo mutuo (`"Juan Martínez salió de la mesh"`), e identificador genérico si es desconocido de otro grupo en rodada aliada (`"Rider aliado #5 salió de la mesh"` — R4.7/R4.8).
 
 ## 12. Cifrado sellado del paquete de emergencia
 

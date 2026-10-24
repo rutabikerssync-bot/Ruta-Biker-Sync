@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import com.rutabikersync.app.MainActivity
+import com.rutabikersync.app.core.announcer.UniqueAnnouncer
 import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.SimulatedBleTransport
@@ -73,6 +74,7 @@ data class RideSessionState(
     val stopRequestedAtEpochMs: Long? = null,
     val voiceClipsPurgedOnClose: Boolean = false,
     val emergencyAccessRevokedOnClose: Boolean = false,
+    val ttsShutdownOnClose: Boolean = false,
     val notification: RideNotificationSnapshot = RideNotificationSnapshot(
         title = "Ruta Biker Sync",
         contentText = "Sin rodada activa",
@@ -106,6 +108,9 @@ class RideSessionController(
     val state: StateFlow<RideSessionState> = _state.asStateFlow()
 
     var relayEngine: MeshRelayEngine? = null
+        private set
+
+    var uniqueAnnouncer: UniqueAnnouncer? = null
         private set
 
     private var activeTransport: Transport? = null
@@ -143,6 +148,15 @@ class RideSessionController(
         )
         relayEngine = engine
         engine.start(scope)
+
+        // Bloque 3.4: Activar UniqueAnnouncer + TtsAnnouncer mientras la rodada está RUNNING
+        val announcer = UniqueAnnouncer(
+            scope = scope,
+            localShortId = localShortId,
+            meshEngine = engine
+        )
+        uniqueAnnouncer = announcer
+        announcer.start()
 
         val initialSnapshot = buildNotificationSnapshot(
             lifecycleState = RideLifecycleState.RUNNING,
@@ -344,6 +358,7 @@ class RideSessionController(
             stopRequestedAtEpochMs = null,
             voiceClipsPurgedOnClose = true,
             emergencyAccessRevokedOnClose = true,
+            ttsShutdownOnClose = true,
             notification = stoppedSnapshot
         )
         onNotificationUpdated?.invoke(stoppedSnapshot)
@@ -357,6 +372,8 @@ class RideSessionController(
         heartbeatJob = null
         peerObserveJob?.cancel()
         peerObserveJob = null
+        uniqueAnnouncer?.cancelAllAndStop()
+        uniqueAnnouncer = null
         relayEngine?.stop()
         relayEngine = null
         activeTransport?.stop()

@@ -45,8 +45,8 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 ## E. Mesh y rodada
 - [~] Reenvío con TTL sin bucles ni duplicados *(verificado en simulador unitario `MeshRelayEngine` + `MeshValidationPhase0Test`; pendiente prueba física B5 de `FIELD_TEST_PLAN.md` §5.5)*
 - [ ] Pérdida de cobertura detectada sin falsas alarmas en curvas o túneles
-- [ ] Un solo anunciador por pérdida
-- [ ] Reconexión automática y aviso de regreso
+- [~] Un solo anunciador por pérdida *(Bloque 3.4 implementado en `UniqueAnnouncer.kt` con retardo ponderado por cercanía, desempate por menor `shortId`, recordatorio único a 60 s y agrupación de 3 pérdidas en 10 min como `"conexión inestable"`; **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
+- [~] Reconexión automática y aviso de regreso *(Bloque 3.4 implementado en `UniqueAnnouncer.kt` y `AnnouncerTracker.kt`: cancela anuncios pendientes de pérdida y pronuncia `"X se reconectó"` con anunciador único; **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
 - [~] Servicio en primer plano sobrevive en Samsung, Xiaomi y otros *(Bloque 3.2 implementado en `RideService.kt` con `PARTIAL_WAKE_LOCK`, notificación en tiempo real y confirmación de 3 s; **Verificado en JVM/simulador. Pendiente de prueba física 3.6**)*
 - [ ] Modo ahorro de batería bajo 20 %
 - [ ] Prueba con 12 a 15 nodos

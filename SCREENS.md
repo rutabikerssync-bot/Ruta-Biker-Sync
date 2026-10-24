@@ -147,9 +147,10 @@ Barra inferior (modo normal): **Rodadas · Grupo · Rutas · Perfil**. Los miemb
 - Flujo de declaración: un líder propone, otro confirma (R14.2).
 - Aviso permanente: "La app no sustituye a los servicios de emergencia".
 
-**C6. Superposiciones de evento**
-- **Pérdida de cobertura:** banner "X salió de la mesh · última posición hace N min" con botón "Ver en mapa".
-- **Reconexión:** banner breve.
+**C6. Superposiciones de evento** (`AnnouncerViewModel.kt`, `UniqueAnnouncer.kt`, `TtsAnnouncer.kt` — Decisión D55)
+- **Pérdida de cobertura (`PEER_LOST`):** banner `"X salió de la mesh"` (nombre completo si es del mismo grupo/amigo mutuo; `"Rider aliado #N salió de la mesh"` si es desconocido en rodada aliada según R4.7/R4.8) con botón `"Ver en mapa"`, acompañado de locución TTS con *ducking* (`AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`) y vibración sincronizada. Si sigue perdido a los 60 s, se repite una sola vez (máx. 2 anuncios por evento).
+- **Reconexión (`PEER_BACK`):** cancela anuncios pendientes de pérdida y muestra banner breve + locución `"X se reconectó"` mediante un único anunciador.
+- **Conexión inestable (`UNSTABLE_CONNECTION`):** cuando un rider acumula 3 pérdidas en 10 min, agrupa en un único aviso `"X tiene conexión inestable"` sin repetir en cada micro-corte.
 - **Desvío de ruta:** alerta con vibración y botón "Voy a parar".
 - Datos: M + L. Sin skeleton.
 

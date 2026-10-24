@@ -53,8 +53,8 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho · **P0** bloqueante �
 - [~] **P0** Servicio en primer plano y permisos de ubicación y Bluetooth *(`RideService.kt` con `foregroundServiceType="location|connectedDevice"`, riders en tiempo real en notificación y confirmación de 3 s al detener — Verificado en JVM/simulador. Pendiente de prueba física 3.6)*
 - [x] **P0** Manifiesto firmado de rodada (uno o dos grupos) y ciclo de vida (`POST /v1/rides`, `/manifest`, `/close` + migración `0003_phase3_rides_manifest.sql` con triggers R6.2, R6.3, R6.4 y R6.6 en PostgreSQL 16)
 - [~] **P1** Mapa MapLibre con avatares y estado *(`LiveMapScreen.kt`, `RiderMarker.kt`, `LiveMapViewModel.kt`, `MapControls.kt` y `sample_corridor.pmtiles` — **Verificado en JVM con convoy simulado de 5 riders (`LiveMapViewModelTest`). Pendiente de prueba física (3.6)**)*
-- [ ] **P1** Heartbeat, pérdida y reconexión con anunciador único
-- [ ] **P1** Voz sintética local para avisos
+- [~] **P1** Heartbeat, pérdida y reconexión con anunciador único *(`UniqueAnnouncer.kt`, `AnnouncerTracker.kt`, `AnnouncerViewModel.kt` — **Verificado en JVM con convoy simulado de 5 riders (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
+- [~] **P1** Voz sintética local para avisos *(`TtsAnnouncer.kt` con voz del sistema + fallback Google TTS, ducking `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`, multi-idioma `es/en/pt` y privacidad por relación — **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física con casco Bluetooth (3.6)**)*
 - [ ] **P1** Guía de ahorro de batería por fabricante
 - [ ] **P2** Fallback con Nearby Connections
 
@@ -100,7 +100,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho · **P0** bloqueante �
 - [ ] **P1** Pantalla de consentimientos por grupo y borrado de cuenta con aviso a líderes
 - [ ] **P1** Votación de líderes (2 de 3) para decisiones sensibles
 - [ ] **P1** Botón "Reportar rider", silenciar localmente y bandeja de reportes
-- [ ] **P1** Algoritmo de anunciador único con retardo aleatorio (DESIGN.md, sección 11)
+- [~] **P1** Algoritmo de anunciador único con retardo aleatorio (DESIGN.md, sección 11) *(`UniqueAnnouncer.kt` + `AnnouncerTracker.kt` — **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
 - [ ] **P1** Cifrado sellado con partes de clave (DESIGN.md, sección 12) y prueba de extremo a extremo
 - [ ] **P1** Sincronización forzada al iniciar la rodada y rechazo manual de credenciales
 - [ ] **P1** Log local de heartbeats y subida opcional de métricas agregadas
