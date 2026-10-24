@@ -76,15 +76,16 @@ Complementa SCREENS.md y SKELETONS.md. Base: Material Icons (ya incluido con `ma
 
 | Estado | Marcador | Forma |
 |---|---|---|
-| En ruta | Círculo con avatar y borde del color del rider | |
-| Desviado | Mismo círculo + insignia `⚠` | |
-| Fuera de la mesh | Avatar en gris + `PersonOff` | Última posición conocida |
-| Líder | Corona pequeña **PROPIO** sobre el avatar | |
+| En ruta | Círculo 48 dp con avatar, borde del color del rider y etiqueta `"J.M. · ✓ En ruta"` | `CheckCircle` + texto |
+| Desviado | Mismo círculo + insignia `⚠ Desviado` en amarillo | `Warning` + texto |
+| Fuera de la mesh | Avatar en gris + `PersonOff` + `"✕ Sin señal"` | Última posición conocida |
+| Líder | Corona pequeña **PROPIO** (`ic_leader_crown_shield`) sobre el avatar + Pin fijo (`PinDrop`) | |
+| Capitán de rodada | Estrella `Star` en insignia superior derecha | |
 | Cierre (sweep) | Bandera a cuadros **PROPIO** | `Flag` si no |
 | Scout | `Visibility` | |
-| SOS activo | Anillo rojo pulsante + `Sos` | Sin pulso con reducir animaciones |
+| SOS activo | Anillo rojo exterior + `Emergency` + `"SOS ACTIVO"` | Sin pulso con reducir animaciones |
 | Yo | Punta de flecha con rumbo | `Navigation` |
-| Punto de encuentro | `PinDrop` | |
+| Punto de encuentro / Pin del líder | `PinDrop` | |
 | Peligro marcado | `Warning` | |
 
 ## 6. Grupos, estatus, cargos y roles

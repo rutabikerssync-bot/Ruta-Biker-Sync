@@ -46,6 +46,7 @@ import com.rutabikersync.app.feature.groups.DevPanelDialog
 import com.rutabikersync.app.feature.groups.GroupsMainTabScreen
 import com.rutabikersync.app.feature.groups.Phase1ViewModel
 import com.rutabikersync.app.feature.groups.ProfileAndAuthTabScreen
+import com.rutabikersync.app.feature.livemap.LiveMapScreen
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 
@@ -117,11 +118,7 @@ fun MainAppScaffold(
         ) {
             when (selectedTab) {
                 0 -> {
-                    if (BuildConfig.DEV_PANEL_ENABLED) {
-                        BleFieldTestScreen(viewModel = bleFieldTestViewModel)
-                    } else {
-                        RidesReleaseHomeScreen()
-                    }
+                    RidesReleaseHomeScreen(bleFieldTestViewModel = bleFieldTestViewModel)
                 }
                 1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
                 2 -> RoutesPlaceholderScreen()
@@ -175,10 +172,22 @@ private fun RoutesPlaceholderScreen() {
 }
 
 @Composable
-private fun RidesReleaseHomeScreen() {
+private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel) {
     val context = LocalContext.current
     val rideState by RideService.sharedState.collectAsState()
     var forceSimulated by remember { mutableStateOf(false) }
+    var showLiveMap by remember { mutableStateOf(true) }
+    var showBleLab by remember { mutableStateOf(false) }
+
+    if (showBleLab && BuildConfig.DEV_PANEL_ENABLED) {
+        BleFieldTestScreen(viewModel = bleFieldTestViewModel)
+        return
+    }
+
+    if (showLiveMap) {
+        LiveMapScreen()
+        return
+    }
 
     Column(
         modifier = Modifier

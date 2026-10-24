@@ -54,10 +54,10 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 
 ## F. Rutas
 - [ ] Ruta importada o trazada se guarda offline
-- [ ] Mapa del corredor funciona sin señal
+- [~] Mapa del corredor funciona sin señal *(Bloque 3.3 implementado con `sample_corridor.pmtiles` y `dark_corridor_style.json` en `LiveMapScreen.kt`; **Verificado en JVM. Pendiente de prueba física (3.6)**)*
 - [ ] Ruta compartida llega íntegra (hash verificado)
 - [ ] Alerta de desvío sin molestar a quien para a propósito
-- [ ] Atribución de OpenStreetMap visible
+- [x] Atribución de OpenStreetMap visible *(verificada en `LiveMapScreen.kt` y `LiveMapViewModelTest`: `"© OpenStreetMap contributors"` siempre visible)*
 
 ## G. Voz
 - [ ] Clip máximo 15 s, Opus, llega en 1 a 3 s por salto
@@ -96,7 +96,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [ ] Permiso de ubicación en segundo plano justificado
 
 ## K. Calidad y lanzamiento
-- [ ] Modo guantes y botones ≥72 dp
+- [~] Modo guantes y botones ≥72 dp *(Bloque 3.3 implementado en `MapControls.kt` con `GlovesMinTouchTarget = 72.dp`, vibración háptica y máximo 3 acciones flotantes en `LiveMapScreen.kt`; **Verificado en JVM (`LiveMapViewModelTest`). Pendiente de prueba física (3.6)**)*
 - [ ] Textos en español, inglés y portugués
 - [ ] Pruebas con al menos 2 clubes piloto
 - [ ] Monitoreo, alertas y respaldos activos

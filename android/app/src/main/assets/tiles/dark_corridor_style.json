@@ -1,0 +1,25 @@
+{
+  "version": 8,
+  "name": "Ruta Biker Sync — Dark Offline Corridor",
+  "metadata": {
+    "rbs:corridor": "CDMX-Cuernavaca-Sample-10km",
+    "rbs:pmtiles_asset": "asset://tiles/sample_corridor.pmtiles",
+    "rbs:attribution": "© OpenStreetMap contributors"
+  },
+  "sources": {
+    "corridor-offline": {
+      "type": "vector",
+      "url": "pmtiles://asset://tiles/sample_corridor.pmtiles",
+      "attribution": "© OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "background-dark",
+      "type": "background",
+      "paint": {
+        "background-color": "#0B0E14"
+      }
+    }
+  ]
+}

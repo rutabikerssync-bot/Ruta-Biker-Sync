@@ -122,10 +122,10 @@ Barra inferior (modo normal): **Rodadas · Grupo · Rutas · Perfil**. Los miemb
 
 **C1. Mapa en vivo** (pantalla base)
 - Propósito: ver a todos los riders, la ruta y el estado de la mesh.
-- Datos: M + L (tiles y ruta cacheados).
-- Elementos: avatares con color, velocidad, distancia al líder, estado (en ruta / desviado / fuera de mesh); barra superior con batería y nº de nodos; atribución de OpenStreetMap.
-- Estados propios: `Conectando` (buscando riders), `Mesh parcial` (islas), `Solo` (sin nadie en rango), `GPS sin fijar`.
-- Acciones (máx. 3 en pantalla): **Hablar**, **SOS**, **Señales**.
+- Datos: M + L (tiles PMTiles offline `asset://tiles/sample_corridor.pmtiles` y ruta cacheados — Decisión D54 / 3.1 A).
+- Elementos: avatares circulares de 48 dp con borde del color del rider, **nombre abreviado siempre visible** (`"J.M."` o `"R#X"` si es desconocido en rodada aliada según R4.7/R4.8 — Decisión D54 / 3.2 C) y tarjeta expandible con nombre completo, velocidad, batería y distancia al líder al tocar; estado con símbolo + texto (`✓ En ruta` / `⚠ Desviado` / `✕ Sin señal` / `SOS ACTIVO`); **pin del líder fijo** + botón `"Seguir líder"` que centra la cámara por 10 s y vuelve a navegación libre (Decisión D54 / 3.3 B); barra superior con batería, nº de nodos y estado de GPS; atribución `© OpenStreetMap contributors` siempre visible.
+- Estados propios: `Conectando` (buscando riders), `Mesh conectada`, `Mesh parcial` (islas), `Solo` (sin nadie en rango), `GPS sin fijar`.
+- Acciones (máx. 3 flotantes en modo guantes, ≥ 72 dp con vibración): **Hablar**, **SOS**, **Señales**.
 
 **C2. Hablar (PTT por clips)**
 - Propósito: grabar y enviar clip de hasta 15 s.

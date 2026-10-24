@@ -9,26 +9,40 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.StarHalf
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.BatteryStd
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.GpsNotFixed
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.HowToVote
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PersonOff
 import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.material.icons.filled.PinDrop
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
@@ -38,6 +52,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.rutabikersync.app.R
@@ -109,4 +124,23 @@ object AppIcons {
 
     // Campo BLE
     val BleFieldTest: ImageVector = Icons.AutoMirrored.Filled.BluetoothSearching
+
+    // 3, 4 y 5. Rodada activa, Mesh y Estado del rider en el mapa (ICONS.md §3–§5)
+    val PttMic: ImageVector = Icons.Default.Mic
+    val SosAlert: ImageVector = Icons.Default.Emergency
+    val QuickSignals: ImageVector = Icons.Default.Campaign
+    val MyLocation: ImageVector = Icons.Default.MyLocation
+    val FollowLeader: ImageVector = Icons.Default.NearMe
+    val MapLayers: ImageVector = Icons.Default.Layers
+    val ZoomIn: ImageVector = Icons.Default.Add
+    val ZoomOut: ImageVector = Icons.Default.Remove
+    val GpsFixed: ImageVector = Icons.Default.GpsFixed
+    val GpsNotFixed: ImageVector = Icons.Default.GpsNotFixed
+    val RiderOffMesh: ImageVector = Icons.Default.PersonOff
+    val RoleScout: ImageVector = Icons.Default.Visibility
+    val RoleSweep: ImageVector = Icons.Default.Flag
+    val RoleCaptain: ImageVector = Icons.Default.Star
+    val SelfHeading: ImageVector = Icons.Default.Navigation
+    val LeaderPin: ImageVector = Icons.Default.PinDrop
+    val BatteryStd: ImageVector = Icons.Default.BatteryStd
 }
