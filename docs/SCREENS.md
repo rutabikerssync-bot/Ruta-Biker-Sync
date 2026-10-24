@@ -74,9 +74,9 @@ Barra inferior (modo normal): **Rodadas · Grupo · Rutas · Perfil**. Los miemb
 - Datos: L. Estado por permiso: pendiente / concedido / denegado con enlace a ajustes.
 - Regla: ubicación en segundo plano solo se pide al crear o unirse a la primera rodada, con justificación visible.
 
-**A6. Guía de batería**
-- Propósito: pantalla obligatoria antes de la primera rodada, según el fabricante detectado (Samsung, Xiaomi, Huawei, Oppo…).
-- Datos: L. Acciones: abrir ajustes del sistema, marcar "hecho".
+**A6. Guía de batería** (`ManufacturerBatteryGuide.kt` — Decisión D56 / 3.2 B)
+- Propósito: guía **recomendada (no obligatoria)** antes de la primera rodada según el fabricante detectado (`Xiaomi/Redmi HyperOS`, `Tecno HiOS`, `Huawei EMUI`, `Samsung One UI`, `Oppo ColorOS`, `Vivo FuntouchOS`).
+- Datos: L. Acciones: abrir ajustes del sistema, saltar por ahora, marcar "No volver a mostrar".
 
 ### B. Inicio y rodadas
 

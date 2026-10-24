@@ -15,6 +15,9 @@ import android.os.IBinder
 import android.os.PowerManager
 import com.rutabikersync.app.MainActivity
 import com.rutabikersync.app.core.announcer.UniqueAnnouncer
+import com.rutabikersync.app.core.power.BatteryAwareness
+import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
+import com.rutabikersync.app.core.power.PowerProfile
 import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.SimulatedBleTransport
@@ -75,6 +78,11 @@ data class RideSessionState(
     val voiceClipsPurgedOnClose: Boolean = false,
     val emergencyAccessRevokedOnClose: Boolean = false,
     val ttsShutdownOnClose: Boolean = false,
+    val powerProfile: PowerProfile = PowerProfile.NORMAL,
+    val heartbeatIntervalMs: Long = PowerProfile.NORMAL.heartbeatIntervalMs,
+    val mapUpdateCadenceMs: Long = PowerProfile.NORMAL.mapUpdateCadenceMs,
+    val isMapFrozen: Boolean = false,
+    val lastBatteryTtsAlert: String? = null,
     val notification: RideNotificationSnapshot = RideNotificationSnapshot(
         title = "Ruta Biker Sync",
         contentText = "Sin rodada activa",
@@ -112,6 +120,15 @@ class RideSessionController(
 
     var uniqueAnnouncer: UniqueAnnouncer? = null
         private set
+
+    var peerHealthMonitor: PeerHealthMonitor? = null
+        private set
+
+    var heartbeatScheduler: HeartbeatScheduler? = null
+        private set
+
+    val batteryAwareness: BatteryAwareness = BatteryAwareness()
+    val manufacturerBatteryGuide: ManufacturerBatteryGuide = ManufacturerBatteryGuide()
 
     private var activeTransport: Transport? = null
     private var heartbeatJob: Job? = null
@@ -158,6 +175,17 @@ class RideSessionController(
         uniqueAnnouncer = announcer
         announcer.start()
 
+        // Bloque 3.5: Activar PeerHealthMonitor (histéresis 2 latidos + islas > 60 s) y HeartbeatScheduler adaptativo
+        val healthMonitor = PeerHealthMonitor(engine = engine)
+        peerHealthMonitor = healthMonitor
+        val scheduler = HeartbeatScheduler(
+            scope = scope,
+            engine = engine,
+            peerHealthMonitor = healthMonitor
+        )
+        scheduler.applyPowerProfile(batteryAwareness.state.value.profile)
+        heartbeatScheduler = scheduler
+
         val initialSnapshot = buildNotificationSnapshot(
             lifecycleState = RideLifecycleState.RUNNING,
             connectedRiders = 0,
@@ -194,12 +222,62 @@ class RideSessionController(
             heartbeatJob = scope.launch {
                 while (isActive) {
                     emitHeartbeatNow()
-                    engine.evaluatePeerTimeouts(System.currentTimeMillis())
-                    delay(HEARTBEAT_INTERVAL_MS)
+                    delay(heartbeatScheduler?.currentIntervalMs ?: HEARTBEAT_INTERVAL_MS)
                 }
             }
         }
 
+        return _state.value
+    }
+
+    /**
+     * Bloque 3.5: Actualiza el estado de batería/cargador (`BatteryAwareness`), ajusta automáticamente
+     * el intervalo de `HeartbeatScheduler` (3 s -> 5 s -> 10 s), congela el mapa en modo supervivencia (<= 10% / 5%)
+     * y actualiza la notificación persistente.
+     */
+    fun onBatteryStateChanged(
+        batteryPercent: Int,
+        isCharging: Boolean
+    ): RideSessionState {
+        localBatteryPercent = batteryPercent.coerceIn(0, 100)
+        val powerState = batteryAwareness.evaluateBatteryState(localBatteryPercent, isCharging)
+        return applyPowerStateToSession(powerState.profile, powerState.lastTtsAlertMessage)
+    }
+
+    fun setAutoBatterySaverEnabled(enabled: Boolean): RideSessionState {
+        val powerState = batteryAwareness.setAutoBatterySaverEnabled(enabled)
+        return applyPowerStateToSession(powerState.profile, powerState.lastTtsAlertMessage)
+    }
+
+    fun setManualPowerSaverOverride(override: Boolean?): RideSessionState {
+        val powerState = batteryAwareness.setManualPowerSaverOverride(override)
+        return applyPowerStateToSession(powerState.profile, powerState.lastTtsAlertMessage)
+    }
+
+    private fun applyPowerStateToSession(
+        profile: PowerProfile,
+        ttsAlert: String?
+    ): RideSessionState {
+        heartbeatScheduler?.applyPowerProfile(profile)
+        val current = _state.value
+        val updatedSnapshot = buildNotificationSnapshot(
+            lifecycleState = current.lifecycleState,
+            connectedRiders = current.connectedRidersCount,
+            lostRiders = current.lostRidersCount,
+            transportName = "${current.transportName} · ${profile.displayLabel}",
+            isSimulated = current.isUsingSimulatedTransport,
+            isSos = current.isSosActive,
+            stopRemainingMs = if (current.lifecycleState == RideLifecycleState.CONFIRMING_STOP) STOP_CONFIRM_WINDOW_MS else 0L
+        )
+        _state.value = current.copy(
+            powerProfile = profile,
+            heartbeatIntervalMs = profile.heartbeatIntervalMs,
+            mapUpdateCadenceMs = profile.mapUpdateCadenceMs,
+            isMapFrozen = profile.isMapFrozen,
+            lastBatteryTtsAlert = ttsAlert,
+            notification = updatedSnapshot
+        )
+        onNotificationUpdated?.invoke(updatedSnapshot)
         return _state.value
     }
 
@@ -233,7 +311,7 @@ class RideSessionController(
             batteryPercent = localBatteryPercent,
             isSos = current.isSosActive
         )
-        engine.evaluatePeerTimeouts(nowEpochMs)
+        peerHealthMonitor?.evaluateHealth(nowEpochMs) ?: engine.evaluatePeerTimeouts(nowEpochMs)
         updateRealtimePeerCounts(engine.peers.value)
     }
 
@@ -370,6 +448,11 @@ class RideSessionController(
         stopConfirmTimeoutJob = null
         heartbeatJob?.cancel()
         heartbeatJob = null
+        heartbeatScheduler?.stop()
+        heartbeatScheduler = null
+        peerHealthMonitor?.reset()
+        peerHealthMonitor = null
+        batteryAwareness.resetToNormal()
         peerObserveJob?.cancel()
         peerObserveJob = null
         uniqueAnnouncer?.cancelAllAndStop()

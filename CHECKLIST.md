@@ -44,11 +44,11 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 
 ## E. Mesh y rodada
 - [~] Reenvío con TTL sin bucles ni duplicados *(verificado en simulador unitario `MeshRelayEngine` + `MeshValidationPhase0Test`; pendiente prueba física B5 de `FIELD_TEST_PLAN.md` §5.5)*
-- [ ] Pérdida de cobertura detectada sin falsas alarmas en curvas o túneles
+- [~] Pérdida de cobertura detectada sin falsas alarmas en curvas o túneles *(Bloque 3.5 implementado en `PeerHealthMonitor.kt` + `MeshRelayEngine.kt` con umbral de 5 latidos = 15 s, histéresis de reconexión de 2 latidos consecutivos y anuncio TTS de islas solo si duran > 60 s; **Verificado en JVM (`HeartbeatBatteryPhase3Test`). Pendiente de prueba física (3.6)**)*
 - [~] Un solo anunciador por pérdida *(Bloque 3.4 implementado en `UniqueAnnouncer.kt` con retardo ponderado por cercanía, desempate por menor `shortId`, recordatorio único a 60 s y agrupación de 3 pérdidas en 10 min como `"conexión inestable"`; **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
-- [~] Reconexión automática y aviso de regreso *(Bloque 3.4 implementado en `UniqueAnnouncer.kt` y `AnnouncerTracker.kt`: cancela anuncios pendientes de pérdida y pronuncia `"X se reconectó"` con anunciador único; **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
-- [~] Servicio en primer plano sobrevive en Samsung, Xiaomi y otros *(Bloque 3.2 implementado en `RideService.kt` con `PARTIAL_WAKE_LOCK`, notificación en tiempo real y confirmación de 3 s; **Verificado en JVM/simulador. Pendiente de prueba física 3.6**)*
-- [ ] Modo ahorro de batería bajo 20 %
+- [~] Reconexión automática y aviso de regreso *(Bloque 3.4 y 3.5 implementados en `UniqueAnnouncer.kt`, `AnnouncerTracker.kt` y `PeerHealthMonitor.kt`: cancela anuncios pendientes de pérdida y pronuncia `"X se reconectó"` con anunciador único tras histéresis de 2 latidos; **Verificado en JVM (`UniqueAnnouncerPhase3Test` y `HeartbeatBatteryPhase3Test`). Pendiente de prueba física (3.6)**)*
+- [~] Servicio en primer plano sobrevive en Samsung, Xiaomi y otros *(Bloques 3.2 y 3.5 implementados en `RideService.kt` + `ManufacturerBatteryGuide.kt` con `PARTIAL_WAKE_LOCK`, notificación en tiempo real, confirmación de 3 s y guía OEM para Xiaomi/Tecno/Huawei/Samsung/Oppo/Vivo; **Verificado en JVM/simulador. Pendiente de prueba física 3.6**)*
+- [~] Modo ahorro de batería bajo 20 % *(Bloque 3.5 implementado en `BatteryAwareness.kt` y `HeartbeatScheduler.kt`: automático pero configurable a < 20 % con heartbeat cada 5 s y mapa cada 3 s, y modo supervivencia a <= 10 % / 5 % con heartbeat cada 10 s, mapa congelado y solo SOS; **Verificado en JVM (`HeartbeatBatteryPhase3Test`). Pendiente de prueba física (3.6)**)*
 - [ ] Prueba con 12 a 15 nodos
 - [x] Mesh y voz solo funcionan durante una rodada activa *(verificado en `RideSessionController` y `RideServicePhase3Test`: `stopAll()` detiene transporte/mesh y purga notas de voz y accesos temporales de emergencia — R6.1 y R6.5)*
 
