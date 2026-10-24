@@ -19,6 +19,19 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    flavorDimensions += "mode"
+    productFlavors {
+        create("standard") {
+            dimension = "mode"
+            buildConfigField("boolean", "FIELD_TEST_MODE", "false")
+        }
+        create("fieldTest") {
+            dimension = "mode"
+            applicationIdSuffix = ".fieldtest"
+            buildConfigField("boolean", "FIELD_TEST_MODE", "true")
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")

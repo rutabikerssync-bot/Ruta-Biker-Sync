@@ -42,6 +42,7 @@ import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.feature.fieldtest.BleFieldTestScreen
 import com.rutabikersync.app.feature.fieldtest.BleFieldTestViewModel
+import com.rutabikersync.app.feature.fieldtest.FieldTestScreen
 import com.rutabikersync.app.feature.groups.DevPanelDialog
 import com.rutabikersync.app.feature.groups.GroupsMainTabScreen
 import com.rutabikersync.app.feature.groups.Phase1ViewModel
@@ -176,8 +177,13 @@ private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel)
     val context = LocalContext.current
     val rideState by RideService.sharedState.collectAsState()
     var forceSimulated by remember { mutableStateOf(false) }
-    var showLiveMap by remember { mutableStateOf(true) }
+    var showLiveMap by remember { mutableStateOf(!BuildConfig.FIELD_TEST_MODE) }
     var showBleLab by remember { mutableStateOf(false) }
+
+    if (BuildConfig.FIELD_TEST_MODE && !showLiveMap) {
+        FieldTestScreen(onOpenLiveMap = { showLiveMap = true })
+        return
+    }
 
     if (showBleLab && BuildConfig.DEV_PANEL_ENABLED) {
         BleFieldTestScreen(viewModel = bleFieldTestViewModel)
@@ -185,7 +191,25 @@ private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel)
     }
 
     if (showLiveMap) {
-        LiveMapScreen()
+        Box(modifier = Modifier.fillMaxSize()) {
+            LiveMapScreen()
+            if (BuildConfig.FIELD_TEST_MODE) {
+                Button(
+                    onClick = { showLiveMap = false },
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 96.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                ) {
+                    Text(
+                        text = "← Panel Métricas",
+                        color = BikerColors.BackgroundDark,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
         return
     }
 

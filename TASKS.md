@@ -56,6 +56,7 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho · **P0** bloqueante �
 - [~] **P1** Heartbeat, pérdida y reconexión con anunciador único *(`HeartbeatScheduler.kt`, `PeerHealthMonitor.kt`, `UniqueAnnouncer.kt`, `AnnouncerTracker.kt` — **Verificado en JVM con convoy simulado de 5 riders (`HeartbeatBatteryPhase3Test` y `UniqueAnnouncerPhase3Test`). Pendiente de prueba física (3.6)**)*
 - [~] **P1** Voz sintética local para avisos *(`TtsAnnouncer.kt` con voz del sistema + fallback Google TTS, ducking `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`, multi-idioma `es/en/pt` y privacidad por relación — **Verificado en JVM (`UniqueAnnouncerPhase3Test`). Pendiente de prueba física con casco Bluetooth (3.6)**)*
 - [~] **P1** Guía de ahorro de batería por fabricante *(`ManufacturerBatteryGuide.kt` y `BatteryAwareness.kt` con modo ahorro < 20 % configurable, modo supervivencia a 5 % y detección de Xiaomi/Tecno/Huawei/Samsung/Oppo/Vivo — **Verificado en JVM (`HeartbeatBatteryPhase3Test`). Pendiente de prueba física (3.6)**)*
+- [~] **P0** Preparación de APK de campo y protocolo ejecutable (Bloque 3.6 — Flavor `fieldTest` compilado `app-fieldTest-debug.apk`, `FieldTestScreen.kt` con métricas en tiempo real y exportación JSON, y `docs/FIELD_TEST_PROTOCOL.md` listo para Redmi Note 13 Pro, Redmi C2 y Tecno Spark 10C. **Pendiente salida física a carretera**)
 - [ ] **P2** Fallback con Nearby Connections
 
 ## Fase 4 — Rutas offline

@@ -6,7 +6,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 ## A. Antes de empezar a programar
 - [~] Cobro de cupos múltiples probado en Play Console (P4) *(guion operativo de 15 secciones en `PLAY_TEST_SETUP.md`; pendiente ejecución en cuenta Play Console del dueño)*
 - [x] Decisiones P1, P2 y P6 de RULES.md cerradas por el dueño *(2026-10-23: líder en un solo grupo, invitado solo por rodada, sin multi-grupo; P3 parametrizado)*
-- [~] Prueba de campo BLE con banco de 3 teléfonos confirmados *(Redmi Note 13 Pro, Tecno Spark 10C, Huawei Nova 13 Pro; alerta GMS y protocolo en `FIELD_TEST_PLAN.md`; pendiente salida física)*
+- [~] Prueba de campo BLE con banco de 3 teléfonos confirmados *(Redmi Note 13 Pro, Redmi C2, Tecno Spark 10C; APK `app-fieldTest-debug.apk` compilado y protocolo operativo en `docs/FIELD_TEST_PROTOCOL.md`; pendiente salida física)*
 - [ ] Revisión legal inicial hecha
 - [ ] Nombre comercial verificado (marca, dominios, tienda)
 

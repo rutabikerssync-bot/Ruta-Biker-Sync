@@ -133,7 +133,11 @@ class RideSessionController(
     private var activeTransport: Transport? = null
     private var heartbeatJob: Job? = null
     private var peerObserveJob: Job? = null
+    private var metricsObserveJob: Job? = null
     private var stopConfirmTimeoutJob: Job? = null
+
+    private val _metrics = MutableStateFlow<MeshRelayEngine.MeshFieldReport?>(null)
+    val metrics: StateFlow<MeshRelayEngine.MeshFieldReport?> = _metrics.asStateFlow()
 
     @Volatile
     private var localLatitude: Double = 19.4326
@@ -215,6 +219,14 @@ class RideSessionController(
         peerObserveJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             engine.peers.collect { peerMap ->
                 updateRealtimePeerCounts(peerMap)
+            }
+        }
+
+        metricsObserveJob?.cancel()
+        metricsObserveJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            engine.metrics.collect { report ->
+                _metrics.value = report
+                RideService.updateSharedMetrics(report)
             }
         }
 
@@ -455,6 +467,8 @@ class RideSessionController(
         batteryAwareness.resetToNormal()
         peerObserveJob?.cancel()
         peerObserveJob = null
+        metricsObserveJob?.cancel()
+        metricsObserveJob = null
         uniqueAnnouncer?.cancelAllAndStop()
         uniqueAnnouncer = null
         relayEngine?.stop()
@@ -566,6 +580,13 @@ class RideService : Service() {
 
         private val _sharedState = MutableStateFlow(RideSessionState())
         val sharedState: StateFlow<RideSessionState> = _sharedState.asStateFlow()
+
+        private val _sharedMetrics = MutableStateFlow<MeshRelayEngine.MeshFieldReport?>(null)
+        val sharedMetrics: StateFlow<MeshRelayEngine.MeshFieldReport?> = _sharedMetrics.asStateFlow()
+
+        fun updateSharedMetrics(report: MeshRelayEngine.MeshFieldReport?) {
+            _sharedMetrics.value = report
+        }
     }
 
     inner class LocalBinder : Binder() {
