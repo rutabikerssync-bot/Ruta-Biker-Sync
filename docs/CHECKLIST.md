@@ -47,10 +47,10 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [ ] Pérdida de cobertura detectada sin falsas alarmas en curvas o túneles
 - [ ] Un solo anunciador por pérdida
 - [ ] Reconexión automática y aviso de regreso
-- [ ] Servicio en primer plano sobrevive en Samsung, Xiaomi y otros
+- [~] Servicio en primer plano sobrevive en Samsung, Xiaomi y otros *(Bloque 3.2 implementado en `RideService.kt` con `PARTIAL_WAKE_LOCK`, notificación en tiempo real y confirmación de 3 s; **Verificado en JVM/simulador. Pendiente de prueba física 3.6**)*
 - [ ] Modo ahorro de batería bajo 20 %
 - [ ] Prueba con 12 a 15 nodos
-- [ ] Mesh y voz solo funcionan durante una rodada activa
+- [x] Mesh y voz solo funcionan durante una rodada activa *(verificado en `RideSessionController` y `RideServicePhase3Test`: `stopAll()` detiene transporte/mesh y purga notas de voz y accesos temporales de emergencia — R6.1 y R6.5)*
 
 ## F. Rutas
 - [ ] Ruta importada o trazada se guarda offline

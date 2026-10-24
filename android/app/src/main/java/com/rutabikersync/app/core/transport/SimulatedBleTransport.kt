@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.asSharedFlow
  * el porcentaje de heartbeats entregados y la partición en islas sin necesidad de varios teléfonos físicos.
  */
 class SimulatedBleMedium {
+    companion object {
+        val defaultMedium: SimulatedBleMedium = SimulatedBleMedium()
+    }
+
     private val endpoints = mutableMapOf<UShort, SimulatedBleTransport>()
     private val adjacency = mutableMapOf<UShort, MutableSet<UShort>>()
 

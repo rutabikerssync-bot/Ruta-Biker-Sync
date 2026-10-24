@@ -48,9 +48,9 @@ Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho · **P0** bloqueante �
 - [ ] **P2** Play Integrity y ofuscación R8
 
 ## Fase 3 — Rodada y mesh
-- [ ] **P0** Capa `Transport` abstracta
-- [ ] **P0** Mesh BLE de posición con TTL, deduplicación y prioridad
-- [ ] **P0** Servicio en primer plano y permisos de ubicación y Bluetooth
+- [x] **P0** Capa `Transport` abstracta *(`Transport.kt`, `BleAdvTransport.kt` por defecto y `SimulatedBleTransport.kt` en modo dev/laboratorio)*
+- [~] **P0** Mesh BLE de posición con TTL, deduplicación y prioridad *(Bloque 3.2 — Verificado en JVM/simulador con `MeshRelayEngine` + `RideServicePhase3Test`. Pendiente de prueba física 3.6)*
+- [~] **P0** Servicio en primer plano y permisos de ubicación y Bluetooth *(`RideService.kt` con `foregroundServiceType="location|connectedDevice"`, riders en tiempo real en notificación y confirmación de 3 s al detener — Verificado en JVM/simulador. Pendiente de prueba física 3.6)*
 - [x] **P0** Manifiesto firmado de rodada (uno o dos grupos) y ciclo de vida (`POST /v1/rides`, `/manifest`, `/close` + migración `0003_phase3_rides_manifest.sql` con triggers R6.2, R6.3, R6.4 y R6.6 en PostgreSQL 16)
 - [ ] **P1** Mapa MapLibre con avatares y estado
 - [ ] **P1** Heartbeat, pérdida y reconexión con anunciador único

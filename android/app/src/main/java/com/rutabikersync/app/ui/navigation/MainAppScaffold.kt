@@ -1,26 +1,36 @@
 package com.rutabikersync.app.ui.navigation
 
+import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rutabikersync.app.BuildConfig
 import com.rutabikersync.app.R
+import com.rutabikersync.app.core.mesh.RideLifecycleState
+import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.feature.fieldtest.BleFieldTestScreen
 import com.rutabikersync.app.feature.fieldtest.BleFieldTestViewModel
 import com.rutabikersync.app.feature.groups.DevPanelDialog
@@ -164,6 +176,10 @@ private fun RoutesPlaceholderScreen() {
 
 @Composable
 private fun RidesReleaseHomeScreen() {
+    val context = LocalContext.current
+    val rideState by RideService.sharedState.collectAsState()
+    var forceSimulated by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -172,7 +188,7 @@ private fun RidesReleaseHomeScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "B1 · Mis Rodadas",
+            text = "B1 · Rodada Activa y Mesh BLE (Fase 3)",
             color = BikerColors.PrimaryAmber,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -182,13 +198,105 @@ private fun RidesReleaseHomeScreen() {
                 .fillMaxWidth()
                 .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Aún no tienes rodadas activas. Ve a la pestaña Grupo para ver tus clubes.",
+                text = rideState.notification.title,
                 color = BikerColors.TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = rideState.notification.contentText,
+                color = BikerColors.TextSecondary,
                 fontSize = 14.sp
             )
+
+            if (BuildConfig.DEV_PANEL_ENABLED) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Modo Dev: forzar SimulatedBleTransport",
+                        color = BikerColors.TextPrimary,
+                        fontSize = 13.sp
+                    )
+                    Switch(
+                        checked = forceSimulated,
+                        onCheckedChange = { forceSimulated = it }
+                    )
+                }
+            }
+
+            if (rideState.lifecycleState == RideLifecycleState.IDLE ||
+                rideState.lifecycleState == RideLifecycleState.STOPPED
+            ) {
+                Button(
+                    onClick = {
+                        val intent = Intent(context, RideService::class.java).apply {
+                            action = RideService.ACTION_START_RIDE
+                            putExtra(RideService.EXTRA_RIDE_ID, "ride-live-01")
+                            putExtra(RideService.EXTRA_LOCAL_SHORT_ID, 1)
+                            putExtra(RideService.EXTRA_FORCE_SIMULATED, forceSimulated)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(intent)
+                        } else {
+                            context.startService(intent)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                ) {
+                    Text(
+                        text = "Iniciar rodada (BLE Real por defecto)",
+                        color = BikerColors.BackgroundDark,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val stopIntent = Intent(context, RideService::class.java).apply {
+                                action = RideService.ACTION_STOP_RIDE
+                            }
+                            context.startService(stopIntent)
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 56.dp)
+                    ) {
+                        Text(
+                            text = if (rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
+                                "Confirmar cierre (3 s)"
+                            } else {
+                                "Detener rodada"
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            val sosIntent = Intent(context, RideService::class.java).apply {
+                                action = RideService.ACTION_TRIGGER_SOS
+                            }
+                            context.startService(sosIntent)
+                        },
+                        modifier = Modifier.heightIn(min = 56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusRed)
+                    ) {
+                        Text(text = "SOS", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ package com.rutabikersync.app.core.mesh
 import com.rutabikersync.app.core.protocol.MeshPacket
 import com.rutabikersync.app.core.transport.Transport
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -115,7 +116,7 @@ class MeshRelayEngine(
     suspend fun start(scope: CoroutineScope) {
         transport.start()
         collectJob?.cancel()
-        collectJob = scope.launch {
+        collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
             transport.incoming.collect { raw ->
                 onRawPacketReceived(raw, System.currentTimeMillis())
             }

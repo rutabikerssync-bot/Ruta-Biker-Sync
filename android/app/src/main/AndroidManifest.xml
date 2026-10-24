@@ -60,11 +60,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Servicio de rodada (mesh + GPS). Se habilita en Fase 3.
+        <!-- Servicio de rodada (mesh + GPS) habilitado en Fase 3 (Bloque 3.2) -->
         <service
             android:name=".core.mesh.RideService"
             android:exported="false"
             android:foregroundServiceType="location|connectedDevice" />
-        -->
     </application>
 </manifest>
