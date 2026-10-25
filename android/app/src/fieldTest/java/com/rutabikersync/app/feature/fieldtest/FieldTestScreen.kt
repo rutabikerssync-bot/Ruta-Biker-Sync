@@ -47,8 +47,11 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -67,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.core.mesh.RideLifecycleState
@@ -81,6 +85,7 @@ import com.rutabikersync.app.ui.theme.BikerColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import org.json.JSONObject
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -109,9 +114,12 @@ fun FieldTestScreen(
     var totalPhonesInTest by remember { mutableIntStateOf(2) }
     var selectedNodeShortId by remember { mutableIntStateOf(1) }
     var selectedBurstDurationMs by remember { mutableIntStateOf(BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS) }
+    var manualDistanceMetersText by remember { mutableStateOf("1") }
     var testStartEpochMs by remember { mutableLongStateOf(0L) }
+    var testEndEpochMs by remember { mutableLongStateOf(0L) }
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var exportedJsonText by remember { mutableStateOf<String?>(null) }
+    var exportedFilePath by remember { mutableStateOf<String?>(null) }
     var showBatteryGuideDialog by remember { mutableStateOf(false) }
     var showSimulatedFallbackPrompt by remember { mutableStateOf(false) }
     var permanentlyDeniedDetected by remember { mutableStateOf(false) }
@@ -207,13 +215,16 @@ fun FieldTestScreen(
                 if (testStartEpochMs == 0L) testStartEpochMs = System.currentTimeMillis()
                 testStartEpochMs
             }
+            testStartEpochMs = baseStartMs
+            testEndEpochMs = 0L
             while (isActive) {
                 elapsedSeconds = ((System.currentTimeMillis() - baseStartMs) / 1000L).coerceAtLeast(0L)
                 delay(1000L)
             }
         } else {
-            testStartEpochMs = 0L
-            elapsedSeconds = 0L
+            if (testStartEpochMs > 0L && testEndEpochMs == 0L) {
+                testEndEpochMs = System.currentTimeMillis()
+            }
         }
     }
 
@@ -375,6 +386,43 @@ fun FieldTestScreen(
             }
         }
 
+        // Card de Capacidades de Hardware BLE (Emisión y Recepción)
+        val canEmitLegacy = bleCaps.multipleAdvertisementSupported
+        val canHearLegacy = bleCaps.bluetoothSupported
+        val canEmitExt = bleCaps.extendedAdvertisingSupported
+        val canHearExt = bleCaps.extendedAdvertisingSupported
+        val canEmitCoded = bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported
+        val canHearCoded = bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "Capacidades BLE del Hardware (Emisión / Recepción):",
+                    color = BikerColors.PrimaryAmber,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                CapabilityRow("Legacy 1M (Estándar BLE)", emit = canEmitLegacy, hear = canHearLegacy)
+                CapabilityRow("Extendido 1M (BLE 5.0+)", emit = canEmitExt, hear = canHearExt)
+                CapabilityRow("Extendido Coded PHY (Largo Alcance)", emit = canEmitCoded, hear = canHearCoded)
+
+                Text(
+                    text = "Longitud máx anuncio: ${bleCaps.maxAdvertisingDataLength} B · 2M PHY: ${if (bleCaps.le2MPhySupported) "SÍ" else "NO"} · Recomendado: ${bleCaps.recommendedMode}",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+
         // Selector de Modo de Transporte BLE + Duración de Ráfaga F3 + ScanSettings
         val effectiveBleMode = bleCaps.resolveEffectiveMode(selectedTransportMode)
         Card(
@@ -398,17 +446,43 @@ fun FieldTestScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     BleAdvTransport.TransportModeOverride.entries.forEach { modeOption ->
+                        val isSupported = when (modeOption) {
+                            BleAdvTransport.TransportModeOverride.LEGACY_1M -> canEmitLegacy
+                            BleAdvTransport.TransportModeOverride.EXTENDED_1M -> canEmitExt
+                            BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY -> canEmitCoded
+                        }
                         FilterChip(
                             selected = selectedTransportMode == modeOption,
-                            onClick = { if (!isRunning) selectedTransportMode = modeOption },
-                            enabled = !isRunning,
-                            label = { Text(modeOption.displayLabel, fontSize = 11.sp) },
+                            onClick = { if (!isRunning && isSupported) selectedTransportMode = modeOption },
+                            enabled = !isRunning && isSupported,
+                            label = {
+                                Text(
+                                    text = if (isSupported) modeOption.displayLabel else "${modeOption.displayLabel} (No soportado)",
+                                    fontSize = 11.sp
+                                )
+                            },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BikerColors.PrimaryAmber,
-                                selectedLabelColor = BikerColors.BackgroundDark
+                                selectedLabelColor = BikerColors.BackgroundDark,
+                                disabledContainerColor = Color(0xFF1E293B),
+                                disabledLabelColor = Color(0xFF64748B)
                             )
                         )
                     }
+                }
+
+                val isCurrentSelectionSupported = when (selectedTransportMode) {
+                    BleAdvTransport.TransportModeOverride.LEGACY_1M -> canEmitLegacy
+                    BleAdvTransport.TransportModeOverride.EXTENDED_1M -> canEmitExt
+                    BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY -> canEmitCoded
+                }
+                if (!isCurrentSelectionSupported) {
+                    Text(
+                        text = "⚠ Hardware no soporta ${selectedTransportMode.displayLabel}. Se degradará automáticamente a: $effectiveBleMode",
+                        color = BikerColors.StatusYellow,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Text(
@@ -650,6 +724,64 @@ fun FieldTestScreen(
             }
         }
 
+        // Selector / Entrada manual de distancia de prueba (para curva distancia -> entrega)
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Distancia de la prueba (manual para curva distancia -> % entrega):",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Selecciona o escribe la distancia física entre teléfonos (se registrará en el JSON):",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp
+                )
+
+                val distancePresets = listOf("1", "25", "50", "100", "150", "200", "300")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    distancePresets.forEach { dist ->
+                        FilterChip(
+                            selected = manualDistanceMetersText == dist,
+                            onClick = { manualDistanceMetersText = dist },
+                            label = { Text(if (dist == "1") "1m (B0)" else "${dist}m", fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BikerColors.PrimaryAmber,
+                                selectedLabelColor = BikerColors.BackgroundDark
+                            )
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = manualDistanceMetersText,
+                    onValueChange = { manualDistanceMetersText = it },
+                    label = { Text("Distancia escrita en metros", color = BikerColors.TextSecondary, fontSize = 12.sp) },
+                    placeholder = { Text("Ej: 1, 25, 50, 100, 150, 200, 300...", color = BikerColors.TextSecondary) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = BikerColors.PrimaryAmber,
+                        unfocusedBorderColor = Color(0xFF334155),
+                        focusedTextColor = BikerColors.TextPrimary,
+                        unfocusedTextColor = BikerColors.TextPrimary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
         // 1. BOTÓN GIGANTE DE ACCIÓN (>= 72 dp de alto según modo guantes)
         val buttonMinHeight = 76.dp
         if (!isRunning) {
@@ -699,6 +831,7 @@ fun FieldTestScreen(
         } else {
             Button(
                 onClick = {
+                    testEndEpochMs = System.currentTimeMillis()
                     RideService.dispatchImmediateStopRide(context)
                 },
                 modifier = Modifier
@@ -864,7 +997,7 @@ fun FieldTestScreen(
             }
         }
 
-        // 3. BOTÓN DE EXPORTAR MÉTRICAS (genera JSON estructurado)
+        // 3. BOTÓN DE EXPORTAR MÉTRICAS (genera JSON estructurado y guarda archivo local)
         Button(
             onClick = {
                 val durationSec = elapsedSeconds
@@ -875,6 +1008,10 @@ fun FieldTestScreen(
                     selectedBurstDurationMs = selectedBurstDurationMs,
                     expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
                     durationSeconds = durationSec,
+                    manualDistanceMeters = manualDistanceMetersText.trim().toDoubleOrNull(),
+                    manualDistanceText = manualDistanceMetersText.trim(),
+                    testStartEpochMs = testStartEpochMs,
+                    testEndEpochMs = testEndEpochMs,
                     rideState = rideState,
                     metrics = metrics,
                     bleCaps = bleCaps,
@@ -882,11 +1019,24 @@ fun FieldTestScreen(
                 )
                 exportedJsonText = reportJson
 
+                // Guardar en almacenamiento de la app (externalFilesDir para adb pull directo, y filesDir)
+                val extDir = context.getExternalFilesDir(null)
+                val extFile = if (extDir != null) File(extDir, "fieldtest_metrics.json") else null
+                runCatching {
+                    extFile?.writeText(reportJson)
+                }
+                val intFile = File(context.filesDir, "fieldtest_metrics.json")
+                runCatching {
+                    intFile.writeText(reportJson)
+                }
+                val savedPath = extFile?.absolutePath ?: intFile.absolutePath
+                exportedFilePath = savedPath
+
                 // Copiar al portapapeles automáticamente
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("RBS_FieldTest_Metrics", reportJson)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "Métricas copiadas al portapapeles", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Métricas guardadas y copiadas al portapapeles", Toast.LENGTH_SHORT).show()
 
                 // Intent para compartir por WhatsApp / Email / Archivo
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -918,7 +1068,7 @@ fun FieldTestScreen(
             }
         }
 
-        // Vista previa del JSON exportado
+        // Vista previa del JSON exportado y rutas de extracción adb pull
         exportedJsonText?.let { json ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -931,6 +1081,25 @@ fun FieldTestScreen(
                     modifier = Modifier.padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Text(
+                        text = "Archivo guardado en el teléfono:",
+                        color = BikerColors.PrimaryAmber,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = exportedFilePath ?: "/sdcard/Android/data/com.rutabikersync.app.fieldtest/files/fieldtest_metrics.json",
+                        color = BikerColors.StatusGreen,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = "Comando adb pull al PC:\nadb -s <serie> pull /sdcard/Android/data/com.rutabikersync.app.fieldtest/files/fieldtest_metrics.json",
+                        color = Color(0xFF93C5FD),
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -938,7 +1107,7 @@ fun FieldTestScreen(
                     ) {
                         Text(
                             text = "JSON Generado listo para pegar en el chat:",
-                            color = BikerColors.PrimaryAmber,
+                            color = BikerColors.TextPrimary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -990,6 +1159,33 @@ fun FieldTestScreen(
 }
 
 @Composable
+private fun CapabilityRow(title: String, emit: Boolean, hear: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = title, color = BikerColors.TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Emitir: ${if (emit) "✓ SÍ" else "✗ NO"}",
+                color = if (emit) BikerColors.StatusGreen else BikerColors.StatusRed,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Oír: ${if (hear) "✓ SÍ" else "✗ NO"}",
+                color = if (hear) BikerColors.StatusGreen else BikerColors.StatusRed,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
 private fun MetricBox(
     title: String,
     value: String,
@@ -1023,6 +1219,10 @@ private fun generateMetricsJson(
     selectedBurstDurationMs: Int,
     expectedPeerIdsFallback: List<Int>,
     durationSeconds: Long,
+    manualDistanceMeters: Double?,
+    manualDistanceText: String,
+    testStartEpochMs: Long,
+    testEndEpochMs: Long,
     rideState: com.rutabikersync.app.core.mesh.RideSessionState,
     metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
     bleCaps: BleAdvTransport.BleCapabilities,
@@ -1055,9 +1255,33 @@ private fun generateMetricsJson(
         expectedPeerIdsFallback
     }
 
+    val actualStartMs = if (testStartEpochMs > 0L) {
+        testStartEpochMs
+    } else if (rideState.startedAtEpochMs > 0L) {
+        rideState.startedAtEpochMs
+    } else {
+        (nowMs - durationSeconds * 1000L).coerceAtLeast(0L)
+    }
+    val actualEndMs = if (testEndEpochMs > 0L) {
+        testEndEpochMs
+    } else if (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
+        nowMs
+    } else {
+        (actualStartMs + durationSeconds * 1000L).coerceAtLeast(actualStartMs)
+    }
+
+    val parsedDistance = manualDistanceMeters ?: manualDistanceText.toDoubleOrNull()
+
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
         put("timestampIso", sdf.format(Date(nowMs)))
+        put("testStartEpochMs", actualStartMs)
+        put("testStartUtc", sdf.format(Date(actualStartMs)))
+        put("testEndEpochMs", actualEndMs)
+        put("testEndUtc", sdf.format(Date(actualEndMs)))
+        put("distanceMeters", parsedDistance ?: JSONObject.NULL)
+        put("distanceMetersRaw", manualDistanceText.ifEmpty { "1" })
+        put("distanceLabel", if (parsedDistance != null) "${parsedDistance} m" else manualDistanceText.ifEmpty { "1 m" })
         put("deviceManufacturer", Build.MANUFACTURER)
         put("deviceModel", Build.MODEL)
         put("androidRelease", Build.VERSION.RELEASE)
@@ -1070,6 +1294,12 @@ private fun generateMetricsJson(
         put("ble2MPhySupported", bleCaps.le2MPhySupported)
         put("bleMaxAdvertisingDataLength", bleCaps.maxAdvertisingDataLength)
         put("bleRecommendedMode", bleCaps.recommendedMode)
+        put("canEmitLegacy1M", bleCaps.multipleAdvertisementSupported)
+        put("canHearLegacy1M", bleCaps.bluetoothSupported)
+        put("canEmitExtended1M", bleCaps.extendedAdvertisingSupported)
+        put("canHearExtended1M", bleCaps.extendedAdvertisingSupported)
+        put("canEmitExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
+        put("canHearExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
         put("forcedBleTransportMode", rideState.forcedBleMode ?: selectedTransportMode.code)
         put("effectiveBleTransportMode", effectiveBleMode)
         put("f3AdvertisingIntervalSetting", f3IntervalSetting)
