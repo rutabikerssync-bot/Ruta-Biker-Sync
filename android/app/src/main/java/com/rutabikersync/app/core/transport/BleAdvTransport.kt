@@ -20,6 +20,7 @@ import android.content.Context
 import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
+import androidx.annotation.RequiresApi
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -154,7 +155,10 @@ class BleAdvTransport(
         get() = "BleAdvTransport($effectiveMode)"
 
     private var activeLegacyCallback: AdvertiseCallback? = null
-    private var activeExtendedCallback: AdvertisingSetCallback? = null
+    private var activeAdvertisingSet: AdvertisingSet? = null
+    private var activeAdvertisingSetCallback: AdvertisingSetCallback? = null
+    private var activeAdvertisingSetMode: String? = null
+    private var currentAdvertisingPriority: Transport.Priority? = null
     private val activeExtendedCallbacks = java.util.concurrent.ConcurrentHashMap.newKeySet<AdvertisingSetCallback>()
 
     @Volatile
@@ -278,26 +282,107 @@ class BleAdvTransport(
             activeLegacyCallback?.let { advertiser?.stopAdvertising(it) }
             stopAllActiveExtendedAdvertisingSets()
         }
+        activeAdvertisingSet = null
         activeLegacyCallback = null
-        activeExtendedCallback = null
+        activeAdvertisingSetCallback = null
+        activeAdvertisingSetMode = null
+        currentAdvertisingPriority = null
     }
 
     @SuppressLint("MissingPermission")
     private fun stopAllActiveExtendedAdvertisingSets() {
         val adv = advertiser
-        activeExtendedCallback?.let { cb ->
+        val cb = activeAdvertisingSetCallback
+        if (adv != null && cb != null) {
             if (activeExtendedCallbacks.remove(cb)) {
-                runCatching { adv?.stopAdvertisingSet(cb) }
+                runCatching { adv.stopAdvertisingSet(cb) }
                 advertisingSetsStoppedCount++
             }
         }
-        activeExtendedCallback = null
+        activeAdvertisingSet = null
+        activeAdvertisingSetCallback = null
         val snapshot = activeExtendedCallbacks.toList()
-        for (cb in snapshot) {
-            if (activeExtendedCallbacks.remove(cb)) {
-                runCatching { adv?.stopAdvertisingSet(cb) }
+        for (extraCb in snapshot) {
+            if (activeExtendedCallbacks.remove(extraCb)) {
+                runCatching { adv?.stopAdvertisingSet(extraCb) }
                 advertisingSetsStoppedCount++
             }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun buildAdvertisingSetParameters(
+        mode: String,
+        caps: BleCapabilities,
+        priority: Transport.Priority,
+        isExtendedPhy: Boolean
+    ): AdvertisingSetParameters {
+        val interval = when (priority) {
+            Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertisingSetParameters.INTERVAL_LOW
+            else -> AdvertisingSetParameters.INTERVAL_MEDIUM
+        }
+        val builder = AdvertisingSetParameters.Builder()
+            .setConnectable(false)
+            .setScannable(false)
+            .setInterval(interval)
+            .setTxPowerLevel(AdvertisingSetParameters.TX_POWER_HIGH)
+
+        if (isExtendedPhy) {
+            val useCodedPhy = mode == "EXTENDED_CODED_PHY" && caps.codedPhySupported
+            val phy = if (useCodedPhy) BluetoothDevice.PHY_LE_CODED else BluetoothDevice.PHY_LE_1M
+            builder.setLegacyMode(false)
+                .setPrimaryPhy(phy)
+                .setSecondaryPhy(phy)
+        } else {
+            builder.setLegacyMode(true)
+                .setPrimaryPhy(BluetoothDevice.PHY_LE_1M)
+        }
+        return builder.build()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startLegacyContinuousFallback(
+        adv: BluetoothLeAdvertiser,
+        advertiseData: AdvertiseData,
+        priority: Transport.Priority
+    ) {
+        activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
+        val advMode = when (priority) {
+            Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
+            else -> AdvertiseSettings.ADVERTISE_MODE_BALANCED
+        }
+        val settings = AdvertiseSettings.Builder()
+            .setAdvertiseMode(advMode)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+            .setConnectable(false)
+            .setTimeout(0) // 0 = Continuo indefinido (sin ráfagas con timeout)
+            .build()
+
+        val callback = object : AdvertiseCallback() {
+            override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+                advertisingBurstsSuccessCount++
+                Log.i(TAG, "Legacy continuous advertise started successfully burst#=$advertisingBurstsStartedCount")
+            }
+
+            override fun onStartFailure(errorCode: Int) {
+                advertisingFailuresCount++
+                val desc = describeAdvertiseFailure(errorCode)
+                lastAdvertisingFailure = desc
+                Log.e(
+                    TAG,
+                    "Legacy continuous onStartFailure errorCode=$errorCode ($desc) totalFailures=$advertisingFailuresCount"
+                )
+            }
+        }
+        activeLegacyCallback = callback
+        runCatching {
+            advertisingSetsStartedCount++
+            adv.startAdvertising(settings, advertiseData, callback)
+        }.onFailure { ex ->
+            advertisingFailuresCount++
+            val desc = "START_LEGACY_ADV_THREW: ${ex.message}"
+            lastAdvertisingFailure = desc
+            Log.e(TAG, "startAdvertising threw exception", ex)
         }
     }
 
@@ -314,44 +399,42 @@ class BleAdvTransport(
             .build()
 
         val mode = caps.resolveEffectiveMode(modeOverride)
-        val burstMs = advertisingBurstDurationMs.coerceIn(100, 2_500)
-        advertisingBurstsStartedCount++
-        Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode priority=$priority burstMs=$burstMs")
+        val isExtendedPhy = mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY"
+        val supportsAdvertisingSet = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && caps.extendedAdvertisingSupported
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            caps.extendedAdvertisingSupported &&
-            (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
-        ) {
+        advertisingBurstsStartedCount++
+        Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode priority=$priority")
+
+        if (supportsAdvertisingSet) {
+            val currentSet = activeAdvertisingSet
+            if (currentSet != null && activeAdvertisingSetMode == mode) {
+                // Opción A: Mantener el AdvertisingSet encendido siempre y actualizar datos in-place
+                val updateResult = runCatching {
+                    currentSet.setAdvertisingData(advertiseData)
+                    if (currentAdvertisingPriority != priority) {
+                        currentAdvertisingPriority = priority
+                        val newParams = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
+                        currentSet.setAdvertisingParameters(newParams)
+                    }
+                }
+                if (updateResult.isSuccess) {
+                    advertisingBurstsSuccessCount++
+                    Log.d(TAG, "AdvertisingSet data updated in-place burst#=$advertisingBurstsStartedCount")
+                    return
+                } else {
+                    Log.w(TAG, "setAdvertisingData failed (${updateResult.exceptionOrNull()?.message}), restarting set")
+                    stopAllActiveExtendedAdvertisingSets()
+                }
+            }
+
+            // Iniciar conjunto continuo si aún no está activo
+            stopAllActiveExtendedAdvertisingSets()
             activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
             activeLegacyCallback = null
-            // F3: Detener explícitamente cualquier AdvertisingSet previo antes de abrir uno nuevo
-            // para no agotar el límite de conjuntos simultáneos del controlador BLE (ADVERTISE_FAILED_TOO_MANY_ADVERTISERS)
-            stopAllActiveExtendedAdvertisingSets()
 
-            val useCodedPhy = mode == "EXTENDED_CODED_PHY" && caps.codedPhySupported
-            val primaryPhy = if (useCodedPhy) {
-                BluetoothDevice.PHY_LE_CODED
-            } else {
-                BluetoothDevice.PHY_LE_1M
-            }
-            val secondaryPhy = if (useCodedPhy) {
-                BluetoothDevice.PHY_LE_CODED
-            } else {
-                BluetoothDevice.PHY_LE_1M
-            }
-            val interval = when (priority) {
-                Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertisingSetParameters.INTERVAL_LOW
-                else -> AdvertisingSetParameters.INTERVAL_MEDIUM
-            }
-            val params = AdvertisingSetParameters.Builder()
-                .setLegacyMode(false)
-                .setConnectable(false)
-                .setScannable(false)
-                .setInterval(interval)
-                .setTxPowerLevel(AdvertisingSetParameters.TX_POWER_HIGH)
-                .setPrimaryPhy(primaryPhy)
-                .setSecondaryPhy(secondaryPhy)
-                .build()
+            val params = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
+            currentAdvertisingPriority = priority
+            activeAdvertisingSetMode = mode
 
             val callback = object : AdvertisingSetCallback() {
                 override fun onAdvertisingSetStarted(
@@ -359,97 +442,62 @@ class BleAdvTransport(
                     txPower: Int,
                     status: Int
                 ) {
-                    if (status == ADVERTISE_SUCCESS) {
+                    if (status == ADVERTISE_SUCCESS && advertisingSet != null) {
+                        activeAdvertisingSet = advertisingSet
                         lastMeasuredTxPowerDbm = txPower
                         advertisingBurstsSuccessCount++
-                        Log.i(TAG, "Extended advertise started successfully txPower=$txPower burst#=$advertisingBurstsStartedCount")
+                        Log.i(TAG, "Continuous AdvertisingSet started successfully txPower=$txPower mode=$mode")
                     } else {
                         advertisingFailuresCount++
-                        val desc = "EXT_ADV_FAILED_STATUS_$status"
+                        val desc = "ADV_SET_FAILED_STATUS_$status"
                         lastAdvertisingFailure = desc
                         Log.e(
                             TAG,
-                            "Extended onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
+                            "onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount"
                         )
-                        if (activeExtendedCallbacks.remove(this)) {
-                            runCatching { adv.stopAdvertisingSet(this) }
-                            advertisingSetsStoppedCount++
-                        }
+                        activeAdvertisingSet = null
+                        activeExtendedCallbacks.remove(this)
                     }
                 }
 
-                override fun onAdvertisingEnabled(
-                    advertisingSet: AdvertisingSet?,
-                    enable: Boolean,
-                    status: Int
-                ) {
-                    // Cuando expira la ráfaga configurada (durationUnits10Ms), el chip deshabilita el anuncio (enable = false)
-                    // pero mantiene ocupado el slot de AdvertisingSet hasta invocar stopAdvertisingSet(callback).
-                    if (!enable && activeExtendedCallbacks.remove(this)) {
-                        runCatching { adv.stopAdvertisingSet(this) }
-                        advertisingSetsStoppedCount++
+                override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet?, status: Int) {
+                    if (status == ADVERTISE_SUCCESS) {
+                        advertisingBurstsSuccessCount++
+                        Log.d(TAG, "onAdvertisingDataSet confirmed burst#=$advertisingBurstsStartedCount")
+                    } else {
+                        Log.w(TAG, "onAdvertisingDataSet failed status=$status")
                     }
                 }
 
                 override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
+                    Log.i(TAG, "AdvertisingSet stopped")
+                    if (activeAdvertisingSet == advertisingSet) {
+                        activeAdvertisingSet = null
+                    }
                     activeExtendedCallbacks.remove(this)
                 }
             }
             activeExtendedCallbacks.add(callback)
-            activeExtendedCallback = callback
-            val durationUnits10Ms = (burstMs / 10).coerceIn(10, 65_535)
+            activeAdvertisingSetCallback = callback
+
             runCatching {
                 advertisingSetsStartedCount++
-                adv.startAdvertisingSet(params, advertiseData, null, null, null, durationUnits10Ms, 0, callback)
+                // duration = 0: emisión continua indefinida (sin ráfagas con timeout que apaguen la radio)
+                // maxExtendedAdvertisingEvents = 0: eventos ilimitados
+                adv.startAdvertisingSet(params, advertiseData, null, null, null, 0, 0, callback)
             }.onFailure { ex ->
                 advertisingFailuresCount++
-                val desc = "START_EXT_ADV_THREW: ${ex.message}"
+                val desc = "START_ADV_SET_THREW: ${ex.message}"
                 lastAdvertisingFailure = desc
-                Log.e(TAG, "startAdvertisingSet threw exception", ex)
-                if (activeExtendedCallbacks.remove(callback)) {
-                    advertisingSetsStoppedCount++
-                }
+                Log.e(TAG, "startAdvertisingSet threw exception, falling back to legacy", ex)
+                activeExtendedCallbacks.remove(callback)
+                activeAdvertisingSet = null
+
+                startLegacyContinuousFallback(adv, advertiseData, priority)
             }
         } else {
             stopAllActiveExtendedAdvertisingSets()
-            activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
-            val advMode = when (priority) {
-                Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
-                else -> AdvertiseSettings.ADVERTISE_MODE_BALANCED
-            }
-            val settings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(advMode)
-                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
-                .setConnectable(false)
-                .setTimeout(burstMs)
-                .build()
-
-            val callback = object : AdvertiseCallback() {
-                override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
-                    advertisingBurstsSuccessCount++
-                    Log.i(TAG, "Legacy advertise started successfully burst#=$advertisingBurstsStartedCount")
-                }
-
-                override fun onStartFailure(errorCode: Int) {
-                    advertisingFailuresCount++
-                    val desc = describeAdvertiseFailure(errorCode)
-                    lastAdvertisingFailure = desc
-                    Log.e(
-                        TAG,
-                        "Legacy onStartFailure errorCode=$errorCode ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
-                    )
-                }
-            }
-            activeLegacyCallback = callback
-            runCatching {
-                advertisingSetsStartedCount++
-                adv.startAdvertising(settings, advertiseData, callback)
-            }.onFailure { ex ->
-                advertisingFailuresCount++
-                val desc = "START_LEGACY_ADV_THREW: ${ex.message}"
-                lastAdvertisingFailure = desc
-                Log.e(TAG, "startAdvertising threw exception", ex)
-            }
+            startLegacyContinuousFallback(adv, advertiseData, priority)
         }
     }
 
