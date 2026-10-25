@@ -367,11 +367,32 @@ class MeshValidationPhase0Test {
         // Entrega real: 14 / 22 = 63.636% (frente al 35.9% distorsionado por tiempo del inicio escalonado)
         assertEquals(63.636f, report.heartbeatsDeliveredPct!!, 0.05f)
 
+        // Verificar reporte por peer individual (punto 4)
+        assertEquals(1, report.peerReports.size)
+        val peerReport = report.peerReports.first()
+        assertEquals(2, peerReport.peerShortId)
+        assertEquals(0, peerReport.firstSequenceObserved)
+        assertEquals(21, peerReport.lastSequenceObserved)
+        assertEquals(22, peerReport.burstsEmittedByPeer)
+        assertEquals(14, peerReport.burstsHeardFromPeer)
+        assertEquals(63.636f, peerReport.peerDeliveryRatePct, 0.05f)
+
+        // Emitir un paquete local propio para verificar registro TX en CSV
+        engine1.emitLocalPosition(
+            latitude = 19.4320,
+            longitude = -99.1330,
+            speedKmh = 35,
+            bearingDegrees = 90f,
+            batteryPercent = 95
+        )
+
         // Verificar registro de paquetes CSV exigido por FIELD_TEST_PLAN.md §6
         val csv = engine1.exportPacketsCsv()
-        assertTrue("El CSV debe contener cabecera", csv.startsWith("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate"))
-        assertTrue("El CSV debe contener al menos 14 líneas de paquetes", csv.lines().filter { it.isNotBlank() }.size >= 15)
+        assertTrue("El CSV debe contener cabecera", csv.startsWith("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction"))
+        assertTrue("El CSV debe contener líneas de paquetes", csv.lines().filter { it.isNotBlank() }.size >= 16)
         assertTrue("El CSV debe registrar el sender 2", csv.contains(",2,"))
         assertTrue("El CSV debe registrar RSSI", csv.contains(",-55,"))
+        assertTrue("El CSV debe registrar dirección RX para paquetes de peers", csv.contains(",RX"))
+        assertTrue("El CSV debe registrar dirección TX para paquetes emitidos", csv.contains(",TX"))
     }
 }

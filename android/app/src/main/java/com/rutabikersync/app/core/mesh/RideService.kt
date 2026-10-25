@@ -975,7 +975,7 @@ class RideService : Service() {
         fun exportPacketsCsv(): String {
             return activeController?.relayEngine?.exportPacketsCsv()
                 ?: inAppSimController.relayEngine?.exportPacketsCsv()
-                ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate\n"
+                ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n"
         }
 
         fun queryConnectedBluetoothDevices(context: Context): BluetoothConnectedDevicesSnapshot {

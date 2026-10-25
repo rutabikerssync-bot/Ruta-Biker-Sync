@@ -81,7 +81,23 @@ class MeshRelayEngine(
         val hops: Int,
         val rssi: Int?,
         val transportMode: String,
-        val isDuplicate: Boolean = false
+        val isDuplicate: Boolean = false,
+        val direction: String = "RX" // "TX", "RX", "RELAY_TX"
+    )
+
+    /**
+     * Reporte individual de tasa de entrega para cada par observado en la mesh.
+     * Permite comparar directamente ráfagas emitidas vs oídas por par sin depender de cálculos globales.
+     */
+    @Serializable
+    data class PeerDeliveryReport(
+        val peerShortId: Int,
+        val firstSequenceObserved: Int?,
+        val lastSequenceObserved: Int?,
+        val burstsEmittedByPeer: Int,
+        val burstsHeardFromPeer: Int,
+        val peerDeliveryRatePct: Float,
+        val isLost: Boolean
     )
 
     /**
@@ -112,7 +128,8 @@ class MeshRelayEngine(
         val duplicatesDropped: Int,
         val invalidAuthDropped: Int,
         val activeLostPeers: List<Int>,
-        val deviceModels: Map<String, Int>
+        val deviceModels: Map<String, Int>,
+        val peerReports: List<PeerDeliveryReport> = emptyList()
     )
 
     private data class QueuedRelay(
@@ -175,9 +192,9 @@ class MeshRelayEngine(
     fun exportPacketsCsv(): String {
         val entries = getPacketLogs()
         val sb = StringBuilder()
-        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate\n")
+        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n")
         for (e in entries) {
-            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate}\n")
+            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate},${e.direction}\n")
         }
         return sb.toString()
     }
@@ -239,9 +256,23 @@ class MeshRelayEngine(
             rideSecretKey = rideSecretKey
         )
 
+        val utcIso = formatUtc(System.currentTimeMillis())
         synchronized(this) {
             seenKeys[packet.dedupKey] = true
             packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIso,
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = seq,
+                    ttl = ttl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport.name,
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
         }
         transport.send(packet.toByteArray(), packet.priority)
         refreshStateFlows()
@@ -279,9 +310,23 @@ class MeshRelayEngine(
             rideSecretKey = rideSecretKey
         )
 
+        val utcIso = formatUtc(System.currentTimeMillis())
         synchronized(this) {
             seenKeys[packet.dedupKey] = true
             packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIso,
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = seq,
+                    ttl = ttl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport.name,
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
         }
         transport.send(packet.toByteArray(), packet.priority)
         refreshStateFlows()
@@ -327,7 +372,8 @@ class MeshRelayEngine(
                     hops = packet.hopsTaken,
                     rssi = rssi,
                     transportMode = transport.name,
-                    isDuplicate = isDuplicate
+                    isDuplicate = isDuplicate,
+                    direction = "RX"
                 )
             )
 
@@ -373,6 +419,22 @@ class MeshRelayEngine(
         }
 
         relayCandidate?.let { toRelay ->
+            val utcIsoRelay = formatUtc(System.currentTimeMillis())
+            synchronized(this) {
+                logPacketEntryLocked(
+                    PacketLogEntry(
+                        timestampUtc = utcIsoRelay,
+                        senderShortId = toRelay.shortId.toInt(),
+                        sequenceNumber = toRelay.sequenceNumber,
+                        ttl = toRelay.currentTtl,
+                        hops = toRelay.hopsTaken,
+                        rssi = null,
+                        transportMode = transport.name,
+                        isDuplicate = false,
+                        direction = "RELAY_TX"
+                    )
+                )
+            }
             transport.send(toRelay.toByteArray(), toRelay.priority)
         }
     }
@@ -540,6 +602,28 @@ class MeshRelayEngine(
         } else {
             null
         }
+        val peerReports = peerMap.values.map { track ->
+            val seqSpan = if (track.firstSequence >= 0 && track.lastSequence >= 0) {
+                ((track.lastSequence - track.firstSequence) and MeshPacket.MAX_SEQUENCE_NUMBER) + 1
+            } else {
+                track.expectedBeats
+            }
+            val expected = maxOf(track.receivedBeats, seqSpan)
+            val pct = if (expected > 0) {
+                ((track.receivedBeats.toFloat() / expected.toFloat()) * 100f).coerceIn(0f, 100f)
+            } else {
+                null
+            }
+            PeerDeliveryReport(
+                peerShortId = track.shortId.toInt(),
+                firstSequenceObserved = if (track.firstSequence >= 0) track.firstSequence else null,
+                lastSequenceObserved = if (track.lastSequence >= 0) track.lastSequence else null,
+                burstsEmittedByPeer = expected,
+                burstsHeardFromPeer = track.receivedBeats,
+                peerDeliveryRatePct = pct ?: 0f,
+                isLost = track.isLost
+            )
+        }
         return MeshFieldReport(
             localNodeId = localShortId.toInt(),
             transportName = transport.name,
@@ -555,7 +639,8 @@ class MeshRelayEngine(
             duplicatesDropped = duplicatesDropped,
             invalidAuthDropped = invalidAuthDropped,
             activeLostPeers = peerMap.values.filter { it.isLost }.map { it.shortId.toInt() },
-            deviceModels = deviceModels.toMap()
+            deviceModels = deviceModels.toMap(),
+            peerReports = peerReports
         )
     }
 }

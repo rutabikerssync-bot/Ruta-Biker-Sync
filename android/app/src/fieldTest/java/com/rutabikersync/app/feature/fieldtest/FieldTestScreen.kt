@@ -55,7 +55,12 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import android.net.wifi.WifiManager
+import android.os.PowerManager
+import android.telephony.TelephonyManager
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,6 +95,54 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+data class RadioEnvironmentSnapshot(
+    val wifiEnabled: Boolean,
+    val mobileDataEnabled: Boolean?,
+    val airplaneModeOn: Boolean,
+    val nearbySharingState: String,
+    val fastPairLikelyActive: Boolean
+)
+
+fun queryRadioEnvironment(context: Context): RadioEnvironmentSnapshot {
+    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+    val wifiEnabled = runCatching { wifiManager?.isWifiEnabled == true }.getOrDefault(false)
+
+    val airplaneModeOn = runCatching {
+        Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+    }.getOrDefault(false)
+
+    val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+    val mobileDataEnabled = runCatching {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            telephonyManager?.isDataEnabled
+        } else {
+            null
+        }
+    }.getOrNull()
+
+    val nearbyState = runCatching {
+        val quickShareVal = Settings.Secure.getInt(context.contentResolver, "nearby_sharing_slice", -1)
+        val nearbyEnabled = Settings.Secure.getInt(context.contentResolver, "nearby_sharing_enabled", -1)
+        when {
+            quickShareVal == 1 || nearbyEnabled == 1 -> "ACTIVADO"
+            quickShareVal == 0 || nearbyEnabled == 0 -> "DESACTIVADO"
+            else -> "NO_DISPONIBLE_POR_API"
+        }
+    }.getOrElse { "ERROR: ${it.message}" }
+
+    val fastPairLikely = runCatching {
+        context.packageManager.getPackageInfo("com.google.android.gms", 0) != null
+    }.getOrDefault(false)
+
+    return RadioEnvironmentSnapshot(
+        wifiEnabled = wifiEnabled,
+        mobileDataEnabled = mobileDataEnabled,
+        airplaneModeOn = airplaneModeOn,
+        nearbySharingState = nearbyState,
+        fastPairLikelyActive = fastPairLikely
+    )
+}
 
 /**
  * Pantalla de prueba de campo BLE para el Bloque 3.6 (Fase 3).
@@ -142,6 +195,20 @@ fun FieldTestScreen(
 
     val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
         rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
+
+    // Mantener la pantalla encendida durante la prueba (FLAG_KEEP_SCREEN_ON) para evitar que Android pause el escáner BLE
+    DisposableEffect(isRunning) {
+        val window = activity?.window
+        if (isRunning) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            Log.i("FieldTestScreen", "Pantalla mantenida encendida (FLAG_KEEP_SCREEN_ON activo)")
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     val batteryGuide = remember { ManufacturerBatteryGuide() }
     val batterySnapshot = remember { batteryGuide.snapshot() }
@@ -994,6 +1061,27 @@ fun FieldTestScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                val primaryPeer = metrics?.peerReports?.firstOrNull()
+                if (primaryPeer != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Peer #${primaryPeer.peerShortId}: ${primaryPeer.burstsHeardFromPeer}/${primaryPeer.burstsEmittedByPeer} ráfagas (${String.format(Locale.US, "%.1f", primaryPeer.peerDeliveryRatePct)}%)",
+                            color = if (primaryPeer.peerDeliveryRatePct >= 85f) BikerColors.StatusGreen else BikerColors.StatusYellow,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (isRunning) "Pantalla: ON" else "Pantalla: Auto",
+                            color = BikerColors.TextSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
             }
         }
 
@@ -1002,6 +1090,7 @@ fun FieldTestScreen(
             onClick = {
                 val durationSec = elapsedSeconds
                 val reportJson = generateMetricsJson(
+                    context = context,
                     nodeRole = nodeRoleLabel(selectedNodeShortId, totalPhonesInTest),
                     shortId = selectedNodeShortId,
                     totalPhonesInTest = totalPhonesInTest,
@@ -1253,6 +1342,7 @@ private fun formatElapsed(totalSeconds: Long): String {
 }
 
 private fun generateMetricsJson(
+    context: Context,
     nodeRole: String,
     shortId: Int,
     totalPhonesInTest: Int,
@@ -1311,6 +1401,12 @@ private fun generateMetricsJson(
     }
 
     val parsedDistance = manualDistanceMeters ?: manualDistanceText.toDoubleOrNull()
+    val radio = queryRadioEnvironment(context)
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+    val isInteractive = powerManager?.isInteractive ?: true
+    val screenKeepOnActive = (context as? Activity)?.window?.attributes?.let {
+        (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0
+    } ?: (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP)
 
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
@@ -1326,6 +1422,13 @@ private fun generateMetricsJson(
         put("deviceModel", Build.MODEL)
         put("androidRelease", Build.VERSION.RELEASE)
         put("androidSdkInt", Build.VERSION.SDK_INT)
+        put("screenKeepOnActive", screenKeepOnActive)
+        put("screenIsInteractive", isInteractive)
+        put("radioWifiEnabled", radio.wifiEnabled)
+        put("radioMobileDataEnabled", radio.mobileDataEnabled ?: JSONObject.NULL)
+        put("radioAirplaneModeOn", radio.airplaneModeOn)
+        put("radioNearbySharingState", radio.nearbySharingState)
+        put("radioFastPairLikelyActive", radio.fastPairLikelyActive)
         put("bleBluetoothSupported", bleCaps.bluetoothSupported)
         put("bleBluetoothEnabled", bleCaps.bluetoothEnabled)
         put("bleMultipleAdvertisementSupported", bleCaps.multipleAdvertisementSupported)
@@ -1386,6 +1489,28 @@ private fun generateMetricsJson(
         put("hasOtherConnectedBluetoothDevices", rideState.hasOtherConnectedBluetoothDevices)
         put("connectedBluetoothAudio", rideState.connectedBluetoothAudio)
         put("connectedBluetoothDeviceNames", org.json.JSONArray(rideState.connectedBluetoothDeviceNames))
+
+        val peerReportsArray = org.json.JSONArray()
+        val peerReports = metrics?.peerReports ?: emptyList()
+        for (pr in peerReports) {
+            val pObj = JSONObject().apply {
+                put("peerShortId", pr.peerShortId)
+                put("firstSequenceObserved", pr.firstSequenceObserved ?: JSONObject.NULL)
+                put("lastSequenceObserved", pr.lastSequenceObserved ?: JSONObject.NULL)
+                put("burstsEmittedByPeer", pr.burstsEmittedByPeer)
+                put("burstsHeardFromPeer", pr.burstsHeardFromPeer)
+                put("peerDeliveryRatePct", pr.peerDeliveryRatePct.toDouble())
+                put("isLost", pr.isLost)
+            }
+            peerReportsArray.put(pObj)
+        }
+        put("peerDeliveryReports", peerReportsArray)
+
+        val primaryPeer = peerReports.firstOrNull()
+        put("primaryPeerShortId", primaryPeer?.peerShortId ?: JSONObject.NULL)
+        put("primaryPeerBurstsEmitted", primaryPeer?.burstsEmittedByPeer ?: JSONObject.NULL)
+        put("primaryPeerBurstsHeard", primaryPeer?.burstsHeardFromPeer ?: JSONObject.NULL)
+        put("primaryPeerDeliveryRatePct", primaryPeer?.peerDeliveryRatePct?.toDouble() ?: JSONObject.NULL)
     }
     return obj.toString(2)
 }
