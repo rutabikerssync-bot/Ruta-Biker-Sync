@@ -1032,34 +1032,56 @@ fun FieldTestScreen(
                     if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
                 } ?: manualDistanceMetersText.trim().ifEmpty { "1" }
 
-                val uniqueFileName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.json"
+                val uniqueJsonName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.json"
+                val uniqueCsvName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.csv"
+                val csvContent = RideService.exportPacketsCsv()
 
                 val extDir = context.getExternalFilesDir(null)
-                val extUniqueFile = extDir?.let { File(it, uniqueFileName) }
-                val extLatestFile = extDir?.let { File(it, "fieldtest_metrics.json") }
+                val extUniqueJson = extDir?.let { File(it, uniqueJsonName) }
+                val extLatestJson = extDir?.let { File(it, "fieldtest_metrics.json") }
+                val extUniqueCsv = extDir?.let { File(it, uniqueCsvName) }
+                val extLatestCsv = extDir?.let { File(it, "fieldtest_metrics.csv") }
                 runCatching {
-                    extUniqueFile?.writeText(reportJson)
-                    extLatestFile?.writeText(reportJson)
+                    extUniqueJson?.writeText(reportJson)
+                    extLatestJson?.writeText(reportJson)
+                    extUniqueCsv?.writeText(csvContent)
+                    extLatestCsv?.writeText(csvContent)
                 }
-                val intUniqueFile = File(context.filesDir, uniqueFileName)
-                val intLatestFile = File(context.filesDir, "fieldtest_metrics.json")
+                val intUniqueJson = File(context.filesDir, uniqueJsonName)
+                val intLatestJson = File(context.filesDir, "fieldtest_metrics.json")
+                val intUniqueCsv = File(context.filesDir, uniqueCsvName)
+                val intLatestCsv = File(context.filesDir, "fieldtest_metrics.csv")
                 runCatching {
-                    intUniqueFile.writeText(reportJson)
-                    intLatestFile.writeText(reportJson)
+                    intUniqueJson.writeText(reportJson)
+                    intLatestJson.writeText(reportJson)
+                    intUniqueCsv.writeText(csvContent)
+                    intLatestCsv.writeText(csvContent)
                 }
-                val savedPath = extUniqueFile?.absolutePath ?: intUniqueFile.absolutePath
+                val savedPath = extUniqueJson?.absolutePath ?: intUniqueJson.absolutePath
                 exportedFilePath = savedPath
+
+                Log.i(
+                    "FieldTestScreen",
+                    "Exported $uniqueJsonName and $uniqueCsvName: burstsStarted=${rideState.f3AdvertisingBurstsStarted} " +
+                        "burstsSuccess=${rideState.f3AdvertisingBurstsSuccess} advFailures=${rideState.f3AdvertisingFailuresCount} " +
+                        "lastAdvFailure='${rideState.f3LastAdvertisingFailure ?: "none"}' " +
+                        "scanStarts=${rideState.f3ScanStartsCount} scanFailures=${rideState.f3ScanFailuresCount} " +
+                        "lastScanFailure='${rideState.f3LastScanFailure ?: "none"}' " +
+                        "logicalHeartbeats=${rideState.f3LogicalHeartbeatsEmitted} " +
+                        "btConnected=${rideState.connectedBluetoothDevicesCount} " +
+                        "audioBt=${rideState.connectedBluetoothAudio} devices=${rideState.connectedBluetoothDeviceNames.joinToString()}"
+                )
 
                 // Copiar al portapapeles automáticamente
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("RBS_FieldTest_Metrics", reportJson)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "Métricas guardadas en $uniqueFileName y copiadas", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Métricas JSON y CSV guardadas ($uniqueJsonName) y copiadas", Toast.LENGTH_SHORT).show()
 
                 // Intent para compartir por WhatsApp / Email / Archivo
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "Métricas Campo BLE - ${Build.MODEL} ($uniqueFileName)")
+                    putExtra(Intent.EXTRA_SUBJECT, "Métricas Campo BLE - ${Build.MODEL} ($uniqueJsonName)")
                     putExtra(Intent.EXTRA_TEXT, reportJson)
                 }
                 runCatching {
@@ -1078,7 +1100,7 @@ fun FieldTestScreen(
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, tint = Color.White)
                 Text(
-                    text = "EXPORTAR MÉTRICAS (JSON)",
+                    text = "EXPORTAR MÉTRICAS (JSON + CSV)",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -1352,6 +1374,18 @@ private fun generateMetricsJson(
         put("islandEventsDetected", metrics?.islandEvents ?: 0)
         put("duplicatesDropped", metrics?.duplicatesDropped ?: 0)
         put("invalidAuthDropped", metrics?.invalidAuthDropped ?: 0)
+        put("f3AdvertisingBurstsStarted", rideState.f3AdvertisingBurstsStarted)
+        put("f3AdvertisingBurstsSuccess", rideState.f3AdvertisingBurstsSuccess)
+        put("f3AdvertisingFailuresCount", rideState.f3AdvertisingFailuresCount)
+        put("f3LastAdvertisingFailure", rideState.f3LastAdvertisingFailure ?: JSONObject.NULL)
+        put("f3LogicalHeartbeatsEmitted", rideState.f3LogicalHeartbeatsEmitted)
+        put("f3ScanStartsCount", rideState.f3ScanStartsCount)
+        put("f3ScanFailuresCount", rideState.f3ScanFailuresCount)
+        put("f3LastScanFailure", rideState.f3LastScanFailure ?: JSONObject.NULL)
+        put("connectedBluetoothDevicesCount", rideState.connectedBluetoothDevicesCount)
+        put("hasOtherConnectedBluetoothDevices", rideState.hasOtherConnectedBluetoothDevices)
+        put("connectedBluetoothAudio", rideState.connectedBluetoothAudio)
+        put("connectedBluetoothDeviceNames", org.json.JSONArray(rideState.connectedBluetoothDeviceNames))
     }
     return obj.toString(2)
 }

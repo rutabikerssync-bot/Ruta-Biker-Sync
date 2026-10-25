@@ -312,4 +312,66 @@ class MeshValidationPhase0Test {
             fullCaps.resolveEffectiveMode(BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY)
         )
     }
+
+    @Test
+    fun `staggered start of 47 seconds between nodes computes delivery percentage based on observed sequence span without distortion`() = runTest(UnconfinedTestDispatcher()) {
+        val medium = SimulatedBleMedium()
+        val node1Transport = medium.createNodeTransport(1u)
+        val engine1 = MeshRelayEngine(
+            localShortId = 1u,
+            transport = node1Transport,
+            rideSecretKey = secretKey
+        )
+
+        // Nodo 1 inicia en t = 0s y registra al nodo 2 como par esperado
+        val t0 = 1_000_000L
+        engine1.registerExpectedPeer(shortId = 2u, nowEpochMs = t0, initialExpectedBeats = 0)
+        engine1.start(backgroundScope)
+
+        // Durante 47 segundos el nodo 2 no emitió nada (inicio escalonado físico)
+        // Se evalúan timeouts en t = 47s
+        val t1 = t0 + 47_000L
+        engine1.evaluatePeerTimeouts(nowEpochMs = t1)
+
+        // Nodo 2 comienza a emitir 22 paquetes (secuencia 0 a 21)
+        // El nodo 1 recibe solo 14 de esos 22 paquetes (ej. los primeros 14, secuencias 0..13 y el último 21)
+        val receivedSeqs = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 21) // 14 paquetes recibidos
+        var currentTime = t1
+        for (seq in receivedSeqs) {
+            currentTime += 3_000L
+            val packet = MeshPacket.createSigned(
+                shortId = 2u,
+                latitude = 19.4326,
+                longitude = -99.1332,
+                speedKmh = 40,
+                bearingDegrees = 45f,
+                batteryPercent = 80,
+                sequenceNumber = seq,
+                ttl = 3,
+                rideSecretKey = secretKey
+            )
+            // Entregar paquete directamente
+            node1Transport.deliverFromMedium(packet.toByteArray())
+        }
+
+        // Evaluar métricas al finalizar la rodada (t = 134s)
+        val tEnd = t0 + 134_000L
+        engine1.evaluatePeerTimeouts(nowEpochMs = tEnd)
+
+        val report = engine1.metrics.value
+        assertEquals(2, report.participants)
+        // Con el cálculo por tramo de secuencia (span = 21 - 0 + 1 = 22), los latidos esperados son 22 y no ~45
+        assertEquals(22, report.heartbeatsExpected)
+        assertEquals(14, report.heartbeatsReceived)
+        assertNotNull(report.heartbeatsDeliveredPct)
+        // Entrega real: 14 / 22 = 63.636% (frente al 35.9% distorsionado por tiempo del inicio escalonado)
+        assertEquals(63.636f, report.heartbeatsDeliveredPct!!, 0.05f)
+
+        // Verificar registro de paquetes CSV exigido por FIELD_TEST_PLAN.md §6
+        val csv = engine1.exportPacketsCsv()
+        assertTrue("El CSV debe contener cabecera", csv.startsWith("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate"))
+        assertTrue("El CSV debe contener al menos 14 líneas de paquetes", csv.lines().filter { it.isNotBlank() }.size >= 15)
+        assertTrue("El CSV debe registrar el sender 2", csv.contains(",2,"))
+        assertTrue("El CSV debe registrar RSSI", csv.contains(",-55,"))
+    }
 }

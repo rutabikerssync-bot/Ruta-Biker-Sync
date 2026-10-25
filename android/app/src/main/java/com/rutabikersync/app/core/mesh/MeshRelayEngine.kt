@@ -16,7 +16,11 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.PriorityQueue
+import java.util.TimeZone
 import kotlin.math.roundToInt
 
 /**
@@ -42,6 +46,14 @@ class MeshRelayEngine(
         const val LOST_THRESHOLD_BEATS: Int = 5          // 5 * 3 s = 15 s (rango 4–5 latidos de DESIGN.md §3)
         const val LOST_TIMEOUT_MS: Long = HEARTBEAT_INTERVAL_MS * LOST_THRESHOLD_BEATS
         const val RECONNECT_HYSTERESIS_BEATS: Int = 2    // Histéresis para evitar falsas alarmas en curvas/túneles
+
+        private val utcFormatter = ThreadLocal.withInitial {
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+        }
+
+        fun formatUtc(epochMs: Long): String = utcFormatter.get()!!.format(Date(epochMs))
     }
 
     data class PeerTrack(
@@ -52,12 +64,24 @@ class MeshRelayEngine(
         val lastBatteryPercent: Int,
         val isSos: Boolean,
         val lastSeenEpochMs: Long,
-        val lastSequence: Int,
+        val firstSequence: Int = -1,
+        val lastSequence: Int = -1,
         val expectedBeats: Int,
         val receivedBeats: Int,
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
         val lastHops: Int
+    )
+
+    data class PacketLogEntry(
+        val timestampUtc: String,
+        val senderShortId: Int,
+        val sequenceNumber: Int,
+        val ttl: Int,
+        val hops: Int,
+        val rssi: Int?,
+        val transportMode: String,
+        val isDuplicate: Boolean = false
     )
 
     /**
@@ -122,6 +146,8 @@ class MeshRelayEngine(
     private var islandEvents: Int = 0
     private var wasInIslandState: Boolean = false
 
+    private val packetLogs = mutableListOf<PacketLogEntry>()
+
     private var collectJob: Job? = null
 
     private val _metrics = MutableStateFlow(buildReport())
@@ -137,12 +163,40 @@ class MeshRelayEngine(
     )
     val announcedSignals: SharedFlow<AnnouncedMeshSignal> = _announcedSignals.asSharedFlow()
 
+    private fun logPacketEntryLocked(entry: PacketLogEntry) {
+        if (packetLogs.size >= 10_000) {
+            packetLogs.removeAt(0)
+        }
+        packetLogs.add(entry)
+    }
+
+    fun getPacketLogs(): List<PacketLogEntry> = synchronized(this) { packetLogs.toList() }
+
+    fun exportPacketsCsv(): String {
+        val entries = getPacketLogs()
+        val sb = StringBuilder()
+        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate\n")
+        for (e in entries) {
+            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate}\n")
+        }
+        return sb.toString()
+    }
+
     suspend fun start(scope: CoroutineScope) {
         transport.start()
         collectJob?.cancel()
-        collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            transport.incoming.collect { raw ->
-                onRawPacketReceived(raw, System.currentTimeMillis())
+        val pktFlow = transport.incomingPackets
+        if (pktFlow != null) {
+            collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                pktFlow.collect { pkt ->
+                    onRawPacketReceived(pkt.bytes, pkt.timestampEpochMs, pkt.rssi)
+                }
+            }
+        } else {
+            collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                transport.incoming.collect { raw ->
+                    onRawPacketReceived(raw, System.currentTimeMillis(), null)
+                }
             }
         }
     }
@@ -236,9 +290,13 @@ class MeshRelayEngine(
 
     /**
      * Procesa un paquete entrante crudo (20 bytes), actualiza métricas de entrega/saltos,
-     * y si corresponde reenviarlo (TTL > 1 y no visto antes), lo encola por prioridad y lo emite.
+     * registra la entrada en el log CSV y reenvía por inundación controlada si corresponde.
      */
-    suspend fun onRawPacketReceived(raw: ByteArray, nowEpochMs: Long = System.currentTimeMillis()) {
+    suspend fun onRawPacketReceived(
+        raw: ByteArray,
+        nowEpochMs: Long = System.currentTimeMillis(),
+        rssi: Int? = null
+    ) {
         if (raw.size != MeshPacket.PACKET_SIZE_BYTES) return
         val packet = runCatching { MeshPacket.fromByteArray(raw) }.getOrNull() ?: return
 
@@ -257,8 +315,23 @@ class MeshRelayEngine(
 
         var relayCandidate: MeshPacket? = null
         var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
+        val utcIso = formatUtc(nowEpochMs)
         synchronized(this) {
-            if (seenKeys.containsKey(packet.dedupKey)) {
+            val isDuplicate = seenKeys.containsKey(packet.dedupKey)
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIso,
+                    senderShortId = packet.shortId.toInt(),
+                    sequenceNumber = packet.sequenceNumber,
+                    ttl = packet.currentTtl,
+                    hops = packet.hopsTaken,
+                    rssi = rssi,
+                    transportMode = transport.name,
+                    isDuplicate = isDuplicate
+                )
+            )
+
+            if (isDuplicate) {
                 duplicatesDropped++
                 refreshStateFlowsLocked()
                 return
@@ -307,6 +380,11 @@ class MeshRelayEngine(
     /**
      * Evalúa qué nodos han superado el umbral de 4–5 heartbeats sin señal (~15 s)
      * y contabiliza eventos de partición (islas) cuando >=50% de los peers conocidos se pierden a la vez.
+     *
+     * En caso de par registrado que nunca se oye (receivedBeats == 0), calcula expectedBeats por tiempo
+     * para asegurar 0.0% de entrega tras el timeout. En pares que ya han sido observados (receivedBeats > 0),
+     * expectedBeats se calcula por el lapso de secuencia observada (última seq - primera seq + 1)
+     * sin distorsión por desfase de inicio o fin de la prueba.
      */
     fun evaluatePeerTimeouts(nowEpochMs: Long = System.currentTimeMillis()): List<UShort> {
         val newlyLost = mutableListOf<UShort>()
@@ -325,10 +403,8 @@ class MeshRelayEngine(
                         newlyLost.add(id)
                     }
                 } else if (!track.isLost && elapsed >= LOST_TIMEOUT_MS) {
-                    val missedBeats = (elapsed / HEARTBEAT_INTERVAL_MS).toInt().coerceAtLeast(1)
                     peerMap[id] = track.copy(
                         isLost = true,
-                        expectedBeats = track.expectedBeats + missedBeats,
                         consecutiveAfterLossBeats = 0
                     )
                     newlyLost.add(id)
@@ -379,6 +455,7 @@ class MeshRelayEngine(
                     lastBatteryPercent = 0,
                     isSos = false,
                     lastSeenEpochMs = nowEpochMs,
+                    firstSequence = -1,
                     lastSequence = -1,
                     expectedBeats = initialExpectedBeats.coerceAtLeast(0),
                     receivedBeats = 0,
@@ -402,46 +479,35 @@ class MeshRelayEngine(
 
     private fun updatePeerTrackLocked(packet: MeshPacket, nowEpochMs: Long) {
         val existing = peerMap[packet.shortId]
-        if (existing == null) {
-            peerMap[packet.shortId] = PeerTrack(
-                shortId = packet.shortId,
-                lastLatitude = packet.latitude,
-                lastLongitude = packet.longitude,
-                lastSpeedKmh = packet.speedKmh,
-                lastBatteryPercent = packet.batteryPercent,
-                isSos = packet.isSos,
-                lastSeenEpochMs = nowEpochMs,
-                lastSequence = packet.sequenceNumber,
-                expectedBeats = 1,
-                receivedBeats = 1,
-                consecutiveAfterLossBeats = 0,
-                isLost = false,
-                lastHops = packet.hopsTaken
-            )
-            return
-        }
-
-        val newExpected = if (existing.receivedBeats == 0 || existing.lastSequence < 0) {
-            (existing.expectedBeats).coerceAtLeast(1)
+        val firstSeq = if (existing == null || existing.receivedBeats == 0 || existing.firstSequence < 0) {
+            packet.sequenceNumber
         } else {
-            val seqDelta = ((packet.sequenceNumber - existing.lastSequence) and MeshPacket.MAX_SEQUENCE_NUMBER)
-                .coerceAtLeast(1)
-            existing.expectedBeats + seqDelta
+            existing.firstSequence
         }
-        val newReceived = existing.receivedBeats + 1
+        val lastSeq = if (existing == null || existing.receivedBeats == 0 || existing.lastSequence < 0) {
+            packet.sequenceNumber
+        } else {
+            val seqDiff = (packet.sequenceNumber - existing.lastSequence) and MeshPacket.MAX_SEQUENCE_NUMBER
+            if (seqDiff < 2048) packet.sequenceNumber else existing.lastSequence
+        }
+        val seqSpan = ((lastSeq - firstSeq) and MeshPacket.MAX_SEQUENCE_NUMBER) + 1
+        val newReceived = (existing?.receivedBeats ?: 0) + 1
+        val newExpected = maxOf(newReceived, seqSpan)
 
         // Histéresis al reconectar: requiere RECONNECT_HYSTERESIS_BEATS latidos seguidos para limpiar isLost
-        val consecutiveRecovery = if (existing.isLost) existing.consecutiveAfterLossBeats + 1 else 0
-        val stillLost = if (existing.isLost) consecutiveRecovery < RECONNECT_HYSTERESIS_BEATS else false
+        val consecutiveRecovery = if (existing?.isLost == true) existing.consecutiveAfterLossBeats + 1 else 0
+        val stillLost = if (existing?.isLost == true) consecutiveRecovery < RECONNECT_HYSTERESIS_BEATS else false
 
-        peerMap[packet.shortId] = existing.copy(
+        peerMap[packet.shortId] = PeerTrack(
+            shortId = packet.shortId,
             lastLatitude = packet.latitude,
             lastLongitude = packet.longitude,
             lastSpeedKmh = packet.speedKmh,
             lastBatteryPercent = packet.batteryPercent,
             isSos = packet.isSos,
             lastSeenEpochMs = nowEpochMs,
-            lastSequence = packet.sequenceNumber,
+            firstSequence = firstSeq,
+            lastSequence = lastSeq,
             expectedBeats = newExpected,
             receivedBeats = newReceived,
             consecutiveAfterLossBeats = if (stillLost) consecutiveRecovery else 0,

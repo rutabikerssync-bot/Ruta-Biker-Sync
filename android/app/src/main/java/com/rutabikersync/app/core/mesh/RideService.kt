@@ -6,6 +6,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -71,6 +74,14 @@ data class RideNotificationSnapshot(
     val stopConfirmationRemainingMs: Long
 )
 
+data class BluetoothConnectedDevicesSnapshot(
+    val connectedDevicesCount: Int = 0,
+    val hasOtherConnectedDevices: Boolean = false,
+    val isAudioDeviceConnected: Boolean = false,
+    val deviceNames: List<String> = emptyList(),
+    val summary: String = "Ninguno"
+)
+
 data class RideSessionState(
     val rideId: String? = null,
     val lifecycleState: RideLifecycleState = RideLifecycleState.IDLE,
@@ -83,6 +94,18 @@ data class RideSessionState(
     val f3AdvertisingSetsStarted: Int = 0,
     val f3AdvertisingSetsStopped: Int = 0,
     val f3LastMeasuredTxPowerDbm: Int? = null,
+    val f3AdvertisingBurstsStarted: Int = 0,
+    val f3AdvertisingBurstsSuccess: Int = 0,
+    val f3AdvertisingFailuresCount: Int = 0,
+    val f3LastAdvertisingFailure: String? = null,
+    val f3ScanStartsCount: Int = 0,
+    val f3ScanFailuresCount: Int = 0,
+    val f3LastScanFailure: String? = null,
+    val f3LogicalHeartbeatsEmitted: Int = 0,
+    val connectedBluetoothDevicesCount: Int = 0,
+    val hasOtherConnectedBluetoothDevices: Boolean = false,
+    val connectedBluetoothAudio: Boolean = false,
+    val connectedBluetoothDeviceNames: List<String> = emptyList(),
     val isUsingSimulatedTransport: Boolean = false,
     val connectedRidersCount: Int = 0,
     val lostRidersCount: Int = 0,
@@ -119,7 +142,8 @@ class RideSessionController(
     private val scope: CoroutineScope,
     private val bleTransportFactory: (() -> BleAdvTransport?)? = null,
     private val simulatedMedium: SimulatedBleMedium = SimulatedBleMedium.defaultMedium,
-    private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null
+    private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null,
+    private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null
 ) {
     companion object {
         const val STOP_CONFIRM_WINDOW_MS: Long = 3_000L
@@ -239,6 +263,8 @@ class RideSessionController(
             isSos = false,
             stopRemainingMs = 0L
         )
+        val btSnapshot = bluetoothDevicesProvider?.invoke()
+        val bleAdv = selectedTransport as? BleAdvTransport
         _state.value = RideSessionState(
             rideId = rideId,
             lifecycleState = RideLifecycleState.RUNNING,
@@ -248,6 +274,21 @@ class RideSessionController(
             transportName = selectedTransport.name,
             forcedBleMode = bleModeOverride?.code,
             f3AdvertisingBurstDurationMs = advertisingBurstDurationMs,
+            f3AdvertisingSetsStarted = bleAdv?.advertisingSetsStartedCount ?: 0,
+            f3AdvertisingSetsStopped = bleAdv?.advertisingSetsStoppedCount ?: 0,
+            f3LastMeasuredTxPowerDbm = bleAdv?.lastMeasuredTxPowerDbm,
+            f3AdvertisingBurstsStarted = bleAdv?.advertisingBurstsStartedCount ?: 0,
+            f3AdvertisingBurstsSuccess = bleAdv?.advertisingBurstsSuccessCount ?: 0,
+            f3AdvertisingFailuresCount = bleAdv?.advertisingFailuresCount ?: 0,
+            f3LastAdvertisingFailure = bleAdv?.lastAdvertisingFailure,
+            f3ScanStartsCount = bleAdv?.scanStartsCount ?: 0,
+            f3ScanFailuresCount = bleAdv?.scanFailuresCount ?: 0,
+            f3LastScanFailure = bleAdv?.lastScanFailure,
+            f3LogicalHeartbeatsEmitted = 0,
+            connectedBluetoothDevicesCount = btSnapshot?.connectedDevicesCount ?: 0,
+            hasOtherConnectedBluetoothDevices = btSnapshot?.hasOtherConnectedDevices ?: false,
+            connectedBluetoothAudio = btSnapshot?.isAudioDeviceConnected ?: false,
+            connectedBluetoothDeviceNames = btSnapshot?.deviceNames ?: emptyList(),
             isUsingSimulatedTransport = isSimulated,
             connectedRidersCount = 0,
             lostRidersCount = 0,
@@ -570,6 +611,7 @@ class RideSessionController(
         val activeConnected = peerMap.values.count { it.receivedBeats > 0 && !it.isLost }
         val lostCount = peerMap.values.count { it.isLost }
         val bleAdv = activeTransport as? BleAdvTransport
+        val btSnapshot = bluetoothDevicesProvider?.invoke()
         val snapshot = buildNotificationSnapshot(
             lifecycleState = current.lifecycleState,
             connectedRiders = activeConnected,
@@ -585,6 +627,18 @@ class RideSessionController(
             f3AdvertisingSetsStarted = bleAdv?.advertisingSetsStartedCount ?: 0,
             f3AdvertisingSetsStopped = bleAdv?.advertisingSetsStoppedCount ?: 0,
             f3LastMeasuredTxPowerDbm = bleAdv?.lastMeasuredTxPowerDbm,
+            f3AdvertisingBurstsStarted = bleAdv?.advertisingBurstsStartedCount ?: 0,
+            f3AdvertisingBurstsSuccess = bleAdv?.advertisingBurstsSuccessCount ?: 0,
+            f3AdvertisingFailuresCount = bleAdv?.advertisingFailuresCount ?: 0,
+            f3LastAdvertisingFailure = bleAdv?.lastAdvertisingFailure,
+            f3ScanStartsCount = bleAdv?.scanStartsCount ?: 0,
+            f3ScanFailuresCount = bleAdv?.scanFailuresCount ?: 0,
+            f3LastScanFailure = bleAdv?.lastScanFailure,
+            f3LogicalHeartbeatsEmitted = relayEngine?.metrics?.value?.packetsEmitted ?: 0,
+            connectedBluetoothDevicesCount = btSnapshot?.connectedDevicesCount ?: current.connectedBluetoothDevicesCount,
+            hasOtherConnectedBluetoothDevices = btSnapshot?.hasOtherConnectedDevices ?: current.hasOtherConnectedBluetoothDevices,
+            connectedBluetoothAudio = btSnapshot?.isAudioDeviceConnected ?: current.connectedBluetoothAudio,
+            connectedBluetoothDeviceNames = btSnapshot?.deviceNames ?: current.connectedBluetoothDeviceNames,
             notification = snapshot
         )
         onNotificationUpdated?.invoke(snapshot)
@@ -914,6 +968,57 @@ class RideService : Service() {
                 context.startService(stopIntent)
             }
         }
+
+        @Volatile
+        var activeController: RideSessionController? = null
+
+        fun exportPacketsCsv(): String {
+            return activeController?.relayEngine?.exportPacketsCsv()
+                ?: inAppSimController.relayEngine?.exportPacketsCsv()
+                ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate\n"
+        }
+
+        fun queryConnectedBluetoothDevices(context: Context): BluetoothConnectedDevicesSnapshot {
+            return runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        return BluetoothConnectedDevicesSnapshot(summary = "Sin permiso BLUETOOTH_CONNECT")
+                    }
+                }
+                val bm = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+                val adapter = bm?.adapter ?: @Suppress("DEPRECATION") BluetoothAdapter.getDefaultAdapter()
+                    ?: return BluetoothConnectedDevicesSnapshot(summary = "Sin adaptador Bluetooth")
+
+                val gattDevices = runCatching { bm?.getConnectedDevices(BluetoothProfile.GATT) ?: emptyList() }.getOrDefault(emptyList())
+                val isA2dp = runCatching { adapter.getProfileConnectionState(BluetoothProfile.A2DP) == BluetoothProfile.STATE_CONNECTED }.getOrDefault(false)
+                val isHeadset = runCatching { adapter.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothProfile.STATE_CONNECTED }.getOrDefault(false)
+                val isAudio = isA2dp || isHeadset
+
+                val names = mutableListOf<String>()
+                for (dev in gattDevices) {
+                    val name = runCatching { dev.name }.getOrNull() ?: dev.address
+                    if (!name.isNullOrBlank()) names.add(name)
+                }
+                if (isAudio && names.none { it.contains("Audio", ignoreCase = true) || it.contains("Headset", ignoreCase = true) }) {
+                    names.add("Audio/Intercom BT (A2DP/HFP)")
+                }
+                val totalCount = maxOf(gattDevices.size, if (isAudio) 1 else 0)
+                val summary = if (totalCount == 0) {
+                    "Ninguno"
+                } else {
+                    names.joinToString(", ").ifBlank { "$totalCount conectado(s)" }
+                }
+                BluetoothConnectedDevicesSnapshot(
+                    connectedDevicesCount = totalCount,
+                    hasOtherConnectedDevices = totalCount > 0,
+                    isAudioDeviceConnected = isAudio,
+                    deviceNames = names,
+                    summary = summary
+                )
+            }.getOrElse { err ->
+                BluetoothConnectedDevicesSnapshot(summary = "Error al consultar: ${err.message}")
+            }
+        }
     }
 
     inner class LocalBinder : Binder() {
@@ -939,8 +1044,10 @@ class RideService : Service() {
                 if (isPromotedToForeground) {
                     updateForegroundNotification(snapshot)
                 }
-            }
+            },
+            bluetoothDevicesProvider = { queryConnectedBluetoothDevices(applicationContext) }
         )
+        activeController = controller
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -1045,6 +1152,9 @@ class RideService : Service() {
     }
 
     override fun onDestroy() {
+        if (activeController === controller) {
+            activeController = null
+        }
         serviceScope.launch {
             controller.stopAll()
             _sharedState.value = controller.state.value

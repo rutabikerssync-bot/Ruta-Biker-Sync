@@ -12,6 +12,13 @@ interface Transport {
     suspend fun stop()
     suspend fun send(payload: ByteArray, priority: Priority)
     val incoming: Flow<ByteArray>
+    val incomingPackets: Flow<IncomingPacket>? get() = null
+
+    data class IncomingPacket(
+        val bytes: ByteArray,
+        val rssi: Int? = null,
+        val timestampEpochMs: Long = System.currentTimeMillis()
+    )
 
     /**
      * Orden de prioridad estricto de DESIGN.md §3:

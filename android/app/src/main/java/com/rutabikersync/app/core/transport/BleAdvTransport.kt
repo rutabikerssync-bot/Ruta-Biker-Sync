@@ -19,6 +19,7 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.Build
 import android.os.ParcelUuid
+import android.util.Log
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -57,6 +58,8 @@ class BleAdvTransport(
             UUID.fromString("0000B1CE-0000-1000-8000-00805F9B34FB")
         )
 
+        private const val TAG = "BleAdvTransport"
+
         fun describeScanSettings(effectiveMode: String): String {
             val isExtended = effectiveMode == "EXTENDED_1M" || effectiveMode == "EXTENDED_CODED_PHY"
             return if (isExtended) {
@@ -64,6 +67,25 @@ class BleAdvTransport(
             } else {
                 "SCAN_MODE_LOW_LATENCY (2) | legacy=true (Legacy only) | phy=PHY_LE_1M (1) | reportDelay=0ms"
             }
+        }
+
+        fun describeAdvertiseFailure(errorCode: Int): String = when (errorCode) {
+            AdvertiseCallback.ADVERTISE_FAILED_DATA_TOO_LARGE -> "ADVERTISE_FAILED_DATA_TOO_LARGE (1)"
+            AdvertiseCallback.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS -> "ADVERTISE_FAILED_TOO_MANY_ADVERTISERS (2)"
+            AdvertiseCallback.ADVERTISE_FAILED_ALREADY_STARTED -> "ADVERTISE_FAILED_ALREADY_STARTED (3)"
+            AdvertiseCallback.ADVERTISE_FAILED_INTERNAL_ERROR -> "ADVERTISE_FAILED_INTERNAL_ERROR (4)"
+            AdvertiseCallback.ADVERTISE_FAILED_FEATURE_UNSUPPORTED -> "ADVERTISE_FAILED_FEATURE_UNSUPPORTED (5)"
+            else -> "ADVERTISE_FAILED_UNKNOWN ($errorCode)"
+        }
+
+        fun describeScanFailure(errorCode: Int): String = when (errorCode) {
+            ScanCallback.SCAN_FAILED_ALREADY_STARTED -> "SCAN_FAILED_ALREADY_STARTED (1)"
+            ScanCallback.SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED (2)"
+            ScanCallback.SCAN_FAILED_INTERNAL_ERROR -> "SCAN_FAILED_INTERNAL_ERROR (3)"
+            ScanCallback.SCAN_FAILED_FEATURE_UNSUPPORTED -> "SCAN_FAILED_FEATURE_UNSUPPORTED (4)"
+            5 -> "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES (5)"
+            6 -> "SCAN_FAILED_SCANNING_TOO_FREQUENTLY (6)"
+            else -> "SCAN_FAILED_UNKNOWN ($errorCode)"
         }
     }
 
@@ -118,6 +140,13 @@ class BleAdvTransport(
     )
     override val incoming: Flow<ByteArray> = _incoming.asSharedFlow()
 
+    private val _incomingPackets = MutableSharedFlow<Transport.IncomingPacket>(
+        replay = 0,
+        extraBufferCapacity = 128,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    override val incomingPackets: Flow<Transport.IncomingPacket> = _incomingPackets.asSharedFlow()
+
     val effectiveMode: String
         get() = queryCapabilities().resolveEffectiveMode(modeOverride)
 
@@ -134,6 +163,34 @@ class BleAdvTransport(
 
     @Volatile
     var advertisingSetsStoppedCount: Int = 0
+        private set
+
+    @Volatile
+    var advertisingBurstsStartedCount: Int = 0
+        private set
+
+    @Volatile
+    var advertisingBurstsSuccessCount: Int = 0
+        private set
+
+    @Volatile
+    var advertisingFailuresCount: Int = 0
+        private set
+
+    @Volatile
+    var lastAdvertisingFailure: String? = null
+        private set
+
+    @Volatile
+    var scanStartsCount: Int = 0
+        private set
+
+    @Volatile
+    var scanFailuresCount: Int = 0
+        private set
+
+    @Volatile
+    var lastScanFailure: String? = null
         private set
 
     @Volatile
@@ -202,8 +259,15 @@ class BleAdvTransport(
             settingsBuilder.setPhy(BluetoothDevice.PHY_LE_1M)
         }
 
+        scanStartsCount++
+        Log.i(TAG, "startScan (invocation #$scanStartsCount) mode=$mode")
         runCatching {
             scanner?.startScan(listOf(filter), settingsBuilder.build(), scanCallback)
+        }.onFailure { ex ->
+            scanFailuresCount++
+            val desc = "START_SCAN_THREW: ${ex.message}"
+            lastScanFailure = desc
+            Log.e(TAG, "scanner.startScan threw exception", ex)
         }
     }
 
@@ -251,6 +315,9 @@ class BleAdvTransport(
 
         val mode = caps.resolveEffectiveMode(modeOverride)
         val burstMs = advertisingBurstDurationMs.coerceIn(100, 2_500)
+        advertisingBurstsStartedCount++
+        Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode priority=$priority burstMs=$burstMs")
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             caps.extendedAdvertisingSupported &&
             (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
@@ -294,9 +361,20 @@ class BleAdvTransport(
                 ) {
                     if (status == ADVERTISE_SUCCESS) {
                         lastMeasuredTxPowerDbm = txPower
-                    } else if (activeExtendedCallbacks.remove(this)) {
-                        runCatching { adv.stopAdvertisingSet(this) }
-                        advertisingSetsStoppedCount++
+                        advertisingBurstsSuccessCount++
+                        Log.i(TAG, "Extended advertise started successfully txPower=$txPower burst#=$advertisingBurstsStartedCount")
+                    } else {
+                        advertisingFailuresCount++
+                        val desc = "EXT_ADV_FAILED_STATUS_$status"
+                        lastAdvertisingFailure = desc
+                        Log.e(
+                            TAG,
+                            "Extended onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
+                        )
+                        if (activeExtendedCallbacks.remove(this)) {
+                            runCatching { adv.stopAdvertisingSet(this) }
+                            advertisingSetsStoppedCount++
+                        }
                     }
                 }
 
@@ -323,7 +401,11 @@ class BleAdvTransport(
             runCatching {
                 advertisingSetsStartedCount++
                 adv.startAdvertisingSet(params, advertiseData, null, null, null, durationUnits10Ms, 0, callback)
-            }.onFailure {
+            }.onFailure { ex ->
+                advertisingFailuresCount++
+                val desc = "START_EXT_ADV_THREW: ${ex.message}"
+                lastAdvertisingFailure = desc
+                Log.e(TAG, "startAdvertisingSet threw exception", ex)
                 if (activeExtendedCallbacks.remove(callback)) {
                     advertisingSetsStoppedCount++
                 }
@@ -342,10 +424,31 @@ class BleAdvTransport(
                 .setTimeout(burstMs)
                 .build()
 
-            val callback = object : AdvertiseCallback() {}
+            val callback = object : AdvertiseCallback() {
+                override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+                    advertisingBurstsSuccessCount++
+                    Log.i(TAG, "Legacy advertise started successfully burst#=$advertisingBurstsStartedCount")
+                }
+
+                override fun onStartFailure(errorCode: Int) {
+                    advertisingFailuresCount++
+                    val desc = describeAdvertiseFailure(errorCode)
+                    lastAdvertisingFailure = desc
+                    Log.e(
+                        TAG,
+                        "Legacy onStartFailure errorCode=$errorCode ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
+                    )
+                }
+            }
             activeLegacyCallback = callback
             runCatching {
+                advertisingSetsStartedCount++
                 adv.startAdvertising(settings, advertiseData, callback)
+            }.onFailure { ex ->
+                advertisingFailuresCount++
+                val desc = "START_LEGACY_ADV_THREW: ${ex.message}"
+                lastAdvertisingFailure = desc
+                Log.e(TAG, "startAdvertising threw exception", ex)
             }
         }
     }
@@ -353,13 +456,30 @@ class BleAdvTransport(
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val bytes = result?.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return
+            val rssi = result.rssi
+            val pkt = Transport.IncomingPacket(bytes = bytes, rssi = rssi)
+            _incomingPackets.tryEmit(pkt)
             _incoming.tryEmit(bytes)
         }
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             results?.forEach { res ->
-                res.scanRecord?.getServiceData(MESH_SERVICE_UUID)?.let { _incoming.tryEmit(it) }
+                val bytes = res.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return@forEach
+                val rssi = res.rssi
+                val pkt = Transport.IncomingPacket(bytes = bytes, rssi = rssi)
+                _incomingPackets.tryEmit(pkt)
+                _incoming.tryEmit(bytes)
             }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            scanFailuresCount++
+            val desc = describeScanFailure(errorCode)
+            lastScanFailure = desc
+            Log.e(
+                TAG,
+                "ScanCallback.onScanFailed errorCode=$errorCode ($desc) totalScanFailures=$scanFailuresCount"
+            )
         }
     }
 }

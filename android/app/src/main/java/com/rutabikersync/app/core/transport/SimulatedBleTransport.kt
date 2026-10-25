@@ -100,6 +100,13 @@ class SimulatedBleTransport(
     )
     override val incoming: Flow<ByteArray> = _incoming.asSharedFlow()
 
+    private val _incomingPackets = MutableSharedFlow<Transport.IncomingPacket>(
+        replay = 0,
+        extraBufferCapacity = 256,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    override val incomingPackets: Flow<Transport.IncomingPacket> = _incomingPackets.asSharedFlow()
+
     override suspend fun start() {
         isStarted = true
     }
@@ -113,8 +120,9 @@ class SimulatedBleTransport(
         medium.broadcastFrom(nodeId, payload)
     }
 
-    internal fun deliverFromMedium(payload: ByteArray) {
+    internal fun deliverFromMedium(payload: ByteArray, rssi: Int = -55) {
         if (!isStarted) return
+        _incomingPackets.tryEmit(Transport.IncomingPacket(payload, rssi = rssi))
         _incoming.tryEmit(payload)
     }
 }
