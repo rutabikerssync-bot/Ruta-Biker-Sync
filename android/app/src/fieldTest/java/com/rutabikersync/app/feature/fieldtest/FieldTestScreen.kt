@@ -1019,29 +1019,47 @@ fun FieldTestScreen(
                 )
                 exportedJsonText = reportJson
 
-                // Guardar en almacenamiento de la app (externalFilesDir para adb pull directo, y filesDir)
+                // 1. Guardar en almacenamiento de la app con nombre único y copia a fieldtest_metrics.json (último)
+                val fileTimestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(System.currentTimeMillis()))
+                val modeClean = when (effectiveBleMode) {
+                    "EXTENDED_CODED_PHY" -> "coded"
+                    "EXTENDED_1M" -> "ext1m"
+                    "LEGACY_1M" -> "legacy"
+                    else -> effectiveBleMode.lowercase().replace("_", "")
+                }
+                val parsedDist = manualDistanceMetersText.trim().toDoubleOrNull()
+                val distStr = parsedDist?.let {
+                    if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
+                } ?: manualDistanceMetersText.trim().ifEmpty { "1" }
+
+                val uniqueFileName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.json"
+
                 val extDir = context.getExternalFilesDir(null)
-                val extFile = if (extDir != null) File(extDir, "fieldtest_metrics.json") else null
+                val extUniqueFile = extDir?.let { File(it, uniqueFileName) }
+                val extLatestFile = extDir?.let { File(it, "fieldtest_metrics.json") }
                 runCatching {
-                    extFile?.writeText(reportJson)
+                    extUniqueFile?.writeText(reportJson)
+                    extLatestFile?.writeText(reportJson)
                 }
-                val intFile = File(context.filesDir, "fieldtest_metrics.json")
+                val intUniqueFile = File(context.filesDir, uniqueFileName)
+                val intLatestFile = File(context.filesDir, "fieldtest_metrics.json")
                 runCatching {
-                    intFile.writeText(reportJson)
+                    intUniqueFile.writeText(reportJson)
+                    intLatestFile.writeText(reportJson)
                 }
-                val savedPath = extFile?.absolutePath ?: intFile.absolutePath
+                val savedPath = extUniqueFile?.absolutePath ?: intUniqueFile.absolutePath
                 exportedFilePath = savedPath
 
                 // Copiar al portapapeles automáticamente
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 val clip = ClipData.newPlainText("RBS_FieldTest_Metrics", reportJson)
                 clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "Métricas guardadas y copiadas al portapapeles", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Métricas guardadas en $uniqueFileName y copiadas", Toast.LENGTH_SHORT).show()
 
                 // Intent para compartir por WhatsApp / Email / Archivo
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_SUBJECT, "Métricas Campo BLE - ${Build.MODEL}")
+                    putExtra(Intent.EXTRA_SUBJECT, "Métricas Campo BLE - ${Build.MODEL} ($uniqueFileName)")
                     putExtra(Intent.EXTRA_TEXT, reportJson)
                 }
                 runCatching {
@@ -1082,7 +1100,7 @@ fun FieldTestScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "Archivo guardado en el teléfono:",
+                        text = "Archivo de esta corrida guardado en el teléfono:",
                         color = BikerColors.PrimaryAmber,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -1094,7 +1112,7 @@ fun FieldTestScreen(
                         fontFamily = FontFamily.Monospace
                     )
                     Text(
-                        text = "Comando adb pull al PC:\nadb -s <serie> pull /sdcard/Android/data/com.rutabikersync.app.fieldtest/files/fieldtest_metrics.json",
+                        text = "Comando adb pull al PC (corrida única):\nadb -s <serie> pull /sdcard/Android/data/com.rutabikersync.app.fieldtest/files/${File(exportedFilePath ?: "fieldtest_metrics.json").name}\n\nComando adb pull al PC (última corrida):\nadb -s <serie> pull /sdcard/Android/data/com.rutabikersync.app.fieldtest/files/fieldtest_metrics.json fieldtest_metrics.json",
                         color = Color(0xFF93C5FD),
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace

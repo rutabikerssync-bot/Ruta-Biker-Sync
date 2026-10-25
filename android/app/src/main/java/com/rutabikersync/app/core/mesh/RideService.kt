@@ -17,12 +17,14 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.rutabikersync.app.BuildConfig
 import com.rutabikersync.app.MainActivity
 import com.rutabikersync.app.core.announcer.UniqueAnnouncer
 import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
 import com.rutabikersync.app.core.power.PowerProfile
 import com.rutabikersync.app.core.transport.BleAdvTransport
+import java.security.SecureRandom
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.SimulatedBleTransport
 import com.rutabikersync.app.core.transport.Transport
@@ -122,6 +124,7 @@ class RideSessionController(
     companion object {
         const val STOP_CONFIRM_WINDOW_MS: Long = 3_000L
         const val HEARTBEAT_INTERVAL_MS: Long = MeshRelayEngine.HEARTBEAT_INTERVAL_MS
+        val DEFAULT_TEST_RIDE_KEY: ByteArray = "rbs-phase3-default-ride-key-32b!".toByteArray(Charsets.UTF_8)
     }
 
     private val _state = MutableStateFlow(RideSessionState())
@@ -165,7 +168,7 @@ class RideSessionController(
     suspend fun startRide(
         rideId: String,
         localShortId: UShort = 1u,
-        rideSecretKey: ByteArray = "rbs-phase3-default-ride-key-32b!".toByteArray(Charsets.UTF_8),
+        rideSecretKey: ByteArray = DEFAULT_TEST_RIDE_KEY,
         forceSimulatedTransport: Boolean = false,
         bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
         advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
@@ -174,6 +177,18 @@ class RideSessionController(
         nowEpochMs: Long = System.currentTimeMillis()
     ): RideSessionState {
         stopAllInternal(resetToIdle = false)
+
+        // Bloqueante de lanzamiento: standardRelease no puede usar la clave fija por defecto
+        val effectiveRideSecretKey = if (!BuildConfig.ALLOW_DEFAULT_TEST_RIDE_KEY && rideSecretKey.contentEquals(DEFAULT_TEST_RIDE_KEY)) {
+            Log.w(
+                "RideService",
+                "SecurityViolation: rideSecretKey fija por defecto prohibida en standardRelease. " +
+                "Ignorando clave fija y generando clave efímera aleatoria por rodada (bloqueante de lanzamiento)."
+            )
+            ByteArray(32).also { SecureRandom().nextBytes(it) }
+        } else {
+            rideSecretKey
+        }
 
         val (selectedTransport, isSimulated) = resolveTransport(
             localShortId = localShortId,
@@ -186,7 +201,7 @@ class RideSessionController(
         val engine = MeshRelayEngine(
             localShortId = localShortId,
             transport = selectedTransport,
-            rideSecretKey = rideSecretKey
+            rideSecretKey = effectiveRideSecretKey
         )
         relayEngine = engine
         val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()

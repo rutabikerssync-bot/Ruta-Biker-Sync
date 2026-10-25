@@ -41,6 +41,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [x] Manifiesto de rodada con dos grupos validado *(verificado con firma Ed25519 en `POST /v1/rides/:id/manifest`, `verifyRideManifest` en TypeScript y Kotlin, y triggers `trg_ride_groups_max_two` + `trg_ride_participants_authorize_entry` en PostgreSQL 16 real)*
 - [ ] Play Integrity y ofuscación activos
 - [ ] Mensajes de la mesh cifrados y firmados
+- [ ] [BLOQUEANTE DE LANZAMIENTO] Clave de rodada (`rideSecretKey`) dinámica por sesión: prohibido usar valor por defecto fijo (`"rbs-phase3-default-ride-key-32b!"`) en producción/release. Debe ser generada y distribuida por rodada mediante manifiesto y credenciales firmadas. El build `standardRelease` ignora/rechaza la clave por defecto (`ALLOW_DEFAULT_TEST_RIDE_KEY=false` genera clave efímera aleatoria).
 
 ## E. Mesh y rodada
 - [~] Reenvío con TTL sin bucles ni duplicados *(verificado en simulador unitario `MeshRelayEngine` + `MeshValidationPhase0Test`; pendiente prueba física B5 de `FIELD_TEST_PLAN.md` §5.5)*

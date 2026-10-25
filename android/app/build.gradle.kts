@@ -29,17 +29,20 @@ android {
             dimension = "mode"
             applicationIdSuffix = ".fieldtest"
             buildConfigField("boolean", "FIELD_TEST_MODE", "true")
+            buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
         }
     }
 
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
+            buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
         }
         release {
             isMinifyEnabled = true       // ofuscación R8 (app de código cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")
+            buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
