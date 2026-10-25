@@ -520,10 +520,7 @@ private fun RidesReleaseHomeScreen() {
                 ) {
                     Button(
                         onClick = {
-                            val stopIntent = Intent(context, RideService::class.java).apply {
-                                action = RideService.ACTION_STOP_RIDE
-                            }
-                            context.startService(stopIntent)
+                            RideService.dispatchStopRide(context)
                         },
                         modifier = Modifier
                             .weight(1f)

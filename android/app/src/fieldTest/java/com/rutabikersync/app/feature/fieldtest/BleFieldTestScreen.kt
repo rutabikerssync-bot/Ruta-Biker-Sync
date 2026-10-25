@@ -57,6 +57,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.rutabikersync.app.R
 import com.rutabikersync.app.core.mesh.RideService
+import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.BikerDimens
 import java.util.Locale
@@ -178,6 +179,21 @@ fun BleFieldTestScreen(
                 enabled = !state.isRunning,
                 label = { Text(stringResource(R.string.mode_real_ble)) }
             )
+        }
+
+        // Selector del modo de transporte BLE (Legacy / Extendido / Extendido+Coded PHY)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            BleAdvTransport.TransportModeOverride.entries.forEach { modeOption ->
+                FilterChip(
+                    selected = state.transportModeOverride == modeOption,
+                    onClick = { viewModel.setTransportModeOverride(modeOption) },
+                    enabled = !state.isRunning,
+                    label = { Text(modeOption.displayLabel, fontSize = 11.sp) }
+                )
+            }
         }
 
         Row(

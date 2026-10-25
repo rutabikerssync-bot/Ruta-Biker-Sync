@@ -1,6 +1,7 @@
 package com.rutabikersync.app.core.mesh
 
 import com.rutabikersync.app.core.protocol.MeshPacket
+import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.Transport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -222,5 +223,93 @@ class MeshValidationPhase0Test {
         )
         engine.onRawPacketReceived(recoveryBeat2.toByteArray(), nowEpochMs = t0 + 19_000L)
         assertFalse(engine.peers.value.getValue(2u).isLost)
+    }
+
+    @Test
+    fun `delivery percentage case 1 - no peers returns null for N_D`() {
+        val medium = SimulatedBleMedium()
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            transport = medium.createNodeTransport(1u),
+            rideSecretKey = secretKey
+        )
+
+        val report = engine.metrics.value
+        assertEquals(1, report.participants) // solo el nodo local (0 pares)
+        assertEquals(0, report.heartbeatsExpected)
+        assertEquals(0, report.heartbeatsReceived)
+        assertNull(report.heartbeatsDeliveredPct)
+        assertNull(report.avgHops)
+        assertTrue(engine.exportReportJson().contains("\"heartbeatsDeliveredPct\": null"))
+    }
+
+    @Test
+    fun `delivery percentage case 2 - peer registered with 0 expected beats returns null for N_D`() {
+        val medium = SimulatedBleMedium()
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            transport = medium.createNodeTransport(1u),
+            rideSecretKey = secretKey
+        )
+
+        engine.registerExpectedPeer(shortId = 2u, nowEpochMs = 1_000L, initialExpectedBeats = 0)
+        val report = engine.metrics.value
+        assertEquals(2, report.participants) // 1 par registrado
+        assertEquals(0, report.heartbeatsExpected)
+        assertEquals(0, report.heartbeatsReceived)
+        assertNull(report.heartbeatsDeliveredPct)
+        assertNull(report.avgHops)
+        assertTrue(engine.exportReportJson().contains("\"heartbeatsDeliveredPct\": null"))
+    }
+
+    @Test
+    fun `delivery percentage case 3 - expected beats greater than 0 and 0 received returns 0_0 percent`() {
+        val medium = SimulatedBleMedium()
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            transport = medium.createNodeTransport(1u),
+            rideSecretKey = secretKey
+        )
+
+        val t0 = 10_000L
+        engine.registerExpectedPeer(shortId = 2u, nowEpochMs = t0, initialExpectedBeats = 0)
+        // Tras 15 s (5 latidos perdidos) sin recibir nada del par 2: expectedBeats = 5, receivedBeats = 0
+        val newlyLost = engine.evaluatePeerTimeouts(nowEpochMs = t0 + 15_000L)
+        assertEquals(listOf(2u.toUShort()), newlyLost)
+
+        val report = engine.metrics.value
+        assertEquals(2, report.participants)
+        assertEquals(5, report.heartbeatsExpected)
+        assertEquals(0, report.heartbeatsReceived)
+        assertNotNull(report.heartbeatsDeliveredPct)
+        assertEquals(0.0f, report.heartbeatsDeliveredPct!!, 0.001f)
+        assertNull(report.avgHops)
+        assertTrue(engine.exportReportJson().contains("\"heartbeatsDeliveredPct\": 0.0"))
+    }
+
+    @Test
+    fun `ble capabilities resolveEffectiveMode honors forced Legacy, Extended 1M and Extended Coded PHY`() {
+        val fullCaps = BleAdvTransport.BleCapabilities(
+            bluetoothSupported = true,
+            bluetoothEnabled = true,
+            multipleAdvertisementSupported = true,
+            extendedAdvertisingSupported = true,
+            le2MPhySupported = true,
+            codedPhySupported = true,
+            maxAdvertisingDataLength = 1650
+        )
+
+        assertEquals(
+            "LEGACY_1M",
+            fullCaps.resolveEffectiveMode(BleAdvTransport.TransportModeOverride.LEGACY_1M)
+        )
+        assertEquals(
+            "EXTENDED_1M",
+            fullCaps.resolveEffectiveMode(BleAdvTransport.TransportModeOverride.EXTENDED_1M)
+        )
+        assertEquals(
+            "EXTENDED_CODED_PHY",
+            fullCaps.resolveEffectiveMode(BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY)
+        )
     }
 }

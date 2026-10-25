@@ -29,6 +29,8 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
     data class FieldTestUiState(
         val isRunning: Boolean = false,
         val useRealBle: Boolean = false,
+        val transportModeOverride: BleAdvTransport.TransportModeOverride =
+            BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY,
         val initialTtl: Int = MeshPacket.DEFAULT_TTL,
         val islandSimulated: Boolean = false,
         val bleCapabilitiesSummary: String = "",
@@ -60,6 +62,15 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
         )
     }
 
+    fun setTransportModeOverride(override: BleAdvTransport.TransportModeOverride) {
+        if (_uiState.value.isRunning) return
+        realBleTransport.modeOverride = override
+        _uiState.value = _uiState.value.copy(
+            transportModeOverride = override,
+            bleCapabilitiesSummary = formatCapabilities(realBleTransport.queryCapabilities())
+        )
+    }
+
     fun setInitialTtl(ttl: Int) {
         _uiState.value = _uiState.value.copy(initialTtl = ttl.coerceIn(1, 7))
     }
@@ -72,6 +83,7 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             virtualPeerEngines.clear()
             val engine: MeshRelayEngine = if (useReal) {
+                realBleTransport.modeOverride = _uiState.value.transportModeOverride
                 val nodeId = ((Build.MODEL.hashCode() and 0x7FFF).coerceAtLeast(1)).toUShort()
                 MeshRelayEngine(
                     localShortId = nodeId,

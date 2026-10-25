@@ -346,6 +346,40 @@ class MeshRelayEngine(
         }
     }
 
+    /**
+     * Registra un par conocido del manifiesto de rodada antes de recibir su primer paquete.
+     * - Si `initialExpectedBeats == 0`, hay par registrado pero aún 0 latidos esperados (`heartbeatsDeliveredPct = null` / `"N/D"`).
+     * - Cuando `expectedBeats > 0` (por `initialExpectedBeats > 0` o tras `evaluatePeerTimeouts`) y `receivedBeats == 0`,
+     *   `heartbeatsDeliveredPct` reporta `0.0f` (entrega real del 0 % con color de fallo).
+     */
+    fun registerExpectedPeer(
+        shortId: UShort,
+        nowEpochMs: Long = System.currentTimeMillis(),
+        initialExpectedBeats: Int = 0
+    ) {
+        if (shortId == localShortId) return
+        synchronized(this) {
+            if (!peerMap.containsKey(shortId)) {
+                peerMap[shortId] = PeerTrack(
+                    shortId = shortId,
+                    lastLatitude = 0.0,
+                    lastLongitude = 0.0,
+                    lastSpeedKmh = 0,
+                    lastBatteryPercent = 0,
+                    isSos = false,
+                    lastSeenEpochMs = nowEpochMs,
+                    lastSequence = -1,
+                    expectedBeats = initialExpectedBeats.coerceAtLeast(0),
+                    receivedBeats = 0,
+                    consecutiveAfterLossBeats = 0,
+                    isLost = initialExpectedBeats >= LOST_THRESHOLD_BEATS,
+                    lastHops = 0
+                )
+                refreshStateFlowsLocked()
+            }
+        }
+    }
+
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     fun exportReportJson(): String {
         val json = Json {
@@ -376,9 +410,13 @@ class MeshRelayEngine(
             return
         }
 
-        val seqDelta = ((packet.sequenceNumber - existing.lastSequence) and MeshPacket.MAX_SEQUENCE_NUMBER)
-            .coerceAtLeast(1)
-        val newExpected = existing.expectedBeats + seqDelta
+        val newExpected = if (existing.receivedBeats == 0 || existing.lastSequence < 0) {
+            (existing.expectedBeats).coerceAtLeast(1)
+        } else {
+            val seqDelta = ((packet.sequenceNumber - existing.lastSequence) and MeshPacket.MAX_SEQUENCE_NUMBER)
+                .coerceAtLeast(1)
+            existing.expectedBeats + seqDelta
+        }
         val newReceived = existing.receivedBeats + 1
 
         // Histéresis al reconectar: requiere RECONNECT_HYSTERESIS_BEATS latidos seguidos para limpiar isLost
@@ -415,10 +453,10 @@ class MeshRelayEngine(
     private fun buildReport(): MeshFieldReport {
         val totalExpected = peerMap.values.sumOf { it.expectedBeats }
         val totalReceived = peerMap.values.sumOf { it.receivedBeats }
-        val deliveryPct: Float? = if (totalExpected > 0 && totalReceived > 0) {
-            ((totalReceived.toFloat() / totalExpected.toFloat()) * 100f).coerceIn(0f, 100f)
-        } else {
+        val deliveryPct: Float? = if (peerMap.isEmpty() || totalExpected <= 0) {
             null
+        } else {
+            ((totalReceived.toFloat() / totalExpected.toFloat()) * 100f).coerceIn(0f, 100f)
         }
         val avgHops: Float? = if (packetsReceivedValid > 0) {
             totalHopsAccumulated.toFloat() / packetsReceivedValid.toFloat()

@@ -76,6 +76,7 @@ Memoria del proyecto: decisiones tomadas, su motivo y lo que sigue abierto. Se a
 - P9: **CERRADO (2026-10-23, D48 y D49)**. Sistema de gamificación integral: logros de kilometraje (P9.1), no cruzables para logros personales (P9.2) y progresión de rangos por XP para Fase 6 (P9.3). Consolidado en `GAMIFICATION.md`.
 
 ## Supuestos que conviene verificar
+- **[HIPÓTESIS — Observación previa `packetsEmitted = 96` a los `12 s` y `97` a los `15 s`]:** Sin un `logcat` capturado en el instante exacto de esa corrida previa, la explicación de que `RideService` llevaba ~276 s (`92` latidos) corriendo en segundo plano mientras el cronómetro local de `FieldTestScreen` se reinició a `00:00` al recomponer la vista se registra como **HIPÓTESIS**. Para verificar de forma fehaciente en adelante, `RideService` emite trazas `RideStarted` y `HeartbeatTx` en `logcat` con `startedAtEpochMs`, `elapsedSec` y `packetsEmitted`.
 - Alcance real de BLE en moto con casco (la teoría dice 100–300 m; el campo puede dar mucho menos).
 - Soporte de BLE extendido y Coded PHY en los teléfonos de los usuarios.
 - Tarifas y reglas vigentes de Google Play para suscripciones.

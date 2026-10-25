@@ -130,12 +130,32 @@ fun FieldTestScreen(
         }
     }
 
+    val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
+        rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
+
+    val batteryGuide = remember { ManufacturerBatteryGuide() }
+    val batterySnapshot = remember { batteryGuide.snapshot() }
+    val bleCaps = remember(isRunning) { BleAdvTransport(context).queryCapabilities() }
+    var selectedTransportMode by remember {
+        mutableStateOf(
+            when {
+                bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported ->
+                    BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY
+                bleCaps.extendedAdvertisingSupported ->
+                    BleAdvTransport.TransportModeOverride.EXTENDED_1M
+                else ->
+                    BleAdvTransport.TransportModeOverride.LEGACY_1M
+            }
+        )
+    }
+
     fun launchRideServiceNow(useSimulated: Boolean) {
         RideService.dispatchStartRide(
             context = context,
             rideId = "field-test-${System.currentTimeMillis()}",
             localShortId = selectedNodeShortId,
-            forceSimulated = useSimulated
+            forceSimulated = useSimulated,
+            bleModeOverride = selectedTransportMode
         )
     }
 
@@ -164,9 +184,6 @@ fun FieldTestScreen(
         }
     }
 
-    val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
-        rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
-
     // Cronómetro en vivo sincronizado con el inicio real de RideService
     LaunchedEffect(isRunning, rideState.startedAtEpochMs) {
         if (isRunning) {
@@ -185,10 +202,6 @@ fun FieldTestScreen(
             elapsedSeconds = 0L
         }
     }
-
-    val batteryGuide = remember { ManufacturerBatteryGuide() }
-    val batterySnapshot = remember { batteryGuide.snapshot() }
-    val bleCaps = remember(isRunning) { BleAdvTransport(context).queryCapabilities() }
 
     LaunchedEffect(bleCaps) {
         Log.i(
@@ -298,6 +311,43 @@ fun FieldTestScreen(
                             onClick = { if (!isRunning) selectedNodeShortId = id },
                             enabled = !isRunning,
                             label = { Text(label, fontSize = 12.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BikerColors.PrimaryAmber,
+                                selectedLabelColor = BikerColors.BackgroundDark
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Selector de Modo de Transporte BLE (Legacy / Extendido / Extendido+Coded PHY)
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Modo de Transporte BLE forzado (${bleCaps.resolveEffectiveMode(selectedTransportMode)}):",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    BleAdvTransport.TransportModeOverride.entries.forEach { modeOption ->
+                        FilterChip(
+                            selected = selectedTransportMode == modeOption,
+                            onClick = { if (!isRunning) selectedTransportMode = modeOption },
+                            enabled = !isRunning,
+                            label = { Text(modeOption.displayLabel, fontSize = 11.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BikerColors.PrimaryAmber,
                                 selectedLabelColor = BikerColors.BackgroundDark
@@ -741,7 +791,8 @@ fun FieldTestScreen(
                     durationSeconds = durationSec,
                     rideState = rideState,
                     metrics = metrics,
-                    bleCaps = bleCaps
+                    bleCaps = bleCaps,
+                    selectedTransportMode = selectedTransportMode
                 )
                 exportedJsonText = reportJson
 
@@ -885,12 +936,14 @@ private fun generateMetricsJson(
     durationSeconds: Long,
     rideState: com.rutabikersync.app.core.mesh.RideSessionState,
     metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
-    bleCaps: BleAdvTransport.BleCapabilities
+    bleCaps: BleAdvTransport.BleCapabilities,
+    selectedTransportMode: BleAdvTransport.TransportModeOverride
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
     val nowMs = System.currentTimeMillis()
+    val effectiveBleMode = bleCaps.resolveEffectiveMode(selectedTransportMode)
 
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
@@ -907,6 +960,8 @@ private fun generateMetricsJson(
         put("ble2MPhySupported", bleCaps.le2MPhySupported)
         put("bleMaxAdvertisingDataLength", bleCaps.maxAdvertisingDataLength)
         put("bleRecommendedMode", bleCaps.recommendedMode)
+        put("forcedBleTransportMode", rideState.forcedBleMode ?: selectedTransportMode.code)
+        put("effectiveBleTransportMode", effectiveBleMode)
         put("assignedRole", nodeRole)
         put("localNodeShortId", shortId)
         put("testDurationSeconds", durationSeconds)

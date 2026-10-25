@@ -75,6 +75,7 @@ data class RideSessionState(
     val startedAtEpochMs: Long = 0L,
     val localShortId: UShort = 1u,
     val transportName: String = "Idle",
+    val forcedBleMode: String? = null,
     val isUsingSimulatedTransport: Boolean = false,
     val connectedRidersCount: Int = 0,
     val lostRidersCount: Int = 0,
@@ -161,11 +162,17 @@ class RideSessionController(
         localShortId: UShort = 1u,
         rideSecretKey: ByteArray = "rbs-phase3-default-ride-key-32b!".toByteArray(Charsets.UTF_8),
         forceSimulatedTransport: Boolean = false,
-        enablePeriodicHeartbeatLoop: Boolean = true
+        bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+        enablePeriodicHeartbeatLoop: Boolean = true,
+        nowEpochMs: Long = System.currentTimeMillis()
     ): RideSessionState {
         stopAllInternal(resetToIdle = false)
 
-        val (selectedTransport, isSimulated) = resolveTransport(localShortId, forceSimulatedTransport)
+        val (selectedTransport, isSimulated) = resolveTransport(
+            localShortId = localShortId,
+            forceSimulated = forceSimulatedTransport,
+            bleModeOverride = bleModeOverride
+        )
         activeTransport = selectedTransport
 
         val engine = MeshRelayEngine(
@@ -208,9 +215,10 @@ class RideSessionController(
         _state.value = RideSessionState(
             rideId = rideId,
             lifecycleState = RideLifecycleState.RUNNING,
-            startedAtEpochMs = System.currentTimeMillis(),
+            startedAtEpochMs = nowEpochMs,
             localShortId = localShortId,
             transportName = selectedTransport.name,
+            forcedBleMode = bleModeOverride?.code,
             isUsingSimulatedTransport = isSimulated,
             connectedRidersCount = 0,
             lostRidersCount = 0,
@@ -220,6 +228,12 @@ class RideSessionController(
             emergencyAccessRevokedOnClose = false,
             notification = initialSnapshot
         )
+        runCatching {
+            Log.i(
+                "RideService",
+                "RideStarted rideId=$rideId startedAtEpochMs=$nowEpochMs transport=${selectedTransport.name} forcedMode=${bleModeOverride?.code ?: "AUTO"}"
+            )
+        }
         onNotificationUpdated?.invoke(initialSnapshot)
 
         // Observar cambios en los peers de la mesh para actualizar en tiempo real la notificación persistente
@@ -330,6 +344,14 @@ class RideSessionController(
             batteryPercent = localBatteryPercent,
             isSos = current.isSosActive
         )
+        runCatching {
+            val elapsedSec = ((nowEpochMs - current.startedAtEpochMs) / 1000L).coerceAtLeast(0L)
+            Log.i(
+                "RideService",
+                "HeartbeatTx rideId=${current.rideId} startedAtEpochMs=${current.startedAtEpochMs} " +
+                    "elapsedSec=${elapsedSec}s packetsEmitted=${engine.metrics.value.packetsEmitted}"
+            )
+        }
         peerHealthMonitor?.evaluateHealth(nowEpochMs) ?: engine.evaluatePeerTimeouts(nowEpochMs)
         updateRealtimePeerCounts(engine.peers.value)
     }
@@ -490,11 +512,13 @@ class RideSessionController(
 
     private fun resolveTransport(
         localShortId: UShort,
-        forceSimulated: Boolean
+        forceSimulated: Boolean,
+        bleModeOverride: BleAdvTransport.TransportModeOverride? = null
     ): Pair<Transport, Boolean> {
         if (!forceSimulated) {
             val realBle = runCatching { bleTransportFactory?.invoke() }.getOrNull()
             if (realBle != null) {
+                realBle.modeOverride = bleModeOverride
                 val caps = runCatching { realBle.queryCapabilities() }.getOrNull()
                 if (caps != null && caps.bluetoothSupported && caps.bluetoothEnabled) {
                     return realBle to false
@@ -624,6 +648,7 @@ class RideService : Service() {
         const val EXTRA_RIDE_ID = "extra_ride_id"
         const val EXTRA_LOCAL_SHORT_ID = "extra_local_short_id"
         const val EXTRA_FORCE_SIMULATED = "extra_force_simulated"
+        const val EXTRA_BLE_MODE_OVERRIDE = "extra_ble_mode_override"
         const val EXTRA_RIDE_START_ERROR_MESSAGE = "extra_ride_start_error_message"
 
         private val _sharedState = MutableStateFlow(RideSessionState())
@@ -768,7 +793,8 @@ class RideService : Service() {
             context: Context,
             rideId: String,
             localShortId: Int = 1,
-            forceSimulated: Boolean = false
+            forceSimulated: Boolean = false,
+            bleModeOverride: BleAdvTransport.TransportModeOverride? = null
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
             if (eligibility.shouldPromoteToForeground) {
@@ -777,6 +803,7 @@ class RideService : Service() {
                     putExtra(EXTRA_RIDE_ID, rideId)
                     putExtra(EXTRA_LOCAL_SHORT_ID, localShortId)
                     putExtra(EXTRA_FORCE_SIMULATED, false)
+                    putExtra(EXTRA_BLE_MODE_OVERRIDE, bleModeOverride?.code)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -789,7 +816,8 @@ class RideService : Service() {
                     val state = inAppSimController.startRide(
                         rideId = rideId,
                         localShortId = localShortId.toUShort(),
-                        forceSimulatedTransport = true
+                        forceSimulatedTransport = true,
+                        bleModeOverride = bleModeOverride
                     )
                     _sharedState.value = state
                 }
@@ -863,6 +891,9 @@ class RideService : Service() {
                 val rideId = intent.getStringExtra(EXTRA_RIDE_ID) ?: "ride-local-default"
                 val shortId = intent.getIntExtra(EXTRA_LOCAL_SHORT_ID, 1).toUShort()
                 val requestedForceSim = intent.getBooleanExtra(EXTRA_FORCE_SIMULATED, false)
+                val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(
+                    intent.getStringExtra(EXTRA_BLE_MODE_OVERRIDE)
+                )
                 val eligibility = evaluateContextEligibility(this, requestedForceSim)
                 val effectiveForceSim = eligibility.effectiveForceSimulated
 
@@ -898,7 +929,8 @@ class RideService : Service() {
                     val state = controller.startRide(
                         rideId = rideId,
                         localShortId = shortId,
-                        forceSimulatedTransport = effectiveForceSim
+                        forceSimulatedTransport = effectiveForceSim,
+                        bleModeOverride = bleModeOverride
                     )
                     _sharedState.value = state
                     if (isPromotedToForeground) {

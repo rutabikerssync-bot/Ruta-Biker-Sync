@@ -33,8 +33,20 @@ import java.util.UUID
  * - Cae automáticamente a BLE Legacy Advertising (paquete de 20 bytes en Service Data) si no lo soporta.
  */
 class BleAdvTransport(
-    context: Context
+    context: Context,
+    @Volatile var modeOverride: TransportModeOverride? = null
 ) : Transport {
+
+    enum class TransportModeOverride(val code: String, val displayLabel: String) {
+        LEGACY_1M("LEGACY_1M", "Legacy (1M)"),
+        EXTENDED_1M("EXTENDED_1M", "Extendido (1M)"),
+        EXTENDED_CODED_PHY("EXTENDED_CODED_PHY", "Extendido + Coded PHY");
+
+        companion object {
+            fun fromCode(code: String?): TransportModeOverride? =
+                entries.firstOrNull { it.code.equals(code, ignoreCase = true) }
+        }
+    }
 
     companion object {
         val MESH_SERVICE_UUID: ParcelUuid = ParcelUuid(
@@ -59,6 +71,26 @@ class BleAdvTransport(
                 multipleAdvertisementSupported -> "LEGACY_1M"
                 else -> "SCAN_ONLY"
             }
+
+        fun resolveEffectiveMode(override: TransportModeOverride? = null): String {
+            if (!bluetoothSupported) return "UNSUPPORTED"
+            return when (override) {
+                TransportModeOverride.LEGACY_1M ->
+                    if (multipleAdvertisementSupported) "LEGACY_1M" else "SCAN_ONLY"
+                TransportModeOverride.EXTENDED_1M -> when {
+                    extendedAdvertisingSupported -> "EXTENDED_1M"
+                    multipleAdvertisementSupported -> "LEGACY_1M"
+                    else -> "SCAN_ONLY"
+                }
+                TransportModeOverride.EXTENDED_CODED_PHY -> when {
+                    extendedAdvertisingSupported && codedPhySupported -> "EXTENDED_CODED_PHY"
+                    extendedAdvertisingSupported -> "EXTENDED_1M"
+                    multipleAdvertisementSupported -> "LEGACY_1M"
+                    else -> "SCAN_ONLY"
+                }
+                null -> recommendedMode
+            }
+        }
     }
 
     private val bluetoothManager = context.applicationContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -73,8 +105,11 @@ class BleAdvTransport(
     )
     override val incoming: Flow<ByteArray> = _incoming.asSharedFlow()
 
+    val effectiveMode: String
+        get() = queryCapabilities().resolveEffectiveMode(modeOverride)
+
     override val name: String
-        get() = "BleAdvTransport(${queryCapabilities().recommendedMode})"
+        get() = "BleAdvTransport($effectiveMode)"
 
     private var activeLegacyCallback: AdvertiseCallback? = null
     private var activeExtendedCallback: AdvertisingSetCallback? = null
@@ -115,9 +150,16 @@ class BleAdvTransport(
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .setReportDelay(0L)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && adapter.isLeExtendedAdvertisingSupported) {
+        val mode = effectiveMode
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            adapter.isLeExtendedAdvertisingSupported &&
+            (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
+        ) {
             settingsBuilder.setLegacy(false)
             settingsBuilder.setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            settingsBuilder.setLegacy(true)
+            settingsBuilder.setPhy(BluetoothDevice.PHY_LE_1M)
         }
 
         runCatching {
@@ -148,14 +190,21 @@ class BleAdvTransport(
             .addServiceData(MESH_SERVICE_UUID, payload)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && caps.extendedAdvertisingSupported) {
+        val mode = caps.resolveEffectiveMode(modeOverride)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            caps.extendedAdvertisingSupported &&
+            (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
+        ) {
+            activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
+            activeLegacyCallback = null
             activeExtendedCallback?.let { runCatching { adv.stopAdvertisingSet(it) } }
-            val primaryPhy = if (caps.codedPhySupported) {
+            val useCodedPhy = mode == "EXTENDED_CODED_PHY" && caps.codedPhySupported
+            val primaryPhy = if (useCodedPhy) {
                 BluetoothDevice.PHY_LE_CODED
             } else {
                 BluetoothDevice.PHY_LE_1M
             }
-            val secondaryPhy = if (caps.codedPhySupported) {
+            val secondaryPhy = if (useCodedPhy) {
                 BluetoothDevice.PHY_LE_CODED
             } else {
                 BluetoothDevice.PHY_LE_1M
@@ -186,13 +235,15 @@ class BleAdvTransport(
                 adv.startAdvertisingSet(params, advertiseData, null, null, null, 30, 0, callback)
             }
         } else {
+            activeExtendedCallback?.let { runCatching { adv.stopAdvertisingSet(it) } }
+            activeExtendedCallback = null
             activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
-            val mode = when (priority) {
+            val advMode = when (priority) {
                 Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
                 else -> AdvertiseSettings.ADVERTISE_MODE_BALANCED
             }
             val settings = AdvertiseSettings.Builder()
-                .setAdvertiseMode(mode)
+                .setAdvertiseMode(advMode)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .setConnectable(false)
                 .setTimeout(1_500)
