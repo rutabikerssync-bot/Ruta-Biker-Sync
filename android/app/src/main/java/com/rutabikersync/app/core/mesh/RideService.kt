@@ -157,6 +157,9 @@ class RideSessionController(
     var relayEngine: MeshRelayEngine? = null
         private set
 
+    var lastPacketsCsv: String? = null
+        private set
+
     var uniqueAnnouncer: UniqueAnnouncer? = null
         private set
 
@@ -571,6 +574,10 @@ class RideSessionController(
         metricsObserveJob = null
         uniqueAnnouncer?.cancelAllAndStop()
         uniqueAnnouncer = null
+        val currentCsv = relayEngine?.exportPacketsCsv()
+        if (!currentCsv.isNullOrBlank() && currentCsv.lines().count { it.isNotBlank() } > 1) {
+            lastPacketsCsv = currentCsv
+        }
         relayEngine?.stop()
         relayEngine = null
         activeTransport?.stop()
@@ -973,9 +980,17 @@ class RideService : Service() {
         var activeController: RideSessionController? = null
 
         fun exportPacketsCsv(): String {
-            return activeController?.relayEngine?.exportPacketsCsv()
-                ?: inAppSimController.relayEngine?.exportPacketsCsv()
-                ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n"
+            val live = activeController?.relayEngine?.exportPacketsCsv()
+            if (!live.isNullOrBlank() && live.lines().count { it.isNotBlank() } > 1) return live
+            val saved = activeController?.lastPacketsCsv
+            if (!saved.isNullOrBlank() && saved.lines().count { it.isNotBlank() } > 1) return saved
+
+            val simLive = inAppSimController.relayEngine?.exportPacketsCsv()
+            if (!simLive.isNullOrBlank() && simLive.lines().count { it.isNotBlank() } > 1) return simLive
+            val simSaved = inAppSimController.lastPacketsCsv
+            if (!simSaved.isNullOrBlank() && simSaved.lines().count { it.isNotBlank() } > 1) return simSaved
+
+            return live ?: saved ?: simLive ?: simSaved ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n"
         }
 
         fun queryConnectedBluetoothDevices(context: Context): BluetoothConnectedDevicesSnapshot {

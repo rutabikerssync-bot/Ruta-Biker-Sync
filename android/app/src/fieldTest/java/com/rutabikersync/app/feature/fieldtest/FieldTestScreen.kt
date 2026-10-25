@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -73,6 +74,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -143,6 +145,11 @@ fun queryRadioEnvironment(context: Context): RadioEnvironmentSnapshot {
         fastPairLikelyActive = fastPairLikely
     )
 }
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 /**
  * Pantalla de prueba de campo BLE para el Bloque 3.6 (Fase 3).
@@ -159,9 +166,12 @@ fun FieldTestScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? Activity
+    val view = LocalView.current
+    val activity = remember(context) { context.findActivity() }
     val rideState by RideService.sharedState.collectAsState()
     val metrics by RideService.sharedMetrics.collectAsState()
+
+    var screenKeepOnActiveDuringTest by remember { mutableStateOf(false) }
 
     var forceSimulation by remember { mutableStateOf(false) }
     var totalPhonesInTest by remember { mutableIntStateOf(2) }
@@ -196,16 +206,20 @@ fun FieldTestScreen(
     val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
         rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
 
-    // Mantener la pantalla encendida durante la prueba (FLAG_KEEP_SCREEN_ON) para evitar que Android pause el escáner BLE
+    // Mantener la pantalla encendida durante la prueba (FLAG_KEEP_SCREEN_ON y view.keepScreenOn) para evitar que Android pause el escáner BLE
     DisposableEffect(isRunning) {
         val window = activity?.window
         if (isRunning) {
+            screenKeepOnActiveDuringTest = true
+            view.keepScreenOn = true
             window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            Log.i("FieldTestScreen", "Pantalla mantenida encendida (FLAG_KEEP_SCREEN_ON activo)")
+            Log.i("FieldTestScreen", "Pantalla mantenida encendida (FLAG_KEEP_SCREEN_ON y view.keepScreenOn activos)")
         } else {
+            view.keepScreenOn = false
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
         onDispose {
+            view.keepScreenOn = false
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
@@ -237,6 +251,9 @@ fun FieldTestScreen(
     }
 
     fun launchRideServiceNow(useSimulated: Boolean) {
+        screenKeepOnActiveDuringTest = true
+        view.keepScreenOn = true
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         RideService.dispatchStartRide(
             context = context,
             rideId = "field-test-${System.currentTimeMillis()}",
@@ -1089,6 +1106,10 @@ fun FieldTestScreen(
         Button(
             onClick = {
                 val durationSec = elapsedSeconds
+                val isScreenKeepOn = screenKeepOnActiveDuringTest ||
+                    (activity?.window?.attributes?.let { (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0 } == true) ||
+                    view.keepScreenOn ||
+                    isRunning
                 val reportJson = generateMetricsJson(
                     context = context,
                     nodeRole = nodeRoleLabel(selectedNodeShortId, totalPhonesInTest),
@@ -1104,7 +1125,8 @@ fun FieldTestScreen(
                     rideState = rideState,
                     metrics = metrics,
                     bleCaps = bleCaps,
-                    selectedTransportMode = selectedTransportMode
+                    selectedTransportMode = selectedTransportMode,
+                    screenKeepOnActive = isScreenKeepOn
                 )
                 exportedJsonText = reportJson
 
@@ -1356,7 +1378,8 @@ private fun generateMetricsJson(
     rideState: com.rutabikersync.app.core.mesh.RideSessionState,
     metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
     bleCaps: BleAdvTransport.BleCapabilities,
-    selectedTransportMode: BleAdvTransport.TransportModeOverride
+    selectedTransportMode: BleAdvTransport.TransportModeOverride,
+    screenKeepOnActive: Boolean = true
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
@@ -1404,9 +1427,11 @@ private fun generateMetricsJson(
     val radio = queryRadioEnvironment(context)
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
     val isInteractive = powerManager?.isInteractive ?: true
-    val screenKeepOnActive = (context as? Activity)?.window?.attributes?.let {
-        (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0
-    } ?: (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP)
+    val effectiveScreenKeepOn = screenKeepOnActive ||
+        (context.findActivity()?.window?.attributes?.let {
+            (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0
+        } == true) ||
+        (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP)
 
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
@@ -1422,7 +1447,7 @@ private fun generateMetricsJson(
         put("deviceModel", Build.MODEL)
         put("androidRelease", Build.VERSION.RELEASE)
         put("androidSdkInt", Build.VERSION.SDK_INT)
-        put("screenKeepOnActive", screenKeepOnActive)
+        put("screenKeepOnActive", effectiveScreenKeepOn)
         put("screenIsInteractive", isInteractive)
         put("radioWifiEnabled", radio.wifiEnabled)
         put("radioMobileDataEnabled", radio.mobileDataEnabled ?: JSONObject.NULL)
