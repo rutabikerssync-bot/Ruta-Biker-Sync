@@ -312,8 +312,19 @@ class MeshRelayEngine(
         val newlyLost = mutableListOf<UShort>()
         synchronized(this) {
             for ((id, track) in peerMap.entries) {
-                val elapsed = nowEpochMs - track.lastSeenEpochMs
-                if (!track.isLost && elapsed >= LOST_TIMEOUT_MS) {
+                val elapsed = (nowEpochMs - track.lastSeenEpochMs).coerceAtLeast(0L)
+                if (track.receivedBeats == 0) {
+                    val beatsSinceStart = (elapsed / HEARTBEAT_INTERVAL_MS).toInt()
+                    val lostNow = elapsed >= LOST_TIMEOUT_MS
+                    peerMap[id] = track.copy(
+                        expectedBeats = maxOf(track.expectedBeats, beatsSinceStart),
+                        isLost = track.isLost || lostNow,
+                        consecutiveAfterLossBeats = 0
+                    )
+                    if (lostNow && !track.isLost) {
+                        newlyLost.add(id)
+                    }
+                } else if (!track.isLost && elapsed >= LOST_TIMEOUT_MS) {
                     val missedBeats = (elapsed / HEARTBEAT_INTERVAL_MS).toInt().coerceAtLeast(1)
                     peerMap[id] = track.copy(
                         isLost = true,

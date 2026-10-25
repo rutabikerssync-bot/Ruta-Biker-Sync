@@ -48,7 +48,7 @@ class PeerHealthMonitor(
         val peers = engine.peers.value
         val total = peers.size
         val lostCount = peers.values.count { it.isLost }
-        val onlineCount = total - lostCount
+        val onlineCount = peers.values.count { it.receivedBeats > 0 && !it.isLost }
 
         // Una isla existe cuando se pierden 2 o más peers a la vez (o >= 50% de un grupo de >= 2 peers)
         val isIslandNow = total >= 2 && (lostCount >= 2 || lostCount * 2 >= total)

@@ -113,6 +113,33 @@ class BleAdvTransport(
 
     private var activeLegacyCallback: AdvertiseCallback? = null
     private var activeExtendedCallback: AdvertisingSetCallback? = null
+    private val activeExtendedCallbacks = java.util.concurrent.ConcurrentHashMap.newKeySet<AdvertisingSetCallback>()
+
+    @Volatile
+    var advertisingSetsStartedCount: Int = 0
+        private set
+
+    @Volatile
+    var advertisingSetsStoppedCount: Int = 0
+        private set
+
+    @Volatile
+    var lastMeasuredTxPowerDbm: Int? = null
+        private set
+
+    fun currentAdvertisingIntervalDescription(mode: String = effectiveMode): String =
+        if (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY") {
+            "INTERVAL_MEDIUM (400 slots = 250ms) / SOS: INTERVAL_LOW (160 slots = 100ms)"
+        } else {
+            "ADVERTISE_MODE_BALANCED (~250ms) / SOS: ADVERTISE_MODE_LOW_LATENCY (~100ms)"
+        }
+
+    fun currentTxPowerDescription(mode: String = effectiveMode): String =
+        if (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY") {
+            "TX_POWER_HIGH (+1 dBm nominal)"
+        } else {
+            "ADVERTISE_TX_POWER_HIGH (+1 dBm nominal)"
+        }
 
     fun queryCapabilities(): BleCapabilities {
         val adapter = bluetoothAdapter ?: return BleCapabilities(
@@ -172,10 +199,29 @@ class BleAdvTransport(
         runCatching {
             scanner?.stopScan(scanCallback)
             activeLegacyCallback?.let { advertiser?.stopAdvertising(it) }
-            activeExtendedCallback?.let { advertiser?.stopAdvertisingSet(it) }
+            stopAllActiveExtendedAdvertisingSets()
         }
         activeLegacyCallback = null
         activeExtendedCallback = null
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun stopAllActiveExtendedAdvertisingSets() {
+        val adv = advertiser
+        activeExtendedCallback?.let { cb ->
+            if (activeExtendedCallbacks.remove(cb)) {
+                runCatching { adv?.stopAdvertisingSet(cb) }
+                advertisingSetsStoppedCount++
+            }
+        }
+        activeExtendedCallback = null
+        val snapshot = activeExtendedCallbacks.toList()
+        for (cb in snapshot) {
+            if (activeExtendedCallbacks.remove(cb)) {
+                runCatching { adv?.stopAdvertisingSet(cb) }
+                advertisingSetsStoppedCount++
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -197,7 +243,10 @@ class BleAdvTransport(
         ) {
             activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
             activeLegacyCallback = null
-            activeExtendedCallback?.let { runCatching { adv.stopAdvertisingSet(it) } }
+            // F3: Detener explícitamente cualquier AdvertisingSet previo antes de abrir uno nuevo
+            // para no agotar el límite de conjuntos simultáneos del controlador BLE (ADVERTISE_FAILED_TOO_MANY_ADVERTISERS)
+            stopAllActiveExtendedAdvertisingSets()
+
             val useCodedPhy = mode == "EXTENDED_CODED_PHY" && caps.codedPhySupported
             val primaryPhy = if (useCodedPhy) {
                 BluetoothDevice.PHY_LE_CODED
@@ -228,15 +277,44 @@ class BleAdvTransport(
                     advertisingSet: AdvertisingSet?,
                     txPower: Int,
                     status: Int
-                ) = Unit
+                ) {
+                    if (status == ADVERTISE_SUCCESS) {
+                        lastMeasuredTxPowerDbm = txPower
+                    } else if (activeExtendedCallbacks.remove(this)) {
+                        runCatching { adv.stopAdvertisingSet(this) }
+                        advertisingSetsStoppedCount++
+                    }
+                }
+
+                override fun onAdvertisingEnabled(
+                    advertisingSet: AdvertisingSet?,
+                    enable: Boolean,
+                    status: Int
+                ) {
+                    // Cuando expira la ventana de 300 ms (duration = 30), el chip deshabilita el anuncio (enable = false)
+                    // pero mantiene ocupado el slot de AdvertisingSet hasta invocar stopAdvertisingSet(callback).
+                    if (!enable && activeExtendedCallbacks.remove(this)) {
+                        runCatching { adv.stopAdvertisingSet(this) }
+                        advertisingSetsStoppedCount++
+                    }
+                }
+
+                override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
+                    activeExtendedCallbacks.remove(this)
+                }
             }
+            activeExtendedCallbacks.add(callback)
             activeExtendedCallback = callback
             runCatching {
+                advertisingSetsStartedCount++
                 adv.startAdvertisingSet(params, advertiseData, null, null, null, 30, 0, callback)
+            }.onFailure {
+                if (activeExtendedCallbacks.remove(callback)) {
+                    advertisingSetsStoppedCount++
+                }
             }
         } else {
-            activeExtendedCallback?.let { runCatching { adv.stopAdvertisingSet(it) } }
-            activeExtendedCallback = null
+            stopAllActiveExtendedAdvertisingSets()
             activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
             val advMode = when (priority) {
                 Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY

@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -270,5 +271,57 @@ class RideServicePhase3Test {
         assertTrue(forcedSim.effectiveForceSimulated)
         assertFalse(forcedSim.shouldPromoteToForeground)
         assertEquals(0, forcedSim.foregroundServiceTypes)
+    }
+
+    @Test
+    fun `startRide registers expected convoy peers and reports 0_0 percent delivery when registered peer never emits`() = runTest(UnconfinedTestDispatcher()) {
+        val medium = SimulatedBleMedium()
+        val controller = RideSessionController(
+            scope = backgroundScope,
+            bleTransportFactory = { null },
+            simulatedMedium = medium
+        )
+
+        val t0 = 500_000L
+        // El nodo #1 (Punta) inicia la prueba esperando a #2 (Medio) y #3 (Cierre), pero #2 y #3 nunca emiten
+        val initialState = controller.startRide(
+            rideId = "field-test-silent-peers",
+            localShortId = 1u,
+            forceSimulatedTransport = true,
+            expectedPeerShortIds = setOf(2u, 3u),
+            enablePeriodicHeartbeatLoop = false,
+            nowEpochMs = t0
+        )
+        assertEquals(listOf(2, 3), initialState.expectedPeerShortIds)
+        assertEquals(0, initialState.connectedRidersCount)
+
+        // En t0 (0 s transcurridos, 0 latidos esperados aún): heartbeatsDeliveredPct es null ("N/D")
+        val reportAt0s = controller.metrics.value
+        assertNotNull(reportAt0s)
+        assertEquals(0, reportAt0s!!.heartbeatsExpected)
+        assertEquals(0, reportAt0s.heartbeatsReceived)
+        assertEquals(null, reportAt0s.heartbeatsDeliveredPct)
+
+        // A los 3 s (1 latido esperado por cada par registrado = 2 esperados, 0 recibidos):
+        // heartbeatsDeliveredPct pasa a 0.0f (0.0 % con color de fallo, nunca "N/D")
+        controller.emitHeartbeatNow(nowEpochMs = t0 + 3_000L)
+        val reportAt3s = controller.metrics.value!!
+        assertEquals(2, reportAt3s.heartbeatsExpected)
+        assertEquals(0, reportAt3s.heartbeatsReceived)
+        assertNotNull(reportAt3s.heartbeatsDeliveredPct)
+        assertEquals(0.0f, reportAt3s.heartbeatsDeliveredPct!!, 0.001f)
+        assertEquals(0, controller.state.value.connectedRidersCount)
+
+        // A los 15 s (5 latidos perdidos por cada par = 10 esperados, 0 recibidos):
+        // ambos pares silenciosos pasan a isLost = true y la entrega sigue en 0.0 %
+        controller.emitHeartbeatNow(nowEpochMs = t0 + 15_000L)
+        val reportAt15s = controller.metrics.value!!
+        assertEquals(10, reportAt15s.heartbeatsExpected)
+        assertEquals(0, reportAt15s.heartbeatsReceived)
+        assertEquals(0.0f, reportAt15s.heartbeatsDeliveredPct!!, 0.001f)
+        assertEquals(2, controller.state.value.lostRidersCount)
+        assertEquals(0, controller.state.value.connectedRidersCount)
+
+        controller.stopAll()
     }
 }

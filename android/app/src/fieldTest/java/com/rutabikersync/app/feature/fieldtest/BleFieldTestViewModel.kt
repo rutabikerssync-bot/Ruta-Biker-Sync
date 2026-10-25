@@ -90,7 +90,14 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
                     transport = realBleTransport,
                     rideSecretKey = rideSecretKey,
                     localDeviceModel = deviceName
-                ).also { it.start(viewModelScope) }
+                ).also { eng ->
+                    for (expectedPeerId in listOf<UShort>(1u, 2u, 3u)) {
+                        if (expectedPeerId != nodeId) {
+                            eng.registerExpectedPeer(expectedPeerId)
+                        }
+                    }
+                    eng.start(viewModelScope)
+                }
             } else {
                 val chainIds = listOf<UShort>(1u, 2u, 3u, 4u, 5u)
                 simulatedMedium.connectChain(chainIds)

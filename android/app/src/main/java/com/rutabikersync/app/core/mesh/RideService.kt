@@ -74,8 +74,12 @@ data class RideSessionState(
     val lifecycleState: RideLifecycleState = RideLifecycleState.IDLE,
     val startedAtEpochMs: Long = 0L,
     val localShortId: UShort = 1u,
+    val expectedPeerShortIds: List<Int> = emptyList(),
     val transportName: String = "Idle",
     val forcedBleMode: String? = null,
+    val f3AdvertisingSetsStarted: Int = 0,
+    val f3AdvertisingSetsStopped: Int = 0,
+    val f3LastMeasuredTxPowerDbm: Int? = null,
     val isUsingSimulatedTransport: Boolean = false,
     val connectedRidersCount: Int = 0,
     val lostRidersCount: Int = 0,
@@ -163,6 +167,7 @@ class RideSessionController(
         rideSecretKey: ByteArray = "rbs-phase3-default-ride-key-32b!".toByteArray(Charsets.UTF_8),
         forceSimulatedTransport: Boolean = false,
         bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+        expectedPeerShortIds: Set<UShort> = emptySet(),
         enablePeriodicHeartbeatLoop: Boolean = true,
         nowEpochMs: Long = System.currentTimeMillis()
     ): RideSessionState {
@@ -181,6 +186,10 @@ class RideSessionController(
             rideSecretKey = rideSecretKey
         )
         relayEngine = engine
+        val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
+        for (peerId in effectiveExpectedPeers) {
+            engine.registerExpectedPeer(shortId = peerId, nowEpochMs = nowEpochMs, initialExpectedBeats = 0)
+        }
         engine.start(scope)
 
         // Bloque 3.4: Activar UniqueAnnouncer + TtsAnnouncer mientras la rodada está RUNNING
@@ -217,6 +226,7 @@ class RideSessionController(
             lifecycleState = RideLifecycleState.RUNNING,
             startedAtEpochMs = nowEpochMs,
             localShortId = localShortId,
+            expectedPeerShortIds = effectiveExpectedPeers.map { it.toInt() }.sorted(),
             transportName = selectedTransport.name,
             forcedBleMode = bleModeOverride?.code,
             isUsingSimulatedTransport = isSimulated,
@@ -536,8 +546,9 @@ class RideSessionController(
         ) {
             return
         }
-        val activeConnected = peerMap.values.count { !it.isLost }
+        val activeConnected = peerMap.values.count { it.receivedBeats > 0 && !it.isLost }
         val lostCount = peerMap.values.count { it.isLost }
+        val bleAdv = activeTransport as? BleAdvTransport
         val snapshot = buildNotificationSnapshot(
             lifecycleState = current.lifecycleState,
             connectedRiders = activeConnected,
@@ -550,6 +561,9 @@ class RideSessionController(
         _state.value = current.copy(
             connectedRidersCount = activeConnected,
             lostRidersCount = lostCount,
+            f3AdvertisingSetsStarted = bleAdv?.advertisingSetsStartedCount ?: 0,
+            f3AdvertisingSetsStopped = bleAdv?.advertisingSetsStoppedCount ?: 0,
+            f3LastMeasuredTxPowerDbm = bleAdv?.lastMeasuredTxPowerDbm,
             notification = snapshot
         )
         onNotificationUpdated?.invoke(snapshot)
@@ -649,6 +663,7 @@ class RideService : Service() {
         const val EXTRA_LOCAL_SHORT_ID = "extra_local_short_id"
         const val EXTRA_FORCE_SIMULATED = "extra_force_simulated"
         const val EXTRA_BLE_MODE_OVERRIDE = "extra_ble_mode_override"
+        const val EXTRA_EXPECTED_PEER_SHORT_IDS = "extra_expected_peer_short_ids"
         const val EXTRA_RIDE_START_ERROR_MESSAGE = "extra_ride_start_error_message"
 
         private val _sharedState = MutableStateFlow(RideSessionState())
@@ -794,7 +809,8 @@ class RideService : Service() {
             rideId: String,
             localShortId: Int = 1,
             forceSimulated: Boolean = false,
-            bleModeOverride: BleAdvTransport.TransportModeOverride? = null
+            bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+            expectedPeerShortIds: Set<UShort> = emptySet()
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
             if (eligibility.shouldPromoteToForeground) {
@@ -804,6 +820,10 @@ class RideService : Service() {
                     putExtra(EXTRA_LOCAL_SHORT_ID, localShortId)
                     putExtra(EXTRA_FORCE_SIMULATED, false)
                     putExtra(EXTRA_BLE_MODE_OVERRIDE, bleModeOverride?.code)
+                    putExtra(
+                        EXTRA_EXPECTED_PEER_SHORT_IDS,
+                        expectedPeerShortIds.map { it.toInt() }.toIntArray()
+                    )
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -817,7 +837,8 @@ class RideService : Service() {
                         rideId = rideId,
                         localShortId = localShortId.toUShort(),
                         forceSimulatedTransport = true,
-                        bleModeOverride = bleModeOverride
+                        bleModeOverride = bleModeOverride,
+                        expectedPeerShortIds = expectedPeerShortIds
                     )
                     _sharedState.value = state
                 }
@@ -894,6 +915,10 @@ class RideService : Service() {
                 val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(
                     intent.getStringExtra(EXTRA_BLE_MODE_OVERRIDE)
                 )
+                val expectedPeerShortIds = intent.getIntArrayExtra(EXTRA_EXPECTED_PEER_SHORT_IDS)
+                    ?.map { it.toUShort() }
+                    ?.toSet()
+                    ?: emptySet()
                 val eligibility = evaluateContextEligibility(this, requestedForceSim)
                 val effectiveForceSim = eligibility.effectiveForceSimulated
 
@@ -930,7 +955,8 @@ class RideService : Service() {
                         rideId = rideId,
                         localShortId = shortId,
                         forceSimulatedTransport = effectiveForceSim,
-                        bleModeOverride = bleModeOverride
+                        bleModeOverride = bleModeOverride,
+                        expectedPeerShortIds = expectedPeerShortIds
                     )
                     _sharedState.value = state
                     if (isPromotedToForeground) {

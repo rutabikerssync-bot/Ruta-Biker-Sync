@@ -30,6 +30,7 @@ Backend (solo licencias, grupos y auditoría): ver BACKEND_LICENSING.md
 ## 3. Mesh
 
 **Transporte de posición y eventos:** BLE advertising "emitir y escuchar" con reenvío por inundación controlada (ID único + TTL; cada nodo retransmite una sola vez). Advertising extendido y Coded PHY cuando el teléfono lo soporta; modo legacy en caso contrario.
+- **Opción pendiente (sujeta a los datos de campo B1–B5):** Si un convoy mezcla teléfonos con `Extended Advertising / Coded PHY` y teléfonos que solo soportan `Legacy 1M`, un emisor exclusivo en `EXTENDED_1M` o `EXTENDED_CODED_PHY` (`setLegacyMode(false)`) no es oído por receptores solo-Legacy (ni un emisor en `Coded PHY` es oído por radios sin demodulador `Coded PHY`). Queda documentado como opción pendiente —a decidir tras las pruebas B1–B5 (D27)— implementar **anuncio dual** (emisión simultánea o alternada de un `AdvertisingSet` en `Extended/Coded PHY` y un anuncio en `Legacy 1M`, o negociación al mínimo común denominador del manifiesto de rodada). No se implementa antes de tener las mediciones de campo.
 
 **Transporte de voz y datos pesados:** Nearby Connections o L2CAP, con reenvío de 2 saltos para audio.
 

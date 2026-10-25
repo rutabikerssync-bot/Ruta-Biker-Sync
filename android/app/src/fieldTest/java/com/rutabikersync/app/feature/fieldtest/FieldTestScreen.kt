@@ -150,12 +150,14 @@ fun FieldTestScreen(
     }
 
     fun launchRideServiceNow(useSimulated: Boolean) {
+        val expectedConvoyPeers = setOf<UShort>(1u, 2u, 3u) - selectedNodeShortId.toUShort()
         RideService.dispatchStartRide(
             context = context,
             rideId = "field-test-${System.currentTimeMillis()}",
             localShortId = selectedNodeShortId,
             forceSimulated = useSimulated,
-            bleModeOverride = selectedTransportMode
+            bleModeOverride = selectedTransportMode,
+            expectedPeerShortIds = expectedConvoyPeers
         )
     }
 
@@ -944,6 +946,17 @@ private fun generateMetricsJson(
     }
     val nowMs = System.currentTimeMillis()
     val effectiveBleMode = bleCaps.resolveEffectiveMode(selectedTransportMode)
+    val isExtendedMode = effectiveBleMode == "EXTENDED_1M" || effectiveBleMode == "EXTENDED_CODED_PHY"
+    val f3IntervalSetting = if (isExtendedMode) {
+        "INTERVAL_MEDIUM (400 slots = 250ms) / SOS: INTERVAL_LOW (160 slots = 100ms)"
+    } else {
+        "ADVERTISE_MODE_BALANCED (~250ms) / SOS: ADVERTISE_MODE_LOW_LATENCY (~100ms)"
+    }
+    val f3TxPowerSetting = if (isExtendedMode) {
+        "TX_POWER_HIGH (+1 dBm nominal)"
+    } else {
+        "ADVERTISE_TX_POWER_HIGH (+1 dBm nominal)"
+    }
 
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
@@ -962,8 +975,17 @@ private fun generateMetricsJson(
         put("bleRecommendedMode", bleCaps.recommendedMode)
         put("forcedBleTransportMode", rideState.forcedBleMode ?: selectedTransportMode.code)
         put("effectiveBleTransportMode", effectiveBleMode)
+        put("f3AdvertisingIntervalSetting", f3IntervalSetting)
+        put("f3AdvertisingBurstDurationMs", if (isExtendedMode) 300 else 1500)
+        put("f3HeartbeatCadenceMs", rideState.heartbeatIntervalMs)
+        put("f3TxPowerLevelSetting", f3TxPowerSetting)
+        put("f3LastMeasuredTxPowerDbm", rideState.f3LastMeasuredTxPowerDbm ?: JSONObject.NULL)
+        put("f3StopAdvertisingSetOnFinish", true)
+        put("f3AdvertisingSetsStarted", rideState.f3AdvertisingSetsStarted)
+        put("f3AdvertisingSetsStopped", rideState.f3AdvertisingSetsStopped)
         put("assignedRole", nodeRole)
         put("localNodeShortId", shortId)
+        put("expectedPeerShortIds", org.json.JSONArray(rideState.expectedPeerShortIds))
         put("testDurationSeconds", durationSeconds)
         put("testDurationFormatted", formatElapsed(durationSeconds))
         put("transportName", rideState.transportName)
@@ -972,6 +994,8 @@ private fun generateMetricsJson(
         put("lostPeersCount", rideState.lostRidersCount)
         put("totalPacketsEmitted", metrics?.packetsEmitted ?: 0)
         put("totalPacketsReceivedValid", metrics?.packetsReceivedValid ?: 0)
+        put("heartbeatsExpected", metrics?.heartbeatsExpected ?: 0)
+        put("heartbeatsReceived", metrics?.heartbeatsReceived ?: 0)
         put("heartbeatsDeliveredPct", metrics?.heartbeatsDeliveredPct?.toDouble() ?: JSONObject.NULL)
         put("averageHops", metrics?.avgHops?.toDouble() ?: JSONObject.NULL)
         put("islandEventsDetected", metrics?.islandEvents ?: 0)
