@@ -14,17 +14,15 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
 
-    <!-- Ubicación (mapa y rodada) -->
+    <!-- Ubicación (mapa y rodada): basta ACCESS_FINE_LOCATION/COARSE_LOCATION + FOREGROUND_SERVICE_LOCATION.
+         Se elimina ACCESS_BACKGROUND_LOCATION porque la rodada activa corre en Foreground Service iniciado
+         con la app visible, evitando la declaración restringida de ubicación en 2º plano de Google Play. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Segundo plano: requiere justificación en la ficha de Play -->
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
-    <!-- Nearby Connections / Wi-Fi -->
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- NOTA (Fase 5 — Voz y seguridad): NEARBY_WIFI_DEVICES, ACCESS_WIFI_STATE y CHANGE_WIFI_STATE
+         corresponden al transporte de respaldo Nearby Connections (Wi-Fi Direct/LAN) para clips de voz (R9.1).
+         Se omiten hasta iniciar la Fase 5 porque aún no se consumen en Fases 0–3. -->
 
     <!-- Servicio en primer plano -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

@@ -1,11 +1,21 @@
 package com.rutabikersync.app.feature.fieldtest
 
+import android.Manifest
+import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +73,8 @@ import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuideCard
+import com.rutabikersync.app.core.transport.BleAdvTransport
+import android.util.Log
 import androidx.compose.ui.window.Dialog
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
@@ -89,6 +101,7 @@ fun FieldTestScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val rideState by RideService.sharedState.collectAsState()
     val metrics by RideService.sharedMetrics.collectAsState()
 
@@ -98,6 +111,58 @@ fun FieldTestScreen(
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var exportedJsonText by remember { mutableStateOf<String?>(null) }
     var showBatteryGuideDialog by remember { mutableStateOf(false) }
+    var showSimulatedFallbackPrompt by remember { mutableStateOf(false) }
+    var permanentlyDeniedDetected by remember { mutableStateOf(false) }
+    var showBluetoothDisabledPrompt by remember { mutableStateOf(false) }
+
+    val requiredPermissions = remember {
+        buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_SCAN)
+                add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    fun launchRideServiceNow(useSimulated: Boolean) {
+        RideService.dispatchStartRide(
+            context = context,
+            rideId = "field-test-${System.currentTimeMillis()}",
+            localShortId = selectedNodeShortId,
+            forceSimulated = useSimulated
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        val meshViable = RideService.isMeshViable(context)
+        if (meshViable) {
+            showSimulatedFallbackPrompt = false
+            permanentlyDeniedDetected = false
+            if (!forceSimulation && !RideService.isBluetoothAdapterEnabled(context)) {
+                Log.w("RideService", "BluetoothDisabled: permissions granted but Bluetooth adapter is OFF; prompting user to enable Bluetooth")
+                showBluetoothDisabledPrompt = true
+            } else {
+                showBluetoothDisabledPrompt = false
+                launchRideServiceNow(useSimulated = forceSimulation)
+            }
+        } else {
+            val isPermDenied = activity != null && requiredPermissions.any { perm ->
+                ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, perm)
+            }
+            Log.w("RideService", "PermissionsDenied: meshViable=false permanentlyDenied=$isPermDenied")
+            permanentlyDeniedDetected = isPermDenied
+            showSimulatedFallbackPrompt = true
+        }
+    }
 
     val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
         rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
@@ -120,6 +185,17 @@ fun FieldTestScreen(
 
     val batteryGuide = remember { ManufacturerBatteryGuide() }
     val batterySnapshot = remember { batteryGuide.snapshot() }
+    val bleCaps = remember(isRunning) { BleAdvTransport(context).queryCapabilities() }
+
+    LaunchedEffect(bleCaps) {
+        Log.i(
+            "RideService",
+            "Table3_1_BleCapabilities model=${Build.MODEL} release=${Build.VERSION.RELEASE} sdk=${Build.VERSION.SDK_INT} " +
+                "btSupported=${bleCaps.bluetoothSupported} btEnabled=${bleCaps.bluetoothEnabled} " +
+                "multiAdv=${bleCaps.multipleAdvertisementSupported} extAdv=${bleCaps.extendedAdvertisingSupported} " +
+                "codedPhy=${bleCaps.codedPhySupported} mode=${bleCaps.recommendedMode}"
+        )
+    }
 
     Column(
         modifier = modifier
@@ -143,9 +219,15 @@ fun FieldTestScreen(
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "${Build.MANUFACTURER.uppercase()} ${Build.MODEL} · Android ${Build.VERSION.RELEASE}",
+                    text = "${Build.MANUFACTURER.uppercase()} ${Build.MODEL} · Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})",
                     color = BikerColors.TextSecondary,
                     fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "BLE: ${bleCaps.recommendedMode} (BT=${if (bleCaps.bluetoothEnabled) "ON" else "OFF"}, ExtAdv=${bleCaps.extendedAdvertisingSupported}, CodedPHY=${bleCaps.codedPhySupported})",
+                    color = if (bleCaps.bluetoothEnabled) BikerColors.StatusGreen else BikerColors.StatusYellow,
+                    fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
             }
@@ -259,21 +341,188 @@ fun FieldTestScreen(
             }
         }
 
+        rideState.lastStartError?.let { err ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.StatusRed.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠ $err",
+                    color = BikerColors.StatusRed,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+
+        if (showSimulatedFallbackPrompt) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Sin Bluetooth/Ubicación no hay mesh real. ¿Quieres probar en modo simulado?",
+                        color = BikerColors.StatusYellow,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                forceSimulation = true
+                                showSimulatedFallbackPrompt = false
+                                launchRideServiceNow(useSimulated = true)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                        ) {
+                            Text(
+                                text = "Probar en modo simulado",
+                                color = BikerColors.BackgroundDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        if (permanentlyDeniedDetected) {
+                            OutlinedButton(
+                                onClick = {
+                                    val settingsIntent = Intent(
+                                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        Uri.fromParts("package", context.packageName, null)
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(settingsIntent)
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Abrir ajustes de la app",
+                                    color = BikerColors.PrimaryAmber,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showBluetoothDisabledPrompt) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "⚠ El Bluetooth del teléfono está apagado. Enciéndelo para iniciar la prueba BLE real.",
+                        color = BikerColors.StatusYellow,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                showBluetoothDisabledPrompt = false
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                    )
+                                }.onFailure {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_BLUETOOTH_SETTINGS).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                    )
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                        ) {
+                            Text(
+                                text = "Encender Bluetooth",
+                                color = BikerColors.BackgroundDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                forceSimulation = true
+                                showBluetoothDisabledPrompt = false
+                                launchRideServiceNow(useSimulated = true)
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "Probar en modo simulado",
+                                color = BikerColors.PrimaryAmber,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Aviso si POST_NOTIFICATIONS está rechazado en Android 13+ (API 33+)
+        if (!RideService.isPostNotificationsGranted(context)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.StatusYellow.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠ Permiso de notificaciones (POST_NOTIFICATIONS) rechazado: el servicio sigue activo pero Android oculta el aviso persistente.",
+                    color = BikerColors.StatusYellow,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+
         // 1. BOTÓN GIGANTE DE ACCIÓN (>= 72 dp de alto según modo guantes)
         val buttonMinHeight = 76.dp
         if (!isRunning) {
             Button(
                 onClick = {
-                    val intent = Intent(context, RideService::class.java).apply {
-                        action = RideService.ACTION_START_RIDE
-                        putExtra(RideService.EXTRA_RIDE_ID, "field-test-${System.currentTimeMillis()}")
-                        putExtra(RideService.EXTRA_LOCAL_SHORT_ID, selectedNodeShortId)
-                        putExtra(RideService.EXTRA_FORCE_SIMULATED, forceSimulation)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(intent)
+                    if (forceSimulation) {
+                        showSimulatedFallbackPrompt = false
+                        showBluetoothDisabledPrompt = false
+                        launchRideServiceNow(useSimulated = true)
+                    } else if (RideService.isMeshViable(context)) {
+                        showSimulatedFallbackPrompt = false
+                        if (!RideService.isBluetoothAdapterEnabled(context)) {
+                            Log.w("RideService", "BluetoothDisabled: Bluetooth adapter is OFF; prompting user to enable Bluetooth")
+                            showBluetoothDisabledPrompt = true
+                        } else {
+                            showBluetoothDisabledPrompt = false
+                            launchRideServiceNow(useSimulated = false)
+                        }
                     } else {
-                        context.startService(intent)
+                        permissionLauncher.launch(requiredPermissions.toTypedArray())
                     }
                 },
                 modifier = Modifier
@@ -304,10 +553,7 @@ fun FieldTestScreen(
             val isConfirming = rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
             Button(
                 onClick = {
-                    val stopIntent = Intent(context, RideService::class.java).apply {
-                        action = RideService.ACTION_STOP_RIDE
-                    }
-                    context.startService(stopIntent)
+                    RideService.dispatchStopRide(context)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

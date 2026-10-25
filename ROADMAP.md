@@ -24,12 +24,14 @@ Las duraciones son estimaciones iniciales para un equipo pequeño y deben ajusta
 - **Salida:** un club puede armarse completo en la app.
 
 ## Fase 2 — Suscripciones y credenciales (6 a 8 semanas)
+- **Estado actual (2026-10-25):** Base de datos cerrada con reglas D42–D46 + jerarquía + certificación mutua (24/24 tests en PostgreSQL 16). **Sigue pendiente** la verificación real contra Google Play Developer API (`POST /v1/subscriptions/verify`), RTDN y cierre de piloto de cobro en Play Console.
 - Play Billing: líder $15, cupos $2.50.
 - Verificación de compras, RTDN, conciliación diaria.
 - Credenciales firmadas con vencimiento, semáforo de pagos, alarmas.
 - **Salida:** cobro funcionando con un piloto cerrado.
 
 ## Fase 3 — Rodada con mesh (8 a 10 semanas)
+- **Nota de orden de ejecución (2026-10-25):** Los bloques técnicos de la Fase 3 (Bloque 3.1 a 3.5, incluyendo el Bloque 3.2 de `RideService` + BLE real + Foreground Service) **se adelantaron a propósito** mientras la Fase 2 espera credenciales de Google Play Console, con el fin de habilitar la prueba física de campo BLE con los teléfonos disponibles.
 - Rodadas con lista de participantes, manifiesto firmado y dos grupos.
 - Mesh BLE de posición, mapa en vivo con avatares.
 - Pérdida y reconexión con voz sintética.

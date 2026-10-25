@@ -1,5 +1,8 @@
 package com.rutabikersync.app.core.mesh
 
+import android.Manifest
+import android.content.pm.ServiceInfo
+import android.os.Build
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -136,5 +139,136 @@ class RideServicePhase3Test {
         assertTrue(confirmedStop.voiceClipsPurgedOnClose)
         assertTrue(confirmedStop.emergencyAccessRevokedOnClose)
         assertEquals("Rodada finalizada", confirmedStop.notification.title)
+    }
+
+    private val fullApi35Perms = setOf(
+        Manifest.permission.BLUETOOTH_SCAN,
+        Manifest.permission.BLUETOOTH_ADVERTISE,
+        Manifest.permission.BLUETOOTH_CONNECT,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.POST_NOTIFICATIONS
+    )
+
+    @Test
+    fun `Combo 1_API 35 y 36 con todos los permisos habilita mesh real y FGS 0x18 (LOCATION y CONNECTED_DEVICE)`() {
+        for (sdk in listOf(Build.VERSION_CODES.VANILLA_ICE_CREAM, 36)) {
+            val eligibility = RideService.computeEligibility(
+                sdkInt = sdk,
+                grantedPermissions = fullApi35Perms,
+                forceSimulated = false
+            )
+            assertTrue(eligibility.meshViable)
+            assertFalse(eligibility.effectiveForceSimulated)
+            assertTrue(eligibility.shouldPromoteToForeground)
+            assertEquals(
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
+                eligibility.foregroundServiceTypes
+            )
+            assertEquals(0x18, eligibility.foregroundServiceTypes)
+            assertTrue(eligibility.postNotificationsGranted)
+        }
+    }
+
+    @Test
+    fun `Combo 2_API 35 y 36 con Ubicacion pero SIN permisos BLE marca meshViable false y pasa a simulado sin FGS`() {
+        for (sdk in listOf(Build.VERSION_CODES.VANILLA_ICE_CREAM, 36)) {
+            val eligibility = RideService.computeEligibility(
+                sdkInt = sdk,
+                grantedPermissions = setOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ),
+                forceSimulated = false
+            )
+            assertFalse(eligibility.meshViable)
+            assertTrue(eligibility.effectiveForceSimulated)
+            assertFalse(eligibility.shouldPromoteToForeground)
+            assertEquals(0, eligibility.foregroundServiceTypes)
+        }
+    }
+
+    @Test
+    fun `Combo 3_API 35 y 36 con solo BLUETOOTH_SCAN sin BLUETOOTH_ADVERTISE marca meshViable false`() {
+        for (sdk in listOf(Build.VERSION_CODES.VANILLA_ICE_CREAM, 36)) {
+            val eligibility = RideService.computeEligibility(
+                sdkInt = sdk,
+                grantedPermissions = setOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ),
+                forceSimulated = false
+            )
+            assertFalse(eligibility.meshViable)
+            assertTrue(eligibility.effectiveForceSimulated)
+            assertFalse(eligibility.shouldPromoteToForeground)
+            assertEquals(0, eligibility.foregroundServiceTypes)
+        }
+    }
+
+    @Test
+    fun `Combo 4_API 35 y 36 con BLUETOOTH_SCAN y ADVERTISE pero SIN Ubicacion usa FGS 0x10 CONNECTED_DEVICE y detecta POST_NOTIFICATIONS rechazado`() {
+        for (sdk in listOf(Build.VERSION_CODES.VANILLA_ICE_CREAM, 36)) {
+            val eligibility = RideService.computeEligibility(
+                sdkInt = sdk,
+                grantedPermissions = setOf(
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_ADVERTISE
+                ),
+                forceSimulated = false
+            )
+            assertTrue(eligibility.meshViable)
+            assertFalse(eligibility.effectiveForceSimulated)
+            assertTrue(eligibility.shouldPromoteToForeground)
+            assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE, eligibility.foregroundServiceTypes)
+            assertEquals(0x10, eligibility.foregroundServiceTypes)
+            assertFalse(eligibility.postNotificationsGranted)
+        }
+    }
+
+    @Test
+    fun `Combo 5_API 30 Android 11 con BLUETOOTH legacy y Ubicacion habilita mesh real y FGS 0x18 sin exigir POST_NOTIFICATIONS`() {
+        val api30Valid = RideService.computeEligibility(
+            sdkInt = Build.VERSION_CODES.R,
+            grantedPermissions = setOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ),
+            forceSimulated = false
+        )
+        assertTrue(api30Valid.meshViable)
+        assertFalse(api30Valid.effectiveForceSimulated)
+        assertTrue(api30Valid.shouldPromoteToForeground)
+        assertEquals(0x18, api30Valid.foregroundServiceTypes)
+        assertTrue(api30Valid.postNotificationsGranted)
+    }
+
+    @Test
+    fun `Combo 6_API 30 Android 11 con BLUETOOTH legacy pero SIN Ubicacion marca meshViable false porque el escaneo BLE exige ubicacion en API 26 a 30`() {
+        val api30NoLocation = RideService.computeEligibility(
+            sdkInt = Build.VERSION_CODES.R,
+            grantedPermissions = setOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN
+            ),
+            forceSimulated = false
+        )
+        assertFalse(api30NoLocation.meshViable)
+        assertTrue(api30NoLocation.effectiveForceSimulated)
+        assertFalse(api30NoLocation.shouldPromoteToForeground)
+        assertEquals(0, api30NoLocation.foregroundServiceTypes)
+    }
+
+    @Test
+    fun `Combo 7_forceSimulated true con todos los permisos concedidos desactiva Foreground Service y corre en app`() {
+        val forcedSim = RideService.computeEligibility(
+            sdkInt = Build.VERSION_CODES.VANILLA_ICE_CREAM,
+            grantedPermissions = fullApi35Perms,
+            forceSimulated = true
+        )
+        assertTrue(forcedSim.meshViable)
+        assertTrue(forcedSim.effectiveForceSimulated)
+        assertFalse(forcedSim.shouldPromoteToForeground)
+        assertEquals(0, forcedSim.foregroundServiceTypes)
     }
 }

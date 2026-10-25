@@ -1,7 +1,16 @@
 package com.rutabikersync.app.ui.navigation
 
+import android.Manifest
+import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +27,12 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,14 +46,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rutabikersync.app.BuildConfig
 import com.rutabikersync.app.R
 import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
-import com.rutabikersync.app.feature.fieldtest.BleFieldTestScreen
-import com.rutabikersync.app.feature.fieldtest.BleFieldTestViewModel
-import com.rutabikersync.app.feature.fieldtest.FieldTestScreen
 import com.rutabikersync.app.feature.groups.DevPanelDialog
 import com.rutabikersync.app.feature.groups.GroupsMainTabScreen
 import com.rutabikersync.app.feature.groups.Phase1ViewModel
@@ -57,10 +67,9 @@ import com.rutabikersync.app.ui.theme.BikerColors
  */
 @Composable
 fun MainAppScaffold(
-    phase1ViewModel: Phase1ViewModel = viewModel(),
-    bleFieldTestViewModel: BleFieldTestViewModel = viewModel()
+    phase1ViewModel: Phase1ViewModel = viewModel()
 ) {
-    var selectedTab by remember { mutableIntStateOf(1) } // Inicia en Grupo (Fase 1)
+    var selectedTab by remember { mutableIntStateOf(if (BuildConfig.FIELD_TEST_MODE) 0 else 1) }
     var showDevPanel by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -119,7 +128,7 @@ fun MainAppScaffold(
         ) {
             when (selectedTab) {
                 0 -> {
-                    RidesReleaseHomeScreen(bleFieldTestViewModel = bleFieldTestViewModel)
+                    RidesReleaseHomeScreen()
                 }
                 1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
                 2 -> RoutesPlaceholderScreen()
@@ -173,20 +182,83 @@ private fun RoutesPlaceholderScreen() {
 }
 
 @Composable
-private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel) {
+private fun RidesReleaseHomeScreen() {
     val context = LocalContext.current
+    val activity = context as? Activity
     val rideState by RideService.sharedState.collectAsState()
     var forceSimulated by remember { mutableStateOf(false) }
     var showLiveMap by remember { mutableStateOf(!BuildConfig.FIELD_TEST_MODE) }
-    var showBleLab by remember { mutableStateOf(false) }
+    var showPermissionRationale by remember { mutableStateOf(false) }
+    var showSimulatedFallbackPrompt by remember { mutableStateOf(false) }
+    var permanentlyDeniedDetected by remember { mutableStateOf(false) }
+    var startErrorBroadcastMessage by remember { mutableStateOf<String?>(null) }
 
-    if (BuildConfig.FIELD_TEST_MODE && !showLiveMap) {
-        FieldTestScreen(onOpenLiveMap = { showLiveMap = true })
-        return
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == RideService.ACTION_RIDE_START_ERROR) {
+                    startErrorBroadcastMessage =
+                        intent.getStringExtra(RideService.EXTRA_RIDE_START_ERROR_MESSAGE)
+                }
+            }
+        }
+        val filter = IntentFilter(RideService.ACTION_RIDE_START_ERROR)
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+        }
     }
 
-    if (showBleLab && BuildConfig.DEV_PANEL_ENABLED) {
-        BleFieldTestScreen(viewModel = bleFieldTestViewModel)
+    val requiredRidePermissions = remember {
+        buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_SCAN)
+                add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    fun startRideServiceNow(useSimulated: Boolean) {
+        startErrorBroadcastMessage = null
+        RideService.dispatchStartRide(
+            context = context,
+            rideId = "ride-live-01",
+            localShortId = 1,
+            forceSimulated = useSimulated
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        val meshViable = RideService.isMeshViable(context)
+        if (meshViable) {
+            permanentlyDeniedDetected = false
+            showSimulatedFallbackPrompt = false
+            startRideServiceNow(useSimulated = forceSimulated)
+        } else {
+            val permDeniedPermanently = activity != null && requiredRidePermissions.any { perm ->
+                ContextCompat.checkSelfPermission(context, perm) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, perm)
+            }
+            permanentlyDeniedDetected = permDeniedPermanently
+            showSimulatedFallbackPrompt = true
+        }
+    }
+
+    if (BuildConfig.FIELD_TEST_MODE && !showLiveMap) {
+        FieldTestHost(onOpenLiveMap = { showLiveMap = true })
         return
     }
 
@@ -245,6 +317,160 @@ private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel)
                 fontSize = 14.sp
             )
 
+            // Justificación explícita de permisos (SCREENS.md A5)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Permisos de rodada activa:",
+                    color = BikerColors.PrimaryAmber,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "• Ubicación: para el mapa compartido y la mesh durante la rodada.",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "• Bluetooth: para conectar con los otros riders.",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "• Notificaciones: para el aviso persistente de 'Rodada activa'.",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 12.sp
+                )
+            }
+
+            // Aviso si POST_NOTIFICATIONS está rechazado en Android 13+ (API 33+)
+            if (!RideService.isPostNotificationsGranted(context)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BikerColors.StatusYellow.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "⚠ Permiso de notificaciones (POST_NOTIFICATIONS) rechazado: el servicio sigue corriendo pero la notificación no se muestra.",
+                        color = BikerColors.StatusYellow,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            (startErrorBroadcastMessage ?: rideState.lastStartError)?.let { errorMsg ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BikerColors.StatusRed.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "⚠ $errorMsg",
+                        color = BikerColors.StatusRed,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            if (showPermissionRationale) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Antes de continuar, concede los permisos de Ubicación, Bluetooth y Notificaciones para activar la mesh real.",
+                        color = BikerColors.TextPrimary,
+                        fontSize = 13.sp
+                    )
+                    Button(
+                        onClick = {
+                            showPermissionRationale = false
+                            permissionLauncher.launch(requiredRidePermissions.toTypedArray())
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                    ) {
+                        Text(
+                            text = "Continuar y solicitar permisos",
+                            color = BikerColors.BackgroundDark,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            if (showSimulatedFallbackPrompt) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Sin Bluetooth/Ubicación no hay mesh real. ¿Quieres probar en modo simulado?",
+                        color = BikerColors.StatusYellow,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                forceSimulated = true
+                                showSimulatedFallbackPrompt = false
+                                startRideServiceNow(useSimulated = true)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                        ) {
+                            Text(
+                                text = "Probar en modo simulado",
+                                color = BikerColors.BackgroundDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        if (permanentlyDeniedDetected) {
+                            OutlinedButton(
+                                onClick = {
+                                    val settingsIntent = Intent(
+                                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        Uri.fromParts("package", context.packageName, null)
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(settingsIntent)
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Abrir ajustes de la app",
+                                    color = BikerColors.PrimaryAmber,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             if (BuildConfig.DEV_PANEL_ENABLED) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -268,16 +494,12 @@ private fun RidesReleaseHomeScreen(bleFieldTestViewModel: BleFieldTestViewModel)
             ) {
                 Button(
                     onClick = {
-                        val intent = Intent(context, RideService::class.java).apply {
-                            action = RideService.ACTION_START_RIDE
-                            putExtra(RideService.EXTRA_RIDE_ID, "ride-live-01")
-                            putExtra(RideService.EXTRA_LOCAL_SHORT_ID, 1)
-                            putExtra(RideService.EXTRA_FORCE_SIMULATED, forceSimulated)
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            context.startForegroundService(intent)
+                        if (forceSimulated) {
+                            startRideServiceNow(useSimulated = true)
+                        } else if (RideService.isMeshViable(context)) {
+                            startRideServiceNow(useSimulated = false)
                         } else {
-                            context.startService(intent)
+                            showPermissionRationale = true
                         }
                     },
                     modifier = Modifier

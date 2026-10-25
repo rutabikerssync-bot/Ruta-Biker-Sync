@@ -1,5 +1,14 @@
 package com.rutabikersync.app.feature.fieldtest
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,15 +41,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.rutabikersync.app.R
+import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.BikerDimens
 import java.util.Locale
@@ -58,8 +74,46 @@ fun BleFieldTestScreen(
     viewModel: BleFieldTestViewModel,
     onRequestBlePermissions: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val activity = context as? Activity
     val state by viewModel.uiState.collectAsState()
     val report = state.report
+    var showSimulatedFallbackCard by remember { mutableStateOf(false) }
+    var permanentlyDenied by remember { mutableStateOf(false) }
+
+    val requiredBlePermissions = remember {
+        buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_SCAN)
+                add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    val blePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        val meshViable = RideService.isMeshViable(context)
+        if (meshViable) {
+            showSimulatedFallbackCard = false
+            permanentlyDenied = false
+            viewModel.setMode(useRealBle = true)
+            viewModel.startFieldTest()
+        } else {
+            val isPermDenied = activity != null && requiredBlePermissions.any { perm ->
+                ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, perm)
+            }
+            permanentlyDenied = isPermDenied
+            showSimulatedFallbackCard = true
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -220,14 +274,99 @@ fun BleFieldTestScreen(
             }
         }
 
+        if (showSimulatedFallbackCard) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Sin Bluetooth/Ubicación no hay mesh real. ¿Quieres probar en modo simulado?",
+                        color = BikerColors.StatusYellow,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                showSimulatedFallbackCard = false
+                                viewModel.setMode(useRealBle = false)
+                                viewModel.startFieldTest()
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                        ) {
+                            Text(
+                                text = "Probar en modo simulado",
+                                color = BikerColors.BackgroundDark,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                        if (permanentlyDenied) {
+                            OutlinedButton(
+                                onClick = {
+                                    val settingsIntent = Intent(
+                                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        Uri.fromParts("package", context.packageName, null)
+                                    ).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(settingsIntent)
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Abrir ajustes de la app",
+                                    color = BikerColors.PrimaryAmber,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Aviso si POST_NOTIFICATIONS está rechazado en Android 13+ (API 33+)
+        if (!RideService.isPostNotificationsGranted(context)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = BikerColors.StatusYellow.copy(alpha = 0.15f)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "⚠ Permiso de notificaciones (POST_NOTIFICATIONS) rechazado: el servicio sigue activo pero Android oculta el aviso persistente.",
+                    color = BikerColors.StatusYellow,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(12.dp)
+                )
+            }
+        }
+
         // Máximo 3 botones grandes de acción en modo guantes (>= 72 dp)
         Button(
             onClick = {
                 if (state.isRunning) {
                     viewModel.stopFieldTest()
-                } else {
-                    if (state.useRealBle) onRequestBlePermissions()
+                } else if (!state.useRealBle) {
+                    showSimulatedFallbackCard = false
                     viewModel.startFieldTest()
+                } else if (RideService.isMeshViable(context)) {
+                    showSimulatedFallbackCard = false
+                    viewModel.startFieldTest()
+                } else {
+                    onRequestBlePermissions()
+                    blePermissionLauncher.launch(requiredBlePermissions.toTypedArray())
                 }
             },
             colors = ButtonDefaults.buttonColors(

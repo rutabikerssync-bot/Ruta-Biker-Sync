@@ -1,5 +1,6 @@
 package com.rutabikersync.app.core.mesh
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,12 +8,15 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
+import androidx.core.content.ContextCompat
 import com.rutabikersync.app.MainActivity
 import com.rutabikersync.app.core.announcer.UniqueAnnouncer
 import com.rutabikersync.app.core.power.BatteryAwareness
@@ -83,6 +87,7 @@ data class RideSessionState(
     val mapUpdateCadenceMs: Long = PowerProfile.NORMAL.mapUpdateCadenceMs,
     val isMapFrozen: Boolean = false,
     val lastBatteryTtsAlert: String? = null,
+    val lastStartError: String? = null,
     val notification: RideNotificationSnapshot = RideNotificationSnapshot(
         title = "Ruta Biker Sync",
         contentText = "Sin rodada activa",
@@ -562,21 +567,60 @@ class RideSessionController(
             stopConfirmationRemainingMs = stopRemainingMs
         )
     }
+
+    fun recordStartError(errorMessage: String?): RideSessionState {
+        _state.value = _state.value.copy(lastStartError = errorMessage)
+        return _state.value
+    }
 }
+
+/**
+ * Resultado puro de elegibilidad del servicio y de la mesh BLE según la versión de Android (`sdkInt`)
+ * y el conjunto de permisos concedidos (`grantedPermissions`).
+ *
+ * Reglas verificadas contra la documentación oficial de Android:
+ * 1. `meshViable`:
+ *    - API 31+ (`Build.VERSION_CODES.S`, Android 12+): exige AMBOS `BLUETOOTH_SCAN` y `BLUETOOTH_ADVERTISE`
+ *      porque la mesh necesita escuchar y emitir paquetes simultáneamente.
+ *    - API 26–30 (`Build.VERSION_CODES.O..R`, Android 8–11): exige permisos legacy (`BLUETOOTH` y `BLUETOOTH_ADMIN`)
+ *      más ubicación (`ACCESS_FINE_LOCATION` o `ACCESS_COARSE_LOCATION`), requerida por Android 6–11 para escanear BLE.
+ * 2. `effectiveForceSimulated`: `forceSimulated || !meshViable`.
+ * 3. `foregroundServiceTypes`:
+ *    - En API 34+ (`Build.VERSION_CODES.UPSIDE_DOWN_CAKE`), `startForeground()` con `type = 0` lanza
+ *      `MissingForegroundServiceTypeException`. Por tanto, en modo simulado (`effectiveForceSimulated == true`)
+ *      **NO se usa un Foreground Service** (`shouldPromoteToForeground = false`, `foregroundServiceTypes = 0`):
+ *      la simulación corre dentro de la app mientras está visible.
+ *    - En modo real (`effectiveForceSimulated == false`):
+ *      - `FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE` (`0x10`) se incluye solo si hay al menos un permiso BLE concedido.
+ *      - `FOREGROUND_SERVICE_TYPE_LOCATION` (`0x08`) se incluye solo si hay permiso de ubicación concedido.
+ * 4. `postNotificationsGranted`: en API 33+ (`Build.VERSION_CODES.TIRAMISU`), `POST_NOTIFICATIONS` en `grantedPermissions`
+ *    (si se rechaza, el servicio sigue corriendo pero la notificación no se muestra y la UI avisa al usuario).
+ */
+data class RideServiceEligibility(
+    val sdkInt: Int,
+    val meshViable: Boolean,
+    val effectiveForceSimulated: Boolean,
+    val foregroundServiceTypes: Int,
+    val shouldPromoteToForeground: Boolean,
+    val postNotificationsGranted: Boolean
+)
 
 class RideService : Service() {
 
     companion object {
+        private const val TAG = "RideService"
         const val CHANNEL_ID = "rbs_active_ride_mesh_channel"
         const val NOTIFICATION_ID = 3201
 
         const val ACTION_START_RIDE = "com.rutabikersync.app.action.START_RIDE"
         const val ACTION_STOP_RIDE = "com.rutabikersync.app.action.STOP_RIDE"
         const val ACTION_TRIGGER_SOS = "com.rutabikersync.app.action.TRIGGER_SOS"
+        const val ACTION_RIDE_START_ERROR = "com.rutabikersync.app.action.RIDE_START_ERROR"
 
         const val EXTRA_RIDE_ID = "extra_ride_id"
         const val EXTRA_LOCAL_SHORT_ID = "extra_local_short_id"
         const val EXTRA_FORCE_SIMULATED = "extra_force_simulated"
+        const val EXTRA_RIDE_START_ERROR_MESSAGE = "extra_ride_start_error_message"
 
         private val _sharedState = MutableStateFlow(RideSessionState())
         val sharedState: StateFlow<RideSessionState> = _sharedState.asStateFlow()
@@ -584,8 +628,184 @@ class RideService : Service() {
         private val _sharedMetrics = MutableStateFlow<MeshRelayEngine.MeshFieldReport?>(null)
         val sharedMetrics: StateFlow<MeshRelayEngine.MeshFieldReport?> = _sharedMetrics.asStateFlow()
 
+        private val inAppSimScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        private val inAppSimController = RideSessionController(
+            scope = inAppSimScope,
+            bleTransportFactory = { null },
+            onNotificationUpdated = { _ ->
+                _sharedState.value = inAppSimControllerState()
+            }
+        )
+
+        private fun inAppSimControllerState(): RideSessionState = inAppSimController.state.value
+
         fun updateSharedMetrics(report: MeshRelayEngine.MeshFieldReport?) {
             _sharedMetrics.value = report
+        }
+
+        /**
+         * Función pura determinista (probada en JVM sin MockContext) que calcula:
+         * - `meshViable` según `sdkInt` y permisos reales de la mesh
+         * - `effectiveForceSimulated = forceSimulated || !meshViable`
+         * - `foregroundServiceTypes` (`CONNECTED_DEVICE = 0x10`, `LOCATION = 0x08`)
+         * - `shouldPromoteToForeground` (`false` en modo simulado para no invocar FGS sin tipo en API 34+)
+         * - `postNotificationsGranted` (detección de `POST_NOTIFICATIONS` en API 33+)
+         */
+        fun computeEligibility(
+            sdkInt: Int,
+            grantedPermissions: Set<String>,
+            forceSimulated: Boolean = false
+        ): RideServiceEligibility {
+            val hasLocation = Manifest.permission.ACCESS_FINE_LOCATION in grantedPermissions ||
+                Manifest.permission.ACCESS_COARSE_LOCATION in grantedPermissions
+
+            val meshViable = if (sdkInt >= Build.VERSION_CODES.S) {
+                Manifest.permission.BLUETOOTH_SCAN in grantedPermissions &&
+                    Manifest.permission.BLUETOOTH_ADVERTISE in grantedPermissions
+            } else {
+                val hasLegacyBle = Manifest.permission.BLUETOOTH in grantedPermissions &&
+                    Manifest.permission.BLUETOOTH_ADMIN in grantedPermissions
+                hasLegacyBle && hasLocation
+            }
+
+            val hasAnyBleForFgsType = if (sdkInt >= Build.VERSION_CODES.S) {
+                Manifest.permission.BLUETOOTH_SCAN in grantedPermissions ||
+                    Manifest.permission.BLUETOOTH_ADVERTISE in grantedPermissions ||
+                    Manifest.permission.BLUETOOTH_CONNECT in grantedPermissions
+            } else {
+                Manifest.permission.BLUETOOTH in grantedPermissions ||
+                    Manifest.permission.BLUETOOTH_ADMIN in grantedPermissions
+            }
+
+            val effectiveForceSim = forceSimulated || !meshViable
+
+            val fgsTypes = if (effectiveForceSim || sdkInt < Build.VERSION_CODES.Q) {
+                0
+            } else {
+                var types = 0
+                if (hasAnyBleForFgsType) {
+                    types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                }
+                if (hasLocation) {
+                    types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                }
+                types
+            }
+
+            val shouldPromote = !effectiveForceSim && (
+                sdkInt < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || fgsTypes != 0
+            )
+
+            val notificationsGranted = sdkInt < Build.VERSION_CODES.TIRAMISU ||
+                Manifest.permission.POST_NOTIFICATIONS in grantedPermissions
+
+            return RideServiceEligibility(
+                sdkInt = sdkInt,
+                meshViable = meshViable,
+                effectiveForceSimulated = effectiveForceSim,
+                foregroundServiceTypes = fgsTypes,
+                shouldPromoteToForeground = shouldPromote,
+                postNotificationsGranted = notificationsGranted
+            )
+        }
+
+        fun collectGrantedPermissions(context: Context): Set<String> {
+            val candidates = buildList {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                add(Manifest.permission.BLUETOOTH)
+                add(Manifest.permission.BLUETOOTH_ADMIN)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    add(Manifest.permission.BLUETOOTH_SCAN)
+                    add(Manifest.permission.BLUETOOTH_ADVERTISE)
+                    add(Manifest.permission.BLUETOOTH_CONNECT)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    add(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            return candidates.filterTo(mutableSetOf()) { perm ->
+                ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+            }
+        }
+
+        fun evaluateContextEligibility(
+            context: Context,
+            forceSimulated: Boolean = false
+        ): RideServiceEligibility = computeEligibility(
+            sdkInt = Build.VERSION.SDK_INT,
+            grantedPermissions = collectGrantedPermissions(context),
+            forceSimulated = forceSimulated
+        )
+
+        fun hasLocationPermissions(context: Context): Boolean {
+            val granted = collectGrantedPermissions(context)
+            return Manifest.permission.ACCESS_FINE_LOCATION in granted ||
+                Manifest.permission.ACCESS_COARSE_LOCATION in granted
+        }
+
+        fun isMeshViable(context: Context): Boolean =
+            evaluateContextEligibility(context, forceSimulated = false).meshViable
+
+        fun isPostNotificationsGranted(context: Context): Boolean =
+            evaluateContextEligibility(context, forceSimulated = false).postNotificationsGranted
+
+        fun isBluetoothAdapterEnabled(context: Context): Boolean =
+            runCatching { BleAdvTransport(context.applicationContext).queryCapabilities().bluetoothEnabled }
+                .getOrDefault(false)
+
+        /**
+         * Inicia la rodada o simulación según `computeEligibility`:
+         * - Si `shouldPromoteToForeground == true` (modo BLE real con permisos viables), usa `startForegroundService`.
+         * - Si `effectiveForceSimulated == true` (modo simulado), NO inicia ningún Service de Android:
+         *   la simulación corre dentro del proceso de la app visible (`inAppSimController`).
+         */
+        fun dispatchStartRide(
+            context: Context,
+            rideId: String,
+            localShortId: Int = 1,
+            forceSimulated: Boolean = false
+        ): RideServiceEligibility {
+            val eligibility = evaluateContextEligibility(context, forceSimulated)
+            if (eligibility.shouldPromoteToForeground) {
+                val intent = Intent(context, RideService::class.java).apply {
+                    action = ACTION_START_RIDE
+                    putExtra(EXTRA_RIDE_ID, rideId)
+                    putExtra(EXTRA_LOCAL_SHORT_ID, localShortId)
+                    putExtra(EXTRA_FORCE_SIMULATED, false)
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } else {
+                Log.i(TAG, "Starting in-app simulated mesh (no Android Service / no FGS)")
+                inAppSimScope.launch {
+                    val state = inAppSimController.startRide(
+                        rideId = rideId,
+                        localShortId = localShortId.toUShort(),
+                        forceSimulatedTransport = true
+                    )
+                    _sharedState.value = state
+                }
+            }
+            return eligibility
+        }
+
+        fun dispatchStopRide(context: Context) {
+            val current = _sharedState.value
+            if (current.isUsingSimulatedTransport) {
+                inAppSimScope.launch {
+                    val state = inAppSimController.onStopActionFromNotification()
+                    _sharedState.value = state
+                }
+            } else {
+                val stopIntent = Intent(context, RideService::class.java).apply {
+                    action = ACTION_STOP_RIDE
+                }
+                context.startService(stopIntent)
+            }
         }
     }
 
@@ -596,6 +816,7 @@ class RideService : Service() {
     private val binder = LocalBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var wakeLock: PowerManager.WakeLock? = null
+    private var isPromotedToForeground: Boolean = false
 
     lateinit var controller: RideSessionController
         private set
@@ -608,7 +829,9 @@ class RideService : Service() {
             bleTransportFactory = { BleAdvTransport(applicationContext) },
             onNotificationUpdated = { snapshot ->
                 _sharedState.value = controller.state.value
-                updateForegroundNotification(snapshot)
+                if (isPromotedToForeground) {
+                    updateForegroundNotification(snapshot)
+                }
             }
         )
     }
@@ -620,16 +843,48 @@ class RideService : Service() {
             ACTION_START_RIDE -> {
                 val rideId = intent.getStringExtra(EXTRA_RIDE_ID) ?: "ride-local-default"
                 val shortId = intent.getIntExtra(EXTRA_LOCAL_SHORT_ID, 1).toUShort()
-                val forceSim = intent.getBooleanExtra(EXTRA_FORCE_SIMULATED, false)
-                acquireWakeLockIfNeeded()
+                val requestedForceSim = intent.getBooleanExtra(EXTRA_FORCE_SIMULATED, false)
+                val eligibility = evaluateContextEligibility(this, requestedForceSim)
+                val effectiveForceSim = eligibility.effectiveForceSimulated
+
+                val initialSnapshot = controller.state.value.notification.copy(
+                    title = "Iniciando rodada · Mesh activa",
+                    contentText = if (effectiveForceSim) {
+                        "Simulación en app activa (sin Foreground Service)..."
+                    } else {
+                        "Preparando mesh BLE real..."
+                    },
+                    isUsingSimulatedTransport = effectiveForceSim
+                )
+
+                if (eligibility.shouldPromoteToForeground) {
+                    // CRÍTICO (Android 14/15 targetSdk=35): startForeground() en hilo principal dentro de onStartCommand
+                    val promoted = promoteToForeground(
+                        snapshot = initialSnapshot,
+                        fgsTypes = eligibility.foregroundServiceTypes
+                    )
+                    if (!promoted) {
+                        return START_NOT_STICKY
+                    }
+                    isPromotedToForeground = true
+                    acquireWakeLockIfNeeded()
+                } else {
+                    // Modo simulado: corre dentro de la app visible sin Foreground Service
+                    isPromotedToForeground = false
+                    Log.i(TAG, "Starting RideService in simulated in-app mode (no Foreground Service)")
+                }
+
+                controller.recordStartError(null)
                 serviceScope.launch {
                     val state = controller.startRide(
                         rideId = rideId,
                         localShortId = shortId,
-                        forceSimulatedTransport = forceSim
+                        forceSimulatedTransport = effectiveForceSim
                     )
                     _sharedState.value = state
-                    promoteToForeground(state.notification)
+                    if (isPromotedToForeground) {
+                        updateForegroundNotification(state.notification)
+                    }
                 }
             }
             ACTION_TRIGGER_SOS -> {
@@ -644,7 +899,10 @@ class RideService : Service() {
                     _sharedState.value = state
                     if (state.lifecycleState == RideLifecycleState.STOPPED) {
                         releaseWakeLockIfHeld()
-                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        if (isPromotedToForeground) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            isPromotedToForeground = false
+                        }
                         stopSelf()
                     }
                 }
@@ -658,23 +916,37 @@ class RideService : Service() {
             controller.stopAll()
             _sharedState.value = controller.state.value
         }
+        isPromotedToForeground = false
         releaseWakeLockIfHeld()
         serviceScope.cancel()
         super.onDestroy()
     }
 
-    private fun promoteToForeground(snapshot: RideNotificationSnapshot) {
+    private fun promoteToForeground(
+        snapshot: RideNotificationSnapshot,
+        fgsTypes: Int
+    ): Boolean {
         val notification = buildAndroidNotification(snapshot)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                } else {
-                    0
-                }
-            startForeground(NOTIFICATION_ID, notification, fgsType)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Log.i(TAG, "Promoting RideService to foreground with fgsType=0x${fgsTypes.toString(16)}")
+                startForeground(NOTIFICATION_ID, notification, fgsTypes)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            true
+        }.getOrElse { error ->
+            val msg = "No se pudo iniciar el servicio de rodada: ${error.javaClass.simpleName}: ${error.message}"
+            Log.e(TAG, msg, error)
+            val errState = controller.recordStartError(msg)
+            _sharedState.value = errState
+            val errorIntent = Intent(ACTION_RIDE_START_ERROR).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_RIDE_START_ERROR_MESSAGE, msg)
+            }
+            sendBroadcast(errorIntent)
+            stopSelf()
+            false
         }
     }
 
