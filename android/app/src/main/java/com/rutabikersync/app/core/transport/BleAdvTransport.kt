@@ -243,13 +243,16 @@ class BleAdvTransport(
         advertiser = adapter.bluetoothLeAdvertiser
         scanner = adapter.bluetoothLeScanner
 
-        val filter = ScanFilter.Builder()
-            .setServiceData(MESH_SERVICE_UUID, ByteArray(0), ByteArray(0))
-            .build()
+        // Filtro amplio en hardware para evitar bugs de descarte en chipsets MediaTek (Transsion)
+        // con máscaras vacías de ServiceData. El filtrado exacto por MESH_SERVICE_UUID se hace en scanCallback.
+        val filter = ScanFilter.Builder().build()
 
         val settingsBuilder = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .setReportDelay(0L)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+            .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+            .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
 
         val mode = effectiveMode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
@@ -462,7 +465,6 @@ class BleAdvTransport(
 
                 override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet?, status: Int) {
                     if (status == ADVERTISE_SUCCESS) {
-                        advertisingBurstsSuccessCount++
                         Log.d(TAG, "onAdvertisingDataSet confirmed burst#=$advertisingBurstsStartedCount")
                     } else {
                         Log.w(TAG, "onAdvertisingDataSet failed status=$status")

@@ -577,6 +577,7 @@ class RideSessionController(
         val currentCsv = relayEngine?.exportPacketsCsv()
         if (!currentCsv.isNullOrBlank() && currentCsv.lines().count { it.isNotBlank() } > 1) {
             lastPacketsCsv = currentCsv
+            RideService.globalLastPacketsCsv = currentCsv
         }
         relayEngine?.stop()
         relayEngine = null
@@ -968,7 +969,10 @@ class RideService : Service() {
                     val state = inAppSimController.stopAll()
                     _sharedState.value = state
                 }
-            } else {
+                val csv = activeController?.relayEngine?.exportPacketsCsv() ?: activeController?.lastPacketsCsv
+                if (!csv.isNullOrBlank() && csv.lines().count { it.isNotBlank() } > 1) {
+                    globalLastPacketsCsv = csv
+                }
                 val stopIntent = Intent(context, RideService::class.java).apply {
                     action = ACTION_FORCE_STOP_RIDE
                 }
@@ -977,20 +981,33 @@ class RideService : Service() {
         }
 
         @Volatile
+        var globalLastPacketsCsv: String? = null
+
+        @Volatile
         var activeController: RideSessionController? = null
 
         fun exportPacketsCsv(): String {
             val live = activeController?.relayEngine?.exportPacketsCsv()
-            if (!live.isNullOrBlank() && live.lines().count { it.isNotBlank() } > 1) return live
+            if (!live.isNullOrBlank() && live.lines().count { it.isNotBlank() } > 1) {
+                globalLastPacketsCsv = live
+                return live
+            }
             val saved = activeController?.lastPacketsCsv
-            if (!saved.isNullOrBlank() && saved.lines().count { it.isNotBlank() } > 1) return saved
+            if (!saved.isNullOrBlank() && saved.lines().count { it.isNotBlank() } > 1) {
+                globalLastPacketsCsv = saved
+                return saved
+            }
+            val globalSaved = globalLastPacketsCsv
+            if (!globalSaved.isNullOrBlank() && globalSaved.lines().count { it.isNotBlank() } > 1) {
+                return globalSaved
+            }
 
             val simLive = inAppSimController.relayEngine?.exportPacketsCsv()
             if (!simLive.isNullOrBlank() && simLive.lines().count { it.isNotBlank() } > 1) return simLive
             val simSaved = inAppSimController.lastPacketsCsv
             if (!simSaved.isNullOrBlank() && simSaved.lines().count { it.isNotBlank() } > 1) return simSaved
 
-            return live ?: saved ?: simLive ?: simSaved ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n"
+            return globalLastPacketsCsv ?: "timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n"
         }
 
         fun queryConnectedBluetoothDevices(context: Context): BluetoothConnectedDevicesSnapshot {
@@ -1167,6 +1184,12 @@ class RideService : Service() {
     }
 
     override fun onDestroy() {
+        runCatching {
+            val csv = controller.lastPacketsCsv ?: controller.relayEngine?.exportPacketsCsv()
+            if (!csv.isNullOrBlank() && csv.lines().count { it.isNotBlank() } > 1) {
+                globalLastPacketsCsv = csv
+            }
+        }
         if (activeController === controller) {
             activeController = null
         }
