@@ -79,8 +79,8 @@ class MeshRelayEngine(
         val participants: Int,
         val heartbeatsExpected: Int,
         val heartbeatsReceived: Int,
-        val heartbeatsDeliveredPct: Float,
-        val avgHops: Float,
+        val heartbeatsDeliveredPct: Float?,
+        val avgHops: Float?,
         val islandEvents: Int,
         val packetsEmitted: Int,
         val packetsReceivedValid: Int,
@@ -346,8 +346,12 @@ class MeshRelayEngine(
         }
     }
 
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     fun exportReportJson(): String {
-        val json = Json { prettyPrint = true }
+        val json = Json {
+            prettyPrint = true
+            explicitNulls = true
+        }
         return json.encodeToString(metrics.value)
     }
 
@@ -411,15 +415,15 @@ class MeshRelayEngine(
     private fun buildReport(): MeshFieldReport {
         val totalExpected = peerMap.values.sumOf { it.expectedBeats }
         val totalReceived = peerMap.values.sumOf { it.receivedBeats }
-        val deliveryPct = if (totalExpected > 0) {
+        val deliveryPct: Float? = if (totalExpected > 0 && totalReceived > 0) {
             ((totalReceived.toFloat() / totalExpected.toFloat()) * 100f).coerceIn(0f, 100f)
         } else {
-            100f
+            null
         }
-        val avgHops = if (packetsReceivedValid > 0) {
+        val avgHops: Float? = if (packetsReceivedValid > 0) {
             totalHopsAccumulated.toFloat() / packetsReceivedValid.toFloat()
         } else {
-            0f
+            null
         }
         return MeshFieldReport(
             localNodeId = localShortId.toInt(),

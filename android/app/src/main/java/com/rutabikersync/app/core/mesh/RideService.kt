@@ -72,6 +72,7 @@ data class RideNotificationSnapshot(
 data class RideSessionState(
     val rideId: String? = null,
     val lifecycleState: RideLifecycleState = RideLifecycleState.IDLE,
+    val startedAtEpochMs: Long = 0L,
     val localShortId: UShort = 1u,
     val transportName: String = "Idle",
     val isUsingSimulatedTransport: Boolean = false,
@@ -207,6 +208,7 @@ class RideSessionController(
         _state.value = RideSessionState(
             rideId = rideId,
             lifecycleState = RideLifecycleState.RUNNING,
+            startedAtEpochMs = System.currentTimeMillis(),
             localShortId = localShortId,
             transportName = selectedTransport.name,
             isUsingSimulatedTransport = isSimulated,
@@ -447,6 +449,7 @@ class RideSessionController(
         )
         _state.value = _state.value.copy(
             lifecycleState = RideLifecycleState.STOPPED,
+            startedAtEpochMs = 0L,
             connectedRidersCount = 0,
             lostRidersCount = 0,
             isSosActive = false,
@@ -614,6 +617,7 @@ class RideService : Service() {
 
         const val ACTION_START_RIDE = "com.rutabikersync.app.action.START_RIDE"
         const val ACTION_STOP_RIDE = "com.rutabikersync.app.action.STOP_RIDE"
+        const val ACTION_FORCE_STOP_RIDE = "com.rutabikersync.app.action.FORCE_STOP_RIDE"
         const val ACTION_TRIGGER_SOS = "com.rutabikersync.app.action.TRIGGER_SOS"
         const val ACTION_RIDE_START_ERROR = "com.rutabikersync.app.action.RIDE_START_ERROR"
 
@@ -807,6 +811,21 @@ class RideService : Service() {
                 context.startService(stopIntent)
             }
         }
+
+        fun dispatchImmediateStopRide(context: Context) {
+            val current = _sharedState.value
+            if (current.isUsingSimulatedTransport) {
+                inAppSimScope.launch {
+                    val state = inAppSimController.stopAll()
+                    _sharedState.value = state
+                }
+            } else {
+                val stopIntent = Intent(context, RideService::class.java).apply {
+                    action = ACTION_FORCE_STOP_RIDE
+                }
+                context.startService(stopIntent)
+            }
+        }
     }
 
     inner class LocalBinder : Binder() {
@@ -905,6 +924,18 @@ class RideService : Service() {
                         }
                         stopSelf()
                     }
+                }
+            }
+            ACTION_FORCE_STOP_RIDE -> {
+                serviceScope.launch {
+                    val state = controller.stopAll()
+                    _sharedState.value = state
+                    releaseWakeLockIfHeld()
+                    if (isPromotedToForeground) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        isPromotedToForeground = false
+                    }
+                    stopSelf()
                 }
             }
         }

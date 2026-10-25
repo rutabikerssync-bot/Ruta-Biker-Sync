@@ -47,7 +47,9 @@ class BleAdvTransport(
         val bluetoothEnabled: Boolean,
         val multipleAdvertisementSupported: Boolean,
         val extendedAdvertisingSupported: Boolean,
-        val codedPhySupported: Boolean
+        val le2MPhySupported: Boolean = false,
+        val codedPhySupported: Boolean,
+        val maxAdvertisingDataLength: Int = 0
     ) {
         val recommendedMode: String
             get() = when {
@@ -83,14 +85,18 @@ class BleAdvTransport(
             bluetoothEnabled = false,
             multipleAdvertisementSupported = false,
             extendedAdvertisingSupported = false,
-            codedPhySupported = false
+            le2MPhySupported = false,
+            codedPhySupported = false,
+            maxAdvertisingDataLength = 0
         )
         return BleCapabilities(
             bluetoothSupported = true,
             bluetoothEnabled = adapter.isEnabled,
             multipleAdvertisementSupported = adapter.isMultipleAdvertisementSupported,
             extendedAdvertisingSupported = adapter.isLeExtendedAdvertisingSupported,
-            codedPhySupported = adapter.isLeCodedPhySupported
+            le2MPhySupported = runCatching { adapter.isLe2MPhySupported }.getOrDefault(false),
+            codedPhySupported = adapter.isLeCodedPhySupported,
+            maxAdvertisingDataLength = runCatching { adapter.leMaximumAdvertisingDataLength }.getOrDefault(0)
         )
     }
 

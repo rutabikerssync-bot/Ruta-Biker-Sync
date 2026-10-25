@@ -167,14 +167,17 @@ fun FieldTestScreen(
     val isRunning = rideState.lifecycleState == RideLifecycleState.RUNNING ||
         rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
 
-    // Cronómetro en vivo de duración de la prueba
-    LaunchedEffect(isRunning, testStartEpochMs) {
+    // Cronómetro en vivo sincronizado con el inicio real de RideService
+    LaunchedEffect(isRunning, rideState.startedAtEpochMs) {
         if (isRunning) {
-            if (testStartEpochMs == 0L) {
-                testStartEpochMs = System.currentTimeMillis()
+            val baseStartMs = if (rideState.startedAtEpochMs > 0L) {
+                rideState.startedAtEpochMs
+            } else {
+                if (testStartEpochMs == 0L) testStartEpochMs = System.currentTimeMillis()
+                testStartEpochMs
             }
             while (isActive) {
-                elapsedSeconds = ((System.currentTimeMillis() - testStartEpochMs) / 1000L).coerceAtLeast(0L)
+                elapsedSeconds = ((System.currentTimeMillis() - baseStartMs) / 1000L).coerceAtLeast(0L)
                 delay(1000L)
             }
         } else {
@@ -193,7 +196,8 @@ fun FieldTestScreen(
             "Table3_1_BleCapabilities model=${Build.MODEL} release=${Build.VERSION.RELEASE} sdk=${Build.VERSION.SDK_INT} " +
                 "btSupported=${bleCaps.bluetoothSupported} btEnabled=${bleCaps.bluetoothEnabled} " +
                 "multiAdv=${bleCaps.multipleAdvertisementSupported} extAdv=${bleCaps.extendedAdvertisingSupported} " +
-                "codedPhy=${bleCaps.codedPhySupported} mode=${bleCaps.recommendedMode}"
+                "codedPhy=${bleCaps.codedPhySupported} phy2M=${bleCaps.le2MPhySupported} " +
+                "maxAdvDataLen=${bleCaps.maxAdvertisingDataLength} mode=${bleCaps.recommendedMode}"
         )
     }
 
@@ -227,6 +231,12 @@ fun FieldTestScreen(
                 Text(
                     text = "BLE: ${bleCaps.recommendedMode} (BT=${if (bleCaps.bluetoothEnabled) "ON" else "OFF"}, ExtAdv=${bleCaps.extendedAdvertisingSupported}, CodedPHY=${bleCaps.codedPhySupported})",
                     color = if (bleCaps.bluetoothEnabled) BikerColors.StatusGreen else BikerColors.StatusYellow,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "PHY 2M: ${bleCaps.le2MPhySupported} · MaxAdvData: ${bleCaps.maxAdvertisingDataLength} B",
+                    color = BikerColors.TextSecondary,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -550,17 +560,16 @@ fun FieldTestScreen(
                 }
             }
         } else {
-            val isConfirming = rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
             Button(
                 onClick = {
-                    RideService.dispatchStopRide(context)
+                    RideService.dispatchImmediateStopRide(context)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = buttonMinHeight),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isConfirming) BikerColors.StatusRed else Color(0xFFDC2626)
+                    containerColor = Color(0xFFDC2626)
                 )
             ) {
                 Row(
@@ -574,7 +583,7 @@ fun FieldTestScreen(
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = if (isConfirming) "CONFIRMAR DETENCIÓN (3s)" else "DETENER PRUEBA BLE",
+                        text = "DETENER PRUEBA BLE",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -627,12 +636,24 @@ fun FieldTestScreen(
                         modifier = Modifier.weight(1f)
                     )
 
-                    val deliveryPct = metrics?.heartbeatsDeliveredPct ?: 100f
+                    val deliveryPct = metrics?.heartbeatsDeliveredPct
                     MetricBox(
                         title = "% Entrega Heartbeats",
-                        value = "${String.format(Locale.US, "%.1f", deliveryPct)}%",
-                        subtitle = if (deliveryPct >= 85f) "Meta >=85% cumplida" else "Bajo umbral (evaluar BLE Ext)",
-                        color = if (deliveryPct >= 85f) BikerColors.StatusGreen else BikerColors.StatusRed,
+                        value = if (deliveryPct != null) {
+                            "${String.format(Locale.US, "%.1f", deliveryPct)}%"
+                        } else {
+                            "N/D"
+                        },
+                        subtitle = when {
+                            deliveryPct == null -> "Sin datos (0 pares / 0 Rx)"
+                            deliveryPct >= 85f -> "Meta >=85% cumplida"
+                            else -> "Bajo umbral (evaluar BLE Ext)"
+                        },
+                        color = when {
+                            deliveryPct == null -> BikerColors.TextSecondary
+                            deliveryPct >= 85f -> BikerColors.StatusGreen
+                            else -> BikerColors.StatusRed
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -644,7 +665,7 @@ fun FieldTestScreen(
                     MetricBox(
                         title = "Paquetes Enviados (Tx)",
                         value = "${metrics?.packetsEmitted ?: 0}",
-                        subtitle = "Latidos emitidos",
+                        subtitle = "Latidos emitidos (1 c/3s)",
                         color = BikerColors.TextPrimary,
                         modifier = Modifier.weight(1f)
                     )
@@ -662,12 +683,16 @@ fun FieldTestScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    val avgHops = metrics?.avgHops ?: 1.0f
+                    val avgHops = metrics?.avgHops
                     MetricBox(
                         title = "Saltos Promedio",
-                        value = String.format(Locale.US, "%.2f", avgHops),
-                        subtitle = "Multi-salto con TTL",
-                        color = BikerColors.TextPrimary,
+                        value = if (avgHops != null) {
+                            String.format(Locale.US, "%.2f", avgHops)
+                        } else {
+                            "N/D"
+                        },
+                        subtitle = if (avgHops != null) "Multi-salto con TTL" else "Sin paquetes recibidos",
+                        color = if (avgHops != null) BikerColors.TextPrimary else BikerColors.TextSecondary,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -715,7 +740,8 @@ fun FieldTestScreen(
                     shortId = selectedNodeShortId,
                     durationSeconds = durationSec,
                     rideState = rideState,
-                    metrics = metrics
+                    metrics = metrics,
+                    bleCaps = bleCaps
                 )
                 exportedJsonText = reportJson
 
@@ -858,7 +884,8 @@ private fun generateMetricsJson(
     shortId: Int,
     durationSeconds: Long,
     rideState: com.rutabikersync.app.core.mesh.RideSessionState,
-    metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?
+    metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
+    bleCaps: BleAdvTransport.BleCapabilities
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
@@ -872,6 +899,14 @@ private fun generateMetricsJson(
         put("deviceModel", Build.MODEL)
         put("androidRelease", Build.VERSION.RELEASE)
         put("androidSdkInt", Build.VERSION.SDK_INT)
+        put("bleBluetoothSupported", bleCaps.bluetoothSupported)
+        put("bleBluetoothEnabled", bleCaps.bluetoothEnabled)
+        put("bleMultipleAdvertisementSupported", bleCaps.multipleAdvertisementSupported)
+        put("bleExtendedAdvertisingSupported", bleCaps.extendedAdvertisingSupported)
+        put("bleCodedPhySupported", bleCaps.codedPhySupported)
+        put("ble2MPhySupported", bleCaps.le2MPhySupported)
+        put("bleMaxAdvertisingDataLength", bleCaps.maxAdvertisingDataLength)
+        put("bleRecommendedMode", bleCaps.recommendedMode)
         put("assignedRole", nodeRole)
         put("localNodeShortId", shortId)
         put("testDurationSeconds", durationSeconds)
@@ -882,8 +917,8 @@ private fun generateMetricsJson(
         put("lostPeersCount", rideState.lostRidersCount)
         put("totalPacketsEmitted", metrics?.packetsEmitted ?: 0)
         put("totalPacketsReceivedValid", metrics?.packetsReceivedValid ?: 0)
-        put("heartbeatsDeliveredPct", (metrics?.heartbeatsDeliveredPct ?: 100f).toDouble())
-        put("averageHops", (metrics?.avgHops ?: 1.0f).toDouble())
+        put("heartbeatsDeliveredPct", metrics?.heartbeatsDeliveredPct?.toDouble() ?: JSONObject.NULL)
+        put("averageHops", metrics?.avgHops?.toDouble() ?: JSONObject.NULL)
         put("islandEventsDetected", metrics?.islandEvents ?: 0)
         put("duplicatesDropped", metrics?.duplicatesDropped ?: 0)
         put("invalidAuthDropped", metrics?.invalidAuthDropped ?: 0)

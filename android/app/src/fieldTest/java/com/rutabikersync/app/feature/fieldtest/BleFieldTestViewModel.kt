@@ -203,6 +203,7 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
 
     private fun formatCapabilities(caps: BleAdvTransport.BleCapabilities): String {
         return "Modo: ${caps.recommendedMode} | BLE: ${caps.bluetoothSupported} | Activo: ${caps.bluetoothEnabled} | " +
-            "ExtAdv: ${caps.extendedAdvertisingSupported} | CodedPHY: ${caps.codedPhySupported}"
+            "ExtAdv: ${caps.extendedAdvertisingSupported} | CodedPHY: ${caps.codedPhySupported} | " +
+            "PHY 2M: ${caps.le2MPhySupported} | MaxAdvLen: ${caps.maxAdvertisingDataLength} B"
     }
 }

@@ -251,13 +251,23 @@ fun BleFieldTestScreen(
                     )
                 }
 
+                val deliveryPct = report?.heartbeatsDeliveredPct
+                val avgHops = report?.avgHops
                 MetricRow(
                     label = stringResource(R.string.metric_delivery_pct),
-                    value = String.format(Locale.US, "%.1f %%", report?.heartbeatsDeliveredPct ?: 100f)
+                    value = if (deliveryPct != null) {
+                        String.format(Locale.US, "%.1f %%", deliveryPct)
+                    } else {
+                        "N/D"
+                    }
                 )
                 MetricRow(
                     label = stringResource(R.string.metric_avg_hops),
-                    value = String.format(Locale.US, "%.2f saltos", report?.avgHops ?: 0f)
+                    value = if (avgHops != null) {
+                        String.format(Locale.US, "%.2f saltos", avgHops)
+                    } else {
+                        "N/D"
+                    }
                 )
                 MetricRow(
                     label = stringResource(R.string.metric_emitted_received),

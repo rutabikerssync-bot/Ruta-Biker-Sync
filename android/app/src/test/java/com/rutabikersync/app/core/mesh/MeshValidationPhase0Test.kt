@@ -122,8 +122,20 @@ class MeshValidationPhase0Test {
         val leaderReport = engines.getValue(1u).metrics.value
         // El líder (nodo 1) debe haber recibido el paquete del nodo 5 tras 4 saltos (5->4->3->2->1)
         assertEquals(1, leaderReport.packetsReceivedValid)
-        assertEquals(4.0f, leaderReport.avgHops, 0.01f)
-        assertEquals(100.0f, leaderReport.heartbeatsDeliveredPct, 0.01f)
+        assertNotNull(leaderReport.avgHops)
+        assertEquals(4.0f, leaderReport.avgHops!!, 0.01f)
+        assertNotNull(leaderReport.heartbeatsDeliveredPct)
+        assertEquals(100.0f, leaderReport.heartbeatsDeliveredPct!!, 0.01f)
+
+        // Un nodo solitario sin paquetes recibidos (ej. el propio emisor nodo 5 si nadie más emitió)
+        // debe reportar null en heartbeatsDeliveredPct y avgHops (en pantalla "N/D", en JSON null)
+        val soloSenderReport = engines.getValue(5u).metrics.value
+        assertEquals(0, soloSenderReport.packetsReceivedValid)
+        assertNull(soloSenderReport.heartbeatsDeliveredPct)
+        assertNull(soloSenderReport.avgHops)
+        val soloJson = engines.getValue(5u).exportReportJson()
+        assertTrue(soloJson.contains("\"heartbeatsDeliveredPct\": null"))
+        assertTrue(soloJson.contains("\"avgHops\": null"))
 
         // Si el nodo 2 vuelve a retransmitir el mismo paquete (duplicado), el nodo 1 lo descarta
         val duplicateRaw = MeshPacket.createSigned(
