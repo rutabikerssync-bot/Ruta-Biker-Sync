@@ -106,7 +106,9 @@ fun FieldTestScreen(
     val metrics by RideService.sharedMetrics.collectAsState()
 
     var forceSimulation by remember { mutableStateOf(false) }
+    var totalPhonesInTest by remember { mutableIntStateOf(2) }
     var selectedNodeShortId by remember { mutableIntStateOf(1) }
+    var selectedBurstDurationMs by remember { mutableIntStateOf(BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS) }
     var testStartEpochMs by remember { mutableLongStateOf(0L) }
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var exportedJsonText by remember { mutableStateOf<String?>(null) }
@@ -149,14 +151,24 @@ fun FieldTestScreen(
         )
     }
 
+    val expectedConvoyPeers = remember(totalPhonesInTest, selectedNodeShortId) {
+        RideService.computeExpectedPeerIds(totalPhonesInTest, selectedNodeShortId)
+    }
+
+    fun nodeRoleLabel(id: Int, total: Int): String = when {
+        id == 1 -> "Punta (#1 Líder)"
+        id == total -> "Cierre (#$id Sweep)"
+        else -> "Medio (#$id)"
+    }
+
     fun launchRideServiceNow(useSimulated: Boolean) {
-        val expectedConvoyPeers = setOf<UShort>(1u, 2u, 3u) - selectedNodeShortId.toUShort()
         RideService.dispatchStartRide(
             context = context,
             rideId = "field-test-${System.currentTimeMillis()}",
             localShortId = selectedNodeShortId,
             forceSimulated = useSimulated,
             bleModeOverride = selectedTransportMode,
+            advertisingBurstDurationMs = selectedBurstDurationMs,
             expectedPeerShortIds = expectedConvoyPeers
         )
     }
@@ -282,7 +294,7 @@ fun FieldTestScreen(
             }
         }
 
-        // Selector de Rol / ID de Nodo en el convoy
+        // Selector de Nº de Teléfonos (2 a 5) e ID / Rol de este teléfono
         Card(
             colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
             shape = RoundedCornerShape(12.dp),
@@ -293,7 +305,7 @@ fun FieldTestScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "ID y Rol de este dispositivo en la prueba:",
+                    text = "Nº de teléfonos en la prueba (2 a 5):",
                     color = BikerColors.TextPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -303,16 +315,19 @@ fun FieldTestScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf(
-                        1 to "Punta (#1 Líder)",
-                        2 to "Medio (#2 Centro)",
-                        3 to "Cierre (#3 Sweep)"
-                    ).forEach { (id, label) ->
+                    (2..5).forEach { count ->
                         FilterChip(
-                            selected = selectedNodeShortId == id,
-                            onClick = { if (!isRunning) selectedNodeShortId = id },
+                            selected = totalPhonesInTest == count,
+                            onClick = {
+                                if (!isRunning) {
+                                    totalPhonesInTest = count
+                                    if (selectedNodeShortId > count) {
+                                        selectedNodeShortId = count
+                                    }
+                                }
+                            },
                             enabled = !isRunning,
-                            label = { Text(label, fontSize = 12.sp) },
+                            label = { Text("$count telfs", fontSize = 12.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BikerColors.PrimaryAmber,
                                 selectedLabelColor = BikerColors.BackgroundDark
@@ -320,10 +335,48 @@ fun FieldTestScreen(
                         )
                     }
                 }
+
+                Text(
+                    text = "ID de este teléfono (1 a $totalPhonesInTest) · ${nodeRoleLabel(selectedNodeShortId, totalPhonesInTest)}:",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    (1..totalPhonesInTest).forEach { id ->
+                        val shortLabel = when {
+                            id == 1 -> "#1 Punta"
+                            id == totalPhonesInTest -> "#$id Cierre"
+                            else -> "#$id Medio"
+                        }
+                        FilterChip(
+                            selected = selectedNodeShortId == id,
+                            onClick = { if (!isRunning) selectedNodeShortId = id },
+                            enabled = !isRunning,
+                            label = { Text(shortLabel, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BikerColors.PrimaryAmber,
+                                selectedLabelColor = BikerColors.BackgroundDark
+                            )
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Pares esperados registrados al iniciar: ${expectedConvoyPeers.sorted().joinToString(", ") { "#$it" }}",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
             }
         }
 
-        // Selector de Modo de Transporte BLE (Legacy / Extendido / Extendido+Coded PHY)
+        // Selector de Modo de Transporte BLE + Duración de Ráfaga F3 + ScanSettings
+        val effectiveBleMode = bleCaps.resolveEffectiveMode(selectedTransportMode)
         Card(
             colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
             shape = RoundedCornerShape(12.dp),
@@ -334,7 +387,7 @@ fun FieldTestScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Modo de Transporte BLE forzado (${bleCaps.resolveEffectiveMode(selectedTransportMode)}):",
+                    text = "Modo de Transporte BLE forzado ($effectiveBleMode):",
                     color = BikerColors.TextPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -357,6 +410,38 @@ fun FieldTestScreen(
                         )
                     }
                 }
+
+                Text(
+                    text = "Duración de ráfaga F3 (igual para Legacy y Extendido): ${selectedBurstDurationMs} ms",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    BleAdvTransport.SUPPORTED_BURST_DURATIONS_MS.forEach { burstMs ->
+                        FilterChip(
+                            selected = selectedBurstDurationMs == burstMs,
+                            onClick = { if (!isRunning) selectedBurstDurationMs = burstMs },
+                            enabled = !isRunning,
+                            label = { Text("${burstMs} ms", fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BikerColors.PrimaryAmber,
+                                selectedLabelColor = BikerColors.BackgroundDark
+                            )
+                        )
+                    }
+                }
+
+                Text(
+                    text = "ScanSettings: ${BleAdvTransport.describeScanSettings(effectiveBleMode)}",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
             }
         }
 
@@ -784,12 +869,11 @@ fun FieldTestScreen(
             onClick = {
                 val durationSec = elapsedSeconds
                 val reportJson = generateMetricsJson(
-                    nodeRole = when (selectedNodeShortId) {
-                        1 -> "Punta (#1 Líder)"
-                        2 -> "Medio (#2 Centro)"
-                        else -> "Cierre (#3 Sweep)"
-                    },
+                    nodeRole = nodeRoleLabel(selectedNodeShortId, totalPhonesInTest),
                     shortId = selectedNodeShortId,
+                    totalPhonesInTest = totalPhonesInTest,
+                    selectedBurstDurationMs = selectedBurstDurationMs,
+                    expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
                     durationSeconds = durationSec,
                     rideState = rideState,
                     metrics = metrics,
@@ -935,6 +1019,9 @@ private fun formatElapsed(totalSeconds: Long): String {
 private fun generateMetricsJson(
     nodeRole: String,
     shortId: Int,
+    totalPhonesInTest: Int,
+    selectedBurstDurationMs: Int,
+    expectedPeerIdsFallback: List<Int>,
     durationSeconds: Long,
     rideState: com.rutabikersync.app.core.mesh.RideSessionState,
     metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
@@ -957,6 +1044,16 @@ private fun generateMetricsJson(
     } else {
         "ADVERTISE_TX_POWER_HIGH (+1 dBm nominal)"
     }
+    val burstDurationMs = if (rideState.lifecycleState != RideLifecycleState.IDLE) {
+        rideState.f3AdvertisingBurstDurationMs
+    } else {
+        selectedBurstDurationMs
+    }
+    val expectedPeersForExport = if (rideState.expectedPeerShortIds.isNotEmpty()) {
+        rideState.expectedPeerShortIds
+    } else {
+        expectedPeerIdsFallback
+    }
 
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
@@ -976,16 +1073,22 @@ private fun generateMetricsJson(
         put("forcedBleTransportMode", rideState.forcedBleMode ?: selectedTransportMode.code)
         put("effectiveBleTransportMode", effectiveBleMode)
         put("f3AdvertisingIntervalSetting", f3IntervalSetting)
-        put("f3AdvertisingBurstDurationMs", if (isExtendedMode) 300 else 1500)
+        put("f3AdvertisingBurstDurationMs", burstDurationMs)
         put("f3HeartbeatCadenceMs", rideState.heartbeatIntervalMs)
         put("f3TxPowerLevelSetting", f3TxPowerSetting)
         put("f3LastMeasuredTxPowerDbm", rideState.f3LastMeasuredTxPowerDbm ?: JSONObject.NULL)
         put("f3StopAdvertisingSetOnFinish", true)
         put("f3AdvertisingSetsStarted", rideState.f3AdvertisingSetsStarted)
         put("f3AdvertisingSetsStopped", rideState.f3AdvertisingSetsStopped)
+        put("f3ScanSettingsDescription", BleAdvTransport.describeScanSettings(effectiveBleMode))
+        put("f3ScanMode", "SCAN_MODE_LOW_LATENCY (2)")
+        put("f3ScanLegacyOnly", !isExtendedMode)
+        put("f3ScanPhy", if (isExtendedMode) "PHY_LE_ALL_SUPPORTED (255)" else "PHY_LE_1M (1)")
+        put("f3ScanReportDelayMs", 0)
+        put("totalPhonesInTest", totalPhonesInTest)
         put("assignedRole", nodeRole)
         put("localNodeShortId", shortId)
-        put("expectedPeerShortIds", org.json.JSONArray(rideState.expectedPeerShortIds))
+        put("expectedPeerShortIds", org.json.JSONArray(expectedPeersForExport))
         put("testDurationSeconds", durationSeconds)
         put("testDurationFormatted", formatElapsed(durationSeconds))
         put("transportName", rideState.transportName)

@@ -3,6 +3,7 @@ package com.rutabikersync.app.core.mesh
 import android.Manifest
 import android.content.pm.ServiceInfo
 import android.os.Build
+import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -321,6 +322,107 @@ class RideServicePhase3Test {
         assertEquals(0.0f, reportAt15s.heartbeatsDeliveredPct!!, 0.001f)
         assertEquals(2, controller.state.value.lostRidersCount)
         assertEquals(0, controller.state.value.connectedRidersCount)
+
+        controller.stopAll()
+    }
+
+    @Test
+    fun `computeExpectedPeerIds derives expected peers from 2 to 5 phones and 2-phone test does not mark node 3 as lost`() = runTest(UnconfinedTestDispatcher()) {
+        // 2 teléfonos: #1 solo espera a {2}; #2 solo espera a {1}
+        assertEquals(setOf<UShort>(2u), RideService.computeExpectedPeerIds(totalPhonesInTest = 2, localNodeShortId = 1))
+        assertEquals(setOf<UShort>(1u), RideService.computeExpectedPeerIds(totalPhonesInTest = 2, localNodeShortId = 2))
+
+        // 3 teléfonos: #1 espera a {2, 3}
+        assertEquals(setOf<UShort>(2u, 3u), RideService.computeExpectedPeerIds(totalPhonesInTest = 3, localNodeShortId = 1))
+
+        // 4 y 5 teléfonos
+        assertEquals(setOf<UShort>(1u, 3u, 4u), RideService.computeExpectedPeerIds(totalPhonesInTest = 4, localNodeShortId = 2))
+        assertEquals(setOf<UShort>(1u, 2u, 3u, 4u), RideService.computeExpectedPeerIds(totalPhonesInTest = 5, localNodeShortId = 5))
+
+        // Prueba de 2 teléfonos (#1 y #2) donde ambos emiten: 100 % de entrega y 0 perdidos (no existe #3 fantasma)
+        val medium = SimulatedBleMedium()
+        val secretKey = "rbs-2phone-test-secret-key-32b!!".toByteArray(Charsets.UTF_8)
+        val t0 = 800_000L
+
+        val phone1 = RideSessionController(
+            scope = backgroundScope,
+            bleTransportFactory = { null },
+            simulatedMedium = medium
+        )
+        val phone2 = RideSessionController(
+            scope = backgroundScope,
+            bleTransportFactory = { null },
+            simulatedMedium = medium
+        )
+
+        val state1 = phone1.startRide(
+            rideId = "ride-2phones",
+            localShortId = 1u,
+            rideSecretKey = secretKey,
+            forceSimulatedTransport = true,
+            expectedPeerShortIds = RideService.computeExpectedPeerIds(totalPhonesInTest = 2, localNodeShortId = 1),
+            enablePeriodicHeartbeatLoop = false,
+            nowEpochMs = t0
+        )
+        phone2.startRide(
+            rideId = "ride-2phones",
+            localShortId = 2u,
+            rideSecretKey = secretKey,
+            forceSimulatedTransport = true,
+            expectedPeerShortIds = RideService.computeExpectedPeerIds(totalPhonesInTest = 2, localNodeShortId = 2),
+            enablePeriodicHeartbeatLoop = false,
+            nowEpochMs = t0
+        )
+
+        assertEquals(listOf(2), state1.expectedPeerShortIds)
+        assertEquals(BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS, state1.f3AdvertisingBurstDurationMs)
+
+        // Ambos teléfonos emiten a los 3 s, 6 s, 9 s, 12 s y 15 s
+        for (step in 1..5) {
+            val now = t0 + step * 3_000L
+            phone2.emitHeartbeatNow(nowEpochMs = now)
+            phone1.emitHeartbeatNow(nowEpochMs = now + 50L)
+        }
+
+        // En una prueba de 2 teléfonos, phone1 tiene 1 conectado (#2), 0 perdidos (no hay #3 fantasma) y 100 % de entrega
+        assertEquals(1, phone1.state.value.connectedRidersCount)
+        assertEquals(0, phone1.state.value.lostRidersCount)
+        val report1 = phone1.metrics.value!!
+        assertEquals(100.0f, report1.heartbeatsDeliveredPct!!, 0.001f)
+
+        phone1.stopAll()
+        phone2.stopAll()
+    }
+
+    @Test
+    fun `F3 burst duration is identical by default for Legacy and Extended and configurable with ScanSettings description`() = runTest(UnconfinedTestDispatcher()) {
+        assertEquals(1_000, BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS)
+        assertEquals(listOf(300, 600, 1_000, 1_500), BleAdvTransport.SUPPORTED_BURST_DURATIONS_MS)
+
+        val medium = SimulatedBleMedium()
+        val controller = RideSessionController(
+            scope = backgroundScope,
+            bleTransportFactory = { null },
+            simulatedMedium = medium
+        )
+
+        val stateCustomBurst = controller.startRide(
+            rideId = "ride-f3-burst-600",
+            localShortId = 1u,
+            forceSimulatedTransport = true,
+            advertisingBurstDurationMs = 600,
+            enablePeriodicHeartbeatLoop = false
+        )
+        assertEquals(600, stateCustomBurst.f3AdvertisingBurstDurationMs)
+
+        val legacyScanDesc = BleAdvTransport.describeScanSettings("LEGACY_1M")
+        val extScanDesc = BleAdvTransport.describeScanSettings("EXTENDED_CODED_PHY")
+        assertTrue(legacyScanDesc.contains("SCAN_MODE_LOW_LATENCY"))
+        assertTrue(legacyScanDesc.contains("legacy=true"))
+        assertTrue(legacyScanDesc.contains("phy=PHY_LE_1M (1)"))
+        assertTrue(extScanDesc.contains("SCAN_MODE_LOW_LATENCY"))
+        assertTrue(extScanDesc.contains("legacy=false"))
+        assertTrue(extScanDesc.contains("phy=PHY_LE_ALL_SUPPORTED"))
 
         controller.stopAll()
     }

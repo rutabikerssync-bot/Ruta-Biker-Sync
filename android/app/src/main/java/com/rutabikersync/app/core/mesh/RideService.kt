@@ -77,6 +77,7 @@ data class RideSessionState(
     val expectedPeerShortIds: List<Int> = emptyList(),
     val transportName: String = "Idle",
     val forcedBleMode: String? = null,
+    val f3AdvertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
     val f3AdvertisingSetsStarted: Int = 0,
     val f3AdvertisingSetsStopped: Int = 0,
     val f3LastMeasuredTxPowerDbm: Int? = null,
@@ -167,6 +168,7 @@ class RideSessionController(
         rideSecretKey: ByteArray = "rbs-phase3-default-ride-key-32b!".toByteArray(Charsets.UTF_8),
         forceSimulatedTransport: Boolean = false,
         bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+        advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
         expectedPeerShortIds: Set<UShort> = emptySet(),
         enablePeriodicHeartbeatLoop: Boolean = true,
         nowEpochMs: Long = System.currentTimeMillis()
@@ -176,7 +178,8 @@ class RideSessionController(
         val (selectedTransport, isSimulated) = resolveTransport(
             localShortId = localShortId,
             forceSimulated = forceSimulatedTransport,
-            bleModeOverride = bleModeOverride
+            bleModeOverride = bleModeOverride,
+            advertisingBurstDurationMs = advertisingBurstDurationMs
         )
         activeTransport = selectedTransport
 
@@ -229,6 +232,7 @@ class RideSessionController(
             expectedPeerShortIds = effectiveExpectedPeers.map { it.toInt() }.sorted(),
             transportName = selectedTransport.name,
             forcedBleMode = bleModeOverride?.code,
+            f3AdvertisingBurstDurationMs = advertisingBurstDurationMs,
             isUsingSimulatedTransport = isSimulated,
             connectedRidersCount = 0,
             lostRidersCount = 0,
@@ -523,12 +527,14 @@ class RideSessionController(
     private fun resolveTransport(
         localShortId: UShort,
         forceSimulated: Boolean,
-        bleModeOverride: BleAdvTransport.TransportModeOverride? = null
+        bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+        advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS
     ): Pair<Transport, Boolean> {
         if (!forceSimulated) {
             val realBle = runCatching { bleTransportFactory?.invoke() }.getOrNull()
             if (realBle != null) {
                 realBle.modeOverride = bleModeOverride
+                realBle.advertisingBurstDurationMs = advertisingBurstDurationMs
                 val caps = runCatching { realBle.queryCapabilities() }.getOrNull()
                 if (caps != null && caps.bluetoothSupported && caps.bluetoothEnabled) {
                     return realBle to false
@@ -663,8 +669,23 @@ class RideService : Service() {
         const val EXTRA_LOCAL_SHORT_ID = "extra_local_short_id"
         const val EXTRA_FORCE_SIMULATED = "extra_force_simulated"
         const val EXTRA_BLE_MODE_OVERRIDE = "extra_ble_mode_override"
+        const val EXTRA_ADVERTISING_BURST_DURATION_MS = "extra_advertising_burst_duration_ms"
         const val EXTRA_EXPECTED_PEER_SHORT_IDS = "extra_expected_peer_short_ids"
         const val EXTRA_RIDE_START_ERROR_MESSAGE = "extra_ride_start_error_message"
+
+        /**
+         * Función pura que devuelve los pares esperados del convoy dado el nº de teléfonos en la prueba (2..5)
+         * y el ID de este teléfono (1..totalPhonesInTest), evitando marcar como perdidos nodos inexistentes
+         * (ej. con 2 teléfonos e ID #1, solo espera al nodo #2 y no al #3).
+         */
+        fun computeExpectedPeerIds(totalPhonesInTest: Int, localNodeShortId: Int): Set<UShort> {
+            val clampedTotal = totalPhonesInTest.coerceIn(2, 5)
+            val clampedLocal = localNodeShortId.coerceIn(1, clampedTotal)
+            return (1..clampedTotal)
+                .filter { it != clampedLocal }
+                .map { it.toUShort() }
+                .toSet()
+        }
 
         private val _sharedState = MutableStateFlow(RideSessionState())
         val sharedState: StateFlow<RideSessionState> = _sharedState.asStateFlow()
@@ -810,6 +831,7 @@ class RideService : Service() {
             localShortId: Int = 1,
             forceSimulated: Boolean = false,
             bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
+            advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
             expectedPeerShortIds: Set<UShort> = emptySet()
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
@@ -820,6 +842,7 @@ class RideService : Service() {
                     putExtra(EXTRA_LOCAL_SHORT_ID, localShortId)
                     putExtra(EXTRA_FORCE_SIMULATED, false)
                     putExtra(EXTRA_BLE_MODE_OVERRIDE, bleModeOverride?.code)
+                    putExtra(EXTRA_ADVERTISING_BURST_DURATION_MS, advertisingBurstDurationMs)
                     putExtra(
                         EXTRA_EXPECTED_PEER_SHORT_IDS,
                         expectedPeerShortIds.map { it.toInt() }.toIntArray()
@@ -838,6 +861,7 @@ class RideService : Service() {
                         localShortId = localShortId.toUShort(),
                         forceSimulatedTransport = true,
                         bleModeOverride = bleModeOverride,
+                        advertisingBurstDurationMs = advertisingBurstDurationMs,
                         expectedPeerShortIds = expectedPeerShortIds
                     )
                     _sharedState.value = state
@@ -915,6 +939,10 @@ class RideService : Service() {
                 val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(
                     intent.getStringExtra(EXTRA_BLE_MODE_OVERRIDE)
                 )
+                val advertisingBurstDurationMs = intent.getIntExtra(
+                    EXTRA_ADVERTISING_BURST_DURATION_MS,
+                    BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS
+                )
                 val expectedPeerShortIds = intent.getIntArrayExtra(EXTRA_EXPECTED_PEER_SHORT_IDS)
                     ?.map { it.toUShort() }
                     ?.toSet()
@@ -956,6 +984,7 @@ class RideService : Service() {
                         localShortId = shortId,
                         forceSimulatedTransport = effectiveForceSim,
                         bleModeOverride = bleModeOverride,
+                        advertisingBurstDurationMs = advertisingBurstDurationMs,
                         expectedPeerShortIds = expectedPeerShortIds
                     )
                     _sharedState.value = state

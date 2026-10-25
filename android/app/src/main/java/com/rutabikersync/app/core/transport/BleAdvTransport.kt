@@ -34,7 +34,8 @@ import java.util.UUID
  */
 class BleAdvTransport(
     context: Context,
-    @Volatile var modeOverride: TransportModeOverride? = null
+    @Volatile var modeOverride: TransportModeOverride? = null,
+    @Volatile var advertisingBurstDurationMs: Int = DEFAULT_ADVERTISING_BURST_DURATION_MS
 ) : Transport {
 
     enum class TransportModeOverride(val code: String, val displayLabel: String) {
@@ -49,9 +50,21 @@ class BleAdvTransport(
     }
 
     companion object {
+        const val DEFAULT_ADVERTISING_BURST_DURATION_MS: Int = 1_000
+        val SUPPORTED_BURST_DURATIONS_MS: List<Int> = listOf(300, 600, 1_000, 1_500)
+
         val MESH_SERVICE_UUID: ParcelUuid = ParcelUuid(
             UUID.fromString("0000B1CE-0000-1000-8000-00805F9B34FB")
         )
+
+        fun describeScanSettings(effectiveMode: String): String {
+            val isExtended = effectiveMode == "EXTENDED_1M" || effectiveMode == "EXTENDED_CODED_PHY"
+            return if (isExtended) {
+                "SCAN_MODE_LOW_LATENCY (2) | legacy=false (Legacy+Extended) | phy=PHY_LE_ALL_SUPPORTED (255: 1M+Coded) | reportDelay=0ms"
+            } else {
+                "SCAN_MODE_LOW_LATENCY (2) | legacy=true (Legacy only) | phy=PHY_LE_1M (1) | reportDelay=0ms"
+            }
+        }
     }
 
     data class BleCapabilities(
@@ -237,6 +250,7 @@ class BleAdvTransport(
             .build()
 
         val mode = caps.resolveEffectiveMode(modeOverride)
+        val burstMs = advertisingBurstDurationMs.coerceIn(100, 2_500)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             caps.extendedAdvertisingSupported &&
             (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
@@ -291,7 +305,7 @@ class BleAdvTransport(
                     enable: Boolean,
                     status: Int
                 ) {
-                    // Cuando expira la ventana de 300 ms (duration = 30), el chip deshabilita el anuncio (enable = false)
+                    // Cuando expira la ráfaga configurada (durationUnits10Ms), el chip deshabilita el anuncio (enable = false)
                     // pero mantiene ocupado el slot de AdvertisingSet hasta invocar stopAdvertisingSet(callback).
                     if (!enable && activeExtendedCallbacks.remove(this)) {
                         runCatching { adv.stopAdvertisingSet(this) }
@@ -305,9 +319,10 @@ class BleAdvTransport(
             }
             activeExtendedCallbacks.add(callback)
             activeExtendedCallback = callback
+            val durationUnits10Ms = (burstMs / 10).coerceIn(10, 65_535)
             runCatching {
                 advertisingSetsStartedCount++
-                adv.startAdvertisingSet(params, advertiseData, null, null, null, 30, 0, callback)
+                adv.startAdvertisingSet(params, advertiseData, null, null, null, durationUnits10Ms, 0, callback)
             }.onFailure {
                 if (activeExtendedCallbacks.remove(callback)) {
                     advertisingSetsStoppedCount++
@@ -324,7 +339,7 @@ class BleAdvTransport(
                 .setAdvertiseMode(advMode)
                 .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
                 .setConnectable(false)
-                .setTimeout(1_500)
+                .setTimeout(burstMs)
                 .build()
 
             val callback = object : AdvertiseCallback() {}
