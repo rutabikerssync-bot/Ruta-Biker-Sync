@@ -120,6 +120,9 @@ data class RideSessionState(
     val isMapFrozen: Boolean = false,
     val lastBatteryTtsAlert: String? = null,
     val lastStartError: String? = null,
+    val relayEnabled: Boolean = true,
+    val txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
+    val unfilteredScanDiagnostic: Boolean = false,
     val notification: RideNotificationSnapshot = RideNotificationSnapshot(
         title = "Ruta Biker Sync",
         contentText = "Sin rodada activa",
@@ -201,6 +204,9 @@ class RideSessionController(
         advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
         expectedPeerShortIds: Set<UShort> = emptySet(),
         enablePeriodicHeartbeatLoop: Boolean = true,
+        relayEnabled: Boolean = true,
+        txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
+        unfilteredScanDiagnostic: Boolean = false,
         nowEpochMs: Long = System.currentTimeMillis()
     ): RideSessionState {
         stopAllInternal(resetToIdle = false)
@@ -221,14 +227,17 @@ class RideSessionController(
             localShortId = localShortId,
             forceSimulated = forceSimulatedTransport,
             bleModeOverride = bleModeOverride,
-            advertisingBurstDurationMs = advertisingBurstDurationMs
+            advertisingBurstDurationMs = advertisingBurstDurationMs,
+            txRxRole = txRxRole,
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic
         )
         activeTransport = selectedTransport
 
         val engine = MeshRelayEngine(
             localShortId = localShortId,
             transport = selectedTransport,
-            rideSecretKey = effectiveRideSecretKey
+            rideSecretKey = effectiveRideSecretKey,
+            relayEnabled = relayEnabled
         )
         relayEngine = engine
         val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
@@ -299,6 +308,9 @@ class RideSessionController(
             stopRequestedAtEpochMs = null,
             voiceClipsPurgedOnClose = false,
             emergencyAccessRevokedOnClose = false,
+            relayEnabled = relayEnabled,
+            txRxRole = txRxRole,
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic,
             notification = initialSnapshot
         )
         runCatching {
@@ -592,13 +604,17 @@ class RideSessionController(
         localShortId: UShort,
         forceSimulated: Boolean,
         bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
-        advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS
+        advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
+        txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
+        unfilteredScanDiagnostic: Boolean = false
     ): Pair<Transport, Boolean> {
         if (!forceSimulated) {
             val realBle = runCatching { bleTransportFactory?.invoke() }.getOrNull()
             if (realBle != null) {
                 realBle.modeOverride = bleModeOverride
                 realBle.advertisingBurstDurationMs = advertisingBurstDurationMs
+                realBle.txRxRole = txRxRole
+                realBle.unfilteredScanDiagnostic = unfilteredScanDiagnostic
                 val caps = runCatching { realBle.queryCapabilities() }.getOrNull()
                 if (caps != null && caps.bluetoothSupported && caps.bluetoothEnabled) {
                     return realBle to false
@@ -749,6 +765,9 @@ class RideService : Service() {
         const val EXTRA_ADVERTISING_BURST_DURATION_MS = "extra_advertising_burst_duration_ms"
         const val EXTRA_EXPECTED_PEER_SHORT_IDS = "extra_expected_peer_short_ids"
         const val EXTRA_RIDE_START_ERROR_MESSAGE = "extra_ride_start_error_message"
+        const val EXTRA_RELAY_ENABLED = "extra_relay_enabled"
+        const val EXTRA_TX_RX_ROLE = "extra_tx_rx_role"
+        const val EXTRA_UNFILTERED_SCAN_DIAGNOSTIC = "extra_unfiltered_scan_diagnostic"
 
         /**
          * Función pura que devuelve los pares esperados del convoy dado el nº de teléfonos en la prueba (2..5)
@@ -909,7 +928,10 @@ class RideService : Service() {
             forceSimulated: Boolean = false,
             bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
             advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
-            expectedPeerShortIds: Set<UShort> = emptySet()
+            expectedPeerShortIds: Set<UShort> = emptySet(),
+            relayEnabled: Boolean = true,
+            txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
+            unfilteredScanDiagnostic: Boolean = false
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
             if (eligibility.shouldPromoteToForeground) {
@@ -924,6 +946,9 @@ class RideService : Service() {
                         EXTRA_EXPECTED_PEER_SHORT_IDS,
                         expectedPeerShortIds.map { it.toInt() }.toIntArray()
                     )
+                    putExtra(EXTRA_RELAY_ENABLED, relayEnabled)
+                    putExtra(EXTRA_TX_RX_ROLE, txRxRole.code)
+                    putExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, unfilteredScanDiagnostic)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -939,7 +964,10 @@ class RideService : Service() {
                         forceSimulatedTransport = true,
                         bleModeOverride = bleModeOverride,
                         advertisingBurstDurationMs = advertisingBurstDurationMs,
-                        expectedPeerShortIds = expectedPeerShortIds
+                        expectedPeerShortIds = expectedPeerShortIds,
+                        relayEnabled = relayEnabled,
+                        txRxRole = txRxRole,
+                        unfilteredScanDiagnostic = unfilteredScanDiagnostic
                     )
                     _sharedState.value = state
                 }
@@ -963,16 +991,17 @@ class RideService : Service() {
         }
 
         fun dispatchImmediateStopRide(context: Context) {
+            val csv = activeController?.relayEngine?.exportPacketsCsv() ?: activeController?.lastPacketsCsv
+            if (!csv.isNullOrBlank() && csv.lines().count { it.isNotBlank() } > 1) {
+                globalLastPacketsCsv = csv
+            }
             val current = _sharedState.value
             if (current.isUsingSimulatedTransport) {
                 inAppSimScope.launch {
                     val state = inAppSimController.stopAll()
                     _sharedState.value = state
                 }
-                val csv = activeController?.relayEngine?.exportPacketsCsv() ?: activeController?.lastPacketsCsv
-                if (!csv.isNullOrBlank() && csv.lines().count { it.isNotBlank() } > 1) {
-                    globalLastPacketsCsv = csv
-                }
+            } else {
                 val stopIntent = Intent(context, RideService::class.java).apply {
                     action = ACTION_FORCE_STOP_RIDE
                 }
@@ -1101,6 +1130,9 @@ class RideService : Service() {
                     ?.map { it.toUShort() }
                     ?.toSet()
                     ?: emptySet()
+                val relayEnabled = intent.getBooleanExtra(EXTRA_RELAY_ENABLED, true)
+                val txRxRole = BleAdvTransport.TxRxRole.fromCode(intent.getStringExtra(EXTRA_TX_RX_ROLE))
+                val unfilteredScanDiagnostic = intent.getBooleanExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, false)
                 val eligibility = evaluateContextEligibility(this, requestedForceSim)
                 val effectiveForceSim = eligibility.effectiveForceSimulated
 
@@ -1139,7 +1171,10 @@ class RideService : Service() {
                         forceSimulatedTransport = effectiveForceSim,
                         bleModeOverride = bleModeOverride,
                         advertisingBurstDurationMs = advertisingBurstDurationMs,
-                        expectedPeerShortIds = expectedPeerShortIds
+                        expectedPeerShortIds = expectedPeerShortIds,
+                        relayEnabled = relayEnabled,
+                        txRxRole = txRxRole,
+                        unfilteredScanDiagnostic = unfilteredScanDiagnostic
                     )
                     _sharedState.value = state
                     if (isPromotedToForeground) {

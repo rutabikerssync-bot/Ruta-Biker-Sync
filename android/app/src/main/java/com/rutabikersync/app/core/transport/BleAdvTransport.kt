@@ -37,8 +37,21 @@ import java.util.UUID
 class BleAdvTransport(
     context: Context,
     @Volatile var modeOverride: TransportModeOverride? = null,
-    @Volatile var advertisingBurstDurationMs: Int = DEFAULT_ADVERTISING_BURST_DURATION_MS
+    @Volatile var advertisingBurstDurationMs: Int = DEFAULT_ADVERTISING_BURST_DURATION_MS,
+    @Volatile var txRxRole: TxRxRole = TxRxRole.BOTH,
+    @Volatile var unfilteredScanDiagnostic: Boolean = false
 ) : Transport {
+
+    enum class TxRxRole(val code: String, val displayLabel: String) {
+        BOTH("BOTH", "Tx y Rx (Normal)"),
+        TX_ONLY("TX_ONLY", "Solo Emitir (Tx)"),
+        RX_ONLY("RX_ONLY", "Solo Escuchar (Rx)");
+
+        companion object {
+            fun fromCode(code: String?): TxRxRole =
+                entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: BOTH
+        }
+    }
 
     enum class TransportModeOverride(val code: String, val displayLabel: String) {
         LEGACY_1M("LEGACY_1M", "Legacy (1M)"),
@@ -243,9 +256,16 @@ class BleAdvTransport(
         advertiser = adapter.bluetoothLeAdvertiser
         scanner = adapter.bluetoothLeScanner
 
-        // Filtro amplio en hardware para evitar bugs de descarte en chipsets MediaTek (Transsion)
-        // con máscaras vacías de ServiceData. El filtrado exacto por MESH_SERVICE_UUID se hace en scanCallback.
-        val filter = ScanFilter.Builder().build()
+        if (txRxRole != TxRxRole.TX_ONLY) {
+            val filter = if (unfilteredScanDiagnostic) {
+                // Modo diagnóstico: filtro amplio en hardware para aislar comportamiento de HALs
+                ScanFilter.Builder().build()
+            } else {
+                // Modo producción: filtro estándar por ServiceData UUID (requerido para escaneo continuo con pantalla apagada)
+                ScanFilter.Builder()
+                    .setServiceData(MESH_SERVICE_UUID, ByteArray(0), ByteArray(0))
+                    .build()
+            }
 
         val settingsBuilder = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -266,15 +286,18 @@ class BleAdvTransport(
             settingsBuilder.setPhy(BluetoothDevice.PHY_LE_1M)
         }
 
-        scanStartsCount++
-        Log.i(TAG, "startScan (invocation #$scanStartsCount) mode=$mode")
-        runCatching {
-            scanner?.startScan(listOf(filter), settingsBuilder.build(), scanCallback)
-        }.onFailure { ex ->
-            scanFailuresCount++
-            val desc = "START_SCAN_THREW: ${ex.message}"
-            lastScanFailure = desc
-            Log.e(TAG, "scanner.startScan threw exception", ex)
+            scanStartsCount++
+            Log.i(TAG, "startScan (invocation #$scanStartsCount) mode=$mode diagnostic=$unfilteredScanDiagnostic")
+            runCatching {
+                scanner?.startScan(listOf(filter), settingsBuilder.build(), scanCallback)
+            }.onFailure { ex ->
+                scanFailuresCount++
+                val desc = "START_SCAN_THREW: ${ex.message}"
+                lastScanFailure = desc
+                Log.e(TAG, "scanner.startScan threw exception", ex)
+            }
+        } else {
+            Log.i(TAG, "startScan omitido: rol TX_ONLY activo")
         }
     }
 
@@ -391,6 +414,10 @@ class BleAdvTransport(
 
     @SuppressLint("MissingPermission")
     override suspend fun send(payload: ByteArray, priority: Transport.Priority) {
+        if (txRxRole == TxRxRole.RX_ONLY) {
+            Log.d(TAG, "send omitido: rol RX_ONLY activo")
+            return
+        }
         val adv = advertiser ?: return
         val caps = queryCapabilities()
         if (!caps.bluetoothEnabled || !caps.multipleAdvertisementSupported) return

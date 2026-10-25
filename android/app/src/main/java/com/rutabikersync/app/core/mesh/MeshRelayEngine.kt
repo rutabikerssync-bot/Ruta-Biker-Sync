@@ -39,7 +39,8 @@ class MeshRelayEngine(
     private val transport: Transport,
     private val rideSecretKey: ByteArray,
     private val localDeviceModel: String = "Android-Generic",
-    private val dedupCapacity: Int = 2048
+    private val dedupCapacity: Int = 2048,
+    @Volatile var relayEnabled: Boolean = true
 ) {
     companion object {
         const val HEARTBEAT_INTERVAL_MS: Long = 3_000L
@@ -403,7 +404,7 @@ class MeshRelayEngine(
                 updatePeerTrackLocked(packet, nowEpochMs)
             }
 
-            val decremented = packet.decrementTtlForRelay()
+            val decremented = if (relayEnabled) packet.decrementTtlForRelay() else null
             if (decremented != null) {
                 relayQueue.add(QueuedRelay(decremented, enqueueSequence++))
                 relayCandidate = relayQueue.poll()?.packet

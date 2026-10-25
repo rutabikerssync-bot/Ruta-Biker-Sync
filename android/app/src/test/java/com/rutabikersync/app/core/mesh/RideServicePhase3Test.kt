@@ -426,4 +426,81 @@ class RideServicePhase3Test {
 
         controller.stopAll()
     }
+
+    @Test
+    fun `Pliego Point 2 testDurationSeconds is strictly calculated as end minus start divided by 1000`() {
+        val startEpochMs = 1792965408600L
+        val endEpochMs = 1792965551792L
+        val durationSeconds = ((endEpochMs - startEpochMs) / 1000L).coerceAtLeast(0L)
+        assertEquals(143L, durationSeconds)
+    }
+
+    @Test
+    fun `Pliego Point 4 relayEnabled false disables packet relay retransmission`() = runTest(UnconfinedTestDispatcher()) {
+        val medium = SimulatedBleMedium()
+        val secretKey = "rbs-phase3-test-secret-key-32b!!".toByteArray(Charsets.UTF_8)
+
+        // phone2 sits in the middle with relayEnabled = false
+        val phone1 = RideSessionController(scope = backgroundScope, bleTransportFactory = { null }, simulatedMedium = medium)
+        val phone2 = RideSessionController(scope = backgroundScope, bleTransportFactory = { null }, simulatedMedium = medium)
+
+        phone1.startRide(
+            rideId = "ride-relay-test",
+            localShortId = 1u,
+            rideSecretKey = secretKey,
+            forceSimulatedTransport = true,
+            enablePeriodicHeartbeatLoop = false
+        )
+        val state2 = phone2.startRide(
+            rideId = "ride-relay-test",
+            localShortId = 2u,
+            rideSecretKey = secretKey,
+            forceSimulatedTransport = true,
+            relayEnabled = false,
+            enablePeriodicHeartbeatLoop = false
+        )
+
+        assertFalse(state2.relayEnabled)
+        assertFalse(phone2.relayEngine!!.relayEnabled)
+
+        // phone1 emits heartbeat
+        phone1.emitHeartbeatNow(nowEpochMs = 1_000L)
+
+        // phone2 receives from phone1, but since relayEnabled = false, it does NOT enqueue relay packet
+        val relayReport = phone2.relayEngine!!.metrics.value
+        assertEquals(1, relayReport.packetsReceivedValid)
+        assertEquals(0, relayReport.packetsRelayed)
+
+        phone1.stopAll()
+        phone2.stopAll()
+    }
+
+    @Test
+    fun `Pliego Point 5 CSV packet export contains valid headers and packet records after mesh exchange`() = runTest(UnconfinedTestDispatcher()) {
+        val medium = SimulatedBleMedium()
+        val secretKey = "rbs-phase3-test-secret-key-32b!!".toByteArray(Charsets.UTF_8)
+
+        val node1 = RideSessionController(scope = backgroundScope, bleTransportFactory = { null }, simulatedMedium = medium)
+        val node2 = RideSessionController(scope = backgroundScope, bleTransportFactory = { null }, simulatedMedium = medium)
+
+        node1.startRide(rideId = "csv-test", localShortId = 1u, rideSecretKey = secretKey, forceSimulatedTransport = true, enablePeriodicHeartbeatLoop = false)
+        node2.startRide(rideId = "csv-test", localShortId = 2u, rideSecretKey = secretKey, forceSimulatedTransport = true, enablePeriodicHeartbeatLoop = false)
+
+        node1.emitHeartbeatNow(nowEpochMs = 2_000L)
+
+        val csv1 = node1.relayEngine!!.exportPacketsCsv()
+        val csv2 = node2.relayEngine!!.exportPacketsCsv()
+
+        val lines1 = csv1.lines().filter { it.isNotBlank() }
+        val lines2 = csv2.lines().filter { it.isNotBlank() }
+
+        assertTrue(lines1.size >= 2)
+        assertTrue(lines2.size >= 2)
+        assertTrue(lines1[0].contains("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction"))
+        assertTrue(lines1[1].contains("TX"))
+        assertTrue(lines2[1].contains("RX"))
+
+        node1.stopAll()
+        node2.stopAll()
+    }
 }

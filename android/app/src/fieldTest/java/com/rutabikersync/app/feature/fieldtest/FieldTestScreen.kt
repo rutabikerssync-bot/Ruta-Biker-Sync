@@ -91,12 +91,31 @@ import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import com.rutabikersync.app.BuildConfig
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+data class FieldTestConfigSnapshot(
+    val testStartEpochMs: Long,
+    val localNodeShortId: Int,
+    val totalPhonesInTest: Int,
+    val nodeRole: String,
+    val expectedPeerShortIds: List<Int>,
+    val forcedBleTransportMode: String?,
+    val effectiveBleTransportMode: String,
+    val advertisingBurstDurationMs: Int,
+    val scanMode: String = "SCAN_MODE_LOW_LATENCY (2)",
+    val matchMode: String = "MATCH_MODE_AGGRESSIVE (1)",
+    val callbackType: String = "CALLBACK_TYPE_ALL_MATCHES (1)",
+    val relayEnabled: Boolean = true,
+    val txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
+    val unfilteredScanDiagnostic: Boolean = false,
+    val bleCapabilitiesSnapshot: BleAdvTransport.BleCapabilities
+)
 
 data class RadioEnvironmentSnapshot(
     val wifiEnabled: Boolean,
@@ -183,6 +202,11 @@ fun FieldTestScreen(
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var exportedJsonText by remember { mutableStateOf<String?>(null) }
     var exportedFilePath by remember { mutableStateOf<String?>(null) }
+    var relayEnabled by remember { mutableStateOf(true) }
+    var txRxRole by remember { mutableStateOf(BleAdvTransport.TxRxRole.BOTH) }
+    var unfilteredScanDiagnostic by remember { mutableStateOf(false) }
+    var activeTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
+    var lastTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
     var showBatteryGuideDialog by remember { mutableStateOf(false) }
     var showSimulatedFallbackPrompt by remember { mutableStateOf(false) }
     var permanentlyDeniedDetected by remember { mutableStateOf(false) }
@@ -251,17 +275,44 @@ fun FieldTestScreen(
     }
 
     fun launchRideServiceNow(useSimulated: Boolean) {
+        val now = System.currentTimeMillis()
+        testStartEpochMs = now
+        testEndEpochMs = 0L
         screenKeepOnActiveDuringTest = true
         view.keepScreenOn = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        val snapshot = FieldTestConfigSnapshot(
+            testStartEpochMs = now,
+            localNodeShortId = selectedNodeShortId,
+            totalPhonesInTest = totalPhonesInTest,
+            nodeRole = nodeRoleLabel(selectedNodeShortId, totalPhonesInTest),
+            expectedPeerShortIds = expectedConvoyPeers.map { it.toInt() }.sorted(),
+            forcedBleTransportMode = selectedTransportMode.code,
+            effectiveBleTransportMode = bleCaps.resolveEffectiveMode(selectedTransportMode),
+            advertisingBurstDurationMs = selectedBurstDurationMs,
+            scanMode = "SCAN_MODE_LOW_LATENCY (2)",
+            matchMode = "MATCH_MODE_AGGRESSIVE (1)",
+            callbackType = "CALLBACK_TYPE_ALL_MATCHES (1)",
+            relayEnabled = relayEnabled,
+            txRxRole = txRxRole,
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic,
+            bleCapabilitiesSnapshot = bleCaps
+        )
+        activeTestSnapshot = snapshot
+        lastTestSnapshot = snapshot
+
         RideService.dispatchStartRide(
             context = context,
-            rideId = "field-test-${System.currentTimeMillis()}",
+            rideId = "field-test-$now",
             localShortId = selectedNodeShortId,
             forceSimulated = useSimulated,
             bleModeOverride = selectedTransportMode,
             advertisingBurstDurationMs = selectedBurstDurationMs,
-            expectedPeerShortIds = expectedConvoyPeers
+            expectedPeerShortIds = expectedConvoyPeers,
+            relayEnabled = relayEnabled,
+            txRxRole = txRxRole,
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic
         )
     }
 
@@ -643,6 +694,117 @@ fun FieldTestScreen(
                         checkedTrackColor = BikerColors.PrimaryAmber.copy(alpha = 0.5f)
                     )
                 )
+            }
+        }
+
+        // Configuración de Relé, Rol de Tráfico y Diagnóstico de Escáner
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BikerColors.SurfaceDark),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Control de Relé y Tráfico (Protocolo de Campo):",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                // 1. Relé ON/OFF
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Relé Mesh (Retransmisión)",
+                            color = if (relayEnabled) BikerColors.StatusGreen else BikerColors.StatusYellow,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (relayEnabled) {
+                                "ACTIVO: retransmite ráfagas ajenas (convoy normal)"
+                            } else {
+                                "DESACTIVADO (R1): no retransmite (alcance directo puro)"
+                            },
+                            color = BikerColors.TextSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Switch(
+                        checked = relayEnabled,
+                        onCheckedChange = { if (!isRunning) relayEnabled = it },
+                        enabled = !isRunning,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BikerColors.StatusGreen,
+                            checkedTrackColor = BikerColors.StatusGreen.copy(alpha = 0.5f)
+                        )
+                    )
+                }
+
+                // 2. Rol de tráfico (Ambos, Solo TX, Solo RX)
+                Text(
+                    text = "Rol de Tráfico en la Prueba:",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    BleAdvTransport.TxRxRole.entries.forEach { role ->
+                        FilterChip(
+                            selected = txRxRole == role,
+                            onClick = { if (!isRunning) txRxRole = role },
+                            enabled = !isRunning,
+                            label = { Text(role.displayLabel, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = BikerColors.PrimaryAmber,
+                                selectedLabelColor = BikerColors.BackgroundDark
+                            )
+                        )
+                    }
+                }
+
+                // 3. Escáner amplio diagnóstico (sin filtro UUID)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Diagnóstico: Escáner sin filtro UUID",
+                            color = if (unfilteredScanDiagnostic) BikerColors.StatusRed else BikerColors.TextSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (unfilteredScanDiagnostic) {
+                                "⚠ Activo: recibe todos los anuncios BLE (solo diagnóstico)."
+                            } else {
+                                "Normal: filtro ServiceData UUID (requisito Android 8.1+)"
+                            },
+                            color = BikerColors.TextSecondary,
+                            fontSize = 10.sp
+                        )
+                    }
+                    Switch(
+                        checked = unfilteredScanDiagnostic,
+                        onCheckedChange = { if (!isRunning) unfilteredScanDiagnostic = it },
+                        enabled = !isRunning,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = BikerColors.StatusRed,
+                            checkedTrackColor = BikerColors.StatusRed.copy(alpha = 0.5f)
+                        )
+                    )
+                }
             }
         }
 
@@ -1105,52 +1267,78 @@ fun FieldTestScreen(
         // 3. BOTÓN DE EXPORTAR MÉTRICAS (genera JSON estructurado y guarda archivo local)
         Button(
             onClick = {
-                val durationSec = elapsedSeconds
+                val snapshot = activeTestSnapshot ?: lastTestSnapshot
+                val startMs = snapshot?.testStartEpochMs
+                    ?: if (testStartEpochMs > 0L) testStartEpochMs
+                    else rideState.startedAtEpochMs
+                val endMs = if (testEndEpochMs > 0L) {
+                    testEndEpochMs
+                } else if (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
+                    System.currentTimeMillis()
+                } else if (startMs > 0L && elapsedSeconds > 0L) {
+                    startMs + elapsedSeconds * 1000L
+                } else {
+                    System.currentTimeMillis()
+                }
+                val durationSec = if (startMs > 0L && endMs >= startMs) {
+                    ((endMs - startMs) / 1000L).coerceAtLeast(0L)
+                } else {
+                    elapsedSeconds
+                }
+
                 val isScreenKeepOn = screenKeepOnActiveDuringTest ||
                     (activity?.window?.attributes?.let { (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0 } == true) ||
                     view.keepScreenOn ||
                     isRunning
-                val reportJson = generateMetricsJson(
-                    context = context,
-                    nodeRole = nodeRoleLabel(selectedNodeShortId, totalPhonesInTest),
-                    shortId = selectedNodeShortId,
-                    totalPhonesInTest = totalPhonesInTest,
-                    selectedBurstDurationMs = selectedBurstDurationMs,
-                    expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
-                    durationSeconds = durationSec,
-                    manualDistanceMeters = manualDistanceMetersText.trim().toDoubleOrNull(),
-                    manualDistanceText = manualDistanceMetersText.trim(),
-                    testStartEpochMs = testStartEpochMs,
-                    testEndEpochMs = testEndEpochMs,
-                    rideState = rideState,
-                    metrics = metrics,
-                    bleCaps = bleCaps,
-                    selectedTransportMode = selectedTransportMode,
-                    screenKeepOnActive = isScreenKeepOn
-                )
-                exportedJsonText = reportJson
 
-                // 1. Guardar en almacenamiento de la app con nombre único y copia a fieldtest_metrics.json (último)
                 val fileTimestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(System.currentTimeMillis()))
-                val modeClean = when (effectiveBleMode) {
+                val modeForFilename = snapshot?.effectiveBleTransportMode ?: effectiveBleMode
+                val modeClean = when (modeForFilename) {
                     "EXTENDED_CODED_PHY" -> "coded"
                     "EXTENDED_1M" -> "ext1m"
                     "LEGACY_1M" -> "legacy"
-                    else -> effectiveBleMode.lowercase().replace("_", "")
+                    else -> modeForFilename.lowercase().replace("_", "")
                 }
                 val parsedDist = manualDistanceMetersText.trim().toDoubleOrNull()
                 val distStr = parsedDist?.let {
                     if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
                 } ?: manualDistanceMetersText.trim().ifEmpty { "1" }
+                val exportShortId = snapshot?.localNodeShortId ?: selectedNodeShortId
 
-                val uniqueJsonName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.json"
-                val uniqueCsvName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${selectedNodeShortId}.csv"
+                val uniqueJsonName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.json"
+                val uniqueCsvName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.csv"
                 val csvContent = RideService.exportPacketsCsv()
 
                 val extDir = context.getExternalFilesDir(null)
+                val extUniqueCsv = extDir?.let { File(it, uniqueCsvName) }
+                val intUniqueCsv = File(context.filesDir, uniqueCsvName)
+                val csvPathForJson = extUniqueCsv?.absolutePath ?: intUniqueCsv.absolutePath
+
+                val reportJson = generateMetricsJson(
+                    context = context,
+                    snapshot = snapshot,
+                    nodeRole = nodeRoleLabel(exportShortId, snapshot?.totalPhonesInTest ?: totalPhonesInTest),
+                    shortId = exportShortId,
+                    totalPhonesInTest = snapshot?.totalPhonesInTest ?: totalPhonesInTest,
+                    selectedBurstDurationMs = selectedBurstDurationMs,
+                    expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
+                    durationSeconds = durationSec,
+                    manualDistanceMeters = manualDistanceMetersText.trim().toDoubleOrNull(),
+                    manualDistanceText = manualDistanceMetersText.trim(),
+                    testStartEpochMs = startMs,
+                    testEndEpochMs = endMs,
+                    rideState = rideState,
+                    metrics = metrics,
+                    bleCaps = bleCaps,
+                    selectedTransportMode = selectedTransportMode,
+                    screenKeepOnActive = isScreenKeepOn,
+                    csvPath = csvPathForJson
+                )
+                exportedJsonText = reportJson
+
+                // 1. Guardar en almacenamiento de la app con nombre único y copia a fieldtest_metrics.json (último)
                 val extUniqueJson = extDir?.let { File(it, uniqueJsonName) }
                 val extLatestJson = extDir?.let { File(it, "fieldtest_metrics.json") }
-                val extUniqueCsv = extDir?.let { File(it, uniqueCsvName) }
                 val extLatestCsv = extDir?.let { File(it, "fieldtest_metrics.csv") }
                 runCatching {
                     extUniqueJson?.writeText(reportJson)
@@ -1160,7 +1348,6 @@ fun FieldTestScreen(
                 }
                 val intUniqueJson = File(context.filesDir, uniqueJsonName)
                 val intLatestJson = File(context.filesDir, "fieldtest_metrics.json")
-                val intUniqueCsv = File(context.filesDir, uniqueCsvName)
                 val intLatestCsv = File(context.filesDir, "fieldtest_metrics.csv")
                 runCatching {
                     intUniqueJson.writeText(reportJson)
@@ -1365,6 +1552,7 @@ private fun formatElapsed(totalSeconds: Long): String {
 
 private fun generateMetricsJson(
     context: Context,
+    snapshot: FieldTestConfigSnapshot?,
     nodeRole: String,
     shortId: Int,
     totalPhonesInTest: Int,
@@ -1379,13 +1567,27 @@ private fun generateMetricsJson(
     metrics: com.rutabikersync.app.core.mesh.MeshRelayEngine.MeshFieldReport?,
     bleCaps: BleAdvTransport.BleCapabilities,
     selectedTransportMode: BleAdvTransport.TransportModeOverride,
-    screenKeepOnActive: Boolean = true
+    screenKeepOnActive: Boolean = true,
+    csvPath: String? = null
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
     val nowMs = System.currentTimeMillis()
-    val effectiveBleMode = bleCaps.resolveEffectiveMode(selectedTransportMode)
+
+    val effectiveBleMode = snapshot?.effectiveBleTransportMode ?: bleCaps.resolveEffectiveMode(selectedTransportMode)
+    val effectiveForcedMode = snapshot?.forcedBleTransportMode ?: (rideState.forcedBleMode ?: selectedTransportMode.code)
+    val effectiveShortId = snapshot?.localNodeShortId ?: shortId
+    val effectiveTotalPhones = snapshot?.totalPhonesInTest ?: totalPhonesInTest
+    val effectiveRole = snapshot?.nodeRole ?: nodeRole
+    val effectiveBurstDuration = snapshot?.advertisingBurstDurationMs
+        ?: if (rideState.lifecycleState != RideLifecycleState.IDLE) rideState.f3AdvertisingBurstDurationMs else selectedBurstDurationMs
+    val effectiveRelayEnabled = snapshot?.relayEnabled ?: rideState.relayEnabled
+    val effectiveTxRxRole = snapshot?.txRxRole ?: rideState.txRxRole
+    val effectiveUnfilteredScan = snapshot?.unfilteredScanDiagnostic ?: rideState.unfilteredScanDiagnostic
+    val effectivePeers = snapshot?.expectedPeerShortIds
+        ?: if (rideState.expectedPeerShortIds.isNotEmpty()) rideState.expectedPeerShortIds else expectedPeerIdsFallback
+
     val isExtendedMode = effectiveBleMode == "EXTENDED_1M" || effectiveBleMode == "EXTENDED_CODED_PHY"
     val f3IntervalSetting = if (isExtendedMode) {
         "INTERVAL_MEDIUM (400 slots = 250ms) / SOS: INTERVAL_LOW (160 slots = 100ms)"
@@ -1397,30 +1599,26 @@ private fun generateMetricsJson(
     } else {
         "ADVERTISE_TX_POWER_HIGH (+1 dBm nominal)"
     }
-    val burstDurationMs = if (rideState.lifecycleState != RideLifecycleState.IDLE) {
-        rideState.f3AdvertisingBurstDurationMs
-    } else {
-        selectedBurstDurationMs
-    }
-    val expectedPeersForExport = if (rideState.expectedPeerShortIds.isNotEmpty()) {
-        rideState.expectedPeerShortIds
-    } else {
-        expectedPeerIdsFallback
-    }
 
-    val actualStartMs = if (testStartEpochMs > 0L) {
-        testStartEpochMs
-    } else if (rideState.startedAtEpochMs > 0L) {
-        rideState.startedAtEpochMs
-    } else {
-        (nowMs - durationSeconds * 1000L).coerceAtLeast(0L)
-    }
+    val actualStartMs = snapshot?.testStartEpochMs
+        ?: if (testStartEpochMs > 0L) testStartEpochMs
+        else if (rideState.startedAtEpochMs > 0L) rideState.startedAtEpochMs
+        else (nowMs - durationSeconds * 1000L).coerceAtLeast(0L)
+
     val actualEndMs = if (testEndEpochMs > 0L) {
         testEndEpochMs
     } else if (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
         nowMs
+    } else if (actualStartMs > 0L && durationSeconds > 0L) {
+        actualStartMs + durationSeconds * 1000L
     } else {
-        (actualStartMs + durationSeconds * 1000L).coerceAtLeast(actualStartMs)
+        nowMs
+    }
+
+    val computedDurationSeconds = if (actualStartMs > 0L && actualEndMs >= actualStartMs) {
+        ((actualEndMs - actualStartMs) / 1000L).coerceAtLeast(0L)
+    } else {
+        durationSeconds
     }
 
     val parsedDistance = manualDistanceMeters ?: manualDistanceText.toDoubleOrNull()
@@ -1436,6 +1634,13 @@ private fun generateMetricsJson(
     val obj = JSONObject().apply {
         put("timestampEpochMs", nowMs)
         put("timestampIso", sdf.format(Date(nowMs)))
+        put("gitCommit", BuildConfig.GIT_COMMIT)
+        put("versionName", BuildConfig.VERSION_NAME)
+        put("csvPath", csvPath ?: JSONObject.NULL)
+        put("relayEnabled", effectiveRelayEnabled)
+        put("txRxRole", effectiveTxRxRole.code)
+        put("txRxRoleLabel", effectiveTxRxRole.displayLabel)
+        put("unfilteredScanDiagnostic", effectiveUnfilteredScan)
         put("testStartEpochMs", actualStartMs)
         put("testStartUtc", sdf.format(Date(actualStartMs)))
         put("testEndEpochMs", actualEndMs)
@@ -1468,10 +1673,10 @@ private fun generateMetricsJson(
         put("canHearExtended1M", bleCaps.extendedAdvertisingSupported)
         put("canEmitExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
         put("canHearExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
-        put("forcedBleTransportMode", rideState.forcedBleMode ?: selectedTransportMode.code)
+        put("forcedBleTransportMode", effectiveForcedMode)
         put("effectiveBleTransportMode", effectiveBleMode)
         put("f3AdvertisingIntervalSetting", f3IntervalSetting)
-        put("f3AdvertisingBurstDurationMs", burstDurationMs)
+        put("f3AdvertisingBurstDurationMs", effectiveBurstDuration)
         put("f3HeartbeatCadenceMs", rideState.heartbeatIntervalMs)
         put("f3TxPowerLevelSetting", f3TxPowerSetting)
         put("f3LastMeasuredTxPowerDbm", rideState.f3LastMeasuredTxPowerDbm ?: JSONObject.NULL)
@@ -1483,12 +1688,12 @@ private fun generateMetricsJson(
         put("f3ScanLegacyOnly", !isExtendedMode)
         put("f3ScanPhy", if (isExtendedMode) "PHY_LE_ALL_SUPPORTED (255)" else "PHY_LE_1M (1)")
         put("f3ScanReportDelayMs", 0)
-        put("totalPhonesInTest", totalPhonesInTest)
-        put("assignedRole", nodeRole)
-        put("localNodeShortId", shortId)
-        put("expectedPeerShortIds", org.json.JSONArray(expectedPeersForExport))
-        put("testDurationSeconds", durationSeconds)
-        put("testDurationFormatted", formatElapsed(durationSeconds))
+        put("totalPhonesInTest", effectiveTotalPhones)
+        put("assignedRole", effectiveRole)
+        put("localNodeShortId", effectiveShortId)
+        put("expectedPeerShortIds", org.json.JSONArray(effectivePeers))
+        put("testDurationSeconds", computedDurationSeconds)
+        put("testDurationFormatted", formatElapsed(computedDurationSeconds))
         put("transportName", rideState.transportName)
         put("isSimulatedTransport", rideState.isUsingSimulatedTransport)
         put("connectedPeersCount", rideState.connectedRidersCount)

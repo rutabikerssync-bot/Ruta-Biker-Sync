@@ -1,3 +1,5 @@
+import java.io.ByteArrayOutputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -10,12 +12,22 @@ android {
     namespace = "com.rutabikersync.app"
     compileSdk = 35
 
+    val gitCommit: String = runCatching {
+        val stdout = ByteArrayOutputStream()
+        project.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            standardOutput = stdout
+        }
+        stdout.toString().trim()
+    }.getOrDefault("unknown")
+
     defaultConfig {
         applicationId = "com.rutabikersync.app"
         minSdk = 26          // Android 8.0; BLE extendido requiere 26+ (se comprueba en ejecución)
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
