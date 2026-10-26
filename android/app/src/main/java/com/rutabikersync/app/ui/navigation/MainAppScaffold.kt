@@ -61,6 +61,12 @@ import com.rutabikersync.app.feature.livemap.LiveMapScreen
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.LaunchedEffect
+import com.rutabikersync.app.core.uxtest.UxTestTracker
+import com.rutabikersync.app.core.uxtest.ModeratorControlDialog
+
 /**
  * Navegación principal con barra inferior (SCREENS.md §2: Rodadas · Grupo · Rutas · Perfil)
  * y botón flotante DEV exclusivo de compilaciones Debug (BuildConfig.DEV_PANEL_ENABLED).
@@ -69,15 +75,35 @@ import com.rutabikersync.app.ui.theme.BikerColors
 fun MainAppScaffold(
     phase1ViewModel: Phase1ViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        UxTestTracker.init(context)
+    }
+
     var selectedTab by remember { mutableIntStateOf(if (BuildConfig.FIELD_TEST_MODE) 0 else 1) }
     var showDevPanel by remember { mutableStateOf(false) }
+    var showModeratorDialog by remember { mutableStateOf(false) }
+    val uxParticipant by UxTestTracker.participantId.collectAsState()
+
+    LaunchedEffect(selectedTab) {
+        val screenName = when (selectedTab) {
+            0 -> "RODADAS_HOME"
+            1 -> "GROUPS_TAB"
+            2 -> "ROUTES_TAB"
+            else -> "PROFILE_TAB"
+        }
+        UxTestTracker.logEvent(screen = screenName, action = "SCREEN_ENTER", target = "tab_$selectedTab")
+    }
 
     Scaffold(
         containerColor = BikerColors.BackgroundDark,
         floatingActionButton = {
             if (BuildConfig.DEV_PANEL_ENABLED) {
                 FloatingActionButton(
-                    onClick = { showDevPanel = true },
+                    onClick = {
+                        UxTestTracker.logEvent("DEV_PANEL", "OPEN_PANEL", "btn_dev_panel")
+                        showDevPanel = true
+                    },
                     containerColor = BikerColors.PrimaryAmber,
                     contentColor = BikerColors.BackgroundDark
                 ) {
@@ -134,12 +160,40 @@ fun MainAppScaffold(
                 2 -> RoutesPlaceholderScreen()
                 else -> ProfileAndAuthTabScreen(viewModel = phase1ViewModel)
             }
+
+            if (BuildConfig.UX_TEST_MODE) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 8.dp, end = 12.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(BikerColors.PrimaryAmber)
+                        .clickable {
+                            UxTestTracker.logEvent("MODERATOR_PANEL", "OPEN", "badge_ux_test")
+                            showModeratorDialog = true
+                        }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "UX TEST · $uxParticipant",
+                        color = BikerColors.BackgroundDark,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp
+                    )
+                }
+            }
         }
 
         if (BuildConfig.DEV_PANEL_ENABLED && showDevPanel) {
             DevPanelDialog(
                 viewModel = phase1ViewModel,
                 onDismiss = { showDevPanel = false }
+            )
+        }
+
+        if (showModeratorDialog) {
+            ModeratorControlDialog(
+                onDismiss = { showModeratorDialog = false }
             )
         }
     }
@@ -155,7 +209,7 @@ private fun RoutesPlaceholderScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "E1–E4 · Rutas Offline y Planificador BRouter",
+            text = "Rutas y Navegación Offline",
             color = BikerColors.PrimaryAmber,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -168,7 +222,7 @@ private fun RoutesPlaceholderScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Programado para Fase 3 (Mapa en vivo, BRouter offline y descargas PMTiles/MBTiles ±10 km).",
+                text = "Próximamente: Planificador de rutas para motociclistas y mapas descargables para navegación sin conexión celular.",
                 color = BikerColors.TextPrimary,
                 fontSize = 14.sp
             )
@@ -293,7 +347,7 @@ private fun RidesReleaseHomeScreen() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "B1 · Rodada Activa y Mesh BLE (Fase 3)",
+            text = "Rodada Activa y Conexión de Grupo",
             color = BikerColors.PrimaryAmber,
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold
@@ -397,6 +451,7 @@ private fun RidesReleaseHomeScreen() {
                     )
                     Button(
                         onClick = {
+                            UxTestTracker.logEvent("PERMISSIONS", "REQUEST_START", "btn_solicitar_permisos")
                             showPermissionRationale = false
                             permissionLauncher.launch(requiredRidePermissions.toTypedArray())
                         },
@@ -432,6 +487,7 @@ private fun RidesReleaseHomeScreen() {
                     ) {
                         Button(
                             onClick = {
+                                UxTestTracker.logEvent("PERMISSIONS", "FALLBACK_SIMULATED", "btn_probar_simulado")
                                 forceSimulated = true
                                 showSimulatedFallbackPrompt = false
                                 startRideServiceNow(useSimulated = true)
@@ -494,6 +550,7 @@ private fun RidesReleaseHomeScreen() {
             ) {
                 Button(
                     onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
                         if (forceSimulated) {
                             startRideServiceNow(useSimulated = true)
                         } else if (RideService.isMeshViable(context)) {
@@ -520,6 +577,7 @@ private fun RidesReleaseHomeScreen() {
                 ) {
                     Button(
                         onClick = {
+                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_STOP_RIDE", "btn_detener_rodada")
                             RideService.dispatchStopRide(context)
                         },
                         modifier = Modifier
@@ -537,6 +595,11 @@ private fun RidesReleaseHomeScreen() {
                     }
                     Button(
                         onClick = {
+                            UxTestTracker.logEvent(
+                                "RODADAS_HOME",
+                                "TAP_SOS",
+                                if (BuildConfig.UX_TEST_MODE) "btn_sos_prueba" else "btn_sos"
+                            )
                             val sosIntent = Intent(context, RideService::class.java).apply {
                                 action = RideService.ACTION_TRIGGER_SOS
                             }
@@ -545,7 +608,10 @@ private fun RidesReleaseHomeScreen() {
                         modifier = Modifier.heightIn(min = 56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusRed)
                     ) {
-                        Text(text = "SOS", fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            text = if (BuildConfig.UX_TEST_MODE) "SOS (PRUEBA)" else "SOS",
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
                 }
             }

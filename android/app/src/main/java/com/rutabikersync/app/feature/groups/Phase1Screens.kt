@@ -54,6 +54,7 @@ import com.rutabikersync.app.ui.components.skeleton.SkeletonProfileHeader
 import com.rutabikersync.app.ui.components.skeleton.StateHost
 import com.rutabikersync.app.ui.components.skeleton.UiState
 import com.rutabikersync.app.ui.theme.BikerColors
+import com.rutabikersync.app.core.uxtest.UxTestTracker
 
 /**
  * Pestaña Grupo (SCREENS.md D1–D9) con soporte completo para StateHost y Skeletons (SKELETONS.md §7).
@@ -427,6 +428,12 @@ private fun GroupsOverviewScreenD1(
             Button(
                 onClick = {
                     if (newName.length >= 3 && newPhash.length == 16) {
+                        UxTestTracker.logEvent(
+                            screen = "GROUPS_D1",
+                            action = "TAP_CREATE_GROUP",
+                            target = "btn_create_group",
+                            details = "country=$newCountry"
+                        )
                         onCreateGroup(newCountry, newName, newPhash)
                         showCreateForm = false
                     }
@@ -527,6 +534,12 @@ private fun InvitationDetailScreenD2(
             }
             Button(
                 onClick = {
+                    UxTestTracker.logEvent(
+                        screen = "INVITATION_D2",
+                        action = "TAP_ACCEPT_INVITE",
+                        target = "btn_accept",
+                        details = "inviteId=${invitation.id.take(8)}"
+                    )
                     onAccept(
                         consentMembership,
                         consentLocation,
@@ -1078,7 +1091,7 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it },
-                    label = { Text("Apodo en mapa y voz (RULES R1.3)") },
+                    label = { Text("Apodo en el mapa y voz") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -1095,7 +1108,15 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 )
 
                 Button(
-                    onClick = { viewModel.saveUserProfile(displayName, bikeModel, mapColorHex) },
+                    onClick = {
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "PROFILE_TAB",
+                            "SAVE_PROFILE",
+                            "btn_guardar_perfil",
+                            "displayName=$displayName;bike=$bikeModel;color=$mapColorHex"
+                        )
+                        viewModel.saveUserProfile(displayName, bikeModel, mapColorHex)
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = BikerColors.PrimaryAmber,
                         contentColor = BikerColors.BackgroundDark
@@ -1106,7 +1127,14 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 }
 
                 OutlinedButton(
-                    onClick = { showAuthFlow = !showAuthFlow },
+                    onClick = {
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "PROFILE_TAB",
+                            "TOGGLE_AUTH_FLOW",
+                            "btn_abrir_auth"
+                        )
+                        showAuthFlow = !showAuthFlow
+                    },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(id = R.string.profile_open_auth), color = BikerColors.PrimaryAmber)
@@ -1115,7 +1143,7 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 if (showAuthFlow) {
                     HorizontalDivider(color = BikerColors.SkeletonBaseDark)
                     Text(
-                        text = "A2 · Login / Registro y A3–A4 Onboarding (RULES R1.1, R1.2, R13.6)",
+                        text = "Iniciar Sesión o Crear Cuenta",
                         color = BikerColors.PrimaryAmber,
                         fontWeight = FontWeight.Bold
                     )
@@ -1140,12 +1168,12 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                     ConsentCheckboxRow(
                         checked = acceptedTerms,
                         onCheckedChange = { acceptedTerms = it },
-                        label = "Acepto las reglas de convivencia y términos (obligatorio R13.6)"
+                        label = "Acepto las reglas de convivencia y términos de servicio"
                     )
                     ConsentCheckboxRow(
                         checked = activateLeaderPlan,
                         onCheckedChange = { activateLeaderPlan = it },
-                        label = "Activar cuenta de Líder ($15 USD/mes · permite crear grupo y convocar)"
+                        label = "Activar cuenta de Líder ($15 USD/mes · permite convocar rodadas)"
                     )
                     Button(
                         onClick = {

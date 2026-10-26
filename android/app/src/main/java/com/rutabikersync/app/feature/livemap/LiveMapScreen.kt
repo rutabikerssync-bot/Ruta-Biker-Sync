@@ -1,6 +1,7 @@
 package com.rutabikersync.app.feature.livemap
 
 import android.content.Intent
+import com.rutabikersync.app.BuildConfig
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -81,7 +82,15 @@ fun LiveMapScreen(
         // 2. Barra superior: batería, nodos conectados, estado de mesh, GPS y selector Modo Guantes
         LiveMapTopStatusBar(
             state = state,
-            onToggleGlovesMode = { enabled -> liveMapViewModel.controller.toggleGlovesMode(enabled) },
+            onToggleGlovesMode = { enabled ->
+                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                    "LIVE_MAP",
+                    "TOGGLE_GLOVES",
+                    "switch_guantes",
+                    "enabled=$enabled"
+                )
+                liveMapViewModel.controller.toggleGlovesMode(enabled)
+            },
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
@@ -94,9 +103,19 @@ fun LiveMapScreen(
             isFollowingLeader = state.cameraMode == CameraMode.FOLLOWING_LEADER,
             followLeaderRemainingSeconds = state.followLeaderRemainingSeconds,
             onCenterMyLocation = {
+                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                    "LIVE_MAP",
+                    "TAP_CENTER_LOCATION",
+                    "btn_mi_ubicacion"
+                )
                 liveMapViewModel.controller.centerOnMyLocation()
             },
             onFollowLeader = {
+                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                    "LIVE_MAP",
+                    "TAP_FOLLOW_LEADER",
+                    "btn_seguir_lider"
+                )
                 liveMapViewModel.controller.followLeader(
                     nowEpochMs = System.currentTimeMillis(),
                     scheduleAutoRevert = true
@@ -201,17 +220,36 @@ fun LiveMapScreen(
             GlovesPrimaryActionBar(
                 isSosActive = rideServiceState.isSosActive,
                 onTalkPttClick = {
-                    actionFeedback = "PTT: listo para grabar clip de voz (C2)"
+                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                        "LIVE_MAP",
+                        "TAP_TALK_PTT",
+                        "btn_hablar"
+                    )
+                    actionFeedback = "Próximamente: Transmisión de voz PTT (Fase de Audio)"
                 },
                 onSosClick = {
+                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                        "LIVE_MAP",
+                        "TAP_SOS",
+                        if (BuildConfig.UX_TEST_MODE) "btn_sos_prueba" else "btn_sos"
+                    )
                     val sosIntent = Intent(context, RideService::class.java).apply {
                         action = RideService.ACTION_TRIGGER_SOS
                     }
                     runCatching { context.startService(sosIntent) }
-                    actionFeedback = "SOS emitido por la mesh con prioridad máxima"
+                    actionFeedback = if (BuildConfig.UX_TEST_MODE) {
+                        "[MODO PRUEBA UX] SOS simulado emitido por la malla (sin llamada real)"
+                    } else {
+                        "SOS emitido por la mesh con prioridad máxima"
+                    }
                 },
                 onQuickSignalsClick = {
-                    actionFeedback = "Señales rápidas: Parada · Peligro · Gasolina · Reagrupar (C3)"
+                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                        "LIVE_MAP",
+                        "TAP_SIGNALS",
+                        "btn_senales"
+                    )
+                    actionFeedback = "Próximamente: Señales rápidas de convoy (Parada · Peligro · Gasolina)"
                 }
             )
         }

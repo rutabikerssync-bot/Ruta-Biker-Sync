@@ -38,6 +38,7 @@ android {
         versionName = "0.1.0"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         buildConfigField("boolean", "GIT_DIRTY", "$gitDirty")
+        buildConfigField("boolean", "UX_TEST_MODE", "false")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -46,11 +47,33 @@ android {
         create("standard") {
             dimension = "mode"
             buildConfigField("boolean", "FIELD_TEST_MODE", "false")
+            buildConfigField("boolean", "UX_TEST_MODE", "false")
+        }
+        create("uxTest") {
+            dimension = "mode"
+            applicationIdSuffix = ".uxtest"
+            buildConfigField("boolean", "FIELD_TEST_MODE", "false")
+            buildConfigField("boolean", "UX_TEST_MODE", "true")
+            signingConfig = signingConfigs.getByName("debug")
         }
         create("fieldTest") {
             dimension = "mode"
             applicationIdSuffix = ".fieldtest"
             buildConfigField("boolean", "FIELD_TEST_MODE", "true")
+            buildConfigField("boolean", "UX_TEST_MODE", "false")
+            buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
+        }
+    }
+
+    sourceSets {
+        getByName("uxTest") {
+            java.srcDirs("src/standard/java")
+        }
+    }
+
+    applicationVariants.all {
+        if (flavorName == "uxTest") {
+            buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
         }
     }

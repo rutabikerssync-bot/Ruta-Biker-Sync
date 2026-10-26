@@ -187,7 +187,11 @@ fun GlovesPrimaryActionBar(
 
         GlovesActionButton(
             icon = AppIcons.SosAlert,
-            label = if (isSosActive) "SOS ACTIVO" else GlovesPrimaryAction.SOS.label,
+            label = if (isSosActive) {
+                if (com.rutabikersync.app.BuildConfig.UX_TEST_MODE) "SOS PRUEBA ACTIVO" else "SOS ACTIVO"
+            } else {
+                if (com.rutabikersync.app.BuildConfig.UX_TEST_MODE) "SOS (PRUEBA)" else GlovesPrimaryAction.SOS.label
+            },
             onClick = onSosClick,
             containerColor = BikerColors.StatusRed,
             contentColor = Color.White,
