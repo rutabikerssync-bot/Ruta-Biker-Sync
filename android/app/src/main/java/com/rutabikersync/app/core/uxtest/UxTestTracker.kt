@@ -105,23 +105,51 @@ object UxTestTracker {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
+    const val MODERATOR_PIN = "1984"
+
+    /**
+     * Mapeo estricto de IDs de nodo de malla por participante:
+     * P1 -> 1u
+     * P2 -> 2u
+     * P3 -> 3u
+     * P4 -> 4u
+     * P5 -> 5u
+     * P6 -> 6u
+     * P0 -> 99u (apoyo del moderador, no choca con los testers)
+     */
+    fun participantToShortId(participant: String): UShort = when (participant) {
+        "P1" -> 1u
+        "P2" -> 2u
+        "P3" -> 3u
+        "P4" -> 4u
+        "P5" -> 5u
+        "P6" -> 6u
+        "P0" -> 99u
+        else -> 100u
+    }
+
+    private val _leaderShortId = MutableStateFlow<UShort>(1u)
+    val leaderShortId: StateFlow<UShort> = _leaderShortId.asStateFlow()
+
+    val currentLocalShortId: UShort
+        get() = participantToShortId(_participantId.value)
+
+    val isConvoyLeader: Boolean
+        get() = currentLocalShortId == _leaderShortId.value
+
     val isModeratorSupport: Boolean
         get() = _participantId.value == "P0"
 
-    private val _convoyRoleIsLeader = MutableStateFlow(true)
-    val convoyRoleIsLeader: StateFlow<Boolean> = _convoyRoleIsLeader.asStateFlow()
-    val isConvoyLeader: Boolean get() = _convoyRoleIsLeader.value
+    fun verifyPin(pin: String): Boolean = pin.trim() == MODERATOR_PIN
 
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val p = prefs.getString(KEY_PARTICIPANT_ID, "P1") ?: "P1"
         _participantId.value = p
-        _convoyRoleIsLeader.value = (p == "P1" || p == "P0")
     }
 
     fun setParticipant(id: String, context: Context? = null) {
         _participantId.value = id
-        _convoyRoleIsLeader.value = (id == "P1" || id == "P0")
         context?.let {
             it.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -132,17 +160,17 @@ object UxTestTracker {
             screen = "SETTINGS_UX",
             action = "SET_PARTICIPANT",
             target = id,
-            details = if (id == "P0") "TEL_APOYO_MODERADOR_NO_TESTER" else "TESTER_ACTIVO"
+            details = "shortId=${participantToShortId(id)},isModerator=${id == "P0"}"
         )
     }
 
-    fun setConvoyRole(isLeader: Boolean) {
-        _convoyRoleIsLeader.value = isLeader
+    fun setLeaderShortId(leaderId: UShort) {
+        _leaderShortId.value = leaderId
         logEvent(
             screen = "MODERATOR_PANEL",
-            action = "SET_CONVOY_ROLE",
-            target = if (isLeader) "LEADER_P1" else "MEMBER_P2_P6",
-            details = "isLeader=$isLeader"
+            action = "SET_CONVOY_LEADER",
+            target = "shortId_$leaderId",
+            details = "leaderShortId=$leaderId"
         )
     }
 
@@ -309,7 +337,7 @@ fun ModeratorControlDialog(
     val currentParticipant by UxTestTracker.participantId.collectAsState()
     val activeTask by UxTestTracker.activeTaskId.collectAsState()
     val sosMeshBroadcastEnabled by UxTestTracker.sosMeshBroadcastEnabled.collectAsState()
-    val convoyRoleIsLeader by UxTestTracker.convoyRoleIsLeader.collectAsState()
+    val leaderShortId by UxTestTracker.leaderShortId.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
 
     val taskDescriptions = remember {
@@ -390,38 +418,41 @@ fun ModeratorControlDialog(
                     )
                 }
 
+                val currentShortId = UxTestTracker.participantToShortId(currentParticipant)
+                val isCurrentLeader = currentShortId == leaderShortId
+
                 Text(
-                    text = "Rol en rodada (fuente de verdad para 'Seguir líder'):",
+                    text = "ID de malla asignado a este teléfono: #$currentShortId (${if (isCurrentLeader) "LÍDER" else "MIEMBRO"})",
+                    color = if (isCurrentLeader) BikerColors.PrimaryAmber else BikerColors.StatusGreen,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Líder de la rodada (fuente para 'Seguir Líder'):",
                     color = BikerColors.TextPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    FilterChip(
-                        selected = convoyRoleIsLeader,
-                        onClick = { UxTestTracker.setConvoyRole(true) },
-                        label = {
-                            Text(
-                                text = "Soy Líder (P1)",
-                                fontSize = 11.sp,
-                                fontWeight = if (convoyRoleIsLeader) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
-                    FilterChip(
-                        selected = !convoyRoleIsLeader,
-                        onClick = { UxTestTracker.setConvoyRole(false) },
-                        label = {
-                            Text(
-                                text = "Soy Miembro (P2–P6)",
-                                fontSize = 11.sp,
-                                fontWeight = if (!convoyRoleIsLeader) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    )
+                    val possibleLeaders = listOf("P1" to 1u.toUShort(), "P2" to 2u.toUShort(), "P3" to 3u.toUShort())
+                    possibleLeaders.forEach { (label, sId) ->
+                        val isLeaderSelected = leaderShortId == sId
+                        FilterChip(
+                            selected = isLeaderSelected,
+                            onClick = { UxTestTracker.setLeaderShortId(sId) },
+                            label = {
+                                Text(
+                                    text = "$label (#$sId)",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isLeaderSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        )
+                    }
                 }
 
                 HorizontalDivider(color = BikerColors.SkeletonBaseDark)

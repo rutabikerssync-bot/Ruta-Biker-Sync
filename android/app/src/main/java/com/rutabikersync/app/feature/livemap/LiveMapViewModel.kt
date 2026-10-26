@@ -98,6 +98,12 @@ class LiveMapController(
     private var leaderShortId: UShort = 1u,
     initialDirectory: List<RiderDirectoryEntry> = defaultConvoyDirectory()
 ) {
+    fun updateConvoyIds(localId: UShort, targetLeaderId: UShort) {
+        this.localShortId = localId
+        this.leaderShortId = targetLeaderId
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
     fun setConvoyRole(isLeader: Boolean, targetLeaderShortId: UShort = 1u) {
         leaderShortId = targetLeaderShortId
         localShortId = if (isLeader) targetLeaderShortId else (if (targetLeaderShortId == 1u.toUShort()) 2u else 1u).toUShort()

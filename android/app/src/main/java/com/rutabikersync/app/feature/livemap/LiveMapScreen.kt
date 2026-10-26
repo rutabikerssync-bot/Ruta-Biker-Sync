@@ -65,12 +65,14 @@ fun LiveMapScreen(
     val state by liveMapViewModel.uiState.collectAsState()
     val rideServiceState by RideService.sharedState.collectAsState()
     val simulatedAlert by com.rutabikersync.app.core.uxtest.UxTestTracker.simulatedAlertEvent.collectAsState()
-    val isConvoyLeader by com.rutabikersync.app.core.uxtest.UxTestTracker.convoyRoleIsLeader.collectAsState()
+    val uxParticipant by com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.collectAsState()
+    val uxLeaderId by com.rutabikersync.app.core.uxtest.UxTestTracker.leaderShortId.collectAsState()
     var showOfflineTilesSheet by remember { mutableStateOf(false) }
     var actionFeedback by remember { mutableStateOf<String?>(null) }
 
-    androidx.compose.runtime.LaunchedEffect(isConvoyLeader) {
-        liveMapViewModel.controller.setConvoyRole(isLeader = isConvoyLeader)
+    androidx.compose.runtime.LaunchedEffect(uxParticipant, uxLeaderId) {
+        val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+        liveMapViewModel.controller.updateConvoyIds(localId = localShortId, targetLeaderId = uxLeaderId)
     }
 
     androidx.compose.runtime.LaunchedEffect(simulatedAlert) {

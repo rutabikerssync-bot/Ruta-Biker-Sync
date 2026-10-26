@@ -12,6 +12,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -28,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -41,9 +45,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
@@ -83,6 +91,9 @@ fun MainAppScaffold(
     var selectedTab by remember { mutableIntStateOf(if (BuildConfig.FIELD_TEST_MODE) 0 else 1) }
     var showDevPanel by remember { mutableStateOf(false) }
     var showModeratorDialog by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var enteredPin by remember { mutableStateOf("") }
+    var pinError by remember { mutableStateOf(false) }
     val uxParticipant by UxTestTracker.participantId.collectAsState()
 
     LaunchedEffect(selectedTab) {
@@ -168,9 +179,21 @@ fun MainAppScaffold(
                         .padding(top = 8.dp, end = 12.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(BikerColors.PrimaryAmber)
-                        .clickable {
-                            UxTestTracker.logEvent("MODERATOR_PANEL", "OPEN", "badge_ux_test")
-                            showModeratorDialog = true
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onLongPress = {
+                                    enteredPin = ""
+                                    pinError = false
+                                    showPinDialog = true
+                                },
+                                onTap = {
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Mantén presionado 2 s para control de moderador",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
                         }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -188,6 +211,86 @@ fun MainAppScaffold(
             DevPanelDialog(
                 viewModel = phase1ViewModel,
                 onDismiss = { showDevPanel = false }
+            )
+        }
+
+        if (showPinDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPinDialog = false
+                    enteredPin = ""
+                    pinError = false
+                },
+                title = {
+                    Text(
+                        text = "Acceso Moderador UX",
+                        color = BikerColors.PrimaryAmber,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Ingresa el PIN de seguridad de 4 dígitos para abrir el panel de control del moderador:",
+                            color = BikerColors.TextPrimary,
+                            fontSize = 13.sp
+                        )
+                        OutlinedTextField(
+                            value = enteredPin,
+                            onValueChange = {
+                                if (it.length <= 4) {
+                                    enteredPin = it
+                                    pinError = false
+                                }
+                            },
+                            label = { Text("PIN (4 dígitos)") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                            visualTransformation = PasswordVisualTransformation(),
+                            isError = pinError,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (pinError) {
+                            Text(
+                                text = "PIN incorrecto. Intenta de nuevo.",
+                                color = BikerColors.StatusRed,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (UxTestTracker.verifyPin(enteredPin)) {
+                                UxTestTracker.logEvent("MODERATOR_PANEL", "PIN_AUTH_SUCCESS", "badge_ux_test")
+                                showPinDialog = false
+                                enteredPin = ""
+                                pinError = false
+                                showModeratorDialog = true
+                            } else {
+                                UxTestTracker.logEvent("MODERATOR_PANEL", "PIN_AUTH_FAIL", "badge_ux_test")
+                                pinError = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
+                    ) {
+                        Text("Acceder", color = BikerColors.BackgroundDark, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = {
+                            showPinDialog = false
+                            enteredPin = ""
+                            pinError = false
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                },
+                containerColor = BikerColors.SurfaceDark
             )
         }
 
