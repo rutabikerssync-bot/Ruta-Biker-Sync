@@ -119,7 +119,8 @@ data class FieldTestConfigSnapshot(
     val txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
     val unfilteredScanDiagnostic: Boolean = false,
     val bleCapabilitiesSnapshot: BleAdvTransport.BleCapabilities,
-    val radioAtStart: RadioEnvironmentSnapshot? = null
+    val radioAtStart: RadioEnvironmentSnapshot? = null,
+    val advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST
 )
 
 data class RadioEnvironmentSnapshot(
@@ -166,12 +167,11 @@ fun parseCsvRowCounts(csvContent: String): CsvRowCounts {
     for (line in lines) {
         if (line.isBlank()) continue
         val parts = line.split(',')
-        if (parts.isNotEmpty()) {
-            when (parts.last().trim()) {
-                "TX" -> tx++
-                "RX" -> rx++
-                "RELAY_TX" -> relayTx++
-            }
+        val dir = if (parts.size >= 9) parts[8].trim() else parts.last().trim()
+        when (dir) {
+            "TX" -> tx++
+            "RX" -> rx++
+            "RELAY_TX" -> relayTx++
         }
     }
     return CsvRowCounts(tx = tx, rx = rx, relayTx = relayTx)
@@ -206,13 +206,13 @@ fun queryRadioEnvironment(context: Context): RadioEnvironmentSnapshot {
         val caps = connManager?.getNetworkCapabilities(net)
         caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
     }.getOrDefault(false)
-    val mobileDataEnabled = runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            telephonyManager?.isDataEnabled == true || cellularActiveTransport
-        } else {
-            cellularActiveTransport
-        }
-    }.getOrNull()
+    val mobileDataEnabled = if (airplaneModeOn) {
+        false
+    } else {
+        runCatching {
+            cellularActiveTransport || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && telephonyManager?.isDataEnabled == true)
+        }.getOrDefault(cellularActiveTransport)
+    }
 
     val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     val btAdapter = btManager?.adapter
@@ -299,10 +299,17 @@ fun FieldTestScreen(
     var relayEnabled by remember { mutableStateOf(true) }
     var txRxRole by remember { mutableStateOf(BleAdvTransport.TxRxRole.BOTH) }
     var unfilteredScanDiagnostic by remember { mutableStateOf(false) }
+    var advertisingDeliveryMode by remember { mutableStateOf(BleAdvTransport.AdvertisingDeliveryMode.BURST) }
     var radioAtStart by remember { mutableStateOf<RadioEnvironmentSnapshot?>(null) }
     var radioAtEnd by remember { mutableStateOf<RadioEnvironmentSnapshot?>(null) }
     var activeTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
     var lastTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
+    var lastSavedUniqueJsonName by remember { mutableStateOf<String?>(null) }
+    var lastSavedUniqueCsvName by remember { mutableStateOf<String?>(null) }
+    var lastFinishedDurationSeconds by remember { mutableStateOf<Long?>(null) }
+    var showShortRunWarningBanner by remember { mutableStateOf(false) }
+    var shortRunWarningDurationSec by remember { mutableStateOf(0L) }
+    var hasAutoSavedCurrentRun by remember { mutableStateOf(false) }
     var showBatteryGuideDialog by remember { mutableStateOf(false) }
     var showSimulatedFallbackPrompt by remember { mutableStateOf(false) }
     var permanentlyDeniedDetected by remember { mutableStateOf(false) }
@@ -370,10 +377,127 @@ fun FieldTestScreen(
         else -> "Medio (#$id)"
     }
 
+    fun autoSaveCurrentTest(isManualExport: Boolean = false): String? {
+        if (!isManualExport && hasAutoSavedCurrentRun) return exportedJsonText
+        val snapshot = activeTestSnapshot ?: lastTestSnapshot
+        val startMs = snapshot?.testStartEpochMs
+            ?: if (testStartEpochMs > 0L) testStartEpochMs
+            else rideState.startedAtEpochMs
+        val nowMs = System.currentTimeMillis()
+        val endMs = if (testEndEpochMs > 0L) {
+            testEndEpochMs
+        } else if (isRunning) {
+            nowMs
+        } else if (startMs > 0L && elapsedSeconds > 0L) {
+            startMs + elapsedSeconds * 1000L
+        } else {
+            nowMs
+        }
+        val durationSec = if (startMs > 0L && endMs >= startMs) {
+            ((endMs - startMs) / 1000L).coerceAtLeast(0L)
+        } else {
+            elapsedSeconds
+        }
+        lastFinishedDurationSeconds = durationSec
+
+        if (durationSec < 10L) {
+            showShortRunWarningBanner = true
+            shortRunWarningDurationSec = durationSec
+        } else {
+            showShortRunWarningBanner = false
+        }
+
+        val isScreenKeepOn = screenKeepOnActiveDuringTest ||
+            (activity?.window?.attributes?.let { (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0 } == true) ||
+            view.keepScreenOn ||
+            isRunning
+
+        val fileTimestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(nowMs))
+        val modeForFilename = snapshot?.effectiveBleTransportMode ?: bleCaps.resolveEffectiveMode(selectedTransportMode)
+        val modeClean = when (modeForFilename) {
+            "EXTENDED_CODED_PHY" -> "coded"
+            "EXTENDED_1M" -> "ext1m"
+            "LEGACY_1M" -> "legacy"
+            else -> modeForFilename.lowercase().replace("_", "")
+        }
+        val parsedDist = manualDistanceMetersText.trim().toDoubleOrNull()
+        val distStr = parsedDist?.let {
+            if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
+        } ?: manualDistanceMetersText.trim().ifEmpty { "1" }
+        val exportShortId = snapshot?.localNodeShortId ?: selectedNodeShortId
+
+        val uniqueJsonName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.json"
+        val uniqueCsvName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.csv"
+        val csvContent = RideService.exportPacketsCsv()
+
+        val extDir = context.getExternalFilesDir(null)
+        val extUniqueCsv = extDir?.let { File(it, uniqueCsvName) }
+        val intUniqueCsv = File(context.filesDir, uniqueCsvName)
+        val csvPathForJson = extUniqueCsv?.absolutePath ?: intUniqueCsv.absolutePath
+
+        val endRadioSnapshot = radioAtEnd ?: queryRadioEnvironment(context).also { radioAtEnd = it }
+
+        val reportJson = generateMetricsJson(
+            context = context,
+            snapshot = snapshot,
+            nodeRole = nodeRoleLabel(exportShortId, snapshot?.totalPhonesInTest ?: totalPhonesInTest),
+            shortId = exportShortId,
+            totalPhonesInTest = snapshot?.totalPhonesInTest ?: totalPhonesInTest,
+            selectedBurstDurationMs = selectedBurstDurationMs,
+            expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
+            durationSeconds = durationSec,
+            manualDistanceMeters = manualDistanceMetersText.trim().toDoubleOrNull(),
+            manualDistanceText = manualDistanceMetersText.trim(),
+            testStartEpochMs = startMs,
+            testEndEpochMs = endMs,
+            rideState = rideState,
+            metrics = metrics,
+            bleCaps = bleCaps,
+            selectedTransportMode = selectedTransportMode,
+            screenKeepOnActive = isScreenKeepOn,
+            csvPath = csvPathForJson,
+            radioAtStart = radioAtStart ?: snapshot?.radioAtStart,
+            radioAtEnd = endRadioSnapshot,
+            csvContent = csvContent,
+            advertisingDeliveryMode = snapshot?.advertisingDeliveryMode ?: advertisingDeliveryMode
+        )
+
+        exportedJsonText = reportJson
+        lastSavedUniqueJsonName = uniqueJsonName
+        lastSavedUniqueCsvName = uniqueCsvName
+        hasAutoSavedCurrentRun = true
+
+        val extUniqueJson = extDir?.let { File(it, uniqueJsonName) }
+        val extLatestJson = extDir?.let { File(it, "fieldtest_metrics.json") }
+        val extLatestCsv = extDir?.let { File(it, "fieldtest_metrics.csv") }
+        runCatching {
+            extUniqueJson?.writeText(reportJson)
+            extLatestJson?.writeText(reportJson)
+            extUniqueCsv?.writeText(csvContent)
+            extLatestCsv?.writeText(csvContent)
+        }
+        val intUniqueJson = File(context.filesDir, uniqueJsonName)
+        val intLatestJson = File(context.filesDir, "fieldtest_metrics.json")
+        val intLatestCsv = File(context.filesDir, "fieldtest_metrics.csv")
+        runCatching {
+            intUniqueJson.writeText(reportJson)
+            intLatestJson.writeText(reportJson)
+            intUniqueCsv.writeText(csvContent)
+            intLatestCsv.writeText(csvContent)
+        }
+        val savedPath = extUniqueJson?.absolutePath ?: intUniqueJson.absolutePath
+        exportedFilePath = savedPath
+
+        Log.i("FieldTestScreen", "Auto-saved metrics: $uniqueJsonName ($savedPath) duration=${durationSec}s")
+        return reportJson
+    }
+
     fun launchRideServiceNow(useSimulated: Boolean) {
         val now = System.currentTimeMillis()
         testStartEpochMs = now
         testEndEpochMs = 0L
+        hasAutoSavedCurrentRun = false
+        showShortRunWarningBanner = false
         screenKeepOnActiveDuringTest = true
         view.keepScreenOn = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -398,7 +522,8 @@ fun FieldTestScreen(
             txRxRole = txRxRole,
             unfilteredScanDiagnostic = unfilteredScanDiagnostic,
             bleCapabilitiesSnapshot = bleCaps,
-            radioAtStart = startRadio
+            radioAtStart = startRadio,
+            advertisingDeliveryMode = advertisingDeliveryMode
         )
         activeTestSnapshot = snapshot
         lastTestSnapshot = snapshot
@@ -413,7 +538,8 @@ fun FieldTestScreen(
             expectedPeerShortIds = expectedConvoyPeers,
             relayEnabled = relayEnabled,
             txRxRole = txRxRole,
-            unfilteredScanDiagnostic = unfilteredScanDiagnostic
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic,
+            advertisingDeliveryMode = advertisingDeliveryMode
         )
     }
 
@@ -458,10 +584,15 @@ fun FieldTestScreen(
                 delay(1000L)
             }
         } else {
-            if (testStartEpochMs > 0L && testEndEpochMs == 0L) {
-                testEndEpochMs = System.currentTimeMillis()
+            if (testStartEpochMs > 0L) {
+                if (testEndEpochMs == 0L) {
+                    testEndEpochMs = System.currentTimeMillis()
+                }
                 if (radioAtEnd == null) {
                     radioAtEnd = queryRadioEnvironment(context)
+                }
+                if (!hasAutoSavedCurrentRun) {
+                    autoSaveCurrentTest(isManualExport = false)
                 }
             }
         }
@@ -725,27 +856,54 @@ fun FieldTestScreen(
                 }
 
                 Text(
-                    text = "Duración de ráfaga F3 (igual para Legacy y Extendido): ${selectedBurstDurationMs} ms",
+                    text = "Anuncio BLE: RÁFAGA 1 s / CONTINUO",
                     color = BikerColors.TextPrimary,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    BleAdvTransport.SUPPORTED_BURST_DURATIONS_MS.forEach { burstMs ->
+                    BleAdvTransport.AdvertisingDeliveryMode.entries.forEach { mode ->
                         FilterChip(
-                            selected = selectedBurstDurationMs == burstMs,
-                            onClick = { if (!isRunning) selectedBurstDurationMs = burstMs },
+                            selected = advertisingDeliveryMode == mode,
+                            onClick = { if (!isRunning) advertisingDeliveryMode = mode },
                             enabled = !isRunning,
-                            label = { Text("${burstMs} ms", fontSize = 11.sp) },
+                            label = { Text(mode.displayLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = BikerColors.PrimaryAmber,
                                 selectedLabelColor = BikerColors.BackgroundDark
                             )
                         )
+                    }
+                }
+
+                if (advertisingDeliveryMode == BleAdvTransport.AdvertisingDeliveryMode.BURST) {
+                    Text(
+                        text = "Duración de ráfaga F3 (igual para Legacy y Extendido): ${selectedBurstDurationMs} ms",
+                        color = BikerColors.TextPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        BleAdvTransport.SUPPORTED_BURST_DURATIONS_MS.forEach { burstMs ->
+                            FilterChip(
+                                selected = selectedBurstDurationMs == burstMs,
+                                onClick = { if (!isRunning) selectedBurstDurationMs = burstMs },
+                                enabled = !isRunning,
+                                label = { Text("${burstMs} ms", fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = BikerColors.PrimaryAmber,
+                                    selectedLabelColor = BikerColors.BackgroundDark
+                                )
+                            )
+                        }
                     }
                 }
 
@@ -1132,6 +1290,40 @@ fun FieldTestScreen(
             }
         }
 
+        if (showShortRunWarningBanner) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF7F1D1D)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = Color(0xFFFCA5A5),
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column {
+                        Text(
+                            text = "ADVERTENCIA: Corrida muy corta (${shortRunWarningDurationSec} s)",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "La última corrida duró menos de 10 s. Los datos pueden ser incompletos o fruto de una pulsación accidental.",
+                            color = Color(0xFFFECACA),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+
         // 1. BOTÓN GIGANTE DE ACCIÓN (>= 72 dp de alto según modo guantes)
         val buttonMinHeight = 76.dp
         if (!isRunning) {
@@ -1183,7 +1375,10 @@ fun FieldTestScreen(
                 onClick = {
                     testEndEpochMs = System.currentTimeMillis()
                     radioAtEnd = queryRadioEnvironment(context)
+                    autoSaveCurrentTest(isManualExport = false)
                     RideService.dispatchImmediateStopRide(context)
+                    val name = lastSavedUniqueJsonName ?: "fieldtest.json"
+                    Toast.makeText(context, "Prueba detenida y guardada:\n$name", Toast.LENGTH_SHORT).show()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1372,111 +1567,17 @@ fun FieldTestScreen(
         // 3. BOTÓN DE EXPORTAR MÉTRICAS (genera JSON estructurado y guarda archivo local)
         Button(
             onClick = {
-                val snapshot = activeTestSnapshot ?: lastTestSnapshot
-                val startMs = snapshot?.testStartEpochMs
-                    ?: if (testStartEpochMs > 0L) testStartEpochMs
-                    else rideState.startedAtEpochMs
-                val endMs = if (testEndEpochMs > 0L) {
-                    testEndEpochMs
-                } else if (rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
-                    System.currentTimeMillis()
-                } else if (startMs > 0L && elapsedSeconds > 0L) {
-                    startMs + elapsedSeconds * 1000L
-                } else {
-                    System.currentTimeMillis()
+                val reportJson = autoSaveCurrentTest(isManualExport = true) ?: exportedJsonText
+                val uniqueJsonName = lastSavedUniqueJsonName ?: "fieldtest_metrics.json"
+
+                val duration = lastFinishedDurationSeconds ?: 0L
+                if (duration < 10L) {
+                    Toast.makeText(
+                        context,
+                        "⚠️ ADVERTENCIA: Corrida de solo ${duration}s (<10s). Posible prueba accidental o incompleta.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
-                val durationSec = if (startMs > 0L && endMs >= startMs) {
-                    ((endMs - startMs) / 1000L).coerceAtLeast(0L)
-                } else {
-                    elapsedSeconds
-                }
-
-                val isScreenKeepOn = screenKeepOnActiveDuringTest ||
-                    (activity?.window?.attributes?.let { (it.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0 } == true) ||
-                    view.keepScreenOn ||
-                    isRunning
-
-                val fileTimestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(System.currentTimeMillis()))
-                val modeForFilename = snapshot?.effectiveBleTransportMode ?: effectiveBleMode
-                val modeClean = when (modeForFilename) {
-                    "EXTENDED_CODED_PHY" -> "coded"
-                    "EXTENDED_1M" -> "ext1m"
-                    "LEGACY_1M" -> "legacy"
-                    else -> modeForFilename.lowercase().replace("_", "")
-                }
-                val parsedDist = manualDistanceMetersText.trim().toDoubleOrNull()
-                val distStr = parsedDist?.let {
-                    if (it % 1.0 == 0.0) it.toLong().toString() else it.toString()
-                } ?: manualDistanceMetersText.trim().ifEmpty { "1" }
-                val exportShortId = snapshot?.localNodeShortId ?: selectedNodeShortId
-
-                val uniqueJsonName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.json"
-                val uniqueCsvName = "fieldtest_${fileTimestamp}_${modeClean}_${distStr}m_${exportShortId}.csv"
-                val csvContent = RideService.exportPacketsCsv()
-
-                val extDir = context.getExternalFilesDir(null)
-                val extUniqueCsv = extDir?.let { File(it, uniqueCsvName) }
-                val intUniqueCsv = File(context.filesDir, uniqueCsvName)
-                val csvPathForJson = extUniqueCsv?.absolutePath ?: intUniqueCsv.absolutePath
-
-                val reportJson = generateMetricsJson(
-                    context = context,
-                    snapshot = snapshot,
-                    nodeRole = nodeRoleLabel(exportShortId, snapshot?.totalPhonesInTest ?: totalPhonesInTest),
-                    shortId = exportShortId,
-                    totalPhonesInTest = snapshot?.totalPhonesInTest ?: totalPhonesInTest,
-                    selectedBurstDurationMs = selectedBurstDurationMs,
-                    expectedPeerIdsFallback = expectedConvoyPeers.map { it.toInt() }.sorted(),
-                    durationSeconds = durationSec,
-                    manualDistanceMeters = manualDistanceMetersText.trim().toDoubleOrNull(),
-                    manualDistanceText = manualDistanceMetersText.trim(),
-                    testStartEpochMs = startMs,
-                    testEndEpochMs = endMs,
-                    rideState = rideState,
-                    metrics = metrics,
-                    bleCaps = bleCaps,
-                    selectedTransportMode = selectedTransportMode,
-                    screenKeepOnActive = isScreenKeepOn,
-                    csvPath = csvPathForJson,
-                    radioAtStart = radioAtStart ?: snapshot?.radioAtStart,
-                    radioAtEnd = radioAtEnd,
-                    csvContent = csvContent
-                )
-                exportedJsonText = reportJson
-
-                // 1. Guardar en almacenamiento de la app con nombre único y copia a fieldtest_metrics.json (último)
-                val extUniqueJson = extDir?.let { File(it, uniqueJsonName) }
-                val extLatestJson = extDir?.let { File(it, "fieldtest_metrics.json") }
-                val extLatestCsv = extDir?.let { File(it, "fieldtest_metrics.csv") }
-                runCatching {
-                    extUniqueJson?.writeText(reportJson)
-                    extLatestJson?.writeText(reportJson)
-                    extUniqueCsv?.writeText(csvContent)
-                    extLatestCsv?.writeText(csvContent)
-                }
-                val intUniqueJson = File(context.filesDir, uniqueJsonName)
-                val intLatestJson = File(context.filesDir, "fieldtest_metrics.json")
-                val intLatestCsv = File(context.filesDir, "fieldtest_metrics.csv")
-                runCatching {
-                    intUniqueJson.writeText(reportJson)
-                    intLatestJson.writeText(reportJson)
-                    intUniqueCsv.writeText(csvContent)
-                    intLatestCsv.writeText(csvContent)
-                }
-                val savedPath = extUniqueJson?.absolutePath ?: intUniqueJson.absolutePath
-                exportedFilePath = savedPath
-
-                Log.i(
-                    "FieldTestScreen",
-                    "Exported $uniqueJsonName and $uniqueCsvName: burstsStarted=${rideState.f3AdvertisingBurstsStarted} " +
-                        "burstsSuccess=${rideState.f3AdvertisingBurstsSuccess} advFailures=${rideState.f3AdvertisingFailuresCount} " +
-                        "lastAdvFailure='${rideState.f3LastAdvertisingFailure ?: "none"}' " +
-                        "scanStarts=${rideState.f3ScanStartsCount} scanFailures=${rideState.f3ScanFailuresCount} " +
-                        "lastScanFailure='${rideState.f3LastScanFailure ?: "none"}' " +
-                        "logicalHeartbeats=${rideState.f3LogicalHeartbeatsEmitted} " +
-                        "btConnected=${rideState.connectedBluetoothDevicesCount} " +
-                        "audioBt=${rideState.connectedBluetoothAudio} devices=${rideState.connectedBluetoothDeviceNames.joinToString()}"
-                )
 
                 // Copiar al portapapeles automáticamente
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -1679,7 +1780,8 @@ private fun generateMetricsJson(
     csvPath: String? = null,
     radioAtStart: RadioEnvironmentSnapshot? = null,
     radioAtEnd: RadioEnvironmentSnapshot? = null,
-    csvContent: String = ""
+    csvContent: String = "",
+    advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
@@ -1688,6 +1790,7 @@ private fun generateMetricsJson(
 
     val effectiveBleMode = snapshot?.effectiveBleTransportMode ?: bleCaps.resolveEffectiveMode(selectedTransportMode)
     val effectiveForcedMode = snapshot?.forcedBleTransportMode ?: (rideState.forcedBleMode ?: selectedTransportMode.code)
+    val effectiveDeliveryMode = snapshot?.advertisingDeliveryMode ?: rideState.f3AdvertisingDeliveryMode
     val effectiveShortId = snapshot?.localNodeShortId ?: shortId
     val effectiveTotalPhones = snapshot?.totalPhonesInTest ?: totalPhonesInTest
     val effectiveRole = snapshot?.nodeRole ?: nodeRole
@@ -1766,6 +1869,22 @@ private fun generateMetricsJson(
         put("deviceModel", Build.MODEL)
         put("androidRelease", Build.VERSION.RELEASE)
         put("androidSdkInt", Build.VERSION.SDK_INT)
+
+        val socManufacturer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MANUFACTURER
+        } else {
+            Build.HARDWARE
+        }
+        val socModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Build.SOC_MODEL
+        } else {
+            Build.BOARD
+        }
+        put("socManufacturer", socManufacturer)
+        put("socModel", socModel)
+        put("hardware", Build.HARDWARE)
+        put("board", Build.BOARD)
+
         put("screenKeepOnActive", effectiveScreenKeepOn)
         put("screenIsInteractive", isInteractive)
 
@@ -1806,15 +1925,25 @@ private fun generateMetricsJson(
         put("canHearExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
         put("forcedBleTransportMode", effectiveForcedMode)
         put("effectiveBleTransportMode", effectiveBleMode)
-        put("f3AdvertisingMode", "PERSISTENT_SET")
-        put("f3AdvertisingDutyCycleApproxPct", 100.0)
+        put("f3AdvertisingMode", effectiveDeliveryMode.code)
+        val approxDutyCycle = if (effectiveDeliveryMode == BleAdvTransport.AdvertisingDeliveryMode.CONTINUOUS) {
+            100.0
+        } else {
+            ((effectiveBurstDuration.toDouble() / rideState.heartbeatIntervalMs.toDouble()) * 100.0).coerceIn(0.0, 100.0)
+        }
+        put("f3AdvertisingDutyCycleApproxPct", approxDutyCycle)
         put("f3AdvertisingIntervalSetting", f3IntervalSetting)
         put("f3AdvertisingBurstDurationMs", effectiveBurstDuration)
         put("f3HeartbeatCadenceMs", rideState.heartbeatIntervalMs)
         put("f3TxPowerLevelSetting", f3TxPowerSetting)
         put("f3LastMeasuredTxPowerDbm", rideState.f3LastMeasuredTxPowerDbm ?: JSONObject.NULL)
         put("f3StopAdvertisingSetOnFinish", true)
-        put("f3AdvertisingSetsStartedDescription", "Sets BLE creados en hardware: 1 = set continuo persistente con actualización de datos in-place (Opción A); N = start/stop por cada ráfaga")
+        val setsDesc = if (effectiveDeliveryMode == BleAdvTransport.AdvertisingDeliveryMode.CONTINUOUS) {
+            "Sets BLE creados en hardware: 1 = set continuo persistente con actualización de datos in-place (Opción A); N = start/stop por cada ráfaga"
+        } else {
+            "Sets BLE creados en hardware: start/stop por cada ráfaga de 1 s"
+        }
+        put("f3AdvertisingSetsStartedDescription", setsDesc)
         put("f3AdvertisingSetsStarted", rideState.f3AdvertisingSetsStarted)
         put("f3AdvertisingSetsStopped", rideState.f3AdvertisingSetsStopped)
         put("f3CsvRowCounts", csvCounts.toJsonObject())
@@ -1829,6 +1958,7 @@ private fun generateMetricsJson(
         put("expectedPeerShortIds", org.json.JSONArray(effectivePeers))
         put("testDurationSeconds", computedDurationSeconds)
         put("testDurationFormatted", formatElapsed(computedDurationSeconds))
+        put("shortRunWarning", computedDurationSeconds < 10)
         put("transportName", rideState.transportName)
         put("isSimulatedTransport", rideState.isUsingSimulatedTransport)
         put("connectedPeersCount", rideState.connectedRidersCount)

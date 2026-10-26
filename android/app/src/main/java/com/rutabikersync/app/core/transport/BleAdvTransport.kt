@@ -39,8 +39,19 @@ class BleAdvTransport(
     @Volatile var modeOverride: TransportModeOverride? = null,
     @Volatile var advertisingBurstDurationMs: Int = DEFAULT_ADVERTISING_BURST_DURATION_MS,
     @Volatile var txRxRole: TxRxRole = TxRxRole.BOTH,
-    @Volatile var unfilteredScanDiagnostic: Boolean = false
+    @Volatile var unfilteredScanDiagnostic: Boolean = false,
+    @Volatile var advertisingDeliveryMode: AdvertisingDeliveryMode = AdvertisingDeliveryMode.BURST
 ) : Transport {
+
+    enum class AdvertisingDeliveryMode(val code: String, val displayLabel: String) {
+        BURST("BURST_1S", "RÁFAGA 1 s"),
+        CONTINUOUS("CONTINUOUS", "CONTINUO");
+
+        companion object {
+            fun fromCode(code: String?): AdvertisingDeliveryMode =
+                entries.firstOrNull { it.code.equals(code, ignoreCase = true) } ?: BURST
+        }
+    }
 
     enum class TxRxRole(val code: String, val displayLabel: String) {
         BOTH("BOTH", "Tx y Rx (Normal)"),
@@ -413,6 +424,53 @@ class BleAdvTransport(
     }
 
     @SuppressLint("MissingPermission")
+    private fun startLegacyBurstFallback(
+        adv: BluetoothLeAdvertiser,
+        advertiseData: AdvertiseData,
+        priority: Transport.Priority,
+        burstMs: Int
+    ) {
+        activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
+        val advMode = when (priority) {
+            Transport.Priority.SOS, Transport.Priority.PEER_EVENT -> AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY
+            else -> AdvertiseSettings.ADVERTISE_MODE_BALANCED
+        }
+        val settings = AdvertiseSettings.Builder()
+            .setAdvertiseMode(advMode)
+            .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+            .setConnectable(false)
+            .setTimeout(burstMs)
+            .build()
+
+        val callback = object : AdvertiseCallback() {
+            override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+                advertisingBurstsSuccessCount++
+                Log.i(TAG, "Legacy burst advertise started successfully burst#=$advertisingBurstsStartedCount")
+            }
+
+            override fun onStartFailure(errorCode: Int) {
+                advertisingFailuresCount++
+                val desc = describeAdvertiseFailure(errorCode)
+                lastAdvertisingFailure = desc
+                Log.e(
+                    TAG,
+                    "Legacy burst onStartFailure errorCode=$errorCode ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
+                )
+            }
+        }
+        activeLegacyCallback = callback
+        runCatching {
+            advertisingSetsStartedCount++
+            adv.startAdvertising(settings, advertiseData, callback)
+        }.onFailure { ex ->
+            advertisingFailuresCount++
+            val desc = "START_LEGACY_BURST_ADV_THREW: ${ex.message}"
+            lastAdvertisingFailure = desc
+            Log.e(TAG, "startAdvertising threw exception", ex)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     override suspend fun send(payload: ByteArray, priority: Transport.Priority) {
         if (txRxRole == TxRxRole.RX_ONLY) {
             Log.d(TAG, "send omitido: rol RX_ONLY activo")
@@ -433,100 +491,177 @@ class BleAdvTransport(
         val supportsAdvertisingSet = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && caps.extendedAdvertisingSupported
 
         advertisingBurstsStartedCount++
-        Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode priority=$priority")
+        Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode delivery=$advertisingDeliveryMode priority=$priority")
 
-        if (supportsAdvertisingSet) {
-            val currentSet = activeAdvertisingSet
-            if (currentSet != null && activeAdvertisingSetMode == mode) {
-                // Opción A: Mantener el AdvertisingSet encendido siempre y actualizar datos in-place
-                val updateResult = runCatching {
-                    currentSet.setAdvertisingData(advertiseData)
-                    if (currentAdvertisingPriority != priority) {
-                        currentAdvertisingPriority = priority
-                        val newParams = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
-                        currentSet.setAdvertisingParameters(newParams)
+        if (advertisingDeliveryMode == AdvertisingDeliveryMode.CONTINUOUS) {
+            // MODO CONTINUO (Opción A): Mantener AdvertisingSet encendido indefinidamente y actualizar datos in-place
+            if (supportsAdvertisingSet) {
+                val currentSet = activeAdvertisingSet
+                if (currentSet != null && activeAdvertisingSetMode == mode) {
+                    val updateResult = runCatching {
+                        currentSet.setAdvertisingData(advertiseData)
+                        if (currentAdvertisingPriority != priority) {
+                            currentAdvertisingPriority = priority
+                            val newParams = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
+                            currentSet.setAdvertisingParameters(newParams)
+                        }
+                    }
+                    if (updateResult.isSuccess) {
+                        advertisingBurstsSuccessCount++
+                        Log.d(TAG, "Continuous AdvertisingSet data updated in-place burst#=$advertisingBurstsStartedCount")
+                        return
+                    } else {
+                        Log.w(TAG, "setAdvertisingData failed (${updateResult.exceptionOrNull()?.message}), restarting set")
+                        stopAllActiveExtendedAdvertisingSets()
                     }
                 }
-                if (updateResult.isSuccess) {
-                    advertisingBurstsSuccessCount++
-                    Log.d(TAG, "AdvertisingSet data updated in-place burst#=$advertisingBurstsStartedCount")
-                    return
-                } else {
-                    Log.w(TAG, "setAdvertisingData failed (${updateResult.exceptionOrNull()?.message}), restarting set")
-                    stopAllActiveExtendedAdvertisingSets()
-                }
-            }
 
-            // Iniciar conjunto continuo si aún no está activo
-            stopAllActiveExtendedAdvertisingSets()
-            activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
-            activeLegacyCallback = null
+                // Iniciar conjunto continuo si aún no está activo
+                stopAllActiveExtendedAdvertisingSets()
+                activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
+                activeLegacyCallback = null
 
-            val params = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
-            currentAdvertisingPriority = priority
-            activeAdvertisingSetMode = mode
+                val params = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
+                currentAdvertisingPriority = priority
+                activeAdvertisingSetMode = mode
 
-            val callback = object : AdvertisingSetCallback() {
-                override fun onAdvertisingSetStarted(
-                    advertisingSet: AdvertisingSet?,
-                    txPower: Int,
-                    status: Int
-                ) {
-                    if (status == ADVERTISE_SUCCESS && advertisingSet != null) {
-                        activeAdvertisingSet = advertisingSet
-                        lastMeasuredTxPowerDbm = txPower
-                        advertisingBurstsSuccessCount++
-                        Log.i(TAG, "Continuous AdvertisingSet started successfully txPower=$txPower mode=$mode")
-                    } else {
-                        advertisingFailuresCount++
-                        val desc = "ADV_SET_FAILED_STATUS_$status"
-                        lastAdvertisingFailure = desc
-                        Log.e(
-                            TAG,
-                            "onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount"
-                        )
-                        activeAdvertisingSet = null
+                val callback = object : AdvertisingSetCallback() {
+                    override fun onAdvertisingSetStarted(
+                        advertisingSet: AdvertisingSet?,
+                        txPower: Int,
+                        status: Int
+                    ) {
+                        if (status == ADVERTISE_SUCCESS && advertisingSet != null) {
+                            activeAdvertisingSet = advertisingSet
+                            lastMeasuredTxPowerDbm = txPower
+                            advertisingBurstsSuccessCount++
+                            Log.i(TAG, "Continuous AdvertisingSet started successfully txPower=$txPower mode=$mode")
+                        } else {
+                            advertisingFailuresCount++
+                            val desc = "ADV_SET_FAILED_STATUS_$status"
+                            lastAdvertisingFailure = desc
+                            Log.e(
+                                TAG,
+                                "onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount"
+                            )
+                            activeAdvertisingSet = null
+                            activeExtendedCallbacks.remove(this)
+                        }
+                    }
+
+                    override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet?, status: Int) {
+                        if (status == ADVERTISE_SUCCESS) {
+                            Log.d(TAG, "onAdvertisingDataSet confirmed burst#=$advertisingBurstsStartedCount")
+                        } else {
+                            Log.w(TAG, "onAdvertisingDataSet failed status=$status")
+                        }
+                    }
+
+                    override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
+                        Log.i(TAG, "Continuous AdvertisingSet stopped")
+                        if (activeAdvertisingSet == advertisingSet) {
+                            activeAdvertisingSet = null
+                        }
                         activeExtendedCallbacks.remove(this)
                     }
                 }
+                activeExtendedCallbacks.add(callback)
+                activeAdvertisingSetCallback = callback
 
-                override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet?, status: Int) {
-                    if (status == ADVERTISE_SUCCESS) {
-                        Log.d(TAG, "onAdvertisingDataSet confirmed burst#=$advertisingBurstsStartedCount")
-                    } else {
-                        Log.w(TAG, "onAdvertisingDataSet failed status=$status")
-                    }
+                runCatching {
+                    advertisingSetsStartedCount++
+                    // duration = 0: emisión continua indefinida (sin ráfagas con timeout que apaguen la radio)
+                    adv.startAdvertisingSet(params, advertiseData, null, null, null, 0, 0, callback)
+                }.onFailure { ex ->
+                    advertisingFailuresCount++
+                    val desc = "START_ADV_SET_THREW: ${ex.message}"
+                    lastAdvertisingFailure = desc
+                    Log.e(TAG, "startAdvertisingSet threw exception, falling back to legacy", ex)
+                    activeExtendedCallbacks.remove(callback)
+                    activeAdvertisingSet = null
+
+                    startLegacyContinuousFallback(adv, advertiseData, priority)
                 }
-
-                override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
-                    Log.i(TAG, "AdvertisingSet stopped")
-                    if (activeAdvertisingSet == advertisingSet) {
-                        activeAdvertisingSet = null
-                    }
-                    activeExtendedCallbacks.remove(this)
-                }
-            }
-            activeExtendedCallbacks.add(callback)
-            activeAdvertisingSetCallback = callback
-
-            runCatching {
-                advertisingSetsStartedCount++
-                // duration = 0: emisión continua indefinida (sin ráfagas con timeout que apaguen la radio)
-                // maxExtendedAdvertisingEvents = 0: eventos ilimitados
-                adv.startAdvertisingSet(params, advertiseData, null, null, null, 0, 0, callback)
-            }.onFailure { ex ->
-                advertisingFailuresCount++
-                val desc = "START_ADV_SET_THREW: ${ex.message}"
-                lastAdvertisingFailure = desc
-                Log.e(TAG, "startAdvertisingSet threw exception, falling back to legacy", ex)
-                activeExtendedCallbacks.remove(callback)
-                activeAdvertisingSet = null
-
+            } else {
+                stopAllActiveExtendedAdvertisingSets()
                 startLegacyContinuousFallback(adv, advertiseData, priority)
             }
         } else {
-            stopAllActiveExtendedAdvertisingSets()
-            startLegacyContinuousFallback(adv, advertiseData, priority)
+            // MODO RÁFAGA (BURST 1s): Ráfaga acotada en el tiempo (advertisingBurstDurationMs) para ahorro de energía
+            val burstMs = advertisingBurstDurationMs
+            if (supportsAdvertisingSet) {
+                stopAllActiveExtendedAdvertisingSets()
+                activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
+                activeLegacyCallback = null
+
+                val params = buildAdvertisingSetParameters(mode, caps, priority, isExtendedPhy)
+                currentAdvertisingPriority = priority
+                activeAdvertisingSetMode = mode
+
+                val callback = object : AdvertisingSetCallback() {
+                    override fun onAdvertisingSetStarted(
+                        advertisingSet: AdvertisingSet?,
+                        txPower: Int,
+                        status: Int
+                    ) {
+                        if (status == ADVERTISE_SUCCESS) {
+                            lastMeasuredTxPowerDbm = txPower
+                            advertisingBurstsSuccessCount++
+                            Log.i(TAG, "Burst AdvertisingSet started successfully txPower=$txPower burst#=$advertisingBurstsStartedCount")
+                        } else {
+                            advertisingFailuresCount++
+                            val desc = "BURST_ADV_SET_FAILED_STATUS_$status"
+                            lastAdvertisingFailure = desc
+                            Log.e(
+                                TAG,
+                                "Burst onAdvertisingSetStarted failed status=$status ($desc) totalFailures=$advertisingFailuresCount burst#=$advertisingBurstsStartedCount"
+                            )
+                            if (activeExtendedCallbacks.remove(this)) {
+                                runCatching { adv.stopAdvertisingSet(this) }
+                                advertisingSetsStoppedCount++
+                            }
+                        }
+                    }
+
+                    override fun onAdvertisingEnabled(
+                        advertisingSet: AdvertisingSet?,
+                        enable: Boolean,
+                        status: Int
+                    ) {
+                        // Al expirar la ráfaga (durationUnits10Ms), el chip deshabilita el anuncio (enable = false).
+                        // Liberamos el slot en hardware invocando stopAdvertisingSet(callback).
+                        if (!enable && activeExtendedCallbacks.remove(this)) {
+                            runCatching { adv.stopAdvertisingSet(this) }
+                            advertisingSetsStoppedCount++
+                            Log.d(TAG, "Burst AdvertisingSet slot freed after expiration")
+                        }
+                    }
+
+                    override fun onAdvertisingSetStopped(advertisingSet: AdvertisingSet?) {
+                        activeExtendedCallbacks.remove(this)
+                    }
+                }
+                activeExtendedCallbacks.add(callback)
+                activeAdvertisingSetCallback = callback
+
+                val durationUnits10Ms = (burstMs / 10).coerceIn(10, 65_535)
+                runCatching {
+                    advertisingSetsStartedCount++
+                    adv.startAdvertisingSet(params, advertiseData, null, null, null, durationUnits10Ms, 0, callback)
+                }.onFailure { ex ->
+                    advertisingFailuresCount++
+                    val desc = "START_BURST_ADV_SET_THREW: ${ex.message}"
+                    lastAdvertisingFailure = desc
+                    Log.e(TAG, "Burst startAdvertisingSet threw exception, falling back to legacy", ex)
+                    if (activeExtendedCallbacks.remove(callback)) {
+                        advertisingSetsStoppedCount++
+                    }
+                    startLegacyBurstFallback(adv, advertiseData, priority, burstMs)
+                }
+            } else {
+                stopAllActiveExtendedAdvertisingSets()
+                startLegacyBurstFallback(adv, advertiseData, priority, burstMs)
+            }
         }
     }
 

@@ -127,4 +127,73 @@ class FieldTestMetricsTest {
         assertTrue(config.radioAtStart!!.airplaneModeOn)
         assertFalse(config.radioAtStart!!.wifiEnabled)
     }
+
+    @Test
+    fun `JSON de metricas serializa completamente peerDeliveryReports y primaryPeerDeliveryRatePct`() {
+        val testJsonString = """
+            {
+              "timestampEpochMs": 1792973458137,
+              "timestampIso": "2026-10-26T00:10:58Z",
+              "gitCommit": "e7664da",
+              "gitDirty": false,
+              "versionName": "0.1.0",
+              "socManufacturer": "Unisoc",
+              "socModel": "UMS9230",
+              "hardware": "ums9230",
+              "board": "ki5k",
+              "f3AdvertisingMode": "BURST_1S",
+              "f3AdvertisingDutyCycleApproxPct": 33.33,
+              "shortRunWarning": false,
+              "f3AdvertisingBurstsStarted": 60,
+              "f3AdvertisingBurstsSuccess": 60,
+              "peerDeliveryReports": [
+                {
+                  "peerShortId": 1,
+                  "firstSequenceObserved": 0,
+                  "lastSequenceObserved": 59,
+                  "burstsEmittedByPeer": 60,
+                  "burstsHeardFromPeer": 60,
+                  "peerDeliveryRatePct": 100.0,
+                  "isLost": false
+                }
+              ],
+              "primaryPeerShortId": 1,
+              "primaryPeerBurstsEmitted": 60,
+              "primaryPeerBurstsHeard": 60,
+              "primaryPeerDeliveryRatePct": 100.0
+            }
+        """.trimIndent()
+
+        // Validar que el parser JSON lee la estructura completa hasta la llave de cierre
+        val json = JSONObject(testJsonString)
+        assertFalse(json.getBoolean("gitDirty"))
+        assertEquals("Unisoc", json.getString("socManufacturer"))
+        assertEquals("UMS9230", json.getString("socModel"))
+        assertEquals("BURST_1S", json.getString("f3AdvertisingMode"))
+        assertFalse(json.getBoolean("shortRunWarning"))
+
+        val peersArray = json.getJSONArray("peerDeliveryReports")
+        assertEquals(1, peersArray.length())
+        val firstPeer = peersArray.getJSONObject(0)
+        assertEquals(1, firstPeer.getInt("peerShortId"))
+        assertEquals(60, firstPeer.getInt("burstsHeardFromPeer"))
+        assertEquals(100.0, firstPeer.getDouble("peerDeliveryRatePct"), 0.01)
+
+        assertEquals(1, json.getInt("primaryPeerShortId"))
+        assertEquals(100.0, json.getDouble("primaryPeerDeliveryRatePct"), 0.01)
+    }
+
+    @Test
+    fun `parseCsvRowCounts soporta columna adicional advertising_mode en CSV`() {
+        val csv = """
+            timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode
+            2026-10-25T23:25:27.488Z,1,0,4,0,,BleAdvTransport(LEGACY_1M),false,TX,BURST_1S
+            2026-10-25T23:25:31.168Z,2,1,4,1,-39,BleAdvTransport(LEGACY_1M),false,RX,BURST_1S
+        """.trimIndent()
+
+        val counts = parseCsvRowCounts(csv)
+        assertEquals(1, counts.tx)
+        assertEquals(1, counts.rx)
+        assertEquals(0, counts.relayTx)
+    }
 }

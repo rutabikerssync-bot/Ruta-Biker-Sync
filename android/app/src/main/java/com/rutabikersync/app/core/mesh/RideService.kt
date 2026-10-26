@@ -91,6 +91,7 @@ data class RideSessionState(
     val transportName: String = "Idle",
     val forcedBleMode: String? = null,
     val f3AdvertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
+    val f3AdvertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST,
     val f3AdvertisingSetsStarted: Int = 0,
     val f3AdvertisingSetsStopped: Int = 0,
     val f3LastMeasuredTxPowerDbm: Int? = null,
@@ -207,6 +208,7 @@ class RideSessionController(
         relayEnabled: Boolean = true,
         txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
         unfilteredScanDiagnostic: Boolean = false,
+        advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST,
         nowEpochMs: Long = System.currentTimeMillis()
     ): RideSessionState {
         stopAllInternal(resetToIdle = false)
@@ -229,7 +231,8 @@ class RideSessionController(
             bleModeOverride = bleModeOverride,
             advertisingBurstDurationMs = advertisingBurstDurationMs,
             txRxRole = txRxRole,
-            unfilteredScanDiagnostic = unfilteredScanDiagnostic
+            unfilteredScanDiagnostic = unfilteredScanDiagnostic,
+            advertisingDeliveryMode = advertisingDeliveryMode
         )
         activeTransport = selectedTransport
 
@@ -286,6 +289,7 @@ class RideSessionController(
             transportName = selectedTransport.name,
             forcedBleMode = bleModeOverride?.code,
             f3AdvertisingBurstDurationMs = advertisingBurstDurationMs,
+            f3AdvertisingDeliveryMode = advertisingDeliveryMode,
             f3AdvertisingSetsStarted = bleAdv?.advertisingSetsStartedCount ?: 0,
             f3AdvertisingSetsStopped = bleAdv?.advertisingSetsStoppedCount ?: 0,
             f3LastMeasuredTxPowerDbm = bleAdv?.lastMeasuredTxPowerDbm,
@@ -606,7 +610,8 @@ class RideSessionController(
         bleModeOverride: BleAdvTransport.TransportModeOverride? = null,
         advertisingBurstDurationMs: Int = BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS,
         txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
-        unfilteredScanDiagnostic: Boolean = false
+        unfilteredScanDiagnostic: Boolean = false,
+        advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST
     ): Pair<Transport, Boolean> {
         if (!forceSimulated) {
             val realBle = runCatching { bleTransportFactory?.invoke() }.getOrNull()
@@ -615,6 +620,7 @@ class RideSessionController(
                 realBle.advertisingBurstDurationMs = advertisingBurstDurationMs
                 realBle.txRxRole = txRxRole
                 realBle.unfilteredScanDiagnostic = unfilteredScanDiagnostic
+                realBle.advertisingDeliveryMode = advertisingDeliveryMode
                 val caps = runCatching { realBle.queryCapabilities() }.getOrNull()
                 if (caps != null && caps.bluetoothSupported && caps.bluetoothEnabled) {
                     return realBle to false
@@ -768,6 +774,7 @@ class RideService : Service() {
         const val EXTRA_RELAY_ENABLED = "extra_relay_enabled"
         const val EXTRA_TX_RX_ROLE = "extra_tx_rx_role"
         const val EXTRA_UNFILTERED_SCAN_DIAGNOSTIC = "extra_unfiltered_scan_diagnostic"
+        const val EXTRA_ADVERTISING_DELIVERY_MODE = "extra_advertising_delivery_mode"
 
         /**
          * Función pura que devuelve los pares esperados del convoy dado el nº de teléfonos en la prueba (2..5)
@@ -931,7 +938,8 @@ class RideService : Service() {
             expectedPeerShortIds: Set<UShort> = emptySet(),
             relayEnabled: Boolean = true,
             txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
-            unfilteredScanDiagnostic: Boolean = false
+            unfilteredScanDiagnostic: Boolean = false,
+            advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
             if (eligibility.shouldPromoteToForeground) {
@@ -949,6 +957,7 @@ class RideService : Service() {
                     putExtra(EXTRA_RELAY_ENABLED, relayEnabled)
                     putExtra(EXTRA_TX_RX_ROLE, txRxRole.code)
                     putExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, unfilteredScanDiagnostic)
+                    putExtra(EXTRA_ADVERTISING_DELIVERY_MODE, advertisingDeliveryMode.code)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -967,7 +976,8 @@ class RideService : Service() {
                         expectedPeerShortIds = expectedPeerShortIds,
                         relayEnabled = relayEnabled,
                         txRxRole = txRxRole,
-                        unfilteredScanDiagnostic = unfilteredScanDiagnostic
+                        unfilteredScanDiagnostic = unfilteredScanDiagnostic,
+                        advertisingDeliveryMode = advertisingDeliveryMode
                     )
                     _sharedState.value = state
                 }
@@ -1133,6 +1143,9 @@ class RideService : Service() {
                 val relayEnabled = intent.getBooleanExtra(EXTRA_RELAY_ENABLED, true)
                 val txRxRole = BleAdvTransport.TxRxRole.fromCode(intent.getStringExtra(EXTRA_TX_RX_ROLE))
                 val unfilteredScanDiagnostic = intent.getBooleanExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, false)
+                val advertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.fromCode(
+                    intent.getStringExtra(EXTRA_ADVERTISING_DELIVERY_MODE)
+                )
                 val eligibility = evaluateContextEligibility(this, requestedForceSim)
                 val effectiveForceSim = eligibility.effectiveForceSimulated
 
@@ -1174,7 +1187,8 @@ class RideService : Service() {
                         expectedPeerShortIds = expectedPeerShortIds,
                         relayEnabled = relayEnabled,
                         txRxRole = txRxRole,
-                        unfilteredScanDiagnostic = unfilteredScanDiagnostic
+                        unfilteredScanDiagnostic = unfilteredScanDiagnostic,
+                        advertisingDeliveryMode = advertisingDeliveryMode
                     )
                     _sharedState.value = state
                     if (isPromotedToForeground) {

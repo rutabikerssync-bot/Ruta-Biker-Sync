@@ -1,6 +1,7 @@
 package com.rutabikersync.app.core.mesh
 
 import com.rutabikersync.app.core.protocol.MeshPacket
+import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.Transport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -82,6 +83,7 @@ class MeshRelayEngine(
         val hops: Int,
         val rssi: Int?,
         val transportMode: String,
+        val advertisingMode: String = "BURST_1S",
         val isDuplicate: Boolean = false,
         val direction: String = "RX" // "TX", "RX", "RELAY_TX"
     )
@@ -181,6 +183,9 @@ class MeshRelayEngine(
     )
     val announcedSignals: SharedFlow<AnnouncedMeshSignal> = _announcedSignals.asSharedFlow()
 
+    private fun currentAdvertisingMode(): String =
+        (transport as? BleAdvTransport)?.advertisingDeliveryMode?.code ?: "BURST_1S"
+
     private fun logPacketEntryLocked(entry: PacketLogEntry) {
         if (packetLogs.size >= 10_000) {
             packetLogs.removeAt(0)
@@ -193,9 +198,9 @@ class MeshRelayEngine(
     fun exportPacketsCsv(): String {
         val entries = getPacketLogs()
         val sb = StringBuilder()
-        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction\n")
+        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode\n")
         for (e in entries) {
-            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate},${e.direction}\n")
+            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate},${e.direction},${e.advertisingMode}\n")
         }
         return sb.toString()
     }
@@ -270,6 +275,7 @@ class MeshRelayEngine(
                     hops = 0,
                     rssi = null,
                     transportMode = transport.name,
+                    advertisingMode = currentAdvertisingMode(),
                     isDuplicate = false,
                     direction = "TX"
                 )
@@ -324,6 +330,7 @@ class MeshRelayEngine(
                     hops = 0,
                     rssi = null,
                     transportMode = transport.name,
+                    advertisingMode = currentAdvertisingMode(),
                     isDuplicate = false,
                     direction = "TX"
                 )
@@ -373,6 +380,7 @@ class MeshRelayEngine(
                     hops = packet.hopsTaken,
                     rssi = rssi,
                     transportMode = transport.name,
+                    advertisingMode = currentAdvertisingMode(),
                     isDuplicate = isDuplicate,
                     direction = "RX"
                 )
@@ -431,6 +439,7 @@ class MeshRelayEngine(
                         hops = toRelay.hopsTaken,
                         rssi = null,
                         transportMode = transport.name,
+                        advertisingMode = currentAdvertisingMode(),
                         isDuplicate = false,
                         direction = "RELAY_TX"
                     )
