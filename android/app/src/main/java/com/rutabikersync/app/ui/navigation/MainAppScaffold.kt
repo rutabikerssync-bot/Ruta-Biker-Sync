@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -75,13 +77,18 @@ import androidx.compose.runtime.LaunchedEffect
 import com.rutabikersync.app.core.uxtest.UxTestTracker
 import com.rutabikersync.app.core.uxtest.ModeratorControlDialog
 
+import androidx.compose.material3.NavigationBarItemDefaults
+import com.rutabikersync.app.ui.theme.HeritageTheme
+
 /**
  * Navegación principal con barra inferior (SCREENS.md §2: Rodadas · Grupo · Rutas · Perfil)
  * y botón flotante DEV exclusivo de compilaciones Debug (BuildConfig.DEV_PANEL_ENABLED).
  */
 @Composable
 fun MainAppScaffold(
-    phase1ViewModel: Phase1ViewModel = viewModel()
+    phase1ViewModel: Phase1ViewModel = viewModel(),
+    isDarkMode: Boolean = true,
+    onToggleDarkMode: () -> Unit = {}
 ) {
     val context = LocalContext.current
     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -107,7 +114,7 @@ fun MainAppScaffold(
     }
 
     Scaffold(
-        containerColor = BikerColors.BackgroundDark,
+        containerColor = HeritageTheme.colors.background,
         floatingActionButton = {
             if (BuildConfig.DEV_PANEL_ENABLED) {
                 FloatingActionButton(
@@ -115,8 +122,8 @@ fun MainAppScaffold(
                         UxTestTracker.logEvent("DEV_PANEL", "OPEN_PANEL", "btn_dev_panel")
                         showDevPanel = true
                     },
-                    containerColor = BikerColors.PrimaryAmber,
-                    contentColor = BikerColors.BackgroundDark
+                    containerColor = HeritageTheme.colors.primary,
+                    contentColor = HeritageTheme.colors.onPrimary
                 ) {
                     Text(
                         text = stringResource(id = R.string.dev_panel_btn),
@@ -127,33 +134,44 @@ fun MainAppScaffold(
             }
         },
         bottomBar = {
+            val navItemColors = NavigationBarItemDefaults.colors(
+                selectedIconColor = HeritageTheme.colors.primary,
+                selectedTextColor = HeritageTheme.colors.primary,
+                unselectedIconColor = HeritageTheme.colors.textSecondary,
+                unselectedTextColor = HeritageTheme.colors.textSecondary,
+                indicatorColor = HeritageTheme.colors.primary.copy(alpha = 0.16f)
+            )
             NavigationBar(
-                containerColor = BikerColors.SurfaceDark,
-                contentColor = BikerColors.TextPrimary
+                containerColor = HeritageTheme.colors.surface,
+                contentColor = HeritageTheme.colors.textPrimary
             ) {
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
                     icon = { Icon(AppIcons.TabRides, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_rides)) }
+                    label = { Text(stringResource(id = R.string.nav_rides)) },
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
                     icon = { Icon(AppIcons.TabGroups, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_groups)) }
+                    label = { Text(stringResource(id = R.string.nav_groups)) },
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
                     icon = { Icon(AppIcons.TabRoutes, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_routes)) }
+                    label = { Text(stringResource(id = R.string.nav_routes)) },
+                    colors = navItemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 },
                     icon = { Icon(AppIcons.TabProfile, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_profile)) }
+                    label = { Text(stringResource(id = R.string.nav_profile)) },
+                    colors = navItemColors
                 )
             }
         }
@@ -307,31 +325,44 @@ private fun RoutesPlaceholderScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BikerColors.BackgroundDark)
+            .background(HeritageTheme.colors.background)
             .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Rutas y Navegación Offline",
-            color = BikerColors.PrimaryAmber,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        com.rutabikersync.app.ui.components.HeritageSectionHeader(title = "BÓVEDA · RUTAS & OFFLINE")
+
+        com.rutabikersync.app.ui.components.HeritageCard {
             Text(
-                text = "Próximamente: Planificador de rutas para motociclistas y mapas descargables para navegación sin conexión celular.",
-                color = BikerColors.TextPrimary,
-                fontSize = 14.sp
+                text = "Mapas Offline y Bóveda del Club",
+                color = HeritageTheme.colors.primary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black
             )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "© OpenStreetMap contributors",
-                color = BikerColors.TextSecondary,
+                text = "Almacenamiento local seguro de mapas vectoriales PMTiles, corredores descargados y certificados de membresía con acceso 100% offline.",
+                color = HeritageTheme.colors.textPrimary,
+                fontSize = 14.sp,
+                lineHeight = 20.sp
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(14.dp))
+            com.rutabikersync.app.ui.components.HeritageStatusBadge(
+                text = "CORREDOR OFFLINE DISPONIBLE",
+                type = com.rutabikersync.app.ui.components.HeritageBadgeType.SAFE
+            )
+        }
+
+        com.rutabikersync.app.ui.components.HeritageCard {
+            Text(
+                text = "Atribución Cartográfica",
+                color = HeritageTheme.colors.textSecondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Datos cartográficos © OpenStreetMap contributors, bajo licencia ODbL.",
+                color = HeritageTheme.colors.textTertiary,
                 fontSize = 12.sp
             )
         }
