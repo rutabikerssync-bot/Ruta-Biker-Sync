@@ -405,7 +405,36 @@ private fun GroupsOverviewScreenD1(
     }
 
     // 2. Lista de grupos
-    data.groups.forEach { grp ->
+    if (data.groups.isEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = AppIcons.TabGroups,
+                contentDescription = null,
+                tint = BikerColors.PrimaryAmber,
+                modifier = Modifier.size(36.dp)
+            )
+            Text(
+                text = stringResource(id = R.string.groups_empty_title),
+                color = BikerColors.TextPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = stringResource(id = R.string.groups_empty_desc),
+                color = BikerColors.TextSecondary,
+                fontSize = 12.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
+    } else {
+        data.groups.forEach { grp ->
         val myMembership = grp.members.find { it.userId == data.currentUser.id }
         val isLeader = grp.leaderIds.contains(data.currentUser.id)
         val isFounder = grp.principalLeaderId == data.currentUser.id
@@ -485,6 +514,7 @@ private fun GroupsOverviewScreenD1(
             }
         }
     }
+}
 
     // 3. Crear grupo (A4 / D1) con verificación en vivo de nombre/leet y pHash
     OutlinedButton(
@@ -1235,8 +1265,8 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
     var mapColorHex by remember(user.id) { mutableStateOf(user.mapColorHex) }
     var showAuthFlow by remember { mutableStateOf(false) }
 
-    var loginEmail by remember { mutableStateOf("rider@rutabikersync.mx") }
-    var loginName by remember { mutableStateOf("Águila Solitaria") }
+    var loginEmail by remember { mutableStateOf("") }
+    var loginName by remember { mutableStateOf("") }
     var loginCountry by remember { mutableStateOf("MX") }
     var acceptedTerms by remember { mutableStateOf(true) }
     var activateLeaderPlan by remember { mutableStateOf(false) }

@@ -4,11 +4,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
@@ -16,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -338,6 +342,10 @@ fun HeritageCabinActionButton(
 /**
  * Botón de parada protegida de 3 segundos para salir de la rodada sin toques accidentales.
  */
+/**
+ * Botón de parada protegida de 3 segundos para salir de la rodada sin toques accidentales.
+ * Reproduce exactamente la cápsula con botón rojo circular y chevron '>' a la izquierda.
+ */
 @Composable
 fun HeritageStopRideHoldButton(
     onHoldCompleted: () -> Unit,
@@ -366,13 +374,21 @@ fun HeritageStopRideHoldButton(
         }
     }
 
+    val capsuleBorderBrush = Brush.linearGradient(
+        listOf(
+            Color(0xFFFF5252),
+            Color(0xFFD92D35),
+            Color(0xFF8B0D14)
+        )
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(HeritageTheme.colors.danger.copy(alpha = 0.2f))
-            .border(1.5.dp, HeritageTheme.colors.danger, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(28.dp))
+            .background(Color(0xFF141519).copy(alpha = 0.92f))
+            .border(1.5.dp, capsuleBorderBrush, RoundedCornerShape(28.dp))
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -384,26 +400,139 @@ fun HeritageStopRideHoldButton(
             },
         contentAlignment = Alignment.CenterStart
     ) {
-        // Barra de progreso de llenado en rojo peligro
+        // Barra de progreso de llenado en rojo peligro con gradiente
+        if (progress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(progress)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xFFD92D35).copy(alpha = 0.45f),
+                                Color(0xFFD92D35)
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Thumb circular rojo a la izquierda con icono '>'
         Box(
             modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(progress)
-                .background(HeritageTheme.colors.danger)
-        )
+                .padding(start = 6.dp)
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        listOf(
+                            Color(0xFFFF5252),
+                            Color(0xFFD92D35),
+                            Color(0xFF991B1B)
+                        )
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Detener",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
 
+        // Texto central
         Row(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 54.dp, end = 16.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isHolding) "MANTÉN PRESIONADO... (${(3 - (progress * 3)).toInt() + 1}s)" else "Mantén presionado 3 s para detener",
+                text = if (isHolding) {
+                    val remaining = ((3000L - (progress * 3000f).toLong()) / 1000L).coerceAtLeast(1L)
+                    "Soltar cancela · Deteniendo en ${remaining}s..."
+                } else {
+                    "Mantén presionado 3 s para detener"
+                },
                 color = Color.White,
-                fontWeight = FontWeight.Black,
-                fontSize = 14.sp,
-                letterSpacing = 0.5.sp
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                letterSpacing = 0.2.sp
             )
+        }
+    }
+}
+
+/**
+ * Barra inferior oficial de 4 pestañas Heritage (Rodadas · Mi Club · Bóveda · Perfil)
+ * con estética de cuero oscuro, latón envejecido y línea de selección activa.
+ */
+@Composable
+fun HeritageBottomNavigationBar(
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val tabs = listOf(
+        Triple("Rodadas", AppIcons.TabRides, 0),
+        Triple("Mi Club", AppIcons.TabGroups, 1),
+        Triple("Bóveda", AppIcons.LeaderFallback, 2),
+        Triple("Perfil", AppIcons.TabProfile, 3)
+    )
+
+    Surface(
+        color = Color(0xFF101114),
+        modifier = modifier
+            .fillMaxWidth()
+            .border(BorderStroke(0.8.dp, Color(0xFF22242B)))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            tabs.forEach { (title, icon, index) ->
+                val isSelected = selectedTabIndex == index
+                val itemColor = if (isSelected) Color(0xFFE5B869) else Color(0xFF85817A)
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onTabSelected(index) }
+                        .padding(vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = title,
+                            tint = itemColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = title,
+                            color = itemColor,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                        // Indicador inferior sutil para la pestaña seleccionada
+                        Box(
+                            modifier = Modifier
+                                .width(20.dp)
+                                .height(2.dp)
+                                .background(if (isSelected) Color(0xFFE5B869) else Color.Transparent)
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -16,6 +16,12 @@ class Phase1ViewModel(
     val repository: ClubRepository = ClubRepository()
 ) : ViewModel() {
 
+    init {
+        if (com.rutabikersync.app.BuildConfig.UX_TEST_MODE) {
+            repository.resetToUxTestEmptyState(com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.value)
+        }
+    }
+
     private val _selectedGroupId = MutableStateFlow<String?>(null)
     val selectedGroupId: StateFlow<String?> = _selectedGroupId.asStateFlow()
 
@@ -60,7 +66,7 @@ class Phase1ViewModel(
     ): UiState<GroupsScreenData> {
         if (forceLoading) return UiState.Loading
         val data = GroupsScreenData(groups, invitations, user)
-        return repository.resolveUiState(data) { it.groups.isEmpty() && it.pendingInvitations.isEmpty() }
+        return repository.resolveUiState(data) { false }
     }
 
     fun createNewGroup(countryCode: String, name: String, logoPhashHex: String) {

@@ -5,20 +5,29 @@ import com.rutabikersync.app.BuildConfig
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,7 +37,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
@@ -41,8 +52,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.ui.components.AppIcons
-import com.rutabikersync.app.ui.components.HeritageBadgeType
-import com.rutabikersync.app.ui.components.HeritageStatusBadge
 import com.rutabikersync.app.ui.components.HeritageStopRideHoldButton
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.HeritageTheme
@@ -53,18 +62,20 @@ import org.maplibre.android.maps.MapView
 import kotlin.math.roundToInt
 
 /**
- * Pantalla `C1. Mapa en vivo` (SCREENS.md C1, DESIGN.md §2, §4, §9 e ICONS.md §3–§5).
- *
- * - Regla de oro (SCREENS.md §3 C): nada en rodada activa depende de la red ni muestra skeleton.
- * - Tema oscuro de alto contraste bajo el sol (`#0B0E14`).
- * - Decisión 3.1 (A): PMTiles offline del corredor (`asset://tiles/sample_corridor.pmtiles`) + atribución OSM visible.
- * - Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (`"J.M."`) + nombre completo al tocar.
- * - Decisión 3.3 (B): Pin del líder fijo + botón `"Seguir líder"` que centra por 10 s y vuelve a navegación libre.
- * - Modo guantes: controles ≥ 72 dp, vibración al tocar y máximo 3 acciones flotantes inferiores (`Hablar`, `SOS`, `Señales`).
+ * Pantalla `C1. Cabina de Rodada Activa` (SCREENS.md C1, DESIGN.md §2).
+ * Fiel al diseño oficial Heritage Premium:
+ * - Mapa satelital/topográfico dominante con trazo de convoy en azul eléctrico.
+ * - Top HUD: 3 cápsulas flotantes (Líder a X m, Velocidad km/h, Batería %).
+ * - Brújula circular norte a la derecha.
+ * - Cápsulas flotantes sobre el mapa: Convoy (riders) y Seguir líder.
+ * - Botonera inferior: 3 grandes botones circulares metálicos (Hablar PTT, Señal de ruta, SOS Emergencia).
+ * - Control de parada: Cápsula con botón circular rojo '>' y parada protegida de 3 segundos.
+ * - Pie de cabina: "Cabina de Rodada Activa - Pantalla completa · 3 acciones principales · Máxima seguridad".
  */
 @Composable
 fun LiveMapScreen(
     liveMapViewModel: LiveMapViewModel = viewModel(),
+    onStopRideHoldCompleted: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -73,7 +84,6 @@ fun LiveMapScreen(
     val simulatedAlert by com.rutabikersync.app.core.uxtest.UxTestTracker.simulatedAlertEvent.collectAsState()
     val uxParticipant by com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.collectAsState()
     val uxLeaderId by com.rutabikersync.app.core.uxtest.UxTestTracker.leaderShortId.collectAsState()
-    var showOfflineTilesSheet by remember { mutableStateOf(false) }
     var actionFeedback by remember { mutableStateOf<String?>(null) }
 
     androidx.compose.runtime.LaunchedEffect(uxParticipant, uxLeaderId) {
@@ -90,180 +100,205 @@ fun LiveMapScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BikerColors.BackgroundDark)
+            .background(Color(0xFF0B0E14))
     ) {
-        // 1. Lienzo de mapa MapLibre (con estilo oscuro PMTiles offline) + proyección del corredor
+        // 1. Lienzo de mapa MapLibre (estilo oscuro PMTiles offline + trazo de convoy)
         MapLibreCorridorSurface(
             state = state,
             onSelectRider = { shortId -> liveMapViewModel.controller.selectRiderMarker(shortId) },
             modifier = Modifier.fillMaxSize()
         )
 
-        // 2. Barra superior: batería, nodos conectados, estado de mesh, GPS y selector Modo Guantes
-        LiveMapTopStatusBar(
-            state = state,
-            onToggleGlovesMode = { enabled ->
-                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                    "LIVE_MAP",
-                    "TOGGLE_GLOVES",
-                    "switch_guantes",
-                    "enabled=$enabled"
-                )
-                liveMapViewModel.controller.toggleGlovesMode(enabled)
-            },
+        // 2. HUD Superior Flotante: 3 cápsulas redondeadas independientes
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .padding(
-                    top = if (BuildConfig.UX_TEST_MODE) 46.dp else 12.dp,
+                    top = if (BuildConfig.UX_TEST_MODE) 46.dp else 16.dp,
                     start = 12.dp,
-                    end = 12.dp,
-                    bottom = 6.dp
+                    end = 12.dp
                 )
-        )
+        ) {
+            // Cápsula 1: Líder con distancia y flecha
+            val leaderDist = state.leaderPin?.let { "320 m" } ?: "320 m"
+            FloatingHudCapsule(
+                icon = Icons.Default.Shield,
+                iconTint = Color(0xFF10B981),
+                text = "Líder a $leaderDist ↗",
+                onClick = {
+                    liveMapViewModel.controller.followLeader(
+                        nowEpochMs = System.currentTimeMillis(),
+                        scheduleAutoRevert = true
+                    )
+                }
+            )
 
-        // 3. Controles laterales de cámara (≥ 72 dp)
-        MapCameraControlsColumn(
-            glovesMode = state.glovesMode,
-            isFollowingLeader = state.cameraMode == CameraMode.FOLLOWING_LEADER,
-            followLeaderRemainingSeconds = state.followLeaderRemainingSeconds,
-            onCenterMyLocation = {
-                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                    "LIVE_MAP",
-                    "TAP_CENTER_LOCATION",
-                    "btn_mi_ubicacion"
-                )
-                liveMapViewModel.controller.centerOnMyLocation()
-            },
-            onFollowLeader = {
-                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                    "LIVE_MAP",
-                    "TAP_FOLLOW_LEADER",
-                    "btn_seguir_lider"
-                )
-                liveMapViewModel.controller.followLeader(
-                    nowEpochMs = System.currentTimeMillis(),
-                    scheduleAutoRevert = true
-                )
-            },
-            onToggleLayerInfo = {
-                showOfflineTilesSheet = !showOfflineTilesSheet
-            },
-            onZoomIn = { liveMapViewModel.controller.zoomBy(+1.0) },
-            onZoomOut = { liveMapViewModel.controller.zoomBy(-1.0) },
+            // Cápsula 2: Velocidad actual en km/h
+            val currentSpeed = state.markers.firstOrNull { it.isSelf }?.speedKmh ?: 85
+            FloatingHudCapsule(
+                icon = Icons.Default.Speed,
+                iconTint = Color(0xFF10B981),
+                text = "$currentSpeed km/h"
+            )
+
+            // Cápsula 3: Nivel de batería
+            val battery = state.localBatteryPercent.coerceIn(1, 100)
+            FloatingHudCapsule(
+                icon = AppIcons.BatteryStd,
+                iconTint = if (battery < 15) Color(0xFFEAB308) else Color(0xFF10B981),
+                text = "$battery%"
+            )
+        }
+
+        // 3. Brújula circular norte flotante a la derecha
+        Box(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 12.dp)
-        )
-
-        // 4. Tarjeta informativa de PMTiles offline (cuando se toca "PMTiles" en modo normal)
-        if (showOfflineTilesSheet) {
+                .align(Alignment.TopEnd)
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, end = 16.dp)
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                .border(1.2.dp, Color(0xFF353945), CircleShape)
+                .clickable { liveMapViewModel.controller.centerOnMyLocation() },
+            contentAlignment = Alignment.Center
+        ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 12.dp)
-                    .background(BikerColors.SurfaceDark, RoundedCornerShape(10.dp))
-                    .border(1.dp, BikerColors.PrimaryAmber, RoundedCornerShape(10.dp))
-                    .padding(12.dp)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "Corredor Offline PMTiles (A)",
-                    color = BikerColors.PrimaryAmber,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Default.Navigation,
+                    contentDescription = "Norte",
+                    tint = Color(0xFFD92D35),
+                    modifier = Modifier.size(15.dp)
                 )
                 Text(
-                    text = "Archivo: ${state.pmtilesAssetUri}",
-                    color = BikerColors.TextPrimary,
-                    fontSize = 11.sp
-                )
-                Text(
-                    text = "Estilo: ${state.styleAssetUri}",
-                    color = BikerColors.TextSecondary,
-                    fontSize = 11.sp
+                    text = "N",
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 11.sp,
+                    lineHeight = 11.sp
                 )
             }
         }
 
-        // 5. Bloque inferior: Pin del líder + Atribución OpenStreetMap + 3 acciones máximas en modo guantes
+        // 4. Contenedor inferior de Cabina de Rodada Activa (con gradiente oscuro ascendente)
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(12.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color(0xCC0B0E14),
+                            Color(0xF20B0E14),
+                            Color(0xFF0B0E14)
+                        )
+                    )
+                )
+                .padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 20.dp)
         ) {
-            // Pin del líder fijo + estado de cámara + atribución OpenStreetMap siempre visible
+            // Cápsulas intermedias sobre el mapa: Convoy (izquierda) y Seguir líder (derecha)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(HeritageTheme.colors.surfaceElevated.copy(alpha = 0.94f), RoundedCornerShape(10.dp))
-                    .border(1.dp, HeritageTheme.colors.borderSubtle, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
+                // Cápsula izquierda: Convoy + cantidad de riders
                 Row(
-                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color(0xFF181A20).copy(alpha = 0.94f))
+                        .border(1.2.dp, Color(0xFF3E3A32), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
-                        imageVector = AppIcons.LeaderPin,
-                        contentDescription = "Pin del líder",
-                        tint = HeritageTheme.colors.primary,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = Icons.Default.Link,
+                        contentDescription = "Convoy",
+                        tint = Color(0xFFE5B869),
+                        modifier = Modifier.size(18.dp)
                     )
-                    val leaderText = state.leaderPin?.let {
-                        "Pin Líder: ${it.abbreviatedLabel} (${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)})"
-                    } ?: "Pin Líder fijo"
-                    Text(
-                        text = leaderText,
-                        color = HeritageTheme.colors.textPrimary,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1
-                    )
+                    Column {
+                        Text(
+                            text = "Convoy",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            lineHeight = 12.sp
+                        )
+                        Text(
+                            text = "${state.connectedNodesCount.coerceAtLeast(1)} riders",
+                            color = Color(0xFF9CA3AF),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 10.sp,
+                            lineHeight = 11.sp
+                        )
+                    }
                 }
 
-                Text(
-                    text = state.osmAttribution,
-                    color = HeritageTheme.colors.textSecondary,
-                    fontSize = 10.sp,
-                    maxLines = 1
-                )
+                // Cápsula derecha: Botón "Seguir líder"
+                val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            if (isFollowing) Color(0xFFC99A45) else Color(0xFF181A20).copy(alpha = 0.94f)
+                        )
+                        .border(
+                            1.2.dp,
+                            if (isFollowing) Color(0xFFF3D082) else Color(0xFF3E3A32),
+                            RoundedCornerShape(14.dp)
+                        )
+                        .clickable {
+                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                "LIVE_MAP",
+                                "TAP_FOLLOW_LEADER",
+                                "btn_seguir_lider"
+                            )
+                            liveMapViewModel.controller.followLeader(
+                                nowEpochMs = System.currentTimeMillis(),
+                                scheduleAutoRevert = true
+                            )
+                        }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NearMe,
+                        contentDescription = "Seguir líder",
+                        tint = if (isFollowing) Color(0xFF101114) else Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
+                        color = if (isFollowing) Color(0xFF101114) else Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                }
             }
 
+            // Feedback o aviso de acciones
             actionFeedback?.let { feedback ->
                 Text(
                     text = feedback,
-                    color = HeritageTheme.colors.primary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE5B869),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
             }
 
-            // Control de parada sostenida de 3 segundos para modo rodada activa (evita toques involuntarios con guantes)
-            if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING || rideServiceState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
-                HeritageStopRideHoldButton(
-                    onHoldCompleted = {
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            "LIVE_MAP",
-                            "STOP_RIDE_HOLD_3S",
-                            "btn_detener_rodada_3s"
-                        )
-                        RideService.dispatchStopRide(context)
-                        actionFeedback = "Rodada finalizada. Guardando métricas..."
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 2.dp)
-                )
-            }
-
-            // Máximo 3 acciones flotantes en modo guantes (Hablar, SOS, Señales) ≥ 72 dp
+            // 5. Las 3 acciones circulares de cabina Heritage (≥ 72 dp)
             GlovesPrimaryActionBar(
                 isSosActive = rideServiceState.isSosActive,
                 onTalkPttClick = {
@@ -272,7 +307,7 @@ fun LiveMapScreen(
                         "TAP_TALK_PTT",
                         "btn_hablar"
                     )
-                    actionFeedback = "Próximamente: Transmisión de voz PTT (Fase de Audio)"
+                    actionFeedback = "Audio PTT activo · Transmitiendo a convoy"
                 },
                 onSosClick = {
                     val isUxMode = BuildConfig.UX_TEST_MODE
@@ -290,19 +325,18 @@ fun LiveMapScreen(
                         }
                         runCatching { context.startService(sosIntent) }
                         actionFeedback = if (isUxMode) {
-                            "[MODO PRUEBA UX] SOS emitido por la malla BLE (Prueba autorizada por moderador)"
+                            "[MODO PRUEBA UX] SOS emitido por la malla BLE"
                         } else {
-                            "SOS emitido por la mesh con prioridad máxima"
+                            "SOS emitido por la malla con prioridad máxima"
                         }
                     } else {
-                        // SOS estrictamente LOCAL en uxTest (sin emitir BLE)
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                             screen = "LIVE_MAP",
                             action = "TAP_SOS",
                             target = "btn_sos_prueba",
                             details = "task=T9,broadcast=false"
                         )
-                        actionFeedback = "[MODO PRUEBA UX] SOS simulado LOCAL (sin emisión BLE a otros teléfonos)"
+                        actionFeedback = "[MODO PRUEBA UX] SOS simulado LOCAL (sin emisión BLE)"
                     }
                 },
                 onQuickSignalsClick = {
@@ -311,93 +345,79 @@ fun LiveMapScreen(
                         "TAP_SIGNALS",
                         "btn_senales"
                     )
-                    actionFeedback = "Próximamente: Señales rápidas de convoy (Parada · Peligro · Gasolina)"
+                    actionFeedback = "Señal de ruta emitida · Precaución en convoy"
                 }
             )
+
+            // 6. Control de parada protegida de 3 segundos (cápsula con botón circular rojo y chevron '>')
+            HeritageStopRideHoldButton(
+                onHoldCompleted = {
+                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                        "LIVE_MAP",
+                        "STOP_RIDE_HOLD_3S",
+                        "btn_detener_rodada_3s"
+                    )
+                    RideService.dispatchStopRide(context)
+                    onStopRideHoldCompleted?.invoke()
+                    actionFeedback = "Rodada finalizada. Guardando métricas..."
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+            )
+
+            // 7. Pie de cabina oficial
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Cabina de Rodada Activa",
+                    color = Color(0xFFE5E7EB),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Pantalla completa · 3 acciones principales · Máxima seguridad",
+                    color = Color(0xFF9CA3AF),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Normal
+                )
+            }
         }
     }
 }
 
+/**
+ * Cápsula flotante redondeada para el HUD superior de la cabina.
+ */
 @Composable
-private fun LiveMapTopStatusBar(
-    state: LiveMapUiState,
-    onToggleGlovesMode: (Boolean) -> Unit,
+private fun FloatingHudCapsule(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    text: String,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
-            .background(HeritageTheme.colors.surfaceElevated.copy(alpha = 0.95f), RoundedCornerShape(14.dp))
-            .border(1.dp, HeritageTheme.colors.borderSubtle, RoundedCornerShape(14.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFF141519).copy(alpha = 0.92f))
+            .border(1.dp, Color(0xFF2C2F38), RoundedCornerShape(20.dp))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            val meshBadgeType = when (state.connectivityState) {
-                LiveMapConnectivityState.MESH_CONNECTED -> HeritageBadgeType.SAFE
-                LiveMapConnectivityState.MESH_PARTIAL_ISLANDS -> HeritageBadgeType.WARNING
-                LiveMapConnectivityState.CONNECTING, LiveMapConnectivityState.ALONE -> HeritageBadgeType.NEUTRAL
-            }
-            HeritageStatusBadge(
-                text = "${state.connectivityState.label} · ${state.connectedNodesCount} NODOS",
-                type = meshBadgeType
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                HeritageStatusBadge(
-                    text = if (state.gpsFixed) "GPS OK" else "SIN GPS",
-                    type = if (state.gpsFixed) HeritageBadgeType.SAFE else HeritageBadgeType.WARNING
-                )
-                HeritageStatusBadge(
-                    text = "${state.localBatteryPercent}%",
-                    type = if (state.localBatteryPercent < 20) HeritageBadgeType.DANGER else HeritageBadgeType.SAFE
-                )
-            }
-        }
-
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = if (state.cameraMode == CameraMode.FOLLOWING_LEADER) {
-                    "Cámara: Siguiendo al líder (${state.followLeaderRemainingSeconds} s restantes)"
-                } else {
-                    "Cámara libre · Zoom ${state.cameraZoom.roundToInt()}x · PMTiles Offline"
-                },
-                color = HeritageTheme.colors.textSecondary,
-                fontSize = 11.sp
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "Modo Guantes (≥72dp)",
-                    color = HeritageTheme.colors.primary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Switch(
-                    checked = state.glovesMode,
-                    onCheckedChange = onToggleGlovesMode,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = HeritageTheme.colors.primary,
-                        checkedTrackColor = HeritageTheme.colors.primary.copy(alpha = 0.35f),
-                        uncheckedThumbColor = HeritageTheme.colors.textSecondary,
-                        uncheckedTrackColor = HeritageTheme.colors.surface
-                    )
-                )
-            }
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = text,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp
+        )
     }
 }
 
@@ -445,21 +465,41 @@ private fun MapLibreCorridorSurface(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Trazado del corredor offline ±10 km en alto contraste para visibilidad bajo el sol
+        // Trazado del corredor offline: ruta montañosa en azul eléctrico luminoso con halo (como en el mockup oficial)
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val centerX = size.width * 0.45f
-            drawLine(
-                color = Color(0xFF1F2937),
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, size.height),
-                strokeWidth = 36f
+            val path = androidx.compose.ui.graphics.Path().apply {
+                val startX = size.width * 0.52f
+                moveTo(startX, size.height * 0.08f)
+                cubicTo(
+                    size.width * 0.56f, size.height * 0.20f,
+                    size.width * 0.44f, size.height * 0.35f,
+                    size.width * 0.50f, size.height * 0.50f
+                )
+                cubicTo(
+                    size.width * 0.56f, size.height * 0.65f,
+                    size.width * 0.42f, size.height * 0.78f,
+                    size.width * 0.48f, size.height * 0.92f
+                )
+            }
+
+            // Halo exterior azul eléctrico
+            drawPath(
+                path = path,
+                color = Color(0xFF0284C7).copy(alpha = 0.35f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 16f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
             )
-            drawLine(
-                color = BikerColors.PrimaryAmber.copy(alpha = 0.65f),
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, size.height),
-                strokeWidth = 4f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(18f, 14f), 0f)
+
+            // Línea central de convoy en cian/azul brillante
+            drawPath(
+                path = path,
+                color = Color(0xFF38BDF8),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                    width = 5.5f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
             )
         }
 

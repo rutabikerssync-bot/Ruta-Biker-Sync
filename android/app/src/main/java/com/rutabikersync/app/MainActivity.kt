@@ -13,12 +13,21 @@ import com.rutabikersync.app.ui.theme.RutaBikerSyncTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val prefs = getSharedPreferences("rbs_theme_prefs", android.content.Context.MODE_PRIVATE)
+        val startRidePreview = intent.getBooleanExtra("START_RIDE_PREVIEW", false)
         setContent {
-            var isDarkMode by remember { mutableStateOf(true) }
+            var isDarkMode by remember {
+                mutableStateOf(prefs.getBoolean("dark_mode", true))
+            }
             RutaBikerSyncTheme(darkTheme = isDarkMode) {
                 MainAppScaffold(
                     isDarkMode = isDarkMode,
-                    onToggleDarkMode = { isDarkMode = !isDarkMode }
+                    onToggleDarkMode = {
+                        val newMode = !isDarkMode
+                        isDarkMode = newMode
+                        prefs.edit().putBoolean("dark_mode", newMode).apply()
+                    },
+                    initialStartRidePreview = startRidePreview
                 )
             }
         }

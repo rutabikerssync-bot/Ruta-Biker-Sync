@@ -64,6 +64,32 @@ class ClubRepository(
         loadDemoData()
     }
 
+    /**
+     * Limpia datos demo y prepara el repositorio en estado vacío (Empty State) para pruebas UX (UX_TEST_PLAN.md).
+     * P1: Cuenta de Líder preparada para crear el club desde cero.
+     * P2-P6: Cuenta de Miembro preparada para unirse por escaneo de QR.
+     */
+    fun resetToUxTestEmptyState(participantId: String = "P1") {
+        _groups.value = emptyList()
+        _pendingInvitations.value = emptyList()
+        val isLeader = participantId == "P1"
+        val user = UserProfileModel(
+            id = "u-$participantId",
+            email = "$participantId@rutabikersync.app",
+            displayName = "Piloto $participantId",
+            countryCode = "MX",
+            accountType = if (isLeader) AccountType.LEADER else AccountType.MEMBER,
+            bikeModel = "Motocicleta $participantId",
+            mapColorHex = if (isLeader) "#E5B869" else "#38BDF8",
+            validRides = 0,
+            hasFounderFlame = isLeader,
+            badges = emptyList()
+        )
+        directoryUsers.clear()
+        directoryUsers[user.id] = user
+        _currentUser.value = user
+    }
+
     fun updateDevOverrides(transform: (DevPanelOverrides) -> DevPanelOverrides) {
         _devOverrides.value = transform(_devOverrides.value)
     }

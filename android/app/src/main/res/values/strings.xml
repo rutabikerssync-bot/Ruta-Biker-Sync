@@ -82,4 +82,85 @@
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Panel de Desarrollador (Solo Debug)</string>
     <string name="dev_load_demo">Cargar datos demo (3 grupos, 10 miembros)</string>
+
+    <!-- Pestañas Heritage (SCREENS Mockup) -->
+    <string name="nav_tab_rides">Rodadas</string>
+    <string name="nav_tab_club">Mi Club</string>
+    <string name="nav_tab_vault">Bóveda</string>
+    <string name="nav_tab_profile">Perfil</string>
+
+    <!-- Roles y jerarquía traducidos (RULES.md) -->
+    <string name="role_president">Presidente</string>
+    <string name="role_vice_president">Vicepresidente</string>
+    <string name="role_road_captain">Capitán de Ruta</string>
+    <string name="role_sergeant_at_arms">Sargento de Armas</string>
+    <string name="role_secretary">Secretario</string>
+    <string name="role_treasurer">Tesorero</string>
+    <string name="role_road_marshal">Oficial de Ruta</string>
+    <string name="role_member">Miembro</string>
+    <string name="status_full">Miembro Oficial</string>
+    <string name="status_prospect">Aspirante</string>
+    <string name="status_guest">Invitado</string>
+
+    <!-- Pantalla 2: Rodadas -->
+    <string name="rides_title">RODADAS</string>
+    <string name="rides_weather_default">Clima: 28°C · Despejado</string>
+    <string name="rides_next_ride">Próxima Rodada</string>
+    <string name="rides_no_scheduled">No hay rodadas programadas</string>
+    <string name="rides_no_scheduled_desc">Crea una rodada con tu club o inicia una rodada libre.</string>
+    <string name="rides_btn_create">+ Crear Rodada</string>
+    <string name="rides_participants_title">Participantes</string>
+    <string name="rides_participants_empty">Participantes (0)</string>
+    <string name="rides_participants_empty_desc">Sin participantes activos en formación.</string>
+    <string name="rides_route_title">Ruta y Corredor</string>
+    <string name="rides_route_empty">Sin ruta activa</string>
+    <string name="rides_route_empty_desc">Carga un archivo GPX o mapa offline para navegar con el convoy.</string>
+    <string name="rides_btn_view_map">Ver mapa</string>
+    <string name="rides_btn_start_active_cockpit">Iniciar Rodada (Cabina Activa)</string>
+    <string name="rides_btn_start_free_ride">Iniciar Rodada Libre</string>
+
+    <!-- Pantalla 6: Cabina de Rodada Activa -->
+    <string name="cockpit_hud_leader_format">Líder a %1$d m ↗</string>
+    <string name="cockpit_hud_solo">Modo Libre · Sin líder</string>
+    <string name="cockpit_btn_ptt">Hablar\n(PTT)</string>
+    <string name="cockpit_btn_signals">Señal\nde ruta</string>
+    <string name="cockpit_btn_sos">SOS\nEmergencia</string>
+    <string name="cockpit_btn_hold_to_stop">Mantén presionado 3 s para detener</string>
+    <string name="cockpit_btn_hold_stopping">Soltar cancela · Deteniendo en %1$ds...</string>
+    <string name="cockpit_footer_title">Cabina de Rodada Activa</string>
+    <string name="cockpit_footer_subtitle">Pantalla completa · 3 acciones principales · Máxima seguridad</string>
+    <string name="cockpit_convoy_pill">Convoy (%1$d riders)</string>
+    <string name="cockpit_follow_leader_pill">Seguir líder</string>
+    <string name="cockpit_sos_test_confirm_title">SOS de Prueba Registrado</string>
+    <string name="cockpit_sos_test_confirm_message">Alerta SOS simulada localmente (UX Test). No se emitió baliza de emergencia.</string>
+
+    <!-- Pantalla 4: Bóveda -->
+    <string name="vault_title">BÓVEDA</string>
+    <string name="vault_subtitle">Documentos cifrados · Tu seguridad, primero</string>
+    <string name="vault_docs_title">Documentos de la Moto</string>
+    <string name="vault_doc_license">Licencia de conducir</string>
+    <string name="vault_doc_insurance">Póliza de seguro</string>
+    <string name="vault_doc_circulation">Tarjeta de circulación</string>
+    <string name="vault_doc_inspection">Revisión mecánica</string>
+    <string name="vault_doc_not_loaded">Documento no cargado</string>
+    <string name="vault_btn_add_document">+ Agregar documento</string>
+    <string name="vault_medical_title">Ficha Médica de Emergencia</string>
+    <string name="vault_medical_sealed_shamir">Sellado Shamir · Local</string>
+    <string name="vault_blood_type">Grupo sanguíneo</string>
+    <string name="vault_blood_type_empty">Sin registrar</string>
+    <string name="vault_allergies">Alergias</string>
+    <string name="vault_allergies_empty">Ninguna registrada</string>
+    <string name="vault_donor">Donante</string>
+    <string name="vault_donor_empty">No especificado</string>
+    <string name="vault_emergency_contact">Contacto SOS</string>
+    <string name="vault_emergency_contact_empty">Sin asignar</string>
+    <string name="vault_view_all">Ver todos &gt;</string>
+
+    <!-- Pantalla 5: Perfil -->
+    <string name="profile_empty_name">Piloto</string>
+    <string name="profile_rank_novice">Rango: Novato</string>
+    <string name="profile_stat_rides">Rodadas</string>
+    <string name="profile_stat_km">Kilómetros</string>
+    <string name="profile_stat_hours">Horas</string>
+    <string name="profile_badges_empty">Completa tu primera rodada para desbloquear insignias de hermandad.</string>
 </resources>
