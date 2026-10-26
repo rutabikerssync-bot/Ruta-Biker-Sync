@@ -245,6 +245,11 @@ object UxTestTracker {
             put("applicationId", context.packageName)
             put("buildType", BuildConfig.BUILD_TYPE)
             put("gitCommit", BuildConfig.GIT_COMMIT)
+            put("gitDirty", BuildConfig.GIT_DIRTY)
+            put("meshShortId", currentLocalShortId.toInt())
+            put("meshRole", if (isConvoyLeader) "LEADER" else "MEMBER")
+            put("riderLabel", "Rider #$currentLocalShortId")
+            put("leaderShortId", _leaderShortId.value.toInt())
             put("deviceManufacturer", Build.MANUFACTURER)
             put("deviceModel", Build.MODEL)
             put("androidRelease", Build.VERSION.RELEASE)
@@ -422,10 +427,15 @@ fun ModeratorControlDialog(
                 val isCurrentLeader = currentShortId == leaderShortId
 
                 Text(
-                    text = "ID de malla asignado a este teléfono: #$currentShortId (${if (isCurrentLeader) "LÍDER" else "MIEMBRO"})",
+                    text = "ID de malla vigente: Rider #$currentShortId (${if (isCurrentLeader) "LÍDER" else "MIEMBRO"})",
                     color = if (isCurrentLeader) BikerColors.PrimaryAmber else BikerColors.StatusGreen,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Build: ${BuildConfig.GIT_COMMIT}${if (BuildConfig.GIT_DIRTY) "-DIRTY" else " (clean)"} · Flavor: ${BuildConfig.FLAVOR}",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 11.sp
                 )
 
                 Text(

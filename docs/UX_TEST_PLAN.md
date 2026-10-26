@@ -1,6 +1,6 @@
 # UX_TEST_PLAN.md — Pruebas de usabilidad con 6 usuarios (Ruta Biker Sync)
 
-Estado: borrador v1.1. Complementa FIELD_TEST_PLAN.md (pruebas de radio) y PLAY_TEST_SETUP.md (compras). Las cifras marcadas "propuesta" se ajustan tras la primera sesión piloto.
+Estado: borrador v1.2. Complementa FIELD_TEST_PLAN.md (pruebas de radio) y PLAY_TEST_SETUP.md (compras). Las cifras marcadas "propuesta" se ajustan tras la primera sesión piloto.
 
 ## 0. Propósito y reglas
 
@@ -36,7 +36,7 @@ Requisitos (los implementa la IA de desarrollo, con revisión previa):
 - **Registro UX local** (ver §6).
 - **ID de malla único por teléfono:** P1→#1, P2→#2 … P6→#6 (el apoyo P0 con #99). Dos teléfonos con el mismo ID se confunden en la malla y sus marcadores se mezclan. El líder lo fija el moderador (por defecto #1).
 - **Acceso del moderador (Gesto protegido):** Mantener pulsada la insignia "UX TEST · Px" durante 2 segundos e introducir el PIN de 4 dígitos (`1984`) para que un tester no abra por error el cambio de participante ni la difusión de SOS.
-- **Mapa sin conexión:** las teselas incluidas cubren solo una zona de muestra (Ciudad de México–Cuernavaca). La Fase B solo se hace donde haya teselas; hace falta un archivo de la zona real de la rodada.
+- **Mapa sin conexión:** el archivo de teselas incluido es un relleno de 177 bytes (zona de muestra Ciudad de México–Cuernavaca), no un mapa real. Hoy no hay mapa base: solo fondo oscuro, marcadores y el corredor de muestra. Antes de la Fase B hay que generar teselas reales de la zona de la rodada y probarlas en un teléfono en modo avión. En la Fase A se avisa a los testers de que el mapa es de demostración.
 - Controles no implementados (ver inventario) ocultos o con texto "Próximamente".
 - Textos sin referencias internas ("Fase 3", "placeholder").
 
@@ -155,5 +155,5 @@ SUS (10 respuestas): ____ → puntaje ____ · Fase B (R1–R7): ____ · Batería
 - Backend de Grupo en pruebas: Fastify real o FakeBackend.
 - Estado real de "Hablar", "Señales/Gestos" y de suscripciones/pagos (hasta P4).
 - Resultados de las pruebas de distancia BLE (condición para la Fase B).
-- Zona y ruta de la Fase B, y teselas offline de esa zona (compatibles con el estilo actual del mapa).
+- Zona y ruta de la Fase B, y teselas offline reales de esa zona (compatibles con el estilo actual del mapa). Verificar en un teléfono que MapLibre lee el archivo desde la app; puede requerir copiarlo a almacenamiento interno.
 - Umbral de "compañero perdido" (15 s): medir falsas alarmas en las pruebas de distancia (objetivo ≤ 1 cada 30 min).

@@ -101,4 +101,24 @@ class UxTestTrackerTest {
             assertFalse("$p NO debe ser teléfono de moderador", UxTestTracker.isModeratorSupport)
         }
     }
+
+    @Test
+    fun `metadata de mesh y etiqueta Rider se asocian correctamente a cada participante`() {
+        UxTestTracker.setLeaderShortId(1u)
+
+        UxTestTracker.setParticipant("P2")
+        assertEquals(2u.toUShort(), UxTestTracker.currentLocalShortId)
+        assertEquals("Rider #2", "Rider #${UxTestTracker.currentLocalShortId}")
+        assertFalse(UxTestTracker.isConvoyLeader)
+
+        UxTestTracker.setParticipant("P1")
+        assertEquals(1u.toUShort(), UxTestTracker.currentLocalShortId)
+        assertEquals("Rider #1", "Rider #${UxTestTracker.currentLocalShortId}")
+        assertTrue(UxTestTracker.isConvoyLeader)
+
+        UxTestTracker.setParticipant("P0")
+        assertEquals(99u.toUShort(), UxTestTracker.currentLocalShortId)
+        assertEquals("Rider #99", "Rider #${UxTestTracker.currentLocalShortId}")
+    }
 }
+
