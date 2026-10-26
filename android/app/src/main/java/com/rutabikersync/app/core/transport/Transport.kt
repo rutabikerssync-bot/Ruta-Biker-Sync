@@ -17,7 +17,9 @@ interface Transport {
     data class IncomingPacket(
         val bytes: ByteArray,
         val rssi: Int? = null,
-        val timestampEpochMs: Long = System.currentTimeMillis()
+        val timestampEpochMs: Long = System.currentTimeMillis(),
+        val senderAddressSuffix: String? = null,
+        val scanTimestampNanos: Long? = null
     )
 
     /**

@@ -142,10 +142,15 @@ class FieldTestMetricsTest {
               "hardware": "ums9230",
               "board": "ki5k",
               "f3AdvertisingMode": "BURST_1S",
+              "advertisingModeDefault": "BURST_1S",
+              "advertisingModeRationale": "RÁFAGA gana al CONTINUO en Redmi (51→100%) y gasta ~3× menos radio; CONTINUO queda solo como opción de prueba",
               "f3AdvertisingDutyCycleApproxPct": 33.33,
               "shortRunWarning": false,
               "f3AdvertisingBurstsStarted": 60,
               "f3AdvertisingBurstsSuccess": 60,
+              "distinctAdvAddressesPerPeer": {
+                "1": 3
+              },
               "peerDeliveryReports": [
                 {
                   "peerShortId": 1,
@@ -154,13 +159,15 @@ class FieldTestMetricsTest {
                   "burstsEmittedByPeer": 60,
                   "burstsHeardFromPeer": 60,
                   "peerDeliveryRatePct": 100.0,
-                  "isLost": false
+                  "isLost": false,
+                  "distinctAdvAddressesCount": 3
                 }
               ],
               "primaryPeerShortId": 1,
               "primaryPeerBurstsEmitted": 60,
               "primaryPeerBurstsHeard": 60,
-              "primaryPeerDeliveryRatePct": 100.0
+              "primaryPeerDeliveryRatePct": 100.0,
+              "primaryPeerDistinctAdvAddresses": 3
             }
         """.trimIndent()
 
@@ -170,7 +177,12 @@ class FieldTestMetricsTest {
         assertEquals("Unisoc", json.getString("socManufacturer"))
         assertEquals("UMS9230", json.getString("socModel"))
         assertEquals("BURST_1S", json.getString("f3AdvertisingMode"))
+        assertEquals("BURST_1S", json.getString("advertisingModeDefault"))
+        assertTrue(json.getString("advertisingModeRationale").contains("RÁFAGA gana al CONTINUO"))
         assertFalse(json.getBoolean("shortRunWarning"))
+
+        val distinctMap = json.getJSONObject("distinctAdvAddressesPerPeer")
+        assertEquals(3, distinctMap.getInt("1"))
 
         val peersArray = json.getJSONArray("peerDeliveryReports")
         assertEquals(1, peersArray.length())
@@ -178,17 +190,19 @@ class FieldTestMetricsTest {
         assertEquals(1, firstPeer.getInt("peerShortId"))
         assertEquals(60, firstPeer.getInt("burstsHeardFromPeer"))
         assertEquals(100.0, firstPeer.getDouble("peerDeliveryRatePct"), 0.01)
+        assertEquals(3, firstPeer.getInt("distinctAdvAddressesCount"))
 
         assertEquals(1, json.getInt("primaryPeerShortId"))
         assertEquals(100.0, json.getDouble("primaryPeerDeliveryRatePct"), 0.01)
+        assertEquals(3, json.getInt("primaryPeerDistinctAdvAddresses"))
     }
 
     @Test
-    fun `parseCsvRowCounts soporta columna adicional advertising_mode en CSV`() {
+    fun `parseCsvRowCounts soporta columnas adicionales adv_addr_suffix y timestamp_nanos en CSV`() {
         val csv = """
-            timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode
-            2026-10-25T23:25:27.488Z,1,0,4,0,,BleAdvTransport(LEGACY_1M),false,TX,BURST_1S
-            2026-10-25T23:25:31.168Z,2,1,4,1,-39,BleAdvTransport(LEGACY_1M),false,RX,BURST_1S
+            timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode,adv_addr_suffix,timestamp_nanos
+            2026-10-25T23:25:27.488Z,1,0,4,0,,BleAdvTransport(LEGACY_1M),false,TX,BURST_1S,,
+            2026-10-25T23:25:31.168Z,2,1,4,1,-39,BleAdvTransport(LEGACY_1M),false,RX,BURST_1S,D4:3F,123456789000
         """.trimIndent()
 
         val counts = parseCsvRowCounts(csv)

@@ -669,7 +669,18 @@ class BleAdvTransport(
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val bytes = result?.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return
             val rssi = result.rssi
-            val pkt = Transport.IncomingPacket(bytes = bytes, rssi = rssi)
+            val rawAddr = runCatching { result.device?.address }.getOrNull()
+            val addrSuffix = rawAddr?.let {
+                if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)
+            }
+            val timestampNanos = result.timestampNanos.takeIf { it > 0L }
+            val pkt = Transport.IncomingPacket(
+                bytes = bytes,
+                rssi = rssi,
+                timestampEpochMs = System.currentTimeMillis(),
+                senderAddressSuffix = addrSuffix,
+                scanTimestampNanos = timestampNanos
+            )
             _incomingPackets.tryEmit(pkt)
             _incoming.tryEmit(bytes)
         }
@@ -678,7 +689,18 @@ class BleAdvTransport(
             results?.forEach { res ->
                 val bytes = res.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return@forEach
                 val rssi = res.rssi
-                val pkt = Transport.IncomingPacket(bytes = bytes, rssi = rssi)
+                val rawAddr = runCatching { res.device?.address }.getOrNull()
+                val addrSuffix = rawAddr?.let {
+                    if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)
+                }
+                val timestampNanos = res.timestampNanos.takeIf { it > 0L }
+                val pkt = Transport.IncomingPacket(
+                    bytes = bytes,
+                    rssi = rssi,
+                    timestampEpochMs = System.currentTimeMillis(),
+                    senderAddressSuffix = addrSuffix,
+                    scanTimestampNanos = timestampNanos
+                )
                 _incomingPackets.tryEmit(pkt)
                 _incoming.tryEmit(bytes)
             }

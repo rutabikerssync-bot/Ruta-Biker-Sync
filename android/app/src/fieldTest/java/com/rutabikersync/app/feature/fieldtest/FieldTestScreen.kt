@@ -1926,6 +1926,8 @@ private fun generateMetricsJson(
         put("forcedBleTransportMode", effectiveForcedMode)
         put("effectiveBleTransportMode", effectiveBleMode)
         put("f3AdvertisingMode", effectiveDeliveryMode.code)
+        put("advertisingModeDefault", "BURST_1S")
+        put("advertisingModeRationale", "RÁFAGA gana al CONTINUO en Redmi (51→100%) y gasta ~3× menos radio; CONTINUO queda solo como opción de prueba")
         val approxDutyCycle = if (effectiveDeliveryMode == BleAdvTransport.AdvertisingDeliveryMode.CONTINUOUS) {
             100.0
         } else {
@@ -1985,6 +1987,12 @@ private fun generateMetricsJson(
         put("connectedBluetoothAudio", rideState.connectedBluetoothAudio)
         put("connectedBluetoothDeviceNames", org.json.JSONArray(rideState.connectedBluetoothDeviceNames))
 
+        val distinctAddressesObj = JSONObject()
+        metrics?.distinctAdvAddressesPerPeer?.forEach { (peerId, count) ->
+            distinctAddressesObj.put(peerId.toString(), count)
+        }
+        put("distinctAdvAddressesPerPeer", distinctAddressesObj)
+
         val peerReportsArray = org.json.JSONArray()
         val peerReports = metrics?.peerReports ?: emptyList()
         for (pr in peerReports) {
@@ -1996,6 +2004,7 @@ private fun generateMetricsJson(
                 put("burstsHeardFromPeer", pr.burstsHeardFromPeer)
                 put("peerDeliveryRatePct", pr.peerDeliveryRatePct.toDouble())
                 put("isLost", pr.isLost)
+                put("distinctAdvAddressesCount", pr.distinctAdvAddressesCount)
             }
             peerReportsArray.put(pObj)
         }
@@ -2006,6 +2015,7 @@ private fun generateMetricsJson(
         put("primaryPeerBurstsEmitted", primaryPeer?.burstsEmittedByPeer ?: JSONObject.NULL)
         put("primaryPeerBurstsHeard", primaryPeer?.burstsHeardFromPeer ?: JSONObject.NULL)
         put("primaryPeerDeliveryRatePct", primaryPeer?.peerDeliveryRatePct?.toDouble() ?: JSONObject.NULL)
+        put("primaryPeerDistinctAdvAddresses", primaryPeer?.distinctAdvAddressesCount ?: JSONObject.NULL)
     }
     return obj.toString(2)
 }

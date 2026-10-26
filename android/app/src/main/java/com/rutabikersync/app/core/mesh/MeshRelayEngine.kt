@@ -83,9 +83,11 @@ class MeshRelayEngine(
         val hops: Int,
         val rssi: Int?,
         val transportMode: String,
-        val advertisingMode: String = "BURST_1S",
         val isDuplicate: Boolean = false,
-        val direction: String = "RX" // "TX", "RX", "RELAY_TX"
+        val direction: String = "RX", // "TX", "RX", "RELAY_TX"
+        val advertisingMode: String = "BURST_1S",
+        val advAddressSuffix: String? = null,
+        val timestampNanos: Long? = null
     )
 
     /**
@@ -100,7 +102,8 @@ class MeshRelayEngine(
         val burstsEmittedByPeer: Int,
         val burstsHeardFromPeer: Int,
         val peerDeliveryRatePct: Float,
-        val isLost: Boolean
+        val isLost: Boolean,
+        val distinctAdvAddressesCount: Int = 0
     )
 
     /**
@@ -132,7 +135,8 @@ class MeshRelayEngine(
         val invalidAuthDropped: Int,
         val activeLostPeers: List<Int>,
         val deviceModels: Map<String, Int>,
-        val peerReports: List<PeerDeliveryReport> = emptyList()
+        val peerReports: List<PeerDeliveryReport> = emptyList(),
+        val distinctAdvAddressesPerPeer: Map<Int, Int> = emptyMap()
     )
 
     private data class QueuedRelay(
@@ -167,6 +171,7 @@ class MeshRelayEngine(
     private var wasInIslandState: Boolean = false
 
     private val packetLogs = mutableListOf<PacketLogEntry>()
+    private val peerAddresses = mutableMapOf<Int, MutableSet<String>>()
 
     private var collectJob: Job? = null
 
@@ -198,9 +203,9 @@ class MeshRelayEngine(
     fun exportPacketsCsv(): String {
         val entries = getPacketLogs()
         val sb = StringBuilder()
-        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode\n")
+        sb.append("timestamp_utc,sender_short_id,sequence_number,ttl,hops,rssi_dbm,transport_mode,is_duplicate,direction,advertising_mode,adv_addr_suffix,timestamp_nanos\n")
         for (e in entries) {
-            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate},${e.direction},${e.advertisingMode}\n")
+            sb.append("${e.timestampUtc},${e.senderShortId},${e.sequenceNumber},${e.ttl},${e.hops},${e.rssi ?: ""},${e.transportMode},${e.isDuplicate},${e.direction},${e.advertisingMode},${e.advAddressSuffix ?: ""},${e.timestampNanos ?: ""}\n")
         }
         return sb.toString()
     }
@@ -212,7 +217,13 @@ class MeshRelayEngine(
         if (pktFlow != null) {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 pktFlow.collect { pkt ->
-                    onRawPacketReceived(pkt.bytes, pkt.timestampEpochMs, pkt.rssi)
+                    onRawPacketReceived(
+                        raw = pkt.bytes,
+                        nowEpochMs = pkt.timestampEpochMs,
+                        rssi = pkt.rssi,
+                        senderAddressSuffix = pkt.senderAddressSuffix,
+                        scanTimestampNanos = pkt.scanTimestampNanos
+                    )
                 }
             }
         } else {
@@ -348,7 +359,9 @@ class MeshRelayEngine(
     suspend fun onRawPacketReceived(
         raw: ByteArray,
         nowEpochMs: Long = System.currentTimeMillis(),
-        rssi: Int? = null
+        rssi: Int? = null,
+        senderAddressSuffix: String? = null,
+        scanTimestampNanos: Long? = null
     ) {
         if (raw.size != MeshPacket.PACKET_SIZE_BYTES) return
         val packet = runCatching { MeshPacket.fromByteArray(raw) }.getOrNull() ?: return
@@ -370,6 +383,9 @@ class MeshRelayEngine(
         var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
         val utcIso = formatUtc(nowEpochMs)
         synchronized(this) {
+            if (!senderAddressSuffix.isNullOrBlank()) {
+                peerAddresses.getOrPut(packet.shortId.toInt()) { mutableSetOf() }.add(senderAddressSuffix)
+            }
             val isDuplicate = seenKeys.containsKey(packet.dedupKey)
             logPacketEntryLocked(
                 PacketLogEntry(
@@ -382,7 +398,9 @@ class MeshRelayEngine(
                     transportMode = transport.name,
                     advertisingMode = currentAdvertisingMode(),
                     isDuplicate = isDuplicate,
-                    direction = "RX"
+                    direction = "RX",
+                    advAddressSuffix = senderAddressSuffix,
+                    timestampNanos = scanTimestampNanos
                 )
             )
 
@@ -612,6 +630,7 @@ class MeshRelayEngine(
         } else {
             null
         }
+        val distinctAddressesMap = peerAddresses.mapValues { it.value.size }
         val peerReports = peerMap.values.map { track ->
             val seqSpan = if (track.firstSequence >= 0 && track.lastSequence >= 0) {
                 ((track.lastSequence - track.firstSequence) and MeshPacket.MAX_SEQUENCE_NUMBER) + 1
@@ -631,7 +650,8 @@ class MeshRelayEngine(
                 burstsEmittedByPeer = expected,
                 burstsHeardFromPeer = track.receivedBeats,
                 peerDeliveryRatePct = pct ?: 0f,
-                isLost = track.isLost
+                isLost = track.isLost,
+                distinctAdvAddressesCount = distinctAddressesMap[track.shortId.toInt()] ?: 0
             )
         }
         return MeshFieldReport(
@@ -650,7 +670,8 @@ class MeshRelayEngine(
             invalidAuthDropped = invalidAuthDropped,
             activeLostPeers = peerMap.values.filter { it.isLost }.map { it.shortId.toInt() },
             deviceModels = deviceModels.toMap(),
-            peerReports = peerReports
+            peerReports = peerReports,
+            distinctAdvAddressesPerPeer = distinctAddressesMap
         )
     }
 }
