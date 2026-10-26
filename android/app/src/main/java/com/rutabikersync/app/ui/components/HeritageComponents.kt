@@ -19,8 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,176 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.ui.theme.BikerDimens
 import com.rutabikersync.app.ui.theme.HeritageTheme
+
+/**
+ * Placa biselada con relieve 3D oficial "Heritage Premium" (luz cenital, sombra de profundidad y fondo grafito).
+ */
+@Composable
+fun HeritageBevelCard(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 18.dp,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = Color.Black,
+                spotColor = Color.Black.copy(alpha = 0.5f)
+            )
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1D2028),
+                        Color(0xFF13151A),
+                        Color(0xFF0F1115)
+                    )
+                )
+            )
+            .border(
+                width = 1.2.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF454B5C), // Borde superior iluminado (luz cenital)
+                        Color(0xFF222631),
+                        Color(0xFF14161C)  // Sombra profunda inferior
+                    )
+                ),
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .padding(contentPadding)
+    ) {
+        Column(content = content)
+    }
+}
+
+/**
+ * Botón Placa de Latón Envejecido con relieve físico y degradado cálido.
+ */
+@Composable
+fun HeritageBrassButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    enabled: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(54.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = Color(0xFFE5B869)
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = if (enabled) listOf(
+                        Color(0xFFF6CE74),
+                        Color(0xFFDF9E32),
+                        Color(0xFFB8781B)
+                    ) else listOf(
+                        Color(0xFF4A4438),
+                        Color(0xFF2D2922)
+                    )
+                )
+            )
+            .border(
+                width = 1.2.dp,
+                brush = Brush.verticalGradient(
+                    colors = if (enabled) listOf(
+                        Color(0xFFFFEEBA),
+                        Color(0xFF8A550C)
+                    ) else listOf(
+                        Color(0xFF6B6252),
+                        Color(0xFF1F1C17)
+                    )
+                ),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (enabled) Color(0xFF101216) else Color(0xFF8A8275),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = if (enabled) Color(0xFF101216) else Color(0xFF8A8275),
+                fontWeight = FontWeight.Black,
+                fontSize = 14.sp,
+                letterSpacing = 0.4.sp
+            )
+        }
+    }
+}
+
+/**
+ * Escudo o parche circular con relieve concéntrico y aro de latón envejecido.
+ */
+@Composable
+fun HeritageEmblemBadge(
+    imageVector: ImageVector,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    badgeSize: Dp = 44.dp,
+    iconSize: Dp = 22.dp,
+    glowColor: Color = Color(0xFFF3C766)
+) {
+    Box(
+        modifier = modifier
+            .size(badgeSize)
+            .shadow(elevation = 4.dp, shape = CircleShape, spotColor = glowColor)
+            .clip(CircleShape)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF2C313E),
+                        Color(0xFF14161C),
+                        Color(0xFF0B0C0F)
+                    )
+                )
+            )
+            .border(
+                width = 1.8.dp,
+                brush = Brush.sweepGradient(
+                    colors = listOf(
+                        Color(0xFFF6CE74),
+                        Color(0xFF8A550C),
+                        Color(0xFFF6CE74),
+                        Color(0xFFB8781B),
+                        Color(0xFFF6CE74)
+                    )
+                ),
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription,
+            tint = glowColor,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
 
 /**
  * Tarjeta base oficial con estética "Heritage Premium" (cuero, bordes metálicos sutiles y elevación cálida).
@@ -484,10 +656,16 @@ fun HeritageBottomNavigationBar(
     )
 
     Surface(
-        color = Color(0xFF101114),
+        color = Color(0xFF111317),
         modifier = modifier
             .fillMaxWidth()
-            .border(BorderStroke(0.8.dp, Color(0xFF22242B)))
+            .border(
+                width = 1.dp,
+                brush = Brush.horizontalGradient(
+                    listOf(Color(0xFF20232B), Color(0xFF434A5B), Color(0xFF20232B))
+                ),
+                shape = RectangleShape
+            )
     ) {
         Row(
             modifier = Modifier
@@ -497,7 +675,7 @@ fun HeritageBottomNavigationBar(
         ) {
             tabs.forEach { (title, icon, index) ->
                 val isSelected = selectedTabIndex == index
-                val itemColor = if (isSelected) Color(0xFFE5B869) else Color(0xFF85817A)
+                val itemColor = if (isSelected) Color(0xFFF3C766) else Color(0xFF7E8494)
 
                 Box(
                     modifier = Modifier
@@ -509,26 +687,37 @@ fun HeritageBottomNavigationBar(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = title,
-                            tint = itemColor,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) Color(0xFFF3C766).copy(alpha = 0.16f) else Color.Transparent
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = title,
+                                tint = itemColor,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                         Text(
                             text = title,
                             color = itemColor,
                             fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
                         )
-                        // Indicador inferior sutil para la pestaña seleccionada
+                        // Indicador inferior con halo dorado
                         Box(
                             modifier = Modifier
-                                .width(20.dp)
-                                .height(2.dp)
-                                .background(if (isSelected) Color(0xFFE5B869) else Color.Transparent)
+                                .width(22.dp)
+                                .height(2.5.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (isSelected) Color(0xFFF3C766) else Color.Transparent)
                         )
                     }
                 }

@@ -143,7 +143,7 @@
     <string name="vault_doc_circulation">Tarjeta de circulación</string>
     <string name="vault_doc_inspection">Revisión mecánica</string>
     <string name="vault_doc_not_loaded">Documento no cargado</string>
-    <string name="vault_btn_add_document">+ Agregar documento</string>
+    <string name="vault_btn_add_document">Agregar documento</string>
     <string name="vault_medical_title">Ficha Médica de Emergencia</string>
     <string name="vault_medical_sealed_shamir">Sellado Shamir · Local</string>
     <string name="vault_blood_type">Grupo sanguíneo</string>

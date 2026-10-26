@@ -48,6 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rutabikersync.app.ui.components.HeritageBevelCard
+import com.rutabikersync.app.ui.components.HeritageBrassButton
+import com.rutabikersync.app.ui.components.HeritageEmblemBadge
 import com.rutabikersync.app.R
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.components.skeleton.SkeletonCard
@@ -264,37 +267,47 @@ private fun GroupsOverviewScreenD1(
     var newPhash by remember { mutableStateOf("123456789abcdef0") }
 
     // 0. Unirse a un Grupo por QR o Código (flujo principal de invitación T4)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
-            .border(1.dp, BikerColors.PrimaryAmber.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+    HeritageBevelCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            HeritageEmblemBadge(
                 imageVector = AppIcons.QrScanner,
                 contentDescription = null,
-                tint = BikerColors.PrimaryAmber,
-                modifier = Modifier.size(20.dp)
+                badgeSize = 36.dp,
+                iconSize = 18.dp,
+                glowColor = Color(0xFFF3C766)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Unirse a un Grupo con QR",
-                color = BikerColors.PrimaryAmber,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
+            Column {
+                Text(
+                    text = "Unirse a un Grupo con QR",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+                Text(
+                    text = "Accede escaneando el código de tu club",
+                    color = Color(0xFF8E95A5),
+                    fontSize = 11.sp
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         Text(
             text = "Escanea el código QR que te muestre el Presidente o Vicepresidente del club para unirte al grupo.",
-            color = BikerColors.TextSecondary,
+            color = Color(0xFF8E95A5),
             fontSize = 12.sp
         )
 
-        Button(
+        Spacer(modifier = Modifier.height(6.dp))
+
+        HeritageBrassButton(
+            text = "Escanear Código QR con Cámara",
             onClick = {
                 UxTestTracker.logEvent("GROUPS_D1", "OPEN_QR_SCANNER", "btn_escanear_qr")
                 val options = com.journeyapps.barcodescanner.ScanOptions().apply {
@@ -307,16 +320,8 @@ private fun GroupsOverviewScreenD1(
                 }
                 scanLauncher.launch(options)
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = BikerColors.PrimaryAmber,
-                contentColor = BikerColors.BackgroundDark
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(imageVector = AppIcons.QrScanner, contentDescription = null)
-            Spacer(modifier = Modifier.width(6.dp))
-            Text("Escanear Código QR con Cámara", fontWeight = FontWeight.Bold)
-        }
+            icon = AppIcons.QrScanner
+        )
 
         // Fallback alfanumérico
         Row(
@@ -406,32 +411,34 @@ private fun GroupsOverviewScreenD1(
 
     // 2. Lista de grupos
     if (data.groups.isEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = AppIcons.TabGroups,
-                contentDescription = null,
-                tint = BikerColors.PrimaryAmber,
-                modifier = Modifier.size(36.dp)
-            )
-            Text(
-                text = stringResource(id = R.string.groups_empty_title),
-                color = BikerColors.TextPrimary,
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
-            )
-            Text(
-                text = stringResource(id = R.string.groups_empty_desc),
-                color = BikerColors.TextSecondary,
-                fontSize = 12.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeritageEmblemBadge(
+                    imageVector = AppIcons.TabGroups,
+                    contentDescription = null,
+                    badgeSize = 48.dp,
+                    iconSize = 24.dp,
+                    glowColor = Color(0xFFF3C766)
+                )
+                Text(
+                    text = stringResource(id = R.string.groups_empty_title),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = stringResource(id = R.string.groups_empty_desc),
+                    color = Color(0xFF8E95A5),
+                    fontSize = 12.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     } else {
         data.groups.forEach { grp ->
@@ -517,16 +524,11 @@ private fun GroupsOverviewScreenD1(
 }
 
     // 3. Crear grupo (A4 / D1) con verificación en vivo de nombre/leet y pHash
-    OutlinedButton(
+    HeritageBrassButton(
+        text = stringResource(id = R.string.groups_create_btn),
         onClick = { showCreateForm = !showCreateForm },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = stringResource(id = R.string.groups_create_btn),
-            color = BikerColors.PrimaryAmber,
-            fontWeight = FontWeight.Bold
-        )
-    }
+        icon = AppIcons.TabGroups
+    )
 
     if (showCreateForm) {
         val collisionPreview = data.groups
@@ -1315,12 +1317,8 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 viewModel.setForceSkeletonPreview(false)
             }
         ) { profile, _ ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            HeritageBevelCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -1369,6 +1367,8 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                     }
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it },
@@ -1388,7 +1388,10 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Button(
+                Spacer(modifier = Modifier.height(8.dp))
+
+                HeritageBrassButton(
+                    text = stringResource(id = R.string.profile_save),
                     onClick = {
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                             "PROFILE_TAB",
@@ -1397,15 +1400,8 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                             "displayName=$displayName;bike=$bikeModel;color=$mapColorHex"
                         )
                         viewModel.saveUserProfile(displayName, bikeModel, mapColorHex)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BikerColors.PrimaryAmber,
-                        contentColor = BikerColors.BackgroundDark
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(id = R.string.profile_save), fontWeight = FontWeight.Bold)
-                }
+                    }
+                )
 
                 OutlinedButton(
                     onClick = {

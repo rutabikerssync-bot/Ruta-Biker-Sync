@@ -33,16 +33,30 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.rutabikersync.app.ui.components.HeritageBevelCard
+import com.rutabikersync.app.ui.components.HeritageBrassButton
+import com.rutabikersync.app.ui.components.HeritageEmblemBadge
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -320,40 +334,33 @@ private fun VaultTabScreen() {
     var showAddDocDialog by remember { mutableStateOf(false) }
     var docNameInput by remember { mutableStateOf("") }
     var docNumberInput by remember { mutableStateOf("") }
+    var showOnLockScreen by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF101114))
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Cabecera oficial Bóveda (Screen 4)
+        // Cabecera oficial Bóveda (Screen 4) con escudo en relieve
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF1E2026))
-                    .border(1.2.dp, Color(0xFFC99A45), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = AppIcons.LeaderFallback,
-                    contentDescription = stringResource(id = R.string.vault_title),
-                    tint = Color(0xFFE5B869),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            HeritageEmblemBadge(
+                imageVector = Icons.Default.Lock,
+                contentDescription = stringResource(id = R.string.vault_title),
+                badgeSize = 46.dp,
+                iconSize = 22.dp,
+                glowColor = Color(0xFFF3C766)
+            )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(id = R.string.vault_title),
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp
                 )
@@ -366,7 +373,7 @@ private fun VaultTabScreen() {
         }
 
         // Sección: Documentos de la Moto
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -375,32 +382,36 @@ private fun VaultTabScreen() {
                 Text(
                     text = stringResource(id = R.string.vault_docs_title),
                     color = Color.White,
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = stringResource(id = R.string.vault_view_all),
-                    color = Color(0xFFC99A45),
+                    color = Color(0xFFE5B869),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            // Grid 2x2 de documentos (Empty state: Documento no cargado)
+            // Grid 2x2 de documentos biselados
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                VaultDocCard(
+                VaultDocBevelCard(
                     title = stringResource(id = R.string.vault_doc_license),
                     badge = stringResource(id = R.string.vault_doc_not_loaded),
-                    isWarning = false,
+                    icon = Icons.Default.CreditCard,
+                    badgeBg = Color(0xFF382A14),
+                    badgeBorder = Color(0xFFE5B869),
                     modifier = Modifier.weight(1f)
                 )
-                VaultDocCard(
+                VaultDocBevelCard(
                     title = stringResource(id = R.string.vault_doc_insurance),
                     badge = stringResource(id = R.string.vault_doc_not_loaded),
-                    isWarning = false,
+                    icon = Icons.Default.VerifiedUser,
+                    badgeBg = Color(0xFF122C20),
+                    badgeBorder = Color(0xFF10B981),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -408,47 +419,35 @@ private fun VaultTabScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                VaultDocCard(
+                VaultDocBevelCard(
                     title = stringResource(id = R.string.vault_doc_circulation),
                     badge = stringResource(id = R.string.vault_doc_not_loaded),
-                    isWarning = false,
+                    icon = Icons.Default.Description,
+                    badgeBg = Color(0xFF0E2829),
+                    badgeBorder = Color(0xFF14B8A6),
                     modifier = Modifier.weight(1f)
                 )
-                VaultDocCard(
+                VaultDocBevelCard(
                     title = stringResource(id = R.string.vault_doc_inspection),
                     badge = stringResource(id = R.string.vault_doc_not_loaded),
-                    isWarning = false,
+                    icon = Icons.Default.Build,
+                    badgeBg = Color(0xFF132338),
+                    badgeBorder = Color(0xFF3B82F6),
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Botón + Agregar documento
-            Button(
+            // Botón Placa de Latón: + Agregar documento
+            HeritageBrassButton(
+                text = stringResource(id = R.string.vault_btn_add_document),
                 onClick = { showAddDocDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5B869)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.vault_btn_add_document),
-                    color = Color(0xFF101114),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
+                icon = Icons.Default.Add
+            )
         }
 
-        // Sección: Ficha Médica de Emergencia (Sellado con Shamir)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFF181A20))
-                .border(1.dp, Color(0xFF2C2E38), RoundedCornerShape(16.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Sección: Ficha Médica de Emergencia (Sellado con Shamir) con relieve
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -457,46 +456,92 @@ private fun VaultTabScreen() {
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
+                    HeritageEmblemBadge(
+                        imageVector = Icons.Default.LocalHospital,
                         contentDescription = null,
-                        tint = Color(0xFFE5B869),
-                        modifier = Modifier.size(20.dp)
+                        badgeSize = 36.dp,
+                        iconSize = 18.dp,
+                        glowColor = Color(0xFFF3C766)
                     )
                     Text(
                         text = stringResource(id = R.string.vault_medical_title),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 14.sp
                     )
                 }
-                Text(
-                    text = "🔒 ${stringResource(id = R.string.vault_medical_sealed_shamir)}",
-                    color = Color(0xFF10B981),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "🔒 ${stringResource(id = R.string.vault_medical_sealed_shamir)}",
+                        color = Color(0xFF34D399),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(id = R.string.vault_blood_type), color = Color(0xFF9CA3AF), fontSize = 12.sp)
-                Text(stringResource(id = R.string.vault_blood_type_empty), color = Color(0xFF9CA3AF), fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_blood_type), color = Color(0xFF8E95A5), fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_blood_type_empty), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(id = R.string.vault_allergies), color = Color(0xFF9CA3AF), fontSize = 12.sp)
-                Text(stringResource(id = R.string.vault_allergies_empty), color = Color(0xFF9CA3AF), fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_allergies), color = Color(0xFF8E95A5), fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_allergies_empty), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(id = R.string.vault_donor), color = Color(0xFF9CA3AF), fontSize = 12.sp)
-                Text(stringResource(id = R.string.vault_donor_empty), color = Color(0xFF9CA3AF), fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_donor), color = Color(0xFF8E95A5), fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_donor_empty), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(id = R.string.vault_emergency_contact), color = Color(0xFF9CA3AF), fontSize = 12.sp)
-                Text(stringResource(id = R.string.vault_emergency_contact_empty), color = Color(0xFF9CA3AF), fontWeight = FontWeight.Medium, fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_emergency_contact), color = Color(0xFF8E95A5), fontSize = 12.sp)
+                Text(stringResource(id = R.string.vault_emergency_contact_empty), color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color(0xFF272B36))
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Switch "Mostrar en pantalla de bloqueo"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Mostrar en pantalla de bloqueo",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Switch(
+                    checked = showOnLockScreen,
+                    onCheckedChange = { showOnLockScreen = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color(0xFF101114),
+                        checkedTrackColor = Color(0xFFF3C766),
+                        uncheckedThumbColor = Color(0xFF8E95A5),
+                        uncheckedTrackColor = Color(0xFF272B36)
+                    )
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 
     if (showAddDocDialog) {
@@ -544,33 +589,67 @@ private fun VaultTabScreen() {
 }
 
 @Composable
-private fun VaultDocCard(
+private fun VaultDocBevelCard(
     title: String,
     badge: String,
-    isWarning: Boolean,
+    icon: ImageVector,
+    badgeBg: Color,
+    badgeBorder: Color,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF181A20))
-            .border(1.dp, Color(0xFF2C2E38), RoundedCornerShape(12.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF1A1D24), Color(0xFF111317))
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xFF3E4454), Color(0xFF181A20))
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(12.dp)
     ) {
-        Text(
-            text = title,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            lineHeight = 14.sp
-        )
-        Text(
-            text = badge,
-            color = if (isWarning) Color(0xFFE5B869) else Color(0xFF10B981),
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 10.sp
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(badgeBg)
+                        .border(1.dp, badgeBorder, RoundedCornerShape(6.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = badgeBorder,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Text(
+                text = badge,
+                color = Color(0xFF10B981),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp
+            )
+        }
     }
 }
 
@@ -654,12 +733,11 @@ private fun RidesReleaseHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF101114))
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Cabecera RODADAS (Screen 2)
+        // Cabecera RODADAS (Screen 2) con Escudo en relieve
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -667,28 +745,20 @@ private fun RidesReleaseHomeScreen(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E2026))
-                        .border(1.2.dp, Color(0xFFC99A45), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = "Club",
-                        tint = Color(0xFFE5B869),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                HeritageEmblemBadge(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = "Club",
+                    badgeSize = 46.dp,
+                    iconSize = 22.dp,
+                    glowColor = Color(0xFFF3C766)
+                )
                 Column {
                     Text(
                         text = "RODADAS",
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.5.sp
                     )
@@ -700,33 +770,37 @@ private fun RidesReleaseHomeScreen(
                 }
             }
 
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Buscar",
-                tint = Color(0xFFE5B869),
-                modifier = Modifier.size(24.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1E2129))
+                    .border(1.dp, Color(0xFF383D4D), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Buscar",
+                    tint = Color(0xFFE5B869),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
-        // Tarjeta: Próxima Rodada
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF181A20))
-                .border(1.dp, Color(0xFF2C2E38), RoundedCornerShape(18.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Tarjeta: Próxima Rodada (Biselada)
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(14.dp)
         ) {
-            // Banner de paisaje montañoso
+            // Banner de paisaje montañoso con degradado atmosférico
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(95.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(
-                        androidx.compose.ui.graphics.Brush.linearGradient(
-                            listOf(Color(0xFF2B3A42), Color(0xFF1A1F24), Color(0xFF38464E))
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF2E3942), Color(0xFF1B2329), Color(0xFF12161A))
                         )
                     ),
                 contentAlignment = Alignment.Center
@@ -734,15 +808,17 @@ private fun RidesReleaseHomeScreen(
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val p = androidx.compose.ui.graphics.Path().apply {
                         moveTo(0f, size.height)
-                        lineTo(size.width * 0.28f, size.height * 0.3f)
+                        lineTo(size.width * 0.28f, size.height * 0.28f)
                         lineTo(size.width * 0.55f, size.height * 0.65f)
                         lineTo(size.width * 0.82f, size.height * 0.22f)
                         lineTo(size.width, size.height)
                         close()
                     }
-                    drawPath(p, Color(0xFF14181B).copy(alpha = 0.85f))
+                    drawPath(p, Color(0xFF0C0E11).copy(alpha = 0.88f))
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             if (BuildConfig.UX_TEST_MODE) {
                 Row(
@@ -750,7 +826,7 @@ private fun RidesReleaseHomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.weight(1f)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(id = R.string.rides_next_ride),
                             color = Color.White,
@@ -765,7 +841,7 @@ private fun RidesReleaseHomeScreen(
                         )
                         Text(
                             text = stringResource(id = R.string.rides_no_scheduled_desc),
-                            color = Color(0xFF9CA3AF),
+                            color = Color(0xFF8E95A5),
                             fontSize = 11.sp
                         )
                     }
@@ -773,13 +849,13 @@ private fun RidesReleaseHomeScreen(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF2C2E38))
-                            .border(1.dp, Color(0xFF4B5563), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .background(Color(0xFF242732))
+                            .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "Sin programar",
-                            color = Color(0xFF9CA3AF),
+                            color = Color(0xFF8E95A5),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -817,7 +893,6 @@ private fun RidesReleaseHomeScreen(
                         )
                     }
 
-                    // Insignia Confirmada
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
@@ -836,26 +911,22 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Tarjeta: Participantes
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF181A20))
-                .border(1.dp, Color(0xFF2C2E38), RoundedCornerShape(18.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Tarjeta: Participantes (Biselada)
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(14.dp)
         ) {
             if (BuildConfig.UX_TEST_MODE) {
                 Text(
                     text = stringResource(id = R.string.rides_participants_empty),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = 14.sp
                 )
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = stringResource(id = R.string.rides_participants_empty_desc),
-                    color = Color(0xFF9CA3AF),
+                    color = Color(0xFF8E95A5),
                     fontSize = 11.sp
                 )
             } else {
@@ -863,9 +934,9 @@ private fun RidesReleaseHomeScreen(
                     text = "Participantes (12)",
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = 14.sp
                 )
-
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceAround,
@@ -880,15 +951,10 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Tarjeta: Ruta y Corredor
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF181A20))
-                .border(1.dp, Color(0xFF2C2E38), RoundedCornerShape(18.dp))
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Tarjeta: Ruta y Corredor (Biselada)
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -899,24 +965,26 @@ private fun RidesReleaseHomeScreen(
                     text = stringResource(id = R.string.rides_route_title),
                     color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
+                    fontSize = 14.sp
                 )
                 Text(
                     text = if (BuildConfig.UX_TEST_MODE) stringResource(id = R.string.rides_route_empty) else "✓ Descargado",
                     color = if (BuildConfig.UX_TEST_MODE) Color(0xFFE5B869) else Color(0xFF10B981),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
+                    fontSize = 11.sp
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Preview del mapa con botón "Ver mapa"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(95.dp)
+                    .height(100.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF121418))
-                    .border(1.dp, Color(0xFF2E313C), RoundedCornerShape(12.dp)),
+                    .background(Color(0xFF0F1116))
+                    .border(1.dp, Color(0xFF282C38), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.BottomEnd
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -939,7 +1007,7 @@ private fun RidesReleaseHomeScreen(
                     modifier = Modifier
                         .padding(8.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF181A20).copy(alpha = 0.92f))
+                        .background(Color(0xFF161820).copy(alpha = 0.94f))
                         .border(1.dp, Color(0xFFC99A45), RoundedCornerShape(8.dp))
                         .clickable {
                             UxTestTracker.logEvent("RODADAS_HOME", "TAP_VIEW_MAP", "btn_ver_mapa")
@@ -1001,8 +1069,9 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Botón principal de latón envejecido: "Iniciar Rodada (Cabina Activa)"
-        Button(
+        // Botón Placa de Latón: "Iniciar Rodada (Cabina Activa)"
+        HeritageBrassButton(
+            text = stringResource(id = R.string.rides_btn_start_active_cockpit),
             onClick = {
                 UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
                 onStartLiveMapPreview()
@@ -1012,19 +1081,10 @@ private fun RidesReleaseHomeScreen(
                     startRideServiceNow(useSimulated = false)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5B869)),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text(
-                text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-                color = Color(0xFF101114),
-                fontWeight = FontWeight.Black,
-                fontSize = 14.sp
-            )
-        }
+            icon = Icons.Default.PlayArrow
+        )
+
+        Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
