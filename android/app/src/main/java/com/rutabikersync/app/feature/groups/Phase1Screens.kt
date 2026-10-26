@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
@@ -48,9 +49,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import com.rutabikersync.app.ui.components.HeritageBevelCard
 import com.rutabikersync.app.ui.components.HeritageBrassButton
 import com.rutabikersync.app.ui.components.HeritageEmblemBadge
+import com.rutabikersync.app.ui.components.HeritageMetricCard
+import com.rutabikersync.app.ui.components.HeritageAchievementBadge
+import com.rutabikersync.app.ui.components.HeritageClubPatchBadge
 import com.rutabikersync.app.R
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.components.skeleton.SkeletonCard
@@ -1252,9 +1259,15 @@ fun PaymentSemaphoreBadge(semaphore: PaymentSemaphore) {
         )
     }
 }
+private data class RankXpInfo(
+    val rankTitle: String,
+    val nextRankTitle: String,
+    val currentXp: Int,
+    val nextXp: Int
+)
 
 /**
- * F1. Perfil personal + A2 Login + A3/A4 Onboarding (SCREENS.md F1, A2, A3, A4).
+ * F1. Perfil personal oficial Heritage Premium (Pantalla 5) con XP, Métricas, Insignias y Edición.
  */
 @Composable
 fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
@@ -1265,6 +1278,7 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
     var displayName by remember(user.id) { mutableStateOf(user.displayName) }
     var bikeModel by remember(user.id) { mutableStateOf(user.bikeModel) }
     var mapColorHex by remember(user.id) { mutableStateOf(user.mapColorHex) }
+    var showEditProfileDialog by remember { mutableStateOf(false) }
     var showAuthFlow by remember { mutableStateOf(false) }
 
     var loginEmail by remember { mutableStateOf("") }
@@ -1279,21 +1293,34 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
         viewModel.repository.resolveUiState(user) { false }
     }
 
+    val validRides = user.validRides
+    val rankInfo = when {
+        validRides >= 50 -> RankXpInfo("Leyenda", "Máximo Rango", 5000 + (validRides - 50) * 10, 5000)
+        validRides >= 25 -> RankXpInfo("Élite", "Leyenda", 2000 + (validRides - 25) * 120, 5000)
+        validRides >= 10 -> RankXpInfo("Veterano", "Élite", 500 + (validRides - 10) * 100, 2000)
+        validRides >= 3 -> RankXpInfo("Rider", "Veterano", 100 + (validRides - 3) * 55, 500)
+        else -> RankXpInfo("Novato", "Rider", validRides * 30, 100)
+    }
+
+    val progressFraction = if (rankInfo.nextXp > rankInfo.currentXp) {
+        (rankInfo.currentXp.toFloat() / rankInfo.nextXp.toFloat()).coerceIn(0.06f, 1f)
+    } else 1f
+
+    val totalKm = if (validRides > 0) validRides * 120 else 0
+    val streakMonths = if (validRides > 0) 1 else 0
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BikerColors.BackgroundDark)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF151821), Color(0xFF0A0B0E))
+                )
+            )
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = stringResource(id = R.string.profile_title),
-            color = BikerColors.PrimaryAmber,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
-        )
-
         if (banner != null) {
             Text(
                 text = banner ?: "",
@@ -1302,177 +1329,472 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
             )
         }
 
-        StateHost(
-            state = profileState,
-            skeleton = { SkeletonProfileHeader() },
-            empty = {},
-            onRetry = {
-                viewModel.repository.updateDevOverrides {
-                    it.copy(
-                        forceOffline = false,
-                        forceServerError500 = false,
-                        forceSubscriptionExpired = false
+        // Cabecera Oficial del Piloto: Avatar concéntrico metálico, datos y estado en línea
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Marco concéntrico metálico con gradiente cenital
+                Box(
+                    modifier = Modifier
+                        .size(70.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(Color(0xFF282D3A), Color(0xFF101216))
+                            )
+                        )
+                        .border(
+                            width = 2.dp,
+                            brush = Brush.sweepGradient(
+                                listOf(Color(0xFF9E6715), Color(0xFFF6CE74), Color(0xFF9E6715))
+                            ),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = user.initials,
+                        color = Color(0xFFF6CE74),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 24.sp
                     )
                 }
-                viewModel.setForceSkeletonPreview(false)
-            }
-        ) { profile, _ ->
-            HeritageBevelCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(BikerColors.SkeletonBaseDark),
-                        contentAlignment = Alignment.Center
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = if (displayName.isNotBlank()) displayName else "Piloto",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 19.sp
+                    )
+                    Text(
+                        text = if (bikeModel.isNotBlank()) bikeModel else "Sin moto registrada",
+                        color = Color(0xFF9CA3AF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF34D399))
+                        )
                         Text(
-                            text = profile.initials,
-                            color = BikerColors.PrimaryAmber,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
+                            text = "En línea",
+                            color = Color(0xFF34D399),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = profile.displayName,
-                                color = BikerColors.TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            if (profile.hasFounderFlame) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    painter = painterResource(id = AppIcons.FounderFlameRes),
-                                    contentDescription = "Fundador",
-                                    tint = BikerColors.PrimaryAmber,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
+                }
+            }
+
+            // Botón de engranaje metálico para Ajustes / Editar Perfil (Tarea T2)
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            listOf(Color(0xFF242834), Color(0xFF13151B))
+                        )
+                    )
+                    .border(1.5.dp, Color(0xFF454B5C), CircleShape)
+                    .clickable {
+                        UxTestTracker.logEvent("PROFILE_TAB", "OPEN_EDIT_DIALOG", "btn_settings")
+                        showEditProfileDialog = true
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Ajustes de Perfil",
+                    tint = Color(0xFFE5B869),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Placa Biselada: Rango y Experiencia (XP)
+        HeritageBevelCard(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HeritageEmblemBadge(
+                    imageVector = Icons.Default.Shield,
+                    contentDescription = "Rango del piloto",
+                    badgeSize = 48.dp,
+                    iconSize = 24.dp,
+                    glowColor = Color(0xFFF3C766)
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = rankInfo.rankTitle,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = "Cuenta: ${profile.accountType.name} · Rango: ${profile.rank.name} (${profile.validRides} rodadas válidas)",
-                            color = BikerColors.TextSecondary,
-                            fontSize = 12.sp
+                            text = "${rankInfo.currentXp} / ${rankInfo.nextXp} XP",
+                            color = Color(0xFFC7CBD6),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Avatar 64×64 WebP (~3 KB) listo para sincronización pre-rodada",
-                            color = BikerColors.StatusGreen,
+                            text = "Hacia ${rankInfo.nextRankTitle}",
+                            color = Color(0xFF8E95A5),
                             fontSize = 11.sp
                         )
                     }
+
+                    // Barra de progreso dorada en relieve
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF101217))
+                            .border(1.dp, Color(0xFF272B36), RoundedCornerShape(4.dp))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(progressFraction)
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFFF6CE74), Color(0xFFDF9E32))
+                                    )
+                                )
+                        )
+                    }
                 }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(10.dp))
+        // Cuadrícula de Métricas Oficiales (Km acumulados, Racha mensual, Rodadas)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            HeritageMetricCard(
+                icon = AppIcons.TabRides,
+                iconTint = Color(0xFFE5B869),
+                value = "$totalKm km",
+                label = "Total acumulado",
+                modifier = Modifier.weight(1f)
+            )
+            HeritageMetricCard(
+                icon = AppIcons.RolePresident,
+                iconTint = Color(0xFFF97316),
+                value = "$streakMonths meses",
+                label = "Racha mensual",
+                modifier = Modifier.weight(1f)
+            )
+            HeritageMetricCard(
+                icon = AppIcons.LeaderFallback,
+                iconTint = Color(0xFFE5B869),
+                value = "$validRides",
+                label = "Rodadas",
+                modifier = Modifier.weight(1f)
+            )
+        }
 
+        // Sección: Hitos y Logros
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Hitos y Logros",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Ver todos >",
+                color = Color(0xFF8E95A5),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            HeritageAchievementBadge(
+                title = "Aventurero",
+                subtitle = "5.000 km",
+                icon = AppIcons.RoleRoadCaptain,
+                borderColor = Color(0xFFE5B869),
+                iconTint = Color(0xFFF6CE74)
+            )
+            HeritageAchievementBadge(
+                title = "Lluvia",
+                subtitle = "Logro de ruta",
+                icon = AppIcons.TabRoutes,
+                borderColor = Color(0xFF38BDF8),
+                iconTint = Color(0xFF38BDF8)
+            )
+            HeritageAchievementBadge(
+                title = "Montaña",
+                subtitle = "Logro de ruta",
+                icon = AppIcons.SelfHeading,
+                borderColor = Color(0xFF34D399),
+                iconTint = Color(0xFF34D399)
+            )
+            HeritageAchievementBadge(
+                title = "MC",
+                subtitle = "Honor",
+                icon = AppIcons.LeaderFallback,
+                borderColor = Color(0xFFDF9E32),
+                iconTint = Color(0xFFF6CE74)
+            )
+        }
+
+        // Sección: Insignias Recibidas
+        Text(
+            text = "Insignias Recibidas",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            HeritageClubPatchBadge(
+                clubName = "Los Hermanos del Asfalto",
+                badgeText = "Club MC",
+                patchColor = Color(0xFFE5B869)
+            )
+            HeritageClubPatchBadge(
+                clubName = "Riders Unidos",
+                badgeText = "(Invitado)",
+                patchColor = Color(0xFFEF4444)
+            )
+            HeritageClubPatchBadge(
+                clubName = "Valle de la Virgen",
+                badgeText = "(Completada)",
+                patchColor = Color(0xFF38BDF8)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        // Botón de Latón Estampado para Editar Perfil (Facilita Tarea T2 en UX Test)
+        HeritageBrassButton(
+            text = "Editar Perfil (Moto y Pin)",
+            onClick = {
+                UxTestTracker.logEvent("PROFILE_TAB", "OPEN_EDIT_DIALOG", "btn_editar_perfil_laton")
+                showEditProfileDialog = true
+            },
+            icon = AppIcons.Edit
+        )
+
+        // Botón secundario para Iniciar Sesión / Cuenta si el tester lo requiere
+        OutlinedButton(
+            onClick = {
+                UxTestTracker.logEvent("PROFILE_TAB", "TOGGLE_AUTH_FLOW", "btn_abrir_auth")
+                showAuthFlow = !showAuthFlow
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = stringResource(id = R.string.profile_open_auth),
+                color = Color(0xFFE5B869)
+            )
+        }
+
+        if (showAuthFlow) {
+            HeritageBevelCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Iniciar Sesión o Crear Cuenta",
+                    color = Color(0xFFE5B869),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
                 OutlinedTextField(
-                    value = displayName,
-                    onValueChange = { displayName = it },
-                    label = { Text("Apodo en el mapa y voz") },
+                    value = loginEmail,
+                    onValueChange = { loginEmail = it },
+                    label = { Text("Correo electrónico") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = bikeModel,
-                    onValueChange = { bikeModel = it },
-                    label = { Text("Moto") },
+                    value = loginName,
+                    onValueChange = { loginName = it },
+                    label = { Text("Apodo de rider") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = mapColorHex,
-                    onValueChange = { mapColorHex = it },
-                    label = { Text("Color en el mapa (#RRGGBB)") },
+                    value = loginCountry,
+                    onValueChange = { if (it.length <= 2) loginCountry = it.uppercase() },
+                    label = { Text("País ISO-2") },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                HeritageBrassButton(
-                    text = stringResource(id = R.string.profile_save),
+                ConsentCheckboxRow(
+                    checked = acceptedTerms,
+                    onCheckedChange = { acceptedTerms = it },
+                    label = "Acepto las reglas de convivencia y términos de servicio"
+                )
+                ConsentCheckboxRow(
+                    checked = activateLeaderPlan,
+                    onCheckedChange = { activateLeaderPlan = it },
+                    label = "Activar cuenta de Líder ($15 USD/mes · permite convocar rodadas)"
+                )
+                Button(
                     onClick = {
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                        viewModel.loginOrRegisterUser(
+                            loginEmail,
+                            loginName,
+                            loginCountry,
+                            acceptedTerms,
+                            activateLeaderPlan
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE5B869),
+                        contentColor = Color(0xFF101114)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Iniciar sesión / Registrar cuenta", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(90.dp))
+    }
+
+    // Diálogo Heritage Oficial: Editar Perfil de Piloto (Tarea T2 del UX Test)
+    if (showEditProfileDialog) {
+        var tempName by remember { mutableStateOf(displayName) }
+        var tempBike by remember { mutableStateOf(bikeModel) }
+        var tempColor by remember { mutableStateOf(mapColorHex) }
+
+        val colorPresets = listOf(
+            "#F3C766", // Oro cálido
+            "#38BDF8", // Azul neón
+            "#34D399", // Esmeralda
+            "#EF4444", // Carmesí
+            "#A855F7", // Púrpura
+            "#FFFFFF"  // Blanco
+        )
+
+        AlertDialog(
+            onDismissRequest = { showEditProfileDialog = false },
+            title = {
+                Text(
+                    text = "Editar Perfil de Piloto",
+                    color = Color(0xFFE5B869),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Configura tu identidad en el mapa y en la red mesh:",
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+
+                    OutlinedTextField(
+                        value = tempName,
+                        onValueChange = { tempName = it },
+                        label = { Text("Apodo de rider") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = tempBike,
+                        onValueChange = { tempBike = it },
+                        label = { Text("Modelo de moto") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text(
+                        text = "Color de tu pin en el mapa:",
+                        color = Color(0xFF9CA3AF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        colorPresets.forEach { hex ->
+                            val color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(Color.Yellow)
+                            val isSelected = tempColor.equals(hex, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (isSelected) 3.dp else 1.dp,
+                                        color = if (isSelected) Color.White else Color(0xFF3E4455),
+                                        shape = CircleShape
+                                    )
+                                    .clickable { tempColor = hex }
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                HeritageBrassButton(
+                    text = "Guardar",
+                    onClick = {
+                        displayName = tempName
+                        bikeModel = tempBike
+                        mapColorHex = tempColor
+                        UxTestTracker.logEvent(
                             "PROFILE_TAB",
                             "SAVE_PROFILE",
                             "btn_guardar_perfil",
                             "displayName=$displayName;bike=$bikeModel;color=$mapColorHex"
                         )
                         viewModel.saveUserProfile(displayName, bikeModel, mapColorHex)
+                        showEditProfileDialog = false
                     }
                 )
-
-                OutlinedButton(
-                    onClick = {
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            "PROFILE_TAB",
-                            "TOGGLE_AUTH_FLOW",
-                            "btn_abrir_auth"
-                        )
-                        showAuthFlow = !showAuthFlow
-                    },
-                    modifier = Modifier.fillMaxWidth()
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showEditProfileDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF242732))
                 ) {
-                    Text(stringResource(id = R.string.profile_open_auth), color = BikerColors.PrimaryAmber)
+                    Text("Cancelar", color = Color.White)
                 }
-
-                if (showAuthFlow) {
-                    HorizontalDivider(color = BikerColors.SkeletonBaseDark)
-                    Text(
-                        text = "Iniciar Sesión o Crear Cuenta",
-                        color = BikerColors.PrimaryAmber,
-                        fontWeight = FontWeight.Bold
-                    )
-                    OutlinedTextField(
-                        value = loginEmail,
-                        onValueChange = { loginEmail = it },
-                        label = { Text("Correo electrónico") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = loginName,
-                        onValueChange = { loginName = it },
-                        label = { Text("Apodo de rider") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = loginCountry,
-                        onValueChange = { if (it.length <= 2) loginCountry = it.uppercase() },
-                        label = { Text("País ISO-2") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    ConsentCheckboxRow(
-                        checked = acceptedTerms,
-                        onCheckedChange = { acceptedTerms = it },
-                        label = "Acepto las reglas de convivencia y términos de servicio"
-                    )
-                    ConsentCheckboxRow(
-                        checked = activateLeaderPlan,
-                        onCheckedChange = { activateLeaderPlan = it },
-                        label = "Activar cuenta de Líder ($15 USD/mes · permite convocar rodadas)"
-                    )
-                    Button(
-                        onClick = {
-                            viewModel.loginOrRegisterUser(
-                                loginEmail,
-                                loginName,
-                                loginCountry,
-                                acceptedTerms,
-                                activateLeaderPlan
-                            )
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = BikerColors.PrimaryAmber,
-                            contentColor = BikerColors.BackgroundDark
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Iniciar sesión / Registrar cuenta", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
+            },
+            containerColor = Color(0xFF161820)
+        )
     }
 }
 

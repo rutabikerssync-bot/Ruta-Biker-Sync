@@ -14,10 +14,12 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -158,7 +160,7 @@ fun HeritageBrassButton(
 @Composable
 fun HeritageEmblemBadge(
     imageVector: ImageVector,
-    contentDescription: String?,
+    contentDescription: String? = null,
     modifier: Modifier = Modifier,
     badgeSize: Dp = 44.dp,
     iconSize: Dp = 22.dp,
@@ -773,5 +775,171 @@ fun HeritageTopBrandHeader(
                 modifier = Modifier.size(20.dp)
             )
         }
+    }
+}
+
+/**
+ * Tarjeta biselada para métricas del piloto (Km acumulados, Racha mensual, Rodadas).
+ */
+@Composable
+fun HeritageMetricCard(
+    icon: ImageVector,
+    iconTint: Color,
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF1D2028), Color(0xFF121419))
+                )
+            )
+            .border(
+                width = 1.dp,
+                brush = Brush.verticalGradient(
+                    listOf(Color(0xFF3E4455), Color(0xFF1B1E26))
+                ),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(horizontal = 6.dp, vertical = 10.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = value,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            Text(
+                text = label,
+                color = Color(0xFF8E95A5),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/**
+ * Escudo de insignia / logro con relieve (Aventurero, Lluvia, Montaña, MC Honor).
+ */
+@Composable
+fun HeritageAchievementBadge(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    borderColor: Color,
+    iconTint: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.width(76.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF1F232D), Color(0xFF101217))
+                    )
+                )
+                .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(26.dp)
+            )
+        }
+        Text(
+            text = title,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+        Text(
+            text = subtitle,
+            color = Color(0xFF8E95A5),
+            fontSize = 9.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
+}
+
+/**
+ * Parche bordado de club aliado recibido.
+ */
+@Composable
+fun HeritageClubPatchBadge(
+    clubName: String,
+    badgeText: String,
+    patchColor: Color,
+    icon: ImageVector = Icons.Default.Shield,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.width(96.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(58.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xFF1F222B), Color(0xFF0F1116))
+                    )
+                )
+                .border(1.5.dp, patchColor, RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = patchColor,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        Text(
+            text = clubName,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 2
+        )
+        Text(
+            text = badgeText,
+            color = Color(0xFFE5B869),
+            fontSize = 9.sp,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
+        )
     }
 }
