@@ -1927,7 +1927,7 @@ private fun generateMetricsJson(
         put("effectiveBleTransportMode", effectiveBleMode)
         put("f3AdvertisingMode", effectiveDeliveryMode.code)
         put("advertisingModeDefault", "BURST_1S")
-        put("advertisingModeRationale", "RÁFAGA gana al CONTINUO en Redmi (51→100%) y gasta ~3× menos radio; CONTINUO queda solo como opción de prueba")
+        put("advertisingModeRationale", "preliminary_n1: burst=100%, continuous=51%; burst duty cycle ~33% vs continuous ~100%")
         val approxDutyCycle = if (effectiveDeliveryMode == BleAdvTransport.AdvertisingDeliveryMode.CONTINUOUS) {
             100.0
         } else {

@@ -143,7 +143,7 @@ class FieldTestMetricsTest {
               "board": "ki5k",
               "f3AdvertisingMode": "BURST_1S",
               "advertisingModeDefault": "BURST_1S",
-              "advertisingModeRationale": "RÁFAGA gana al CONTINUO en Redmi (51→100%) y gasta ~3× menos radio; CONTINUO queda solo como opción de prueba",
+              "advertisingModeRationale": "preliminary_n1: burst=100%, continuous=51%; burst duty cycle ~33% vs continuous ~100%",
               "f3AdvertisingDutyCycleApproxPct": 33.33,
               "shortRunWarning": false,
               "f3AdvertisingBurstsStarted": 60,
@@ -178,7 +178,7 @@ class FieldTestMetricsTest {
         assertEquals("UMS9230", json.getString("socModel"))
         assertEquals("BURST_1S", json.getString("f3AdvertisingMode"))
         assertEquals("BURST_1S", json.getString("advertisingModeDefault"))
-        assertTrue(json.getString("advertisingModeRationale").contains("RÁFAGA gana al CONTINUO"))
+        assertEquals("preliminary_n1: burst=100%, continuous=51%; burst duty cycle ~33% vs continuous ~100%", json.getString("advertisingModeRationale"))
         assertFalse(json.getBoolean("shortRunWarning"))
 
         val distinctMap = json.getJSONObject("distinctAdvAddressesPerPeer")
