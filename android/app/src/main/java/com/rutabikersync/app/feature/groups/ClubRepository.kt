@@ -413,6 +413,11 @@ class ClubRepository(
         return Result.success(inv)
     }
 
+    fun addPendingInvitation(invitation: ClubInvitationModel) {
+        val filtered = _pendingInvitations.value.filterNot { it.id == invitation.id }
+        _pendingInvitations.value = filtered + invitation
+    }
+
     /**
      * Aceptar invitación con consentimientos separados obligatorios (RULES R2.1, R15.1):
      * - Membresía y ubicación son obligatorios para entrar al grupo.

@@ -106,6 +106,33 @@ android {
     }
 }
 
+androidComponents {
+    beforeVariants { variantBuilder ->
+        // Deshabilitar uxTestRelease para que uxTest con ALLOW_DEFAULT_TEST_RIDE_KEY=true solo exista en Debug
+        if (variantBuilder.productFlavors.any { it.second == "uxTest" } && variantBuilder.buildType == "release") {
+            variantBuilder.enable = false
+        }
+    }
+}
+
+tasks.register("verifyStandardReleaseSecurity") {
+    group = "verification"
+    description = "Garantiza que standardRelease tiene ALLOW_DEFAULT_TEST_RIDE_KEY=false y DEV_PANEL_ENABLED=false"
+    dependsOn("generateStandardReleaseBuildConfig")
+    doLast {
+        val buildConfigFile = file("build/generated/source/buildConfig/standard/release/com/rutabikersync/app/BuildConfig.java")
+        check(buildConfigFile.exists()) { "BuildConfig.java para standardRelease no fue generado en ${buildConfigFile.absolutePath}" }
+        val text = buildConfigFile.readText()
+        check(text.contains("boolean ALLOW_DEFAULT_TEST_RIDE_KEY = false;")) {
+            "FALLO DE SEGURIDAD: ALLOW_DEFAULT_TEST_RIDE_KEY debe ser false en standardRelease"
+        }
+        check(text.contains("boolean DEV_PANEL_ENABLED = false;")) {
+            "FALLO DE SEGURIDAD: DEV_PANEL_ENABLED debe ser false en standardRelease"
+        }
+        logger.lifecycle("✓ Verificación de seguridad standardRelease superada: ALLOW_DEFAULT_TEST_RIDE_KEY=false y DEV_PANEL_ENABLED=false")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

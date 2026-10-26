@@ -121,6 +121,34 @@ class Phase1ViewModel(
         _statusBanner.value = "Invitación rechazada"
     }
 
+    fun joinByQrCode(rawPayload: String) {
+        val payload = GroupInviteQrHelper.parsePayload(rawPayload)
+        if (payload == null) {
+            _statusBanner.value = "Código QR o texto de invitación inválido"
+            return
+        }
+        val user = repository.currentUser.value
+        val existing = repository.pendingInvitations.value.find { it.id == payload.inviteCode || it.groupId == payload.groupId }
+        if (existing != null) {
+            _selectedInvitationId.value = existing.id
+            _statusBanner.value = "Abriendo invitación para '${existing.groupName}'"
+        } else {
+            val newInv = ClubInvitationModel(
+                id = payload.inviteCode,
+                groupId = payload.groupId,
+                groupName = payload.groupName.ifEmpty { "Club Biker" },
+                countryCode = payload.countryCode.ifEmpty { "MX" },
+                invitedUserId = user.id,
+                statusKind = MemberStatusKind.GUEST,
+                monthlyCostUsd = 2.50,
+                state = "pending"
+            )
+            repository.addPendingInvitation(newInv)
+            _selectedInvitationId.value = newInv.id
+            _statusBanner.value = "Invitación detectada vía QR para '${newInv.groupName}'"
+        }
+    }
+
     fun updateMemberRoleOrStatus(
         groupId: String,
         memberUserId: String,

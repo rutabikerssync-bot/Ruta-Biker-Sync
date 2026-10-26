@@ -595,15 +595,28 @@ private fun RidesReleaseHomeScreen() {
                     }
                     Button(
                         onClick = {
-                            UxTestTracker.logEvent(
-                                "RODADAS_HOME",
-                                "TAP_SOS",
-                                if (BuildConfig.UX_TEST_MODE) "btn_sos_prueba" else "btn_sos"
-                            )
-                            val sosIntent = Intent(context, RideService::class.java).apply {
-                                action = RideService.ACTION_TRIGGER_SOS
+                            val isUxMode = BuildConfig.UX_TEST_MODE
+                            val meshBroadcastAllowed = isUxMode && UxTestTracker.isSosMeshBroadcastEnabled
+
+                            if (!isUxMode || meshBroadcastAllowed) {
+                                UxTestTracker.logEvent(
+                                    "RODADAS_HOME",
+                                    if (isUxMode) "TAP_SOS_MESH" else "TAP_SOS",
+                                    if (isUxMode) "btn_sos_prueba" else "btn_sos",
+                                    if (isUxMode) "broadcast=true" else null
+                                )
+                                val sosIntent = Intent(context, RideService::class.java).apply {
+                                    action = RideService.ACTION_TRIGGER_SOS
+                                }
+                                context.startService(sosIntent)
+                            } else {
+                                UxTestTracker.logEvent(
+                                    "RODADAS_HOME",
+                                    "TAP_SOS_LOCAL",
+                                    "btn_sos_prueba",
+                                    "broadcast=false"
+                                )
                             }
-                            context.startService(sosIntent)
                         },
                         modifier = Modifier.heightIn(min = 56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusRed)

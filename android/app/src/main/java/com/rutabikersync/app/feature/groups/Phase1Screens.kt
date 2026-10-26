@@ -1,6 +1,8 @@
 package com.rutabikersync.app.feature.groups
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,9 +41,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.R
@@ -222,6 +226,9 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
                         onOpenGroup = { viewModel.selectGroup(it) },
                         onCreateGroup = { country, name, phash ->
                             viewModel.createNewGroup(country, name, phash)
+                        },
+                        onJoinByQr = { payload ->
+                            viewModel.joinByQrCode(payload)
                         }
                     )
                 }
@@ -235,12 +242,144 @@ private fun GroupsOverviewScreenD1(
     data: GroupsScreenData,
     onOpenInvitation: (String) -> Unit,
     onOpenGroup: (String) -> Unit,
-    onCreateGroup: (String, String, String) -> Unit
+    onCreateGroup: (String, String, String) -> Unit,
+    onJoinByQr: (String) -> Unit
 ) {
     var showCreateForm by remember { mutableStateOf(false) }
+    var showScanDialog by remember { mutableStateOf(false) }
+    var manualInviteCode by remember { mutableStateOf("RUTA-TEST-01") }
     var newCountry by remember { mutableStateOf(data.currentUser.countryCode) }
     var newName by remember { mutableStateOf("") }
     var newPhash by remember { mutableStateOf("123456789abcdef0") }
+
+    // 0. Unirse a un Grupo por QR o Código (flujo principal de invitación T4)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
+            .border(1.dp, BikerColors.PrimaryAmber.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = AppIcons.QrScanner,
+                contentDescription = null,
+                tint = BikerColors.PrimaryAmber,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Unirse a un Grupo con QR",
+                color = BikerColors.PrimaryAmber,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+        }
+
+        Text(
+            text = "Escanea el código QR que te muestre el Presidente o Vicepresidente del club para unirte al grupo.",
+            color = BikerColors.TextSecondary,
+            fontSize = 12.sp
+        )
+
+        Button(
+            onClick = {
+                UxTestTracker.logEvent("GROUPS_D1", "OPEN_QR_SCANNER", "btn_escanear_qr")
+                showScanDialog = true
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BikerColors.PrimaryAmber,
+                contentColor = BikerColors.BackgroundDark
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(imageVector = AppIcons.QrScanner, contentDescription = null)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Escanear Código QR", fontWeight = FontWeight.Bold)
+        }
+
+        // Fallback alfanumérico
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = manualInviteCode,
+                onValueChange = { manualInviteCode = it },
+                label = { Text("Código de respaldo") },
+                modifier = Modifier.weight(1f)
+            )
+            Button(
+                onClick = {
+                    if (manualInviteCode.isNotBlank()) {
+                        UxTestTracker.logEvent("GROUPS_D1", "JOIN_CODE_FALLBACK", "btn_unirse_codigo", "code=$manualInviteCode")
+                        onJoinByQr(manualInviteCode)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusGreen)
+            ) {
+                Text("Unirse", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+
+    if (showScanDialog) {
+        AlertDialog(
+            onDismissRequest = { showScanDialog = false },
+            title = {
+                Text("Escanear QR de Grupo", color = BikerColors.PrimaryAmber, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .background(Color.Black, RoundedCornerShape(12.dp))
+                            .border(2.dp, BikerColors.PrimaryAmber, RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "[ Visor de Cámara Activo ]\nApunta al código QR generado por el Presidente o Vicepresidente",
+                            color = BikerColors.TextPrimary,
+                            textAlign = TextAlign.Center,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "En modo de prueba UX, puedes simular la lectura instantánea:",
+                        color = BikerColors.TextSecondary,
+                        fontSize = 11.sp
+                    )
+
+                    Button(
+                        onClick = {
+                            UxTestTracker.logEvent("GROUPS_D1", "SCAN_QR_SUCCESS", "camera_scanner", "payload=RUTA-TEST-01")
+                            onJoinByQr("rbs://invite?groupId=grp-test-01&code=RUTA-TEST-01&groupName=Águilas%20del%20Valle")
+                            showScanDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusGreen),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Simular Lectura QR (RUTA-TEST-01)", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = {
+                OutlinedButton(onClick = { showScanDialog = false }) {
+                    Text("Cancelar")
+                }
+            },
+            containerColor = BikerColors.SurfaceDark
+        )
+    }
 
     // 1. Invitaciones pendientes (RULES R2.1)
     if (data.pendingInvitations.isNotEmpty()) {
@@ -713,11 +852,143 @@ private fun GroupDetailScreenD3(
             }
         }
 
-        // D6. Invitar miembro (Líder)
+        // Invitar miembro por QR (Restringido estrictamente a Presidente y Vicepresidente)
+        val canShareQr = GroupInviteQrHelper.canShareQr(isLeader, myMember?.clubRole)
+        var showQrDialog by remember { mutableStateOf(false) }
+
+        HorizontalDivider(color = BikerColors.SkeletonBaseDark)
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
+                .border(1.dp, if (canShareQr) BikerColors.PrimaryAmber.copy(alpha = 0.5f) else BikerColors.SkeletonBaseDark, RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = AppIcons.QrCode,
+                    contentDescription = null,
+                    tint = if (canShareQr) BikerColors.PrimaryAmber else BikerColors.TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Invitación Oficial con Código QR",
+                    color = if (canShareQr) BikerColors.PrimaryAmber else BikerColors.TextSecondary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+            }
+
+            if (canShareQr) {
+                Text(
+                    text = "Autorizado: El Presidente y Vicepresidente pueden generar el código QR para que los nuevos miembros lo escaneen directamente con su cámara.",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 12.sp
+                )
+
+                Button(
+                    onClick = {
+                        UxTestTracker.logEvent("GROUPS_D3", "GENERATE_INVITE_QR", "btn_show_qr", "groupId=${group.id}")
+                        showQrDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BikerColors.PrimaryAmber,
+                        contentColor = BikerColors.BackgroundDark
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(imageVector = AppIcons.QrCode, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Mostrar QR de Invitación", fontWeight = FontWeight.Bold)
+                }
+
+                if (showQrDialog) {
+                    val qrPayload = remember(group) {
+                        GroupInviteQrHelper.encodePayload(
+                            GroupInviteQrHelper.InviteQrPayload(
+                                groupId = group.id,
+                                inviteCode = "RUTA-TEST-01",
+                                groupName = group.name,
+                                countryCode = group.countryCode
+                            )
+                        )
+                    }
+                    val qrBitmap = remember(qrPayload) {
+                        runCatching { GroupInviteQrHelper.generateQrBitmap(qrPayload, 512) }.getOrNull()
+                    }
+
+                    AlertDialog(
+                        onDismissRequest = { showQrDialog = false },
+                        title = {
+                            Text(
+                                text = "QR de Invitación · ${group.name}",
+                                color = BikerColors.PrimaryAmber,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        text = {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                if (qrBitmap != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(230.dp)
+                                            .background(Color.White, RoundedCornerShape(8.dp))
+                                            .padding(12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            bitmap = qrBitmap.asImageBitmap(),
+                                            contentDescription = "Código QR de Invitación",
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                } else {
+                                    Text("Error al generar matriz de imagen QR", color = BikerColors.StatusRed)
+                                }
+
+                                Text(
+                                    text = "Código de respaldo: RUTA-TEST-01",
+                                    color = BikerColors.PrimaryAmber,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+
+                                Text(
+                                    text = "Autorizado por: ${myMember?.clubRole?.apiValue?.uppercase() ?: if (isLeader) "PRESIDENTE" else "DIRECTIVA"}",
+                                    color = BikerColors.TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { showQrDialog = false }) {
+                                Text("Cerrar")
+                            }
+                        },
+                        containerColor = BikerColors.SurfaceDark
+                    )
+                }
+            } else {
+                Text(
+                    text = "🔒 Solo el Presidente y Vicepresidente del grupo tienen autorización para generar el código QR de invitación.",
+                    color = BikerColors.TextSecondary,
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        // Invitar miembro manual por ID de usuario
         if (isLeader) {
             HorizontalDivider(color = BikerColors.SkeletonBaseDark)
             Text(
-                text = "D6 · Invitar miembro (siempre requiere aceptación R2.1)",
+                text = "Invitar Miembro por ID de Usuario",
                 color = BikerColors.PrimaryAmber,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
@@ -725,7 +996,7 @@ private fun GroupDetailScreenD3(
             OutlinedTextField(
                 value = inviteUserId,
                 onValueChange = { inviteUserId = it },
-                label = { Text("ID de usuario o QR escaneado") },
+                label = { Text("ID de usuario o código manual") },
                 modifier = Modifier.fillMaxWidth()
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

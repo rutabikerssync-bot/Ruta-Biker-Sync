@@ -1,7 +1,9 @@
 package com.rutabikersync.app.core.uxtest
 
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import androidx.compose.material3.Switch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -220,6 +222,52 @@ object UxTestTracker {
         return obj.toString(2)
     }
 
+    private val _sosMeshBroadcastEnabled = MutableStateFlow(false)
+    val sosMeshBroadcastEnabled: StateFlow<Boolean> = _sosMeshBroadcastEnabled.asStateFlow()
+    val isSosMeshBroadcastEnabled: Boolean get() = _sosMeshBroadcastEnabled.value
+
+    fun setSosMeshBroadcastEnabled(enabled: Boolean) {
+        _sosMeshBroadcastEnabled.value = enabled
+        logEvent(
+            screen = "SETTINGS_UX",
+            action = "SET_SOS_MESH_BROADCAST",
+            target = "switch_sos_mesh",
+            details = "enabled=$enabled"
+        )
+    }
+
+    private val _simulatedAlertEvent = MutableStateFlow<String?>(null)
+    val simulatedAlertEvent: StateFlow<String?> = _simulatedAlertEvent.asStateFlow()
+
+    fun triggerSimulatedLostPeerAlert() {
+        val alert = "¡Compañero perdido! Rider #3 (Simulación de prueba UX)"
+        _simulatedAlertEvent.value = alert
+        logEvent(
+            screen = "LIVE_MAP",
+            action = "ALERT_PEER_LOST_SIMULATED",
+            target = "alert_peer_lost",
+            details = "Alerta visual/sonora local sin emisión a la malla"
+        )
+    }
+
+    fun clearSimulatedAlert() {
+        _simulatedAlertEvent.value = null
+    }
+
+    fun shareReportJson(context: Context) {
+        val json = exportReportJson(context)
+        saveReportToFile(context)
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, json)
+            putExtra(Intent.EXTRA_SUBJECT, "UX_Test_Metrics_${_participantId.value}.json")
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, "Compartir Registro UX (${_participantId.value})")
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(shareIntent)
+    }
+
     fun saveReportToFile(context: Context): File {
         val json = exportReportJson(context)
         val fileTimestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
@@ -243,6 +291,7 @@ fun ModeratorControlDialog(
     val clipboardManager = LocalClipboardManager.current
     val currentParticipant by UxTestTracker.participantId.collectAsState()
     val activeTask by UxTestTracker.activeTaskId.collectAsState()
+    val sosMeshBroadcastEnabled by UxTestTracker.sosMeshBroadcastEnabled.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
 
     val taskDescriptions = remember {
@@ -406,6 +455,49 @@ fun ModeratorControlDialog(
 
                 HorizontalDivider(color = BikerColors.SkeletonBaseDark)
 
+                Text(
+                    text = "Simulaciones de Prueba",
+                    color = BikerColors.PrimaryAmber,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "SOS por malla (prueba)",
+                            color = BikerColors.TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (sosMeshBroadcastEnabled) "ON: emite SOS a otros teléfonos" else "OFF: SOS solo local (sin emisión BLE)",
+                            color = if (sosMeshBroadcastEnabled) BikerColors.StatusYellow else BikerColors.TextSecondary,
+                            fontSize = 10.sp
+                        )
+                    }
+                    Switch(
+                        checked = sosMeshBroadcastEnabled,
+                        onCheckedChange = { UxTestTracker.setSosMeshBroadcastEnabled(it) }
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        UxTestTracker.triggerSimulatedLostPeerAlert()
+                        feedbackMessage = "Alerta de compañero perdido (T8) simulada en pantalla."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Simular Compañero Perdido (T8 Local)", fontSize = 11.sp, color = BikerColors.StatusYellow)
+                }
+
+                HorizontalDivider(color = BikerColors.SkeletonBaseDark)
+
                 feedbackMessage?.let { msg ->
                     Text(text = msg, color = BikerColors.StatusGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -421,10 +513,20 @@ fun ModeratorControlDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = BikerColors.PrimaryAmber)
                 ) {
                     Text(
-                        text = "Exportar Registro UX (JSON)",
+                        text = "Exportar y Copiar JSON",
                         color = BikerColors.BackgroundDark,
                         fontWeight = FontWeight.Bold
                     )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        UxTestTracker.shareReportJson(context)
+                        feedbackMessage = "Abriendo selector para compartir JSON..."
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(text = "Compartir JSON (Share Intent)", color = BikerColors.PrimaryAmber)
                 }
             }
         },

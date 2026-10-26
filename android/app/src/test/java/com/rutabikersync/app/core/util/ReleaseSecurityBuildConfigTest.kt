@@ -34,6 +34,32 @@ class ReleaseSecurityBuildConfigTest {
             "release debe tener ALLOW_DEFAULT_TEST_RIDE_KEY = false (bloqueante D58)",
             releaseBlock.contains("""buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "false")""")
         )
+
+        // Comprobar que beforeVariants deshabilita uxTestRelease
+        assertTrue(
+            "beforeVariants debe deshabilitar la variante uxTestRelease",
+            content.contains("variantBuilder.productFlavors.any { it.second == \"uxTest\" } && variantBuilder.buildType == \"release\"") &&
+                    content.contains("variantBuilder.enable = false")
+        )
+    }
+
+    @Test
+    fun `UxTestTracker controla SOS local por defecto y simulacion de alertas`() {
+        // Por defecto, SOS por malla BLE está desactivado (es solo local para evitar pánico)
+        UxTestTracker.setSosMeshBroadcastEnabled(false)
+        assertFalse("Por defecto SOS en malla debe estar apagado", UxTestTracker.isSosMeshBroadcastEnabled)
+
+        // Habilitar SOS por malla mediante moderador
+        UxTestTracker.setSosMeshBroadcastEnabled(true)
+        assertTrue(UxTestTracker.isSosMeshBroadcastEnabled)
+        UxTestTracker.setSosMeshBroadcastEnabled(false)
+
+        // Disparo de alerta simulada de compañero perdido
+        UxTestTracker.triggerSimulatedLostPeerAlert()
+        assertEquals("¡Compañero perdido! Rider #3 (Simulación de prueba UX)", UxTestTracker.simulatedAlertEvent.value)
+
+        UxTestTracker.clearSimulatedAlert()
+        assertEquals(null, UxTestTracker.simulatedAlertEvent.value)
     }
 
     @Test

@@ -64,8 +64,15 @@ fun LiveMapScreen(
     val context = LocalContext.current
     val state by liveMapViewModel.uiState.collectAsState()
     val rideServiceState by RideService.sharedState.collectAsState()
+    val simulatedAlert by com.rutabikersync.app.core.uxtest.UxTestTracker.simulatedAlertEvent.collectAsState()
     var showOfflineTilesSheet by remember { mutableStateOf(false) }
     var actionFeedback by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(simulatedAlert) {
+        simulatedAlert?.let {
+            actionFeedback = it
+        }
+    }
 
     Box(
         modifier = modifier
@@ -228,19 +235,34 @@ fun LiveMapScreen(
                     actionFeedback = "Próximamente: Transmisión de voz PTT (Fase de Audio)"
                 },
                 onSosClick = {
-                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                        "LIVE_MAP",
-                        "TAP_SOS",
-                        if (BuildConfig.UX_TEST_MODE) "btn_sos_prueba" else "btn_sos"
-                    )
-                    val sosIntent = Intent(context, RideService::class.java).apply {
-                        action = RideService.ACTION_TRIGGER_SOS
-                    }
-                    runCatching { context.startService(sosIntent) }
-                    actionFeedback = if (BuildConfig.UX_TEST_MODE) {
-                        "[MODO PRUEBA UX] SOS simulado emitido por la malla (sin llamada real)"
+                    val isUxMode = BuildConfig.UX_TEST_MODE
+                    val meshBroadcastAllowed = isUxMode && com.rutabikersync.app.core.uxtest.UxTestTracker.isSosMeshBroadcastEnabled
+
+                    if (!isUxMode || meshBroadcastAllowed) {
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "LIVE_MAP",
+                            if (isUxMode) "TAP_SOS_MESH" else "TAP_SOS",
+                            if (isUxMode) "btn_sos_prueba" else "btn_sos",
+                            if (isUxMode) "broadcast=true" else null
+                        )
+                        val sosIntent = Intent(context, RideService::class.java).apply {
+                            action = RideService.ACTION_TRIGGER_SOS
+                        }
+                        runCatching { context.startService(sosIntent) }
+                        actionFeedback = if (isUxMode) {
+                            "[MODO PRUEBA UX] SOS emitido por la malla BLE (Prueba autorizada por moderador)"
+                        } else {
+                            "SOS emitido por la mesh con prioridad máxima"
+                        }
                     } else {
-                        "SOS emitido por la mesh con prioridad máxima"
+                        // SOS estrictamente LOCAL en uxTest (sin emitir BLE)
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "LIVE_MAP",
+                            "TAP_SOS_LOCAL",
+                            "btn_sos_prueba",
+                            "broadcast=false"
+                        )
+                        actionFeedback = "[MODO PRUEBA UX] SOS simulado LOCAL (sin emisión BLE a otros teléfonos)"
                     }
                 },
                 onQuickSignalsClick = {
