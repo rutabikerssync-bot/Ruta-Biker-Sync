@@ -21,6 +21,15 @@ android {
         stdout.toString().trim()
     }.getOrDefault("unknown")
 
+    val gitDirty: Boolean = runCatching {
+        val stdout = ByteArrayOutputStream()
+        project.exec {
+            commandLine("git", "status", "--porcelain")
+            standardOutput = stdout
+        }
+        stdout.toString().trim().isNotEmpty()
+    }.getOrDefault(false)
+
     defaultConfig {
         applicationId = "com.rutabikersync.app"
         minSdk = 26          // Android 8.0; BLE extendido requiere 26+ (se comprueba en ejecución)
@@ -28,6 +37,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
+        buildConfigField("boolean", "GIT_DIRTY", "$gitDirty")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -107,5 +117,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.test.ext)
 }

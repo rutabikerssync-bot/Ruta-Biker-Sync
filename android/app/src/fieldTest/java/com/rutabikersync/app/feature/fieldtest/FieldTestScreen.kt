@@ -3,12 +3,16 @@ package com.rutabikersync.app.feature.fieldtest
 import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -114,33 +118,119 @@ data class FieldTestConfigSnapshot(
     val relayEnabled: Boolean = true,
     val txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
     val unfilteredScanDiagnostic: Boolean = false,
-    val bleCapabilitiesSnapshot: BleAdvTransport.BleCapabilities
+    val bleCapabilitiesSnapshot: BleAdvTransport.BleCapabilities,
+    val radioAtStart: RadioEnvironmentSnapshot? = null
 )
 
 data class RadioEnvironmentSnapshot(
-    val wifiEnabled: Boolean,
-    val mobileDataEnabled: Boolean?,
-    val airplaneModeOn: Boolean,
-    val nearbySharingState: String,
-    val fastPairLikelyActive: Boolean
-)
+    val timestampUtc: String = "",
+    val wifiEnabled: Boolean = false,
+    val mobileDataEnabled: Boolean? = null,
+    val airplaneModeOn: Boolean = false,
+    val btEnabled: Boolean = true,
+    val connectedBtAudio: Boolean = false,
+    val otherConnectedBtDevices: Boolean = false,
+    val nearbySharingState: String = "NO_DISPONIBLE_POR_API",
+    val fastPairLikelyActive: Boolean = false
+) {
+    fun toJsonObject(): JSONObject = JSONObject().apply {
+        put("timestampUtc", timestampUtc)
+        put("airplaneModeOn", airplaneModeOn)
+        put("wifiEnabled", wifiEnabled)
+        put("mobileDataEnabled", mobileDataEnabled ?: JSONObject.NULL)
+        put("btEnabled", btEnabled)
+        put("connectedBtAudio", connectedBtAudio)
+        put("otherConnectedBtDevices", otherConnectedBtDevices)
+        put("nearbySharingState", nearbySharingState)
+        put("fastPairLikelyActive", fastPairLikelyActive)
+    }
+}
+
+data class CsvRowCounts(
+    val tx: Int = 0,
+    val rx: Int = 0,
+    val relayTx: Int = 0
+) {
+    fun toJsonObject(): JSONObject = JSONObject().apply {
+        put("tx", tx)
+        put("rx", rx)
+        put("relay_tx", relayTx)
+    }
+}
+
+fun parseCsvRowCounts(csvContent: String): CsvRowCounts {
+    var tx = 0
+    var rx = 0
+    var relayTx = 0
+    val lines = csvContent.lineSequence().drop(1)
+    for (line in lines) {
+        if (line.isBlank()) continue
+        val parts = line.split(',')
+        if (parts.isNotEmpty()) {
+            when (parts.last().trim()) {
+                "TX" -> tx++
+                "RX" -> rx++
+                "RELAY_TX" -> relayTx++
+            }
+        }
+    }
+    return CsvRowCounts(tx = tx, rx = rx, relayTx = relayTx)
+}
 
 fun queryRadioEnvironment(context: Context): RadioEnvironmentSnapshot {
-    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-    val wifiEnabled = runCatching { wifiManager?.isWifiEnabled == true }.getOrDefault(false)
+    val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    val timestampUtc = sdf.format(Date())
 
     val airplaneModeOn = runCatching {
-        Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        val global = Settings.Global.getInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, 0) != 0
+        if (global) true else {
+            @Suppress("DEPRECATION")
+            Settings.System.getInt(context.contentResolver, Settings.System.AIRPLANE_MODE_ON, 0) != 0
+        }
     }.getOrDefault(false)
 
+    val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+    val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    val wifiActiveTransport = runCatching {
+        val net = connManager?.activeNetwork
+        val caps = connManager?.getNetworkCapabilities(net)
+        caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+    }.getOrDefault(false)
+    val wifiEnabled = runCatching { wifiManager?.isWifiEnabled == true }.getOrDefault(false) || wifiActiveTransport
+
     val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+    val cellularActiveTransport = runCatching {
+        val net = connManager?.activeNetwork
+        val caps = connManager?.getNetworkCapabilities(net)
+        caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+    }.getOrDefault(false)
     val mobileDataEnabled = runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            telephonyManager?.isDataEnabled
+            telephonyManager?.isDataEnabled == true || cellularActiveTransport
         } else {
-            null
+            cellularActiveTransport
         }
     }.getOrNull()
+
+    val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    val btAdapter = btManager?.adapter
+    val btEnabled = runCatching { btAdapter?.isEnabled == true }.getOrDefault(false)
+
+    val connectedBtAudio = runCatching {
+        btAdapter?.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothProfile.STATE_CONNECTED ||
+        btAdapter?.getProfileConnectionState(BluetoothProfile.A2DP) == BluetoothProfile.STATE_CONNECTED
+    }.getOrDefault(false)
+
+    val otherConnectedBtDevices = runCatching {
+        val bonded = btAdapter?.bondedDevices ?: emptySet()
+        bonded.isNotEmpty() && (
+            btAdapter?.getProfileConnectionState(BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED ||
+            btAdapter?.getProfileConnectionState(BluetoothProfile.HEADSET) == BluetoothProfile.STATE_CONNECTED ||
+            btAdapter?.getProfileConnectionState(BluetoothProfile.A2DP) == BluetoothProfile.STATE_CONNECTED
+        )
+    }.getOrDefault(false)
 
     val nearbyState = runCatching {
         val quickShareVal = Settings.Secure.getInt(context.contentResolver, "nearby_sharing_slice", -1)
@@ -157,9 +247,13 @@ fun queryRadioEnvironment(context: Context): RadioEnvironmentSnapshot {
     }.getOrDefault(false)
 
     return RadioEnvironmentSnapshot(
+        timestampUtc = timestampUtc,
         wifiEnabled = wifiEnabled,
         mobileDataEnabled = mobileDataEnabled,
         airplaneModeOn = airplaneModeOn,
+        btEnabled = btEnabled,
+        connectedBtAudio = connectedBtAudio,
+        otherConnectedBtDevices = otherConnectedBtDevices,
         nearbySharingState = nearbyState,
         fastPairLikelyActive = fastPairLikely
     )
@@ -205,6 +299,8 @@ fun FieldTestScreen(
     var relayEnabled by remember { mutableStateOf(true) }
     var txRxRole by remember { mutableStateOf(BleAdvTransport.TxRxRole.BOTH) }
     var unfilteredScanDiagnostic by remember { mutableStateOf(false) }
+    var radioAtStart by remember { mutableStateOf<RadioEnvironmentSnapshot?>(null) }
+    var radioAtEnd by remember { mutableStateOf<RadioEnvironmentSnapshot?>(null) }
     var activeTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
     var lastTestSnapshot by remember { mutableStateOf<FieldTestConfigSnapshot?>(null) }
     var showBatteryGuideDialog by remember { mutableStateOf(false) }
@@ -282,6 +378,10 @@ fun FieldTestScreen(
         view.keepScreenOn = true
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        val startRadio = queryRadioEnvironment(context)
+        radioAtStart = startRadio
+        radioAtEnd = null
+
         val snapshot = FieldTestConfigSnapshot(
             testStartEpochMs = now,
             localNodeShortId = selectedNodeShortId,
@@ -297,7 +397,8 @@ fun FieldTestScreen(
             relayEnabled = relayEnabled,
             txRxRole = txRxRole,
             unfilteredScanDiagnostic = unfilteredScanDiagnostic,
-            bleCapabilitiesSnapshot = bleCaps
+            bleCapabilitiesSnapshot = bleCaps,
+            radioAtStart = startRadio
         )
         activeTestSnapshot = snapshot
         lastTestSnapshot = snapshot
@@ -359,6 +460,9 @@ fun FieldTestScreen(
         } else {
             if (testStartEpochMs > 0L && testEndEpochMs == 0L) {
                 testEndEpochMs = System.currentTimeMillis()
+                if (radioAtEnd == null) {
+                    radioAtEnd = queryRadioEnvironment(context)
+                }
             }
         }
     }
@@ -1078,6 +1182,7 @@ fun FieldTestScreen(
             Button(
                 onClick = {
                     testEndEpochMs = System.currentTimeMillis()
+                    radioAtEnd = queryRadioEnvironment(context)
                     RideService.dispatchImmediateStopRide(context)
                 },
                 modifier = Modifier
@@ -1332,7 +1437,10 @@ fun FieldTestScreen(
                     bleCaps = bleCaps,
                     selectedTransportMode = selectedTransportMode,
                     screenKeepOnActive = isScreenKeepOn,
-                    csvPath = csvPathForJson
+                    csvPath = csvPathForJson,
+                    radioAtStart = radioAtStart ?: snapshot?.radioAtStart,
+                    radioAtEnd = radioAtEnd,
+                    csvContent = csvContent
                 )
                 exportedJsonText = reportJson
 
@@ -1568,7 +1676,10 @@ private fun generateMetricsJson(
     bleCaps: BleAdvTransport.BleCapabilities,
     selectedTransportMode: BleAdvTransport.TransportModeOverride,
     screenKeepOnActive: Boolean = true,
-    csvPath: String? = null
+    csvPath: String? = null,
+    radioAtStart: RadioEnvironmentSnapshot? = null,
+    radioAtEnd: RadioEnvironmentSnapshot? = null,
+    csvContent: String = ""
 ): String {
     val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
@@ -1622,7 +1733,9 @@ private fun generateMetricsJson(
     }
 
     val parsedDistance = manualDistanceMeters ?: manualDistanceText.toDoubleOrNull()
-    val radio = queryRadioEnvironment(context)
+    val startRadio = radioAtStart ?: snapshot?.radioAtStart ?: queryRadioEnvironment(context)
+    val endRadio = radioAtEnd ?: queryRadioEnvironment(context)
+    val csvCounts = parseCsvRowCounts(csvContent)
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
     val isInteractive = powerManager?.isInteractive ?: true
     val effectiveScreenKeepOn = screenKeepOnActive ||
@@ -1635,6 +1748,7 @@ private fun generateMetricsJson(
         put("timestampEpochMs", nowMs)
         put("timestampIso", sdf.format(Date(nowMs)))
         put("gitCommit", BuildConfig.GIT_COMMIT)
+        put("gitDirty", BuildConfig.GIT_DIRTY)
         put("versionName", BuildConfig.VERSION_NAME)
         put("csvPath", csvPath ?: JSONObject.NULL)
         put("relayEnabled", effectiveRelayEnabled)
@@ -1654,11 +1768,28 @@ private fun generateMetricsJson(
         put("androidSdkInt", Build.VERSION.SDK_INT)
         put("screenKeepOnActive", effectiveScreenKeepOn)
         put("screenIsInteractive", isInteractive)
-        put("radioWifiEnabled", radio.wifiEnabled)
-        put("radioMobileDataEnabled", radio.mobileDataEnabled ?: JSONObject.NULL)
-        put("radioAirplaneModeOn", radio.airplaneModeOn)
-        put("radioNearbySharingState", radio.nearbySharingState)
-        put("radioFastPairLikelyActive", radio.fastPairLikelyActive)
+
+        // Estado de radio observado durante el inicio de la prueba (compatibilidad retroactiva)
+        put("radioWifiEnabled", startRadio.wifiEnabled)
+        put("radioMobileDataEnabled", startRadio.mobileDataEnabled ?: JSONObject.NULL)
+        put("radioAirplaneModeOn", startRadio.airplaneModeOn)
+        put("radioNearbySharingState", startRadio.nearbySharingState)
+        put("radioFastPairLikelyActive", startRadio.fastPairLikelyActive)
+
+        // Bloque radioDiagnostic consolidado
+        put("radioDiagnostic", JSONObject().apply {
+            put("airplaneModeOn", startRadio.airplaneModeOn)
+            put("wifiEnabled", startRadio.wifiEnabled)
+            put("mobileDataEnabled", startRadio.mobileDataEnabled ?: JSONObject.NULL)
+            put("btEnabled", startRadio.btEnabled)
+            put("connectedBtAudio", startRadio.connectedBtAudio)
+            put("otherConnectedBtDevices", startRadio.otherConnectedBtDevices)
+        })
+
+        // Snapshots explícitos al inicio y fin de la prueba
+        put("radioAtStart", startRadio.toJsonObject())
+        put("radioAtEnd", endRadio.toJsonObject())
+
         put("bleBluetoothSupported", bleCaps.bluetoothSupported)
         put("bleBluetoothEnabled", bleCaps.bluetoothEnabled)
         put("bleMultipleAdvertisementSupported", bleCaps.multipleAdvertisementSupported)
@@ -1675,14 +1806,18 @@ private fun generateMetricsJson(
         put("canHearExtendedCodedPhy", bleCaps.extendedAdvertisingSupported && bleCaps.codedPhySupported)
         put("forcedBleTransportMode", effectiveForcedMode)
         put("effectiveBleTransportMode", effectiveBleMode)
+        put("f3AdvertisingMode", "PERSISTENT_SET")
+        put("f3AdvertisingDutyCycleApproxPct", 100.0)
         put("f3AdvertisingIntervalSetting", f3IntervalSetting)
         put("f3AdvertisingBurstDurationMs", effectiveBurstDuration)
         put("f3HeartbeatCadenceMs", rideState.heartbeatIntervalMs)
         put("f3TxPowerLevelSetting", f3TxPowerSetting)
         put("f3LastMeasuredTxPowerDbm", rideState.f3LastMeasuredTxPowerDbm ?: JSONObject.NULL)
         put("f3StopAdvertisingSetOnFinish", true)
+        put("f3AdvertisingSetsStartedDescription", "Sets BLE creados en hardware: 1 = set continuo persistente con actualización de datos in-place (Opción A); N = start/stop por cada ráfaga")
         put("f3AdvertisingSetsStarted", rideState.f3AdvertisingSetsStarted)
         put("f3AdvertisingSetsStopped", rideState.f3AdvertisingSetsStopped)
+        put("f3CsvRowCounts", csvCounts.toJsonObject())
         put("f3ScanSettingsDescription", BleAdvTransport.describeScanSettings(effectiveBleMode))
         put("f3ScanMode", "SCAN_MODE_LOW_LATENCY (2)")
         put("f3ScanLegacyOnly", !isExtendedMode)

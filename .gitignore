@@ -33,3 +33,6 @@ Thumbs.db
 # Herramientas descargadas
 tools/brouter/
 tools/gradle-*/
+
+# Dumps locales de pruebas de campo en hardware
+fieldtest_*/
