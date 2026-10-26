@@ -114,7 +114,12 @@ fun LiveMapScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(
+                    top = if (BuildConfig.UX_TEST_MODE) 46.dp else 12.dp,
+                    start = 12.dp,
+                    end = 12.dp,
+                    bottom = 6.dp
+                )
         )
 
         // 3. Controles laterales de cámara (≥ 72 dp)
@@ -200,6 +205,7 @@ fun LiveMapScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -210,20 +216,22 @@ fun LiveMapScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     val leaderText = state.leaderPin?.let {
-                        "Pin Líder fijo: ${it.abbreviatedLabel} (${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)})"
+                        "Pin Líder: ${it.abbreviatedLabel} (${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)})"
                     } ?: "Pin Líder fijo"
                     Text(
                         text = leaderText,
                         color = HeritageTheme.colors.textPrimary,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1
                     )
                 }
 
                 Text(
                     text = state.osmAttribution,
                     color = HeritageTheme.colors.textSecondary,
-                    fontSize = 11.sp
+                    fontSize = 10.sp,
+                    maxLines = 1
                 )
             }
 
