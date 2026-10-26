@@ -65,8 +65,13 @@ fun LiveMapScreen(
     val state by liveMapViewModel.uiState.collectAsState()
     val rideServiceState by RideService.sharedState.collectAsState()
     val simulatedAlert by com.rutabikersync.app.core.uxtest.UxTestTracker.simulatedAlertEvent.collectAsState()
+    val isConvoyLeader by com.rutabikersync.app.core.uxtest.UxTestTracker.convoyRoleIsLeader.collectAsState()
     var showOfflineTilesSheet by remember { mutableStateOf(false) }
     var actionFeedback by remember { mutableStateOf<String?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(isConvoyLeader) {
+        liveMapViewModel.controller.setConvoyRole(isLeader = isConvoyLeader)
+    }
 
     androidx.compose.runtime.LaunchedEffect(simulatedAlert) {
         simulatedAlert?.let {
@@ -240,10 +245,10 @@ fun LiveMapScreen(
 
                     if (!isUxMode || meshBroadcastAllowed) {
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            "LIVE_MAP",
-                            if (isUxMode) "TAP_SOS_MESH" else "TAP_SOS",
-                            if (isUxMode) "btn_sos_prueba" else "btn_sos",
-                            if (isUxMode) "broadcast=true" else null
+                            screen = "LIVE_MAP",
+                            action = "TAP_SOS",
+                            target = if (isUxMode) "btn_sos_prueba" else "btn_sos",
+                            details = "task=T9,broadcast=true"
                         )
                         val sosIntent = Intent(context, RideService::class.java).apply {
                             action = RideService.ACTION_TRIGGER_SOS
@@ -257,10 +262,10 @@ fun LiveMapScreen(
                     } else {
                         // SOS estrictamente LOCAL en uxTest (sin emitir BLE)
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            "LIVE_MAP",
-                            "TAP_SOS_LOCAL",
-                            "btn_sos_prueba",
-                            "broadcast=false"
+                            screen = "LIVE_MAP",
+                            action = "TAP_SOS",
+                            target = "btn_sos_prueba",
+                            details = "task=T9,broadcast=false"
                         )
                         actionFeedback = "[MODO PRUEBA UX] SOS simulado LOCAL (sin emisión BLE a otros teléfonos)"
                     }

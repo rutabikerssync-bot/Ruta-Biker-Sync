@@ -115,7 +115,7 @@ androidComponents {
     }
 }
 
-tasks.register("verifyStandardReleaseSecurity") {
+val verifyStandardReleaseSecurity = tasks.register("verifyStandardReleaseSecurity") {
     group = "verification"
     description = "Garantiza que standardRelease tiene ALLOW_DEFAULT_TEST_RIDE_KEY=false y DEV_PANEL_ENABLED=false"
     dependsOn("generateStandardReleaseBuildConfig")
@@ -131,6 +131,11 @@ tasks.register("verifyStandardReleaseSecurity") {
         }
         logger.lifecycle("✓ Verificación de seguridad standardRelease superada: ALLOW_DEFAULT_TEST_RIDE_KEY=false y DEV_PANEL_ENABLED=false")
     }
+}
+
+// Enlazar como dependencia obligatoria para que nunca se ensamble ni se genere bundle release sin la verificación
+tasks.matching { it.name in listOf("assembleStandardRelease", "bundleStandardRelease") }.configureEach {
+    dependsOn(verifyStandardReleaseSecurity)
 }
 
 dependencies {
@@ -164,6 +169,7 @@ dependencies {
     implementation(libs.tink)
     implementation(libs.mlkit.barcode)
     implementation(libs.zxing.core)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

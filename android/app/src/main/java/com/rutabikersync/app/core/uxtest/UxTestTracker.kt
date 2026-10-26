@@ -108,13 +108,20 @@ object UxTestTracker {
     val isModeratorSupport: Boolean
         get() = _participantId.value == "P0"
 
+    private val _convoyRoleIsLeader = MutableStateFlow(true)
+    val convoyRoleIsLeader: StateFlow<Boolean> = _convoyRoleIsLeader.asStateFlow()
+    val isConvoyLeader: Boolean get() = _convoyRoleIsLeader.value
+
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        _participantId.value = prefs.getString(KEY_PARTICIPANT_ID, "P1") ?: "P1"
+        val p = prefs.getString(KEY_PARTICIPANT_ID, "P1") ?: "P1"
+        _participantId.value = p
+        _convoyRoleIsLeader.value = (p == "P1" || p == "P0")
     }
 
     fun setParticipant(id: String, context: Context? = null) {
         _participantId.value = id
+        _convoyRoleIsLeader.value = (id == "P1" || id == "P0")
         context?.let {
             it.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -126,6 +133,16 @@ object UxTestTracker {
             action = "SET_PARTICIPANT",
             target = id,
             details = if (id == "P0") "TEL_APOYO_MODERADOR_NO_TESTER" else "TESTER_ACTIVO"
+        )
+    }
+
+    fun setConvoyRole(isLeader: Boolean) {
+        _convoyRoleIsLeader.value = isLeader
+        logEvent(
+            screen = "MODERATOR_PANEL",
+            action = "SET_CONVOY_ROLE",
+            target = if (isLeader) "LEADER_P1" else "MEMBER_P2_P6",
+            details = "isLeader=$isLeader"
         )
     }
 
@@ -292,6 +309,7 @@ fun ModeratorControlDialog(
     val currentParticipant by UxTestTracker.participantId.collectAsState()
     val activeTask by UxTestTracker.activeTaskId.collectAsState()
     val sosMeshBroadcastEnabled by UxTestTracker.sosMeshBroadcastEnabled.collectAsState()
+    val convoyRoleIsLeader by UxTestTracker.convoyRoleIsLeader.collectAsState()
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
 
     val taskDescriptions = remember {
@@ -369,6 +387,40 @@ fun ModeratorControlDialog(
                         text = "ℹ P0 = Teléfono de apoyo del moderador. Se usará para unirse al grupo de T4 y no contamina las métricas de los testers.",
                         color = BikerColors.StatusYellow,
                         fontSize = 11.sp
+                    )
+                }
+
+                Text(
+                    text = "Rol en rodada (fuente de verdad para 'Seguir líder'):",
+                    color = BikerColors.TextPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = convoyRoleIsLeader,
+                        onClick = { UxTestTracker.setConvoyRole(true) },
+                        label = {
+                            Text(
+                                text = "Soy Líder (P1)",
+                                fontSize = 11.sp,
+                                fontWeight = if (convoyRoleIsLeader) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    )
+                    FilterChip(
+                        selected = !convoyRoleIsLeader,
+                        onClick = { UxTestTracker.setConvoyRole(false) },
+                        label = {
+                            Text(
+                                text = "Soy Miembro (P2–P6)",
+                                fontSize = 11.sp,
+                                fontWeight = if (!convoyRoleIsLeader) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
                     )
                 }
 

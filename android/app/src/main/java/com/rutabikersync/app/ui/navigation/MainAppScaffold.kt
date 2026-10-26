@@ -600,10 +600,10 @@ private fun RidesReleaseHomeScreen() {
 
                             if (!isUxMode || meshBroadcastAllowed) {
                                 UxTestTracker.logEvent(
-                                    "RODADAS_HOME",
-                                    if (isUxMode) "TAP_SOS_MESH" else "TAP_SOS",
-                                    if (isUxMode) "btn_sos_prueba" else "btn_sos",
-                                    if (isUxMode) "broadcast=true" else null
+                                    screen = "RODADAS_HOME",
+                                    action = "TAP_SOS",
+                                    target = if (isUxMode) "btn_sos_prueba" else "btn_sos",
+                                    details = "task=T9,broadcast=true"
                                 )
                                 val sosIntent = Intent(context, RideService::class.java).apply {
                                     action = RideService.ACTION_TRIGGER_SOS
@@ -611,10 +611,10 @@ private fun RidesReleaseHomeScreen() {
                                 context.startService(sosIntent)
                             } else {
                                 UxTestTracker.logEvent(
-                                    "RODADAS_HOME",
-                                    "TAP_SOS_LOCAL",
-                                    "btn_sos_prueba",
-                                    "broadcast=false"
+                                    screen = "RODADAS_HOME",
+                                    action = "TAP_SOS",
+                                    target = "btn_sos_prueba",
+                                    details = "task=T9,broadcast=false"
                                 )
                             }
                         },

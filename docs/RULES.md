@@ -156,3 +156,6 @@ Integrada dentro del alcance oficial en Fase 6 (Gamificación y documentos), reg
 | **Gang** | Gang (Transición) | Etapa de transición previa a MC. Requiere mínimo 3 años previos como MG, cilindrada superior a 500cc en todas las motos de los miembros y participación en eventos regionales/aniversarios. | Parche de 3 piezas pero sin las letras "MC". |
 | **MC** | MotoClub | Máximo estatus tradicional. Requiere apadrinamiento formal por un MC padrino registrado (`sponsor_group_id`), aprobación del comité de líderes del MC padrino y directiva completa. | Parche de 3 piezas tradicional con corte territorial y las letras "MC". Estatutos estrictos de hermandad. |
 
+## 17. Generación y Compartición de Código QR de Invitación
+- R17.1 (Confirmada por Oscar, 2026-10-26): El código QR para invitar y afiliar miembros a un grupo únicamente puede ser generado y compartido por el **Presidente** y el **Vicepresidente** del club (`ClubRole.PRESIDENT`, `ClubRole.VICE_PRESIDENT` o Fundador). Los demás miembros y cargos de directiva (Tesorero, Capitán de Ruta, Sargento de Armas, Secretario) tienen la función bloqueada.
+- R17.2 Respaldo Alfanumérico: Si la cámara o condiciones de iluminación no permiten escanear el QR, se mantiene el código alfanumérico manual (ej. `RUTA-TEST-01`) como canal de entrada alternativo.

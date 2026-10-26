@@ -94,10 +94,15 @@ data class LiveMapUiState(
  */
 class LiveMapController(
     private val scope: CoroutineScope,
-    private val localShortId: UShort = 1u,
-    private val leaderShortId: UShort = 1u,
+    private var localShortId: UShort = 1u,
+    private var leaderShortId: UShort = 1u,
     initialDirectory: List<RiderDirectoryEntry> = defaultConvoyDirectory()
 ) {
+    fun setConvoyRole(isLeader: Boolean, targetLeaderShortId: UShort = 1u) {
+        leaderShortId = targetLeaderShortId
+        localShortId = if (isLeader) targetLeaderShortId else (if (targetLeaderShortId == 1u.toUShort()) 2u else 1u).toUShort()
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
     companion object {
         const val DEFAULT_PMTILES_ASSET_URI: String = "asset://tiles/sample_corridor.pmtiles"
         const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/dark_corridor_style.json"

@@ -245,8 +245,19 @@ private fun GroupsOverviewScreenD1(
     onCreateGroup: (String, String, String) -> Unit,
     onJoinByQr: (String) -> Unit
 ) {
+    val scanLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = com.journeyapps.barcodescanner.ScanContract()
+    ) { result ->
+        val scanned = result.contents
+        if (!scanned.isNullOrBlank()) {
+            UxTestTracker.logEvent("GROUPS_D1", "SCAN_QR_SUCCESS", "camera_scanner", "payload=$scanned")
+            onJoinByQr(scanned)
+        } else {
+            UxTestTracker.logEvent("GROUPS_D1", "SCAN_QR_CANCELLED", "camera_scanner", "cancelled_or_no_permission")
+        }
+    }
+
     var showCreateForm by remember { mutableStateOf(false) }
-    var showScanDialog by remember { mutableStateOf(false) }
     var manualInviteCode by remember { mutableStateOf("RUTA-TEST-01") }
     var newCountry by remember { mutableStateOf(data.currentUser.countryCode) }
     var newName by remember { mutableStateOf("") }
@@ -286,7 +297,15 @@ private fun GroupsOverviewScreenD1(
         Button(
             onClick = {
                 UxTestTracker.logEvent("GROUPS_D1", "OPEN_QR_SCANNER", "btn_escanear_qr")
-                showScanDialog = true
+                val options = com.journeyapps.barcodescanner.ScanOptions().apply {
+                    setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                    setPrompt("Apunta la cámara al código QR del Presidente o Vicepresidente")
+                    setCameraId(0)
+                    setBeepEnabled(true)
+                    setBarcodeImageEnabled(false)
+                    setOrientationLocked(false)
+                }
+                scanLauncher.launch(options)
             },
             colors = ButtonDefaults.buttonColors(
                 containerColor = BikerColors.PrimaryAmber,
@@ -296,7 +315,7 @@ private fun GroupsOverviewScreenD1(
         ) {
             Icon(imageVector = AppIcons.QrScanner, contentDescription = null)
             Spacer(modifier = Modifier.width(6.dp))
-            Text("Escanear Código QR", fontWeight = FontWeight.Bold)
+            Text("Escanear Código QR con Cámara", fontWeight = FontWeight.Bold)
         }
 
         // Fallback alfanumérico
@@ -323,62 +342,23 @@ private fun GroupsOverviewScreenD1(
                 Text("Unirse", fontWeight = FontWeight.Bold)
             }
         }
-    }
 
-    if (showScanDialog) {
-        AlertDialog(
-            onDismissRequest = { showScanDialog = false },
-            title = {
-                Text("Escanear QR de Grupo", color = BikerColors.PrimaryAmber, fontWeight = FontWeight.Bold)
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(200.dp)
-                            .background(Color.Black, RoundedCornerShape(12.dp))
-                            .border(2.dp, BikerColors.PrimaryAmber, RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "[ Visor de Cámara Activo ]\nApunta al código QR generado por el Presidente o Vicepresidente",
-                            color = BikerColors.TextPrimary,
-                            textAlign = TextAlign.Center,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "En modo de prueba UX, puedes simular la lectura instantánea:",
-                        color = BikerColors.TextSecondary,
-                        fontSize = 11.sp
-                    )
-
-                    Button(
-                        onClick = {
-                            UxTestTracker.logEvent("GROUPS_D1", "SCAN_QR_SUCCESS", "camera_scanner", "payload=RUTA-TEST-01")
-                            onJoinByQr("rbs://invite?groupId=grp-test-01&code=RUTA-TEST-01&groupName=Águilas%20del%20Valle")
-                            showScanDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = BikerColors.StatusGreen),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Simular Lectura QR (RUTA-TEST-01)", fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            confirmButton = {
-                OutlinedButton(onClick = { showScanDialog = false }) {
-                    Text("Cancelar")
-                }
-            },
-            containerColor = BikerColors.SurfaceDark
-        )
+        // Simulación solo visible para el teléfono de apoyo del moderador (P0)
+        if (UxTestTracker.isModeratorSupport) {
+            OutlinedButton(
+                onClick = {
+                    UxTestTracker.logEvent("GROUPS_D1", "SCAN_QR_SIMULATED", "moderator_sim_btn", "payload=RUTA-TEST-01")
+                    onJoinByQr("rbs://invite?groupId=grp-test-01&code=RUTA-TEST-01&groupName=Águilas%20del%20Valle")
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "[Moderador P0] Simular Lectura QR (RUTA-TEST-01)",
+                    fontSize = 11.sp,
+                    color = BikerColors.StatusYellow
+                )
+            }
+        }
     }
 
     // 1. Invitaciones pendientes (RULES R2.1)
