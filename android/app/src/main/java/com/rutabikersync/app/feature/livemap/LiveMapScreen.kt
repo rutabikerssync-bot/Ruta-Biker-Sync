@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,9 +38,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.ui.components.AppIcons
+import com.rutabikersync.app.ui.components.HeritageBadgeType
+import com.rutabikersync.app.ui.components.HeritageStatusBadge
+import com.rutabikersync.app.ui.components.HeritageStopRideHoldButton
 import com.rutabikersync.app.ui.theme.BikerColors
+import com.rutabikersync.app.ui.theme.HeritageTheme
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -189,8 +195,9 @@ fun LiveMapScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BikerColors.SurfaceDark.copy(alpha = 0.92f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .background(HeritageTheme.colors.surfaceElevated.copy(alpha = 0.94f), RoundedCornerShape(10.dp))
+                    .border(1.dp, HeritageTheme.colors.borderSubtle, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -199,7 +206,7 @@ fun LiveMapScreen(
                     Icon(
                         imageVector = AppIcons.LeaderPin,
                         contentDescription = "Pin del líder",
-                        tint = BikerColors.PrimaryAmber,
+                        tint = HeritageTheme.colors.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     val leaderText = state.leaderPin?.let {
@@ -207,7 +214,7 @@ fun LiveMapScreen(
                     } ?: "Pin Líder fijo"
                     Text(
                         text = leaderText,
-                        color = BikerColors.TextPrimary,
+                        color = HeritageTheme.colors.textPrimary,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -215,7 +222,7 @@ fun LiveMapScreen(
 
                 Text(
                     text = state.osmAttribution,
-                    color = BikerColors.TextSecondary,
+                    color = HeritageTheme.colors.textSecondary,
                     fontSize = 11.sp
                 )
             }
@@ -223,10 +230,28 @@ fun LiveMapScreen(
             actionFeedback?.let { feedback ->
                 Text(
                     text = feedback,
-                    color = BikerColors.PrimaryAmber,
+                    color = HeritageTheme.colors.primary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+
+            // Control de parada sostenida de 3 segundos para modo rodada activa (evita toques involuntarios con guantes)
+            if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING || rideServiceState.lifecycleState == RideLifecycleState.CONFIRMING_STOP) {
+                HeritageStopRideHoldButton(
+                    onHoldCompleted = {
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "LIVE_MAP",
+                            "STOP_RIDE_HOLD_3S",
+                            "btn_detener_rodada_3s"
+                        )
+                        RideService.dispatchStopRide(context)
+                        actionFeedback = "Rodada finalizada. Guardando métricas..."
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp)
                 )
             }
 
@@ -294,8 +319,8 @@ private fun LiveMapTopStatusBar(
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
-            .background(BikerColors.SurfaceDark.copy(alpha = 0.95f), RoundedCornerShape(12.dp))
-            .border(1.dp, BikerColors.PrimaryAmber.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+            .background(HeritageTheme.colors.surfaceElevated.copy(alpha = 0.95f), RoundedCornerShape(14.dp))
+            .border(1.dp, HeritageTheme.colors.borderSubtle, RoundedCornerShape(14.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
@@ -303,57 +328,27 @@ private fun LiveMapTopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Estado de la mesh + número de nodos
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                val meshColor = when (state.connectivityState) {
-                    LiveMapConnectivityState.MESH_CONNECTED -> BikerColors.StatusGreen
-                    LiveMapConnectivityState.MESH_PARTIAL_ISLANDS -> BikerColors.StatusYellow
-                    LiveMapConnectivityState.CONNECTING, LiveMapConnectivityState.ALONE -> BikerColors.TextSecondary
-                }
-                Icon(
-                    imageVector = AppIcons.BleFieldTest,
-                    contentDescription = null,
-                    tint = meshColor,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = "${state.connectivityState.label} · ${state.connectedNodesCount} nodos",
-                    color = BikerColors.TextPrimary,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            val meshBadgeType = when (state.connectivityState) {
+                LiveMapConnectivityState.MESH_CONNECTED -> HeritageBadgeType.SAFE
+                LiveMapConnectivityState.MESH_PARTIAL_ISLANDS -> HeritageBadgeType.WARNING
+                LiveMapConnectivityState.CONNECTING, LiveMapConnectivityState.ALONE -> HeritageBadgeType.NEUTRAL
             }
+            HeritageStatusBadge(
+                text = "${state.connectivityState.label} · ${state.connectedNodesCount} NODOS",
+                type = meshBadgeType
+            )
 
-            // Estado GPS + Batería
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = if (state.gpsFixed) AppIcons.GpsFixed else AppIcons.GpsNotFixed,
-                    contentDescription = if (state.gpsFixed) "GPS fijado" else "GPS sin fijar",
-                    tint = if (state.gpsFixed) BikerColors.StatusGreen else BikerColors.StatusYellow,
-                    modifier = Modifier.size(16.dp)
+                HeritageStatusBadge(
+                    text = if (state.gpsFixed) "GPS OK" else "SIN GPS",
+                    type = if (state.gpsFixed) HeritageBadgeType.SAFE else HeritageBadgeType.WARNING
                 )
-                Text(
-                    text = if (state.gpsFixed) "GPS OK" else "Sin GPS",
-                    color = BikerColors.TextPrimary,
-                    fontSize = 12.sp
-                )
-                Icon(
-                    imageVector = AppIcons.BatteryStd,
-                    contentDescription = "Batería",
-                    tint = if (state.localBatteryPercent < 20) BikerColors.StatusRed else BikerColors.StatusGreen,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
+                HeritageStatusBadge(
                     text = "${state.localBatteryPercent}%",
-                    color = BikerColors.TextPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    type = if (state.localBatteryPercent < 20) HeritageBadgeType.DANGER else HeritageBadgeType.SAFE
                 )
             }
         }
@@ -369,7 +364,7 @@ private fun LiveMapTopStatusBar(
                 } else {
                     "Cámara libre · Zoom ${state.cameraZoom.roundToInt()}x · PMTiles Offline"
                 },
-                color = BikerColors.TextSecondary,
+                color = HeritageTheme.colors.textSecondary,
                 fontSize = 11.sp
             )
 
@@ -379,13 +374,19 @@ private fun LiveMapTopStatusBar(
             ) {
                 Text(
                     text = "Modo Guantes (≥72dp)",
-                    color = BikerColors.PrimaryAmber,
+                    color = HeritageTheme.colors.primary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Switch(
                     checked = state.glovesMode,
-                    onCheckedChange = onToggleGlovesMode
+                    onCheckedChange = onToggleGlovesMode,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = HeritageTheme.colors.primary,
+                        checkedTrackColor = HeritageTheme.colors.primary.copy(alpha = 0.35f),
+                        uncheckedThumbColor = HeritageTheme.colors.textSecondary,
+                        uncheckedTrackColor = HeritageTheme.colors.surface
+                    )
                 )
             }
         }

@@ -220,4 +220,18 @@ class LiveMapViewModelTest {
         leaderEngine.stop()
         memberEngine.stop()
     }
+
+    @Test
+    fun `Paso 2 Cabina de Rodada Heritage valida politicas de guantes y acciones primarias de cabina`() {
+        // Validación de dimensiones mínimas de toque >= 72 dp para guantes de moto
+        assertTrue(com.rutabikersync.app.ui.theme.BikerDimens.GlovesMinTouchTarget.value >= 72f)
+        assertEquals(40f, com.rutabikersync.app.ui.theme.BikerDimens.GlovesIconSize.value, 0.01f)
+
+        // Exactamente 3 acciones de cabina esenciales para seguridad en movimiento
+        val actions = GlovesModePolicy.visiblePrimaryActions()
+        assertEquals(3, actions.size)
+        assertTrue(actions.contains(GlovesPrimaryAction.TALK_PTT))
+        assertTrue(actions.contains(GlovesPrimaryAction.SOS))
+        assertTrue(actions.contains(GlovesPrimaryAction.QUICK_SIGNALS))
+    }
 }

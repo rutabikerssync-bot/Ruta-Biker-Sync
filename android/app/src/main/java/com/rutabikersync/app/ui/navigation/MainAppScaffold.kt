@@ -102,6 +102,8 @@ fun MainAppScaffold(
     var enteredPin by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf(false) }
     val uxParticipant by UxTestTracker.participantId.collectAsState()
+    val rideState by RideService.sharedState.collectAsState()
+    val isRideActive = rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
 
     LaunchedEffect(selectedTab) {
         val screenName = when (selectedTab) {
@@ -116,7 +118,7 @@ fun MainAppScaffold(
     Scaffold(
         containerColor = HeritageTheme.colors.background,
         floatingActionButton = {
-            if (BuildConfig.DEV_PANEL_ENABLED) {
+            if (BuildConfig.DEV_PANEL_ENABLED && !isRideActive) {
                 FloatingActionButton(
                     onClick = {
                         UxTestTracker.logEvent("DEV_PANEL", "OPEN_PANEL", "btn_dev_panel")
@@ -134,45 +136,47 @@ fun MainAppScaffold(
             }
         },
         bottomBar = {
-            val navItemColors = NavigationBarItemDefaults.colors(
-                selectedIconColor = HeritageTheme.colors.primary,
-                selectedTextColor = HeritageTheme.colors.primary,
-                unselectedIconColor = HeritageTheme.colors.textSecondary,
-                unselectedTextColor = HeritageTheme.colors.textSecondary,
-                indicatorColor = HeritageTheme.colors.primary.copy(alpha = 0.16f)
-            )
-            NavigationBar(
-                containerColor = HeritageTheme.colors.surface,
-                contentColor = HeritageTheme.colors.textPrimary
-            ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(AppIcons.TabRides, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_rides)) },
-                    colors = navItemColors
+            if (!isRideActive) {
+                val navItemColors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = HeritageTheme.colors.primary,
+                    selectedTextColor = HeritageTheme.colors.primary,
+                    unselectedIconColor = HeritageTheme.colors.textSecondary,
+                    unselectedTextColor = HeritageTheme.colors.textSecondary,
+                    indicatorColor = HeritageTheme.colors.primary.copy(alpha = 0.16f)
                 )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    icon = { Icon(AppIcons.TabGroups, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_groups)) },
-                    colors = navItemColors
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
-                    icon = { Icon(AppIcons.TabRoutes, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_routes)) },
-                    colors = navItemColors
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
-                    icon = { Icon(AppIcons.TabProfile, contentDescription = null) },
-                    label = { Text(stringResource(id = R.string.nav_profile)) },
-                    colors = navItemColors
-                )
+                NavigationBar(
+                    containerColor = HeritageTheme.colors.surface,
+                    contentColor = HeritageTheme.colors.textPrimary
+                ) {
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        icon = { Icon(AppIcons.TabRides, contentDescription = null) },
+                        label = { Text(stringResource(id = R.string.nav_rides)) },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        icon = { Icon(AppIcons.TabGroups, contentDescription = null) },
+                        label = { Text(stringResource(id = R.string.nav_groups)) },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        icon = { Icon(AppIcons.TabRoutes, contentDescription = null) },
+                        label = { Text(stringResource(id = R.string.nav_routes)) },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        icon = { Icon(AppIcons.TabProfile, contentDescription = null) },
+                        label = { Text(stringResource(id = R.string.nav_profile)) },
+                        colors = navItemColors
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -181,13 +185,15 @@ fun MainAppScaffold(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                0 -> {
-                    RidesReleaseHomeScreen()
+            if (isRideActive) {
+                LiveMapScreen()
+            } else {
+                when (selectedTab) {
+                    0 -> RidesReleaseHomeScreen()
+                    1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
+                    2 -> RoutesPlaceholderScreen()
+                    else -> ProfileAndAuthTabScreen(viewModel = phase1ViewModel)
                 }
-                1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
-                2 -> RoutesPlaceholderScreen()
-                else -> ProfileAndAuthTabScreen(viewModel = phase1ViewModel)
             }
 
             if (BuildConfig.UX_TEST_MODE) {
