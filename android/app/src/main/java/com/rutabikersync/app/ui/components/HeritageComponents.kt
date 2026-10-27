@@ -41,9 +41,47 @@ import com.rutabikersync.app.ui.theme.HeritageTheme
 fun HeritageBevelCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 18.dp,
+    cardColor: Color? = null,
+    borderColor: Color? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val backgroundBrush = if (cardColor != null) {
+        Brush.verticalGradient(
+            colors = listOf(
+                cardColor.copy(alpha = 0.95f),
+                cardColor,
+                cardColor.copy(alpha = 0.85f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF1D2028),
+                Color(0xFF13151A),
+                Color(0xFF0F1115)
+            )
+        )
+    }
+
+    val borderBrush = if (borderColor != null) {
+        Brush.verticalGradient(
+            colors = listOf(
+                borderColor,
+                borderColor.copy(alpha = 0.5f),
+                borderColor.copy(alpha = 0.2f)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF454B5C), // Borde superior iluminado (luz cenital)
+                Color(0xFF222631),
+                Color(0xFF14161C)  // Sombra profunda inferior
+            )
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -54,24 +92,10 @@ fun HeritageBevelCard(
                 spotColor = Color.Black.copy(alpha = 0.5f)
             )
             .clip(RoundedCornerShape(cornerRadius))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1D2028),
-                        Color(0xFF13151A),
-                        Color(0xFF0F1115)
-                    )
-                )
-            )
+            .background(brush = backgroundBrush)
             .border(
                 width = 1.2.dp,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF454B5C), // Borde superior iluminado (luz cenital)
-                        Color(0xFF222631),
-                        Color(0xFF14161C)  // Sombra profunda inferior
-                    )
-                ),
+                brush = borderBrush,
                 shape = RoundedCornerShape(cornerRadius)
             )
             .padding(contentPadding)
@@ -159,7 +183,8 @@ fun HeritageBrassButton(
  */
 @Composable
 fun HeritageEmblemBadge(
-    imageVector: ImageVector,
+    imageVector: ImageVector? = null,
+    painter: androidx.compose.ui.graphics.painter.Painter? = null,
     contentDescription: String? = null,
     modifier: Modifier = Modifier,
     badgeSize: Dp = 44.dp,
@@ -195,12 +220,20 @@ fun HeritageEmblemBadge(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = imageVector,
-            contentDescription = contentDescription,
-            tint = glowColor,
-            modifier = Modifier.size(iconSize)
-        )
+        if (painter != null) {
+            androidx.compose.foundation.Image(
+                painter = painter,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(iconSize)
+            )
+        } else if (imageVector != null) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = glowColor,
+                modifier = Modifier.size(iconSize)
+            )
+        }
     }
 }
 
@@ -844,9 +877,10 @@ fun HeritageMetricCard(
 fun HeritageAchievementBadge(
     title: String,
     subtitle: String,
-    icon: ImageVector,
-    borderColor: Color,
-    iconTint: Color,
+    icon: ImageVector? = null,
+    badgeRes: Int? = null,
+    borderColor: Color = Color(0xFFE5B869),
+    iconTint: Color = Color(0xFFF6CE74),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -866,12 +900,20 @@ fun HeritageAchievementBadge(
                 .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(26.dp)
-            )
+            if (badgeRes != null) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = badgeRes),
+                    contentDescription = title,
+                    modifier = Modifier.size(40.dp)
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(26.dp)
+                )
+            }
         }
         Text(
             text = title,
@@ -899,7 +941,8 @@ fun HeritageClubPatchBadge(
     clubName: String,
     badgeText: String,
     patchColor: Color,
-    icon: ImageVector = Icons.Default.Shield,
+    icon: ImageVector? = Icons.Default.Shield,
+    badgeRes: Int? = null,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -919,12 +962,20 @@ fun HeritageClubPatchBadge(
                 .border(1.5.dp, patchColor, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = patchColor,
-                modifier = Modifier.size(30.dp)
-            )
+            if (badgeRes != null) {
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = badgeRes),
+                    contentDescription = clubName,
+                    modifier = Modifier.size(44.dp)
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = patchColor,
+                    modifier = Modifier.size(30.dp)
+                )
+            }
         }
         Text(
             text = clubName,

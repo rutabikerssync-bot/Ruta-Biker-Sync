@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
 import com.rutabikersync.app.ui.components.HeritageBevelCard
 import com.rutabikersync.app.ui.components.HeritageBrassButton
 import com.rutabikersync.app.ui.components.HeritageEmblemBadge
@@ -182,6 +183,7 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
         ) { data, _ ->
             val activeInvitation = data.pendingInvitations.find { it.id == selectedInvitationId }
             val activeGroup = data.groups.find { it.id == selectedGroupId }
+                ?: if (selectedGroupId == "OVERVIEW") null else data.groups.firstOrNull()
 
             when {
                 activeInvitation != null -> {
@@ -225,7 +227,7 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
                             onTransfer = { targetLeaderId ->
                                 viewModel.startGroupTransfer(activeGroup.id, targetLeaderId)
                             },
-                            onBack = { viewModel.selectGroup(null) }
+                            onBack = { viewModel.selectGroup("OVERVIEW") }
                         )
                     }
                 }
@@ -735,8 +737,121 @@ private fun ConsentCheckboxRow(
     }
 }
 
+private data class DirectivaOfficer(
+    val role: ClubRole,
+    val title: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val badgeRes: Int? = null,
+    val officerName: String?
+)
+
+@Composable
+private fun DirectivaOfficerCard(
+    officer: DirectivaOfficer,
+    modifier: Modifier = Modifier
+) {
+    HeritageBevelCard(
+        modifier = modifier.heightIn(min = 68.dp),
+        cardColor = Color(0xFF1F1A16),
+        borderColor = Color(0xFF8B6B3D).copy(alpha = 0.5f),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF3E2D1E),
+                                Color(0xFF1E1712)
+                            )
+                        )
+                    )
+                    .border(1.dp, Color(0xFFD4AF37).copy(alpha = 0.6f), RoundedCornerShape(6.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (officer.badgeRes != null) {
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = officer.badgeRes),
+                        contentDescription = officer.title,
+                        modifier = Modifier.size(34.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = officer.icon,
+                        contentDescription = officer.title,
+                        tint = Color(0xFFF5D061),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = officer.title.uppercase(),
+                    color = Color(0xFFD4AF37),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = officer.officerName ?: "Sin asignar",
+                    color = if (officer.officerName != null) Color(0xFFF5E6C8) else Color(0xFF8C827A),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+@Composable
+private fun HeritagePaymentPill(semaphore: PaymentSemaphore) {
+    val (label, textColor, bgColor, dotColor) = when (semaphore) {
+        PaymentSemaphore.GREEN -> Quadruple("Al día", Color(0xFF34D399), Color(0xFF064E3B).copy(alpha = 0.6f), Color(0xFF10B981))
+        PaymentSemaphore.YELLOW -> Quadruple("En gracia", Color(0xFFFBBF24), Color(0xFF78350F).copy(alpha = 0.6f), Color(0xFFF59E0B))
+        PaymentSemaphore.RED -> Quadruple("Pendiente", Color(0xFFF87171), Color(0xFF7F1D1D).copy(alpha = 0.6f), Color(0xFFEF4444))
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .background(bgColor, RoundedCornerShape(12.dp))
+            .border(1.dp, dotColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(dotColor)
+        )
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
 /**
- * D3/D5/D6/D8/D9. Vista principal del grupo: miembros, cargos, semáforo de pagos, invitación, votación 2/3 y transferencia.
+ * D3/D5/D6/D8/D9. Vista principal del club Heritage Premium (Pantalla 2):
+ * Cresta de club, Mesa Directiva de 6 cargos oficiales (RULES R3.1 / D46),
+ * Código de Admisión QR a pantalla completa y listado de miembros con semáforos de pago.
  */
 @Composable
 private fun GroupDetailScreenD3(
@@ -757,372 +872,634 @@ private fun GroupDetailScreenD3(
     val isPrincipalLeader = group.principalLeaderId == currentUser.id
     val canSeePaymentSemaphore = isLeader || myMember?.clubRole == ClubRole.TREASURER || myMember?.clubRole == ClubRole.PRESIDENT || myMember?.clubRole == ClubRole.VICE_PRESIDENT
 
+    // Invitar miembro por QR (Restringido estrictamente a Presidente y Vicepresidente según RULES R3.2)
+    val canShareQr = GroupInviteQrHelper.canShareQr(isLeader, myMember?.clubRole)
+    var showQrDialog by remember { mutableStateOf(false) }
+
+    val officers = remember(group.members) {
+        listOf(
+            DirectivaOfficer(
+                role = ClubRole.PRESIDENT,
+                title = "Presidente",
+                icon = AppIcons.RolePresident,
+                badgeRes = R.drawable.ic_officer_presidente,
+                officerName = group.members.find { it.clubRole == ClubRole.PRESIDENT }?.displayName
+            ),
+            DirectivaOfficer(
+                role = ClubRole.VICE_PRESIDENT,
+                title = "Vicepresidente",
+                icon = AppIcons.RoleVicePresident,
+                badgeRes = R.drawable.ic_officer_vicepresidente,
+                officerName = group.members.find { it.clubRole == ClubRole.VICE_PRESIDENT }?.displayName
+            ),
+            DirectivaOfficer(
+                role = ClubRole.SERGEANT_AT_ARMS,
+                title = "Sargento de Armas",
+                icon = AppIcons.RoleSergeantAtArms,
+                badgeRes = R.drawable.ic_officer_sargento_armas,
+                officerName = group.members.find { it.clubRole == ClubRole.SERGEANT_AT_ARMS }?.displayName
+            ),
+            DirectivaOfficer(
+                role = ClubRole.ROAD_CAPTAIN,
+                title = "Capitán de Ruta",
+                icon = AppIcons.RoleRoadCaptain,
+                badgeRes = R.drawable.ic_officer_capitan_ruta,
+                officerName = group.members.find { it.clubRole == ClubRole.ROAD_CAPTAIN }?.displayName
+            ),
+            DirectivaOfficer(
+                role = ClubRole.SECRETARY,
+                title = "Secretario",
+                icon = AppIcons.RoleSecretary,
+                badgeRes = R.drawable.ic_officer_secretario,
+                officerName = group.members.find { it.clubRole == ClubRole.SECRETARY }?.displayName
+            ),
+            DirectivaOfficer(
+                role = ClubRole.TREASURER,
+                title = "Tesorero",
+                icon = AppIcons.RoleTreasurer,
+                badgeRes = R.drawable.ic_officer_tesorero,
+                officerName = group.members.find { it.clubRole == ClubRole.TREASURER }?.displayName
+            )
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = AppIcons.Back,
-                contentDescription = "Atrás",
-                tint = BikerColors.TextPrimary,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clickable { onBack() }
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = "${group.name} [${group.countryCode}]",
-                    color = BikerColors.PrimaryAmber,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+        // Cabecera Oficial: Escudo Dorado "MI CLUB" + Botón Vista General / Otros Grupos
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                HeritageEmblemBadge(
+                    imageVector = AppIcons.TabGroups,
+                    badgeSize = 32.dp,
+                    contentDescription = "Mi Club"
                 )
                 Text(
-                    text = "Líderes activos: ${group.leaderIds.size}/3 · pHash: ${group.logoPhashHex}",
-                    color = BikerColors.TextSecondary,
-                    fontSize = 12.sp
+                    text = "MI CLUB",
+                    color = Color(0xFFF5E6C8),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF241C15))
+                    .border(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Visibility,
+                    contentDescription = "Ver otros clubes",
+                    tint = Color(0xFFD4AF37),
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
 
-        HorizontalDivider(color = BikerColors.SkeletonBaseDark)
+        // Tarjeta Insignia del Club (Cresta + Nombre + Sello MC Dorado)
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth(),
+            cardColor = Color(0xFF1F1A16),
+            borderColor = Color(0xFFD4AF37).copy(alpha = 0.6f),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                // Sello "MC" dorado superior derecho
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(6.dp))
+                        .background(Color(0xFF2C2216), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "MC",
+                        color = Color(0xFFF5D061),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
 
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HeritageEmblemBadge(
+                        painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
+                        badgeSize = 64.dp,
+                        iconSize = 50.dp,
+                        contentDescription = group.name
+                    )
+                    Text(
+                        text = group.name.uppercase(),
+                        color = Color(0xFFF5E6C8),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "${group.countryCode} · Club MC · Fundado 2018",
+                        color = Color(0xFF9E9285),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // Sección MESA DIRECTIVA (Grid 2x3 con los 6 cargos oficiales RULES R3.1 / D46)
         Text(
-            text = stringResource(id = R.string.groups_members_title),
-            color = BikerColors.TextPrimary,
+            text = "MESA DIRECTIVA",
+            color = Color(0xFFD4AF37),
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp
+            fontSize = 13.sp,
+            letterSpacing = 1.sp
         )
 
-        group.members.forEach { member ->
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
-                    .clickable { onSelectMember(member.userId) }
-                    .padding(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DirectivaOfficerCard(officer = officers[0], modifier = Modifier.weight(1f))
+                DirectivaOfficerCard(officer = officers[1], modifier = Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DirectivaOfficerCard(officer = officers[2], modifier = Modifier.weight(1f))
+                DirectivaOfficerCard(officer = officers[3], modifier = Modifier.weight(1f))
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                DirectivaOfficerCard(officer = officers[4], modifier = Modifier.weight(1f))
+                DirectivaOfficerCard(officer = officers[5], modifier = Modifier.weight(1f))
+            }
+        }
+
+        // Sección CÓDIGO DE ADMISIÓN (Tarjeta Bevel que proyecta el QR a pantalla completa)
+        HeritageBevelCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    if (canShareQr) {
+                        UxTestTracker.logEvent("GROUPS_D3", "GENERATE_INVITE_QR", "card_admission_qr", "groupId=${group.id}")
+                        showQrDialog = true
+                    }
+                },
+            cardColor = Color(0xFF1F1A16),
+            borderColor = if (canShareQr) Color(0xFFD4AF37).copy(alpha = 0.7f) else Color(0xFF8B6B3D).copy(alpha = 0.3f),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(BikerColors.SkeletonBaseDark),
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                Brush.radialGradient(
+                                    listOf(Color(0xFF4A3722), Color(0xFF1E1712))
+                                )
+                            )
+                            .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = member.displayName.take(2).uppercase(),
-                            color = BikerColors.PrimaryAmber,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            imageVector = AppIcons.QrCode,
+                            contentDescription = "Código de Admisión",
+                            tint = Color(0xFFF5D061),
+                            modifier = Modifier.size(22.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = member.displayName,
-                                color = BikerColors.TextPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
-                            )
-                            if (member.isFounder) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    painter = painterResource(id = AppIcons.FounderFlameRes),
-                                    contentDescription = "Fundador",
-                                    tint = BikerColors.PrimaryAmber,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            } else if (member.isLeader) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    painter = painterResource(id = AppIcons.LeaderCrownShieldRes),
-                                    contentDescription = "Líder",
-                                    tint = BikerColors.PrimaryAmber,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
                         Text(
-                            text = buildString {
-                                append("Estatus: ${member.statusKind.apiValue.uppercase()}")
-                                if (member.clubRole != null) {
-                                    append(" · Cargo: ${member.clubRole.apiValue}")
-                                }
-                                append(" · Rango: ${RiderRank.fromValidRides(member.validRides).name}")
-                            },
-                            color = BikerColors.TextSecondary,
+                            text = "Código de Admisión",
+                            color = Color(0xFFF5E6C8),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (canShareQr) "Toca para proyectar QR a nuevos miembros" else "Solo para Presidente y Vicepresidente",
+                            color = Color(0xFF9E9285),
                             fontSize = 11.sp
                         )
                     }
                 }
-                if (canSeePaymentSemaphore) {
-                    PaymentSemaphoreBadge(semaphore = member.paymentSemaphore)
-                }
-            }
-        }
-
-        // Invitar miembro por QR (Restringido estrictamente a Presidente y Vicepresidente)
-        val canShareQr = GroupInviteQrHelper.canShareQr(isLeader, myMember?.clubRole)
-        var showQrDialog by remember { mutableStateOf(false) }
-
-        HorizontalDivider(color = BikerColors.SkeletonBaseDark)
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
-                .border(1.dp, if (canShareQr) BikerColors.PrimaryAmber.copy(alpha = 0.5f) else BikerColors.SkeletonBaseDark, RoundedCornerShape(8.dp))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = AppIcons.QrCode,
+                    imageVector = AppIcons.QrScanner,
                     contentDescription = null,
-                    tint = if (canShareQr) BikerColors.PrimaryAmber else BikerColors.TextSecondary,
+                    tint = Color(0xFFD4AF37),
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Invitación Oficial con Código QR",
-                    color = if (canShareQr) BikerColors.PrimaryAmber else BikerColors.TextSecondary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+            }
+        }
+
+        // Modal Proyector de QR de Admisión Oficial (High Contrast)
+        if (showQrDialog) {
+            val qrPayload = remember(group) {
+                GroupInviteQrHelper.encodePayload(
+                    GroupInviteQrHelper.InviteQrPayload(
+                        groupId = group.id,
+                        inviteCode = "RUTA-TEST-01",
+                        groupName = group.name,
+                        countryCode = group.countryCode
+                    )
                 )
             }
+            val qrBitmap = remember(qrPayload) {
+                runCatching { GroupInviteQrHelper.generateQrBitmap(qrPayload, 512) }.getOrNull()
+            }
 
-            if (canShareQr) {
-                Text(
-                    text = "Autorizado: El Presidente y Vicepresidente pueden generar el código QR para que los nuevos miembros lo escaneen directamente con su cámara.",
-                    color = BikerColors.TextSecondary,
-                    fontSize = 12.sp
-                )
-
-                Button(
-                    onClick = {
-                        UxTestTracker.logEvent("GROUPS_D3", "GENERATE_INVITE_QR", "btn_show_qr", "groupId=${group.id}")
-                        showQrDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BikerColors.PrimaryAmber,
-                        contentColor = BikerColors.BackgroundDark
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(imageVector = AppIcons.QrCode, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Mostrar QR de Invitación", fontWeight = FontWeight.Bold)
-                }
-
-                if (showQrDialog) {
-                    val qrPayload = remember(group) {
-                        GroupInviteQrHelper.encodePayload(
-                            GroupInviteQrHelper.InviteQrPayload(
-                                groupId = group.id,
-                                inviteCode = "RUTA-TEST-01",
-                                groupName = group.name,
-                                countryCode = group.countryCode
-                            )
+            AlertDialog(
+                onDismissRequest = { showQrDialog = false },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        HeritageEmblemBadge(
+                            imageVector = AppIcons.TabGroups,
+                            badgeSize = 32.dp,
+                            contentDescription = null
                         )
-                    }
-                    val qrBitmap = remember(qrPayload) {
-                        runCatching { GroupInviteQrHelper.generateQrBitmap(qrPayload, 512) }.getOrNull()
-                    }
-
-                    AlertDialog(
-                        onDismissRequest = { showQrDialog = false },
-                        title = {
+                        Column {
                             Text(
-                                text = "QR de Invitación · ${group.name}",
-                                color = BikerColors.PrimaryAmber,
+                                text = "CÓDIGO DE ADMISIÓN",
+                                color = Color(0xFFD4AF37),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = group.name,
+                                color = Color(0xFFF5E6C8),
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                        },
-                        text = {
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                        }
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        if (qrBitmap != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(230.dp)
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .border(2.dp, Color(0xFFD4AF37), RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                if (qrBitmap != null) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(230.dp)
-                                            .background(Color.White, RoundedCornerShape(8.dp))
-                                            .padding(12.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                            bitmap = qrBitmap.asImageBitmap(),
-                                            contentDescription = "Código QR de Invitación",
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-                                } else {
-                                    Text("Error al generar matriz de imagen QR", color = BikerColors.StatusRed)
-                                }
+                                Image(
+                                    bitmap = qrBitmap.asImageBitmap(),
+                                    contentDescription = "Código QR de Invitación",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        } else {
+                            Text("Error al generar matriz de imagen QR", color = BikerColors.StatusRed)
+                        }
 
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "CÓDIGO DE RESPALDO",
+                                color = Color(0xFF9E9285),
+                                fontSize = 10.sp,
+                                letterSpacing = 1.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "RUTA-TEST-01",
+                                color = Color(0xFFF5D061),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                letterSpacing = 2.sp
+                            )
+                        }
+
+                        Text(
+                            text = "Apunta la cámara de Ruta Biker para solicitar admisión directa a este club.",
+                            color = Color(0xFFC7B8A5),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                },
+                confirmButton = {
+                    HeritageBrassButton(
+                        text = "Cerrar",
+                        onClick = { showQrDialog = false },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                    )
+                },
+                containerColor = Color(0xFF1E1712),
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+
+        // Sección MIEMBROS
+        Text(
+            text = "MIEMBROS (${group.members.size})",
+            color = Color(0xFFD4AF37),
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            letterSpacing = 1.sp
+        )
+
+        group.members.forEach { member ->
+            HeritageBevelCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelectMember(member.userId) },
+                cardColor = Color(0xFF1F1A16),
+                borderColor = Color(0xFF8B6B3D).copy(alpha = 0.4f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        // Avatar metálico circular con iniciales
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(Color(0xFF3E2D1E), Color(0xFF191410))
+                                    )
+                                )
+                                .border(1.dp, Color(0xFFD4AF37).copy(alpha = 0.7f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = member.displayName.take(2).uppercase(),
+                                color = Color(0xFFF5D061),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Código de respaldo: RUTA-TEST-01",
-                                    color = BikerColors.PrimaryAmber,
-                                    fontWeight = FontWeight.Bold,
+                                    text = member.displayName,
+                                    color = Color(0xFFF5E6C8),
+                                    fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
                                 )
-
-                                Text(
-                                    text = "Autorizado por: ${myMember?.clubRole?.apiValue?.uppercase() ?: if (isLeader) "PRESIDENTE" else "DIRECTIVA"}",
-                                    color = BikerColors.TextSecondary,
-                                    fontSize = 11.sp
-                                )
+                                if (member.isFounder) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        painter = painterResource(id = AppIcons.FounderFlameRes),
+                                        contentDescription = "Fundador",
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                } else if (member.isLeader) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        painter = painterResource(id = AppIcons.LeaderCrownShieldRes),
+                                        contentDescription = "Líder",
+                                        tint = Color(0xFFD4AF37),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
-                        },
-                        confirmButton = {
-                            Button(onClick = { showQrDialog = false }) {
-                                Text("Cerrar")
+                            val roleLabel = when (member.clubRole) {
+                                ClubRole.PRESIDENT -> "Presidente"
+                                ClubRole.VICE_PRESIDENT -> "Vicepresidente"
+                                ClubRole.SERGEANT_AT_ARMS -> "Sargento de Armas"
+                                ClubRole.ROAD_CAPTAIN -> "Capitán de Ruta"
+                                ClubRole.SECRETARY -> "Secretario"
+                                ClubRole.TREASURER -> "Tesorero"
+                                ClubRole.ROAD_MARSHAL -> "Road Marshal"
+                                null -> when (member.statusKind) {
+                                    MemberStatusKind.FULL -> "Full Patch"
+                                    MemberStatusKind.PROSPECT -> "Prospecto"
+                                    MemberStatusKind.GUEST -> "Invitado"
+                                }
                             }
-                        },
-                        containerColor = BikerColors.SurfaceDark
-                    )
-                }
-            } else {
-                Text(
-                    text = "🔒 Solo el Presidente y Vicepresidente del grupo tienen autorización para generar el código QR de invitación.",
-                    color = BikerColors.TextSecondary,
-                    fontSize = 12.sp
-                )
-            }
-        }
-
-        // Invitar miembro manual por ID de usuario
-        if (isLeader) {
-            HorizontalDivider(color = BikerColors.SkeletonBaseDark)
-            Text(
-                text = "Invitar Miembro por ID de Usuario",
-                color = BikerColors.PrimaryAmber,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-            OutlinedTextField(
-                value = inviteUserId,
-                onValueChange = { inviteUserId = it },
-                label = { Text("ID de usuario o código manual") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                MemberStatusKind.entries.forEach { st ->
-                    FilterChip(
-                        selected = inviteStatus == st,
-                        onClick = { inviteStatus = st },
-                        label = { Text(st.apiValue.uppercase()) }
-                    )
-                }
-            }
-            Button(
-                onClick = { onInviteMember(inviteUserId.trim(), inviteStatus) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = BikerColors.PrimaryAmber,
-                    contentColor = BikerColors.BackgroundDark
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(imageVector = AppIcons.InviteMember, contentDescription = null)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(stringResource(id = R.string.groups_invite_btn), fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // D8. Votaciones sensibles de líderes (RULES R14.2)
-        if (group.openVotes.isNotEmpty() && isLeader) {
-            HorizontalDivider(color = BikerColors.SkeletonBaseDark)
-            Text(
-                text = stringResource(id = R.string.groups_votes_title),
-                color = BikerColors.PrimaryAmber,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-            group.openVotes.forEach { vote ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(BikerColors.BackgroundDark, RoundedCornerShape(8.dp))
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "Propuesta: ${vote.proposal} (${vote.targetLabel}) · Estado: ${vote.state.uppercase()}",
-                        color = BikerColors.TextPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        text = "Votos a favor: ${vote.approvals.size}/${vote.requiredVotes} requeridos",
-                        color = BikerColors.TextSecondary,
-                        fontSize = 12.sp
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = { onVote(vote.id, true) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = BikerColors.StatusGreen,
-                                contentColor = BikerColors.BackgroundDark
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Aprobar", fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "${if (member.statusKind == MemberStatusKind.FULL) "Full Patch" else member.statusKind.apiValue.replaceFirstChar { it.uppercase() }} · $roleLabel",
+                                color = Color(0xFF9E9285),
+                                fontSize = 11.sp
+                            )
                         }
-                        OutlinedButton(
-                            onClick = { onVote(vote.id, false) },
-                            modifier = Modifier.weight(1f)
+                    }
+
+                    if (canSeePaymentSemaphore) {
+                        HeritagePaymentPill(semaphore = member.paymentSemaphore)
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .border(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
-                            Text("Rechazar", color = BikerColors.StatusRed)
+                            Text(
+                                text = RiderRank.fromValidRides(member.validRides).name,
+                                color = Color(0xFFC7B8A5),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
         }
 
-        // D9. Transferencia de grupo con espera de 7 días (RULES R5.3)
-        if (isPrincipalLeader) {
-            HorizontalDivider(color = BikerColors.SkeletonBaseDark)
-            Text(
-                text = stringResource(id = R.string.groups_transfer_title),
-                color = BikerColors.PrimaryAmber,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-            if (group.pendingTransferToUserId != null) {
-                Text(
-                    text = "⏳ En espera de 7 días para transferir a ${group.pendingTransferToUserId}",
-                    color = BikerColors.StatusYellow,
-                    fontSize = 12.sp
-                )
-            } else {
-                OutlinedTextField(
-                    value = transferTargetId,
-                    onValueChange = { transferTargetId = it },
-                    label = { Text("ID de miembro con cuenta Líder activa") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedButton(
-                    onClick = { onTransfer(transferTargetId.trim()) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(imageVector = AppIcons.TransferGroup, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Iniciar transferencia (7 días espera)", color = BikerColors.PrimaryAmber)
+        // Invitar miembro manual por ID de usuario (Solo Líder)
+        if (isLeader) {
+            HeritageBevelCard(
+                modifier = Modifier.fillMaxWidth(),
+                cardColor = Color(0xFF1F1A16),
+                borderColor = Color(0xFF8B6B3D).copy(alpha = 0.4f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Invitar Miembro por ID de Usuario",
+                        color = Color(0xFFD4AF37),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    OutlinedTextField(
+                        value = inviteUserId,
+                        onValueChange = { inviteUserId = it },
+                        label = { Text("ID de usuario o código manual") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MemberStatusKind.entries.forEach { st ->
+                            FilterChip(
+                                selected = inviteStatus == st,
+                                onClick = { inviteStatus = st },
+                                label = { Text(st.apiValue.uppercase()) }
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = { onInviteMember(inviteUserId.trim(), inviteStatus) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BikerColors.PrimaryAmber,
+                            contentColor = BikerColors.BackgroundDark
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(imageVector = AppIcons.InviteMember, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(id = R.string.groups_invite_btn), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
+
+        // Votaciones sensibles de líderes (RULES R14.2)
+        if (group.openVotes.isNotEmpty() && isLeader) {
+            HeritageBevelCard(
+                modifier = Modifier.fillMaxWidth(),
+                cardColor = Color(0xFF1F1A16),
+                borderColor = Color(0xFFD4AF37).copy(alpha = 0.5f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.groups_votes_title),
+                        color = Color(0xFFD4AF37),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    group.openVotes.forEach { vote ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF14100D), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "Propuesta: ${vote.proposal} (${vote.targetLabel}) · Estado: ${vote.state.uppercase()}",
+                                color = Color(0xFFF5E6C8),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp
+                            )
+                            Text(
+                                text = "Votos a favor: ${vote.approvals.size}/${vote.requiredVotes} requeridos",
+                                color = Color(0xFF9E9285),
+                                fontSize = 12.sp
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = { onVote(vote.id, true) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = BikerColors.StatusGreen,
+                                        contentColor = BikerColors.BackgroundDark
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Aprobar", fontWeight = FontWeight.Bold)
+                                }
+                                OutlinedButton(
+                                    onClick = { onVote(vote.id, false) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Rechazar", color = BikerColors.StatusRed)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Transferencia de grupo con espera de 7 días (RULES R5.3)
+        if (isPrincipalLeader) {
+            HeritageBevelCard(
+                modifier = Modifier.fillMaxWidth(),
+                cardColor = Color(0xFF1F1A16),
+                borderColor = Color(0xFF8B6B3D).copy(alpha = 0.4f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(id = R.string.groups_transfer_title),
+                        color = Color(0xFFD4AF37),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    if (group.pendingTransferToUserId != null) {
+                        Text(
+                            text = "⏳ En espera de 7 días para transferir a ${group.pendingTransferToUserId}",
+                            color = BikerColors.StatusYellow,
+                            fontSize = 12.sp
+                        )
+                    } else {
+                        OutlinedTextField(
+                            value = transferTargetId,
+                            onValueChange = { transferTargetId = it },
+                            label = { Text("ID de miembro con cuenta Líder activa") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedButton(
+                            onClick = { onTransfer(transferTargetId.trim()) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(imageVector = AppIcons.TransferGroup, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Iniciar transferencia (7 días espera)", color = Color(0xFFF5D061))
+                        }
+                    }
+                }
+            }
+        }
+
+        // Espacio para librar la barra de navegación inferior
+        Spacer(modifier = Modifier.height(96.dp))
     }
 }
 
@@ -1432,11 +1809,18 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                val rankDrawableRes = when (rankInfo.rankTitle) {
+                    "Leyenda" -> R.drawable.ic_rank_leyenda
+                    "Élite" -> R.drawable.ic_rank_elite
+                    "Veterano" -> R.drawable.ic_rank_veterano
+                    "Rider" -> R.drawable.ic_rank_rider
+                    else -> R.drawable.ic_rank_novato
+                }
                 HeritageEmblemBadge(
-                    imageVector = Icons.Default.Shield,
+                    painter = androidx.compose.ui.res.painterResource(id = rankDrawableRes),
                     contentDescription = "Rango del piloto",
-                    badgeSize = 48.dp,
-                    iconSize = 24.dp,
+                    badgeSize = 52.dp,
+                    iconSize = 44.dp,
                     glowColor = Color(0xFFF3C766)
                 )
 
@@ -1549,30 +1933,26 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
             HeritageAchievementBadge(
                 title = "Aventurero",
                 subtitle = "5.000 km",
-                icon = AppIcons.RoleRoadCaptain,
-                borderColor = Color(0xFFE5B869),
-                iconTint = Color(0xFFF6CE74)
+                badgeRes = R.drawable.ic_achieve_aventurero,
+                borderColor = Color(0xFFE5B869)
             )
             HeritageAchievementBadge(
-                title = "Lluvia",
-                subtitle = "Logro de ruta",
-                icon = AppIcons.TabRoutes,
-                borderColor = Color(0xFF38BDF8),
-                iconTint = Color(0xFF38BDF8)
+                title = "1ª Rodada",
+                subtitle = "Iniciación",
+                badgeRes = R.drawable.ic_achieve_primera_rodada,
+                borderColor = Color(0xFFF59E0B)
             )
             HeritageAchievementBadge(
-                title = "Montaña",
-                subtitle = "Logro de ruta",
-                icon = AppIcons.SelfHeading,
-                borderColor = Color(0xFF34D399),
-                iconTint = Color(0xFF34D399)
+                title = "Nocturna",
+                subtitle = "Ruta oscura",
+                badgeRes = R.drawable.ic_achieve_rodada_nocturna,
+                borderColor = Color(0xFF38BDF8)
             )
             HeritageAchievementBadge(
-                title = "MC",
-                subtitle = "Honor",
-                icon = AppIcons.LeaderFallback,
-                borderColor = Color(0xFFDF9E32),
-                iconTint = Color(0xFFF6CE74)
+                title = "Offline",
+                subtitle = "Sin señal",
+                badgeRes = R.drawable.ic_achieve_sin_cobertura,
+                borderColor = Color(0xFF34D399)
             )
         }
 
@@ -1589,19 +1969,22 @@ fun ProfileAndAuthTabScreen(viewModel: Phase1ViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             HeritageClubPatchBadge(
-                clubName = "Los Hermanos del Asfalto",
+                clubName = "Hermandad Asfalto",
                 badgeText = "Club MC",
-                patchColor = Color(0xFFE5B869)
+                patchColor = Color(0xFFE5B869),
+                badgeRes = R.drawable.ic_rank_fundador
             )
             HeritageClubPatchBadge(
                 clubName = "Riders Unidos",
                 badgeText = "(Invitado)",
-                patchColor = Color(0xFFEF4444)
+                patchColor = Color(0xFFEF4444),
+                badgeRes = R.drawable.ic_rank_honor
             )
             HeritageClubPatchBadge(
-                clubName = "Valle de la Virgen",
+                clubName = "Valle Virgen",
                 badgeText = "(Completada)",
-                patchColor = Color(0xFF38BDF8)
+                patchColor = Color(0xFF38BDF8),
+                badgeRes = R.drawable.ic_rank_full_member
             )
         }
 
