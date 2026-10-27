@@ -64,6 +64,7 @@ import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.HeritageTheme
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import kotlin.math.roundToInt
@@ -104,26 +105,107 @@ fun LiveMapScreen(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        runCatching {
-            val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            if (fineGranted || coarseGranted) {
-                val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-                val lastGps = locManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-                val lastNet = locManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-                val best = lastGps ?: lastNet
-                best?.let { loc ->
-                    liveMapViewModel.controller.updateLocalRiderPose(
-                        latitude = loc.latitude,
-                        longitude = loc.longitude,
-                        speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
-                        bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
-                        batteryPercent = state.localBatteryPercent
-                    )
-                    liveMapViewModel.controller.centerOnMyLocation()
+    val geoPrefs = remember { context.getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE) }
+
+    fun applyLocation(loc: android.location.Location) {
+        geoPrefs.edit()
+            .putFloat("last_known_lat", loc.latitude.toFloat())
+            .putFloat("last_known_lon", loc.longitude.toFloat())
+            .apply()
+        liveMapViewModel.controller.corridorReferenceLon = loc.longitude
+        liveMapViewModel.controller.updateLocalRiderPose(
+            latitude = loc.latitude,
+            longitude = loc.longitude,
+            speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
+            bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
+            batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+        )
+        liveMapViewModel.controller.centerOnMyLocation()
+        liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+            val candidateProviders = listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+            for (p in candidateProviders) {
+                val l = runCatching { locManager?.getLastKnownLocation(p) }.getOrNull()
+                if (l != null) {
+                    applyLocation(l)
+                    break
                 }
             }
+        }
+    }
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+
+        // 1. Cargar de inmediato la última ubicación real conocida guardada en caché (cualquier país del mundo)
+        if (geoPrefs.contains("last_known_lat") && geoPrefs.contains("last_known_lon")) {
+            val cachedLat = geoPrefs.getFloat("last_known_lat", 0f).toDouble()
+            val cachedLon = geoPrefs.getFloat("last_known_lon", 0f).toDouble()
+            if (cachedLat != 0.0 && cachedLon != 0.0) {
+                liveMapViewModel.controller.updateLocalRiderPose(
+                    latitude = cachedLat,
+                    longitude = cachedLon,
+                    speedKmh = 0,
+                    bearingDegrees = 180f,
+                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+                )
+                liveMapViewModel.controller.centerOnMyLocation()
+                liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+            }
+        }
+
+        if (fineGranted || coarseGranted) {
+            // 2. Consultar todos los proveedores de geolocalización activos
+            runCatching {
+                val candidateProviders = listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
+                var best: android.location.Location? = null
+                for (p in candidateProviders) {
+                    val l = runCatching { locManager?.getLastKnownLocation(p) }.getOrNull()
+                    if (l != null && (best == null || l.time > best.time)) {
+                        best = l
+                    }
+                }
+                best?.let { applyLocation(it) }
+            }
+
+            // 3. Suscribirse a actualizaciones en tiempo real del GPS
+            val listener = object : android.location.LocationListener {
+                override fun onLocationChanged(location: android.location.Location) {
+                    applyLocation(location)
+                }
+                @Deprecated("Deprecated in Java")
+                override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+                override fun onProviderEnabled(provider: String) {}
+                override fun onProviderDisabled(provider: String) {}
+            }
+
+            listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER).forEach { providerName ->
+                runCatching {
+                    locManager?.requestLocationUpdates(providerName, 1000L, 1f, listener)
+                }
+            }
+
+            onDispose {
+                runCatching { locManager?.removeUpdates(listener) }
+            }
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+            onDispose {}
         }
     }
 
@@ -500,26 +582,35 @@ private fun MapLibreCorridorSurface(
             factory = {
                 mapView.apply {
                     getMapAsync { map ->
-                        map.setStyle(state.styleAssetUri)
-                        map.uiSettings.isAttributionEnabled = false
-                        map.uiSettings.isLogoEnabled = false
-                        map.uiSettings.isCompassEnabled = false
-                        map.uiSettings.isRotateGesturesEnabled = true
-                        map.uiSettings.isScrollGesturesEnabled = true
-                        map.uiSettings.isZoomGesturesEnabled = true
-                        map.cameraPosition = CameraPosition.Builder()
-                            .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                            .zoom(state.cameraZoom)
-                            .build()
+                        map.setStyle(state.styleAssetUri) {
+                            map.uiSettings.isAttributionEnabled = false
+                            map.uiSettings.isLogoEnabled = false
+                            map.uiSettings.isCompassEnabled = false
+                            map.uiSettings.isRotateGesturesEnabled = true
+                            map.uiSettings.isScrollGesturesEnabled = true
+                            map.uiSettings.isZoomGesturesEnabled = true
+                            map.moveCamera(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.Builder()
+                                        .target(LatLng(state.cameraLatitude, state.cameraLongitude))
+                                        .zoom(state.cameraZoom)
+                                        .build()
+                                )
+                            )
+                        }
                     }
                 }
             },
             update = { view ->
                 view.getMapAsync { map ->
-                    map.cameraPosition = CameraPosition.Builder()
-                        .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                        .zoom(state.cameraZoom)
-                        .build()
+                    map.moveCamera(
+                        CameraUpdateFactory.newCameraPosition(
+                            CameraPosition.Builder()
+                                .target(LatLng(state.cameraLatitude, state.cameraLongitude))
+                                .zoom(state.cameraZoom)
+                                .build()
+                        )
+                    )
                 }
             },
             modifier = Modifier.fillMaxSize()

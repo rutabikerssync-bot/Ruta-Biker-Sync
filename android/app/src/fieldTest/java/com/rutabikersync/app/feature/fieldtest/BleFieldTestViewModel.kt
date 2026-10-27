@@ -147,8 +147,8 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
                     val ttl = _uiState.value.initialTtl
                     val ext = realBleTransport.queryCapabilities().extendedAdvertisingSupported
                     engine.emitLocalPosition(
-                        latitude = 19.432608 + (tick * 0.0001),
-                        longitude = -99.133209 + (tick * 0.0001),
+                        latitude = 10.480608 + (tick * 0.0001),
+                        longitude = -66.903609 + (tick * 0.0001),
                         speedKmh = 75,
                         bearingDegrees = 45f,
                         batteryPercent = 85,
@@ -158,8 +158,8 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
                     )
                     for ((idx, peer) in virtualPeerEngines.withIndex()) {
                         peer.emitLocalPosition(
-                            latitude = 19.430000 - (idx * 0.001) + (tick * 0.0001),
-                            longitude = -99.130000 - (idx * 0.001) + (tick * 0.0001),
+                            latitude = 10.480000 - (idx * 0.001) + (tick * 0.0001),
+                            longitude = -66.900000 - (idx * 0.001) + (tick * 0.0001),
                             speedKmh = 72 + idx,
                             bearingDegrees = 45f,
                             batteryPercent = 80 - (idx * 10),
@@ -197,8 +197,8 @@ class BleFieldTestViewModel(application: Application) : AndroidViewModel(applica
         val engine = localEngine ?: return
         viewModelScope.launch {
             engine.emitLocalPosition(
-                latitude = 19.432608,
-                longitude = -99.133209,
+                latitude = 10.480608,
+                longitude = -66.903609,
                 speedKmh = 0,
                 bearingDegrees = 0f,
                 batteryPercent = 80,

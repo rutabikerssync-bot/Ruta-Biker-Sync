@@ -292,7 +292,7 @@ class LiveMapController(
         val prevSelf = previousByShortId[localShortId]
         val selfStatus = when {
             localSos -> RiderRouteStatus.SOS_ACTIVE
-            isDeviatedFromCorridor(localLat, localLon) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
+            localShortId != leaderShortId && isDeviatedFromCorridor(localLat, localLon) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
             else -> RiderRouteStatus.ON_ROUTE
         }
         updatedMarkers.add(
@@ -521,8 +521,11 @@ class LiveMapController(
         return _uiState.value
     }
 
+    var corridorReferenceLon: Double? = null
+
     private fun isDeviatedFromCorridor(latitude: Double, longitude: Double): Boolean {
-        val distanceToAxisMeters = haversineMeters(latitude, longitude, latitude, CORRIDOR_REFERENCE_LON)
+        val refLon = corridorReferenceLon ?: CORRIDOR_REFERENCE_LON
+        val distanceToAxisMeters = haversineMeters(latitude, longitude, latitude, refLon)
         return distanceToAxisMeters > DEVIATION_THRESHOLD_METERS
     }
 }
