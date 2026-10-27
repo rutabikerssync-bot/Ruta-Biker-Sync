@@ -1,7 +1,14 @@
 package com.rutabikersync.app.feature.livemap
 
+import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
+import androidx.core.content.ContextCompat
 import com.rutabikersync.app.BuildConfig
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -94,6 +101,29 @@ fun LiveMapScreen(
     androidx.compose.runtime.LaunchedEffect(simulatedAlert) {
         simulatedAlert?.let {
             actionFeedback = it
+        }
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching {
+            val fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (fineGranted || coarseGranted) {
+                val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+                val lastGps = locManager?.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                val lastNet = locManager?.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                val best = lastGps ?: lastNet
+                best?.let { loc ->
+                    liveMapViewModel.controller.updateLocalRiderPose(
+                        latitude = loc.latitude,
+                        longitude = loc.longitude,
+                        speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
+                        bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
+                        batteryPercent = state.localBatteryPercent
+                    )
+                    liveMapViewModel.controller.centerOnMyLocation()
+                }
+            }
         }
     }
 
@@ -427,39 +457,69 @@ private fun MapLibreCorridorSurface(
     onSelectRider: (UShort) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val mapView = remember {
+        MapLibre.getInstance(context)
+        MapView(context).apply {
+            onCreate(null)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
+                androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
+                androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        mapView.onStart()
+        mapView.onResume()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            runCatching {
+                mapView.onPause()
+                mapView.onStop()
+                mapView.onDestroy()
+            }
+        }
+    }
+
     BoxWithConstraints(modifier = modifier) {
         val widthPx = constraints.maxWidth.toFloat().coerceAtLeast(1f)
         val heightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
 
-        // Intentar inicializar MapLibre nativo cuando corre en dispositivo Android con GL disponible
+        // MapLibre nativo conectado a capas cartográficas
         AndroidView(
-            factory = { ctx ->
-                runCatching {
-                    MapLibre.getInstance(ctx)
-                    MapView(ctx).apply {
-                        onCreate(null)
-                        getMapAsync { map ->
-                            map.setStyle(state.styleAssetUri)
-                            map.cameraPosition = CameraPosition.Builder()
-                                .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                                .zoom(state.cameraZoom)
-                                .build()
-                        }
-                    }
-                }.getOrElse {
-                    android.view.View(ctx).apply {
-                        setBackgroundColor(android.graphics.Color.parseColor("#0B0E14"))
-                    }
-                }
-            },
-            update = { view ->
-                if (view is MapView) {
-                    view.getMapAsync { map ->
+            factory = {
+                mapView.apply {
+                    getMapAsync { map ->
+                        map.setStyle(state.styleAssetUri)
+                        map.uiSettings.isAttributionEnabled = false
+                        map.uiSettings.isLogoEnabled = false
+                        map.uiSettings.isCompassEnabled = false
+                        map.uiSettings.isRotateGesturesEnabled = true
+                        map.uiSettings.isScrollGesturesEnabled = true
+                        map.uiSettings.isZoomGesturesEnabled = true
                         map.cameraPosition = CameraPosition.Builder()
                             .target(LatLng(state.cameraLatitude, state.cameraLongitude))
                             .zoom(state.cameraZoom)
                             .build()
                     }
+                }
+            },
+            update = { view ->
+                view.getMapAsync { map ->
+                    map.cameraPosition = CameraPosition.Builder()
+                        .target(LatLng(state.cameraLatitude, state.cameraLongitude))
+                        .zoom(state.cameraZoom)
+                        .build()
                 }
             },
             modifier = Modifier.fillMaxSize()
