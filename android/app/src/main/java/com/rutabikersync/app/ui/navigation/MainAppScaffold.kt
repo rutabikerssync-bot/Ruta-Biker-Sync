@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -456,7 +457,8 @@ private fun VaultTabScreen() {
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     HeritageEmblemBadge(
                         imageVector = Icons.Default.LocalHospital,
@@ -469,9 +471,13 @@ private fun VaultTabScreen() {
                         text = stringResource(id = R.string.vault_medical_title),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        fontSize = 12.sp,
+                        lineHeight = 14.sp,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 }
+                Spacer(modifier = Modifier.width(6.dp))
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -483,7 +489,8 @@ private fun VaultTabScreen() {
                         text = "🔒 ${stringResource(id = R.string.vault_medical_sealed_shamir)}",
                         color = Color(0xFF34D399),
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
@@ -645,7 +652,7 @@ private fun VaultDocBevelCard(
             }
             Text(
                 text = badge,
-                color = Color(0xFF10B981),
+                color = if (badge.contains("no cargado", ignoreCase = true)) Color(0xFF8E95A5) else Color(0xFF10B981),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 10.sp
             )
@@ -748,10 +755,10 @@ private fun RidesReleaseHomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 HeritageEmblemBadge(
-                    imageVector = Icons.Default.Shield,
+                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
                     contentDescription = "Club",
                     badgeSize = 46.dp,
-                    iconSize = 22.dp,
+                    iconSize = 34.dp,
                     glowColor = Color(0xFFF3C766)
                 )
                 Column {
