@@ -89,6 +89,27 @@ android {
         }
     }
 
+
+    // T-03 (B5-4,B5-2): firma de release sin fallback a debug. TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI
+    // Proveer: RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD (o RBS_STORE_PASSWORD), RBS_KEY_ALIAS, RBS_KEY_PASSWORD
+    // v?a gradle.properties/local env vars/CI secrets. No hardcodear. No versionar keystore.
+    val releaseKeystorePath = (localProperties.getProperty("RBS_KEYSTORE_PATH") ?: System.getenv("RBS_KEYSTORE_PATH") ?: "").trim()
+    val releaseStorePassword = (localProperties.getProperty("RBS_KEYSTORE_PASSWORD") ?: localProperties.getProperty("RBS_STORE_PASSWORD") ?: System.getenv("RBS_KEYSTORE_PASSWORD") ?: System.getenv("RBS_STORE_PASSWORD") ?: "").trim()
+    val releaseKeyAlias = (localProperties.getProperty("RBS_KEY_ALIAS") ?: System.getenv("RBS_KEY_ALIAS") ?: "").trim()
+    val releaseKeyPassword = (localProperties.getProperty("RBS_KEY_PASSWORD") ?: System.getenv("RBS_KEY_PASSWORD") ?: "").trim()
+    val releaseSigningConfigured = listOf(releaseKeystorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { it.isNotBlank() }
+
+    signingConfigs {
+        create("release") {
+            if (releaseSigningConfigured) {
+                storeFile = file(releaseKeystorePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
@@ -133,10 +154,53 @@ androidComponents {
     }
 }
 
+
+val verifyReleaseSigningConfigured = tasks.register("verifyReleaseSigningConfigured") {
+    group = "verification"
+    description = "Falla si standardRelease no tiene signingConfig de release v?lida (T-03, sin fallback a debug)"
+    doLast {
+        val missing = mutableListOf<String>()
+        fun pick(prop: String, env: String, altEnv: String? = null): String {
+            val v = (localProperties.getProperty(prop) ?: System.getenv(env) ?: (altEnv?.let { System.getenv(it) }) ?: "").trim()
+            if (v.isBlank()) missing += "$prop/$env"
+            return v
+        }
+        val path = pick("RBS_KEYSTORE_PATH", "RBS_KEYSTORE_PATH")
+        pick("RBS_KEYSTORE_PASSWORD", "RBS_KEYSTORE_PASSWORD", "RBS_STORE_PASSWORD")
+        pick("RBS_KEY_ALIAS", "RBS_KEY_ALIAS")
+        pick("RBS_KEY_PASSWORD", "RBS_KEY_PASSWORD")
+        check(missing.isEmpty()) {
+            "FALLO DE FIRMA RELEASE (T-03): faltan secretos/propiedades: ${missing.joinToString()}. " +
+            "Proveer RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD (o RBS_STORE_PASSWORD), RBS_KEY_ALIAS, RBS_KEY_PASSWORD. " +
+            "TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI. Prohibido fallback a debug signing."
+        }
+        check(path.isNotBlank() && file(path).exists()) {
+            "FALLO DE FIRMA RELEASE (T-03): keystore no encontrado en '$path'. TODO_EXTERNAL:KEYSTORE"
+        }
+        logger.lifecycle("? Configuraci?n de firma release presente (keystore y secretos provistos).")
+    }
+}
+
+
+
+val verifyReleaseSecurityScript = tasks.register<Exec>("verifyReleaseSecurityScript") {
+    group = "verification"
+    description = "Ejecuta scripts/verify_release_security (.sh/.ps1) - condici?n 5 T-01..T-08"
+    dependsOn("generateStandardReleaseBuildConfig")
+    workingDir = rootProject.projectDir
+    if (System.getProperty("os.name").lowercase().contains("windows")) {
+        commandLine("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/verify_release_security.ps1")
+    } else {
+        commandLine("bash", "scripts/verify_release_security.sh")
+    }
+}
+
 val verifyStandardReleaseSecurity = tasks.register("verifyStandardReleaseSecurity") {
     group = "verification"
     description = "Garantiza que standardRelease tiene ALLOW_DEFAULT_TEST_RIDE_KEY=false y DEV_PANEL_ENABLED=false"
     dependsOn("generateStandardReleaseBuildConfig")
+    dependsOn(verifyReleaseSigningConfigured)
+    dependsOn(verifyReleaseSecurityScript)
     doLast {
         val buildConfigFile = file("build/generated/source/buildConfig/standard/release/com/rutabikersync/app/BuildConfig.java")
         check(buildConfigFile.exists()) { "BuildConfig.java para standardRelease no fue generado en ${buildConfigFile.absolutePath}" }
