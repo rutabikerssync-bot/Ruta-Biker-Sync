@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Excluir siempre el almacén cifrado de tokens de sesión (AndroidKeyStore no es transferible entre dispositivos) -->
+    <!-- T-08 (B3-4,B3-5): excluir almacenes sensibles detectados (tokens, bóveda, datos médicos/recuperación). -->
     <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
+    <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
+    <!-- Bases de datos/archivos de app pueden contener datos sensibles; revisar inventario completo en validación funcional. -->
+    <exclude domain="database" path="." />
+    <exclude domain="file" path="." />
 </full-backup-content>

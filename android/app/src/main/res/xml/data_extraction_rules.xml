@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
+        <!-- T-08 (B3-4,B3-5): excluir almacenes sensibles detectados. -->
         <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
+        <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
+        <exclude domain="database" path="." />
+        <exclude domain="file" path="." />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
+        <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
+        <exclude domain="database" path="." />
+        <exclude domain="file" path="." />
     </device-transfer>
 </data-extraction-rules>
