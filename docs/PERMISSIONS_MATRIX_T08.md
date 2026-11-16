@@ -24,7 +24,19 @@
 - **Ninguna eliminación automática en este cambio.** Requiere evidencia de no uso por flujo/flavor (incl. `fieldTest/uxTest`) y pruebas de regresión.
 - Candidatos a revisar con evidencia adicional: permisos de almacenamiento/medios legados si la app usa exclusivamente APIs modernas/scoped storage; permisos Bluetooth heredados en minSdk/targets actuales.
 
-## Almacenamiento local sensible (inventario preliminar, T-08)
+## Almacenamiento local sensible y exclusiones de backup/data extraction (T-08)
+
+**Rutas conocidas excluidas (quir?rgico, basado en inventario est?tico):**
+| Dominio | Ruta | Contenido sensible esperado | Regla |
+|---|---|---|---|
+| `sharedpref` | `rbs_encrypted_session_store.xml` | Tokens/sesi?n cifrada (no transferible entre dispositivos) | Excluido en `backup_rules.xml` y en `data_extraction_rules.xml` (cloud-backup y device-transfer) |
+| `sharedpref` | `rbs_biker_vault_local_store.xml` | Estado/local store de b?veda y datos m?dicos/recuperaci?n (seg?n `VaultRepository`) | Excluido en `backup_rules.xml` y en `data_extraction_rules.xml` (cloud-backup y device-transfer) |
+
+**No excluido (sin evidencia de rutas adicionales en inventario):** dominios `database` y `file` completos ya no se excluyen para evitar p?rdida funcional innecesaria. No se identificaron nombres concretos de BD/archivos sensibles adicionales por grep est?tico en este ticket.
+
+**P?rdida funcional / impacto:**
+- Al excluir los SharedPreferences sensibles, **no se respaldan ni transfieren** tokens de sesi?n y datos locales de b?veda/m?dicos asociados a esas rutas: tras restauraci?n/reinstalaci?n/cambio de dispositivo, el usuario puede requerir **re-autenticaci?n**, reconfiguraci?n de b?veda y/o **re-descarga/restauraci?n** de informaci?n seg?n flujos existentes.
+- Al no excluir `database`/`file` completos, se preserva la posibilidad de restaurar otros datos de app no identificados como sensibles, pero existe riesgo residual si aparecen nuevas rutas sensibles no inventariadas (requiere revisi?n en futuras iteraciones).
 - `SharedPreferences`: `rbs_encrypted_session_store.xml` (sesión/tokens cifrados), `rbs_biker_vault_local_store.xml` (bóveda/estado médico local cifrado según implementación).
 - Reglas de backup/extracción actualizadas para excluir estos prefs y, de forma conservadora, dominios `database` y `file` en cloud-backup/device-transfer hasta completar inventario fino (puede afectar restauración de datos no sensibles; decisión de producto/UX pendiente).
 

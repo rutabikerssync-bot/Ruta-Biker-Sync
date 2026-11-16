@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- T-08 (B3-4,B3-5): excluir almacenes sensibles detectados (tokens, bóveda, datos médicos/recuperación). -->
+    <!-- T-08 (B3-4,B3-5): exclusión quirúrgica de rutas sensibles conocidas (inventario estático). -->
     <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
     <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
-    <!-- Bases de datos/archivos de app pueden contener datos sensibles; revisar inventario completo en validación funcional. -->
-    <exclude domain="database" path="." />
-    <exclude domain="file" path="." />
+    <!-- No se excluyen dominios completos database/file: no hay rutas adicionales identificadas con evidencia en el inventario. Revisar si aparecen nuevas BD/archivos sensibles. -->
 </full-backup-content>
