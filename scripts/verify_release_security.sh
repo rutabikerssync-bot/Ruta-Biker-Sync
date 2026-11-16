@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -6,51 +6,107 @@ cd "$ROOT_DIR"
 fail() { echo "FAIL: $*" >&2; exit 1; }
 ok() { echo "OK: $*"; }
 
-# 5 condiciones: cleartext, networkSecurityConfig, BleMeshService, BASE_URL https, seeds
-# Artefacto requerido (merged manifest o APK/AAB release)
-MERGED=""
-for cand in \
-  "android/app/build/intermediates/merged_manifests/standardRelease/AndroidManifest.xml" \
-  "android/app/build/intermediates/merged_manifest/standardRelease/AndroidManifest.xml" \
-  "android/app/build/intermediates/merged_manifests/standardRelease/processStandardReleaseManifest/AndroidManifest.xml"; do
-  [ -f "$cand" ] && MERGED="$cand" && break
+# verify_release_security (.sh) - T-01..T-08 (condición 5)
+# Reglas de aceptación (explícitas):
+# 1) manifest fusionado standardRelease SIN usesCleartextTraffic="true" -> PASS
+# 2) manifest fusionado CON networkSecurityConfig="@xml/network_security_config" -> PASS
+# 3) BleMeshService presente Y exported="false" -> PASS; si aparece con exported="true" o sin exported -> FAIL
+# 4) EmergencyLockScreenActivity presente Y exported="false" -> PASS; ídem
+# 5) BASE_URL release empieza por https:// Y no contiene example.invalid/TODO_EXTERNAL/localhost -> PASS
+# 6) grep de StrongLeaderPass!2026/StrongMemberPass!2026 en src/main y en outputs/apk = 0 -> PASS
+# Debe FALLAR si falta manifest o BuildConfig (sin falso verde por ausencia de artefacto).
+
+mapfile -t MERGED < <(find android/app/build -type f \( -path "*standardRelease*merged_manifest*/AndroidManifest.xml" -o -path "*standardRelease*merged_manifests*/AndroidManifest.xml" \) 2>/dev/null | sort -u || true)
+[ ${#MERGED[@]} -gt 0 ] || fail "falta manifest fusionado de standardRelease. Genera el build/manifest primero (artefacto requerido, sin falso verde)."
+
+for mf in "${MERGED[@]}"; do
+  grep -Eq 'android:usesCleartextTraffic[[:space:]]*=[[:space:]]*"true"' "$mf" && fail "cleartext habilitado en $mf"
+  grep -Eq 'android:networkSecurityConfig[[:space:]]*=[[:space:]]*"@xml/network_security_config"' "$mf" || fail "networkSecurityConfig ausente o incorrecto en $mf"
 done
-if [ -z "$MERGED" ]; then
-  MERGED=$(find android/app/build -type f -path "*standardRelease*merged*AndroidManifest.xml" 2>/dev/null | head -n1 || true)
-fi
-ARTIFACT=""
-ARTIFACT=$(find android/app/build/outputs -type f \( -name "*standardRelease*.apk" -o -name "*standardRelease*.aab" \) 2>/dev/null | head -n1 || true)
-[ -n "$MERGED" ] || [ -n "$ARTIFACT" ] || fail "falta artefacto de standardRelease (merged manifest o APK/AAB). Genera el build primero."
+ok "sin cleartext y networkSecurityConfig presente en manifest(s) fusionado(s) standardRelease"
 
-# cleartext + networkSecurityConfig
-MANIFEST_SRC="android/app/src/main/AndroidManifest.xml"
-CHECK_MANIFEST="$MERGED"
-[ -z "$CHECK_MANIFEST" ] && CHECK_MANIFEST="$MANIFEST_SRC"
-grep -q 'android:usesCleartextTraffic="true"' "$CHECK_MANIFEST" && fail "cleartext habilitado en $CHECK_MANIFEST"
-grep -q 'networkSecurityConfig' "$CHECK_MANIFEST" || fail "networkSecurityConfig ausente en $CHECK_MANIFEST"
-ok "sin cleartext y networkSecurityConfig presente ($CHECK_MANIFEST)"
+check_component() {
+  local display="$1" tag="$2"; shift 2
+  local names=("$@")
+  local found_any=0 ok_any=0 bad_any=0
+  for mf in "${MERGED[@]}"; do
+    for name in "${names[@]}"; do
+      python - "$mf" "$tag" "$name" <<'PY'
+import re,sys
+path,tag,name=sys.argv[1],sys.argv[2],sys.argv[3]
+xml=open(path,encoding='utf-8',errors='replace').read()
+pat=r'<%s\b(?:(?!</%s>).)*?\bandroid:name\s*=\s*"%s"(?:(?!</%s>).)*?</%s>'%(tag,tag,re.escape(name),tag,tag)
+m=re.findall(pat,xml,flags=re.I|re.S)
+if not m:
+    print('NONE')
+    sys.exit(0)
+for b in m:
+    if re.search(r'android:exported\s*=\s*"false"',b,flags=re.I):
+        print('OK')
+    elif re.search(r'android:exported\s*=\s*"true"',b,flags=re.I) or not re.search(r'android:exported\s*=',b,flags=re.I):
+        print('BAD')
+    else:
+        print('BAD')
+PY
+    done
+  done | while read -r r; do
+    [ "$r" = "NONE" ] || found_any=1
+    [ "$r" = "OK" ] && ok_any=1
+    [ "$r" = "BAD" ] && bad_any=1
+    # communicate via files not possible in pipe easily; use markers
+    echo "$found_any $ok_any $bad_any $r"
+  done >/tmp/_rbs_comp_$$.txt 2>/dev/null || true
+  # simpler python-based aggregate
+  python - "$display" "$tag" "${MERGED[@]}" -- "${names[@]}" <<'PY'
+import re,sys
+display=sys.argv[1]; tag=sys.argv[2]
+args=sys.argv[3:]
+sep=args.index('--')
+mfs=args[:sep]; names=args[sep+1:]
+found=ok=bad=False
+for mf in mfs:
+    xml=open(mf,encoding='utf-8',errors='replace').read()
+    for name in names:
+        pat=r'<%s\b(?:(?!</%s>).)*?\bandroid:name\s*=\s*"%s"(?:(?!</%s>).)*?</%s>'%(tag,tag,re.escape(name),tag,tag)
+        for b in re.findall(pat,xml,flags=re.I|re.S):
+            found=True
+            if re.search(r'android:exported\s*=\s*"false"',b,flags=re.I): ok=True
+            elif re.search(r'android:exported\s*=\s*"true"',b,flags=re.I) or not re.search(r'android:exported\s*=',b,flags=re.I): bad=True
+if not found:
+    print('NF'); sys.exit(10)
+if bad:
+    print('BAD'); sys.exit(11)
+if not ok:
+    print('NOK'); sys.exit(12)
+print('OK')
+PY
+  rc=$?
+  case $rc in
+    0) ok "$display presente y exported=false" ;;
+    10) fail "$display no encontrado en manifests fusionados standardRelease" ;;
+    11) fail "$display aparece con exported=\"true\" o sin exported en manifest fusionado" ;;
+    12) fail "$display no está exported=\"false\" en manifests fusionados standardRelease" ;;
+    *) fail "$display: error de verificación ($rc)" ;;
+  esac
+}
 
-# BleMeshService
-grep -q 'android:name=".core.mesh.BleMeshService"' "$CHECK_MANIFEST" || fail "BleMeshService no encontrado en $CHECK_MANIFEST"
-if grep -q 'BleMeshService' "$CHECK_MANIFEST"; then
-  awk '/BleMeshService/{f=1} f&&/android:exported="false"/{ok=1} f&&/<\/service>/{exit} END{exit ok?0:1}' "$CHECK_MANIFEST" || fail "BleMeshService no est� exported=\"false\""
-fi
-ok "BleMeshService exported=false"
+check_component "BleMeshService" "service" ".core.mesh.BleMeshService" "com.rutabikersync.app.core.mesh.BleMeshService"
+check_component "EmergencyLockScreenActivity" "activity" ".feature.sos.EmergencyLockScreenActivity" "com.rutabikersync.app.feature.sos.EmergencyLockScreenActivity"
 
-# BASE_URL https
 BC="android/app/build/generated/source/buildConfig/standard/release/com/rutabikersync/app/BuildConfig.java"
-if [ -f "$BC" ]; then
-  grep -q 'String BASE_URL = "https://' "$BC" || fail "BuildConfig standardRelease BASE_URL no es https"
-  ok "BASE_URL https en BuildConfig generado"
-else
-  grep -q 'TODO_EXTERNAL_URL_PROD' android/app/build.gradle.kts && grep -q 'buildConfigField("String", "BASE_URL", "https://' android/app/build.gradle.kts || fail "BASE_URL release no configurado como https (y BuildConfig generado ausente)"
-  ok "BASE_URL release configurado como https (placeholder TODO_EXTERNAL:URL_PROD)"
+[ -f "$BC" ] || fail "falta BuildConfig de standardRelease ($BC). Artefacto requerido, sin falso verde."
+grep -Eq 'String[[:space:]]+BASE_URL[[:space:]]*=[[:space:]]*"https://' "$BC" || fail "BuildConfig standardRelease BASE_URL no empieza por https://"
+if grep -Eq 'example\.invalid|TODO_EXTERNAL|localhost' "$BC"; then
+  fail "BuildConfig standardRelease BASE_URL contiene placeholder/no permitido (example.invalid, TODO_EXTERNAL o localhost). Estado esperado mientras falte TODO_EXTERNAL:URL_PROD."
 fi
+ok "BASE_URL release https sin placeholders"
 
-# seeds
-if grep -RIn --exclude-dir=build "StrongLeaderPass!2026\|StrongMemberPass!2026" android/app/src/main >/dev/null 2>&1; then
-  fail "credenciales seed encontradas en android/app/src/main"
+if grep -RIn --exclude-dir=build --include='*.kt' --include='*.java' --include='*.xml' -e "StrongLeaderPass!2026" -e "StrongMemberPass!2026" android/app/src/main >/dev/null 2>&1; then
+  fail "credenciales seed encontradas en src/main"
 fi
-ok "sin credenciales seed en src/main"
+if [ -d "android/app/build/outputs/apk" ] && grep -Rla -e "StrongLeaderPass!2026" -e "StrongMemberPass!2026" android/app/build/outputs/apk >/dev/null 2>&1; then
+  fail "credenciales seed encontradas en outputs/apk"
+fi
+ok "sin credenciales seed en src/main y outputs/apk"
 
 echo "verify_release_security: PASS"
