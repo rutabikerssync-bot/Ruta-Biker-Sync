@@ -28,6 +28,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Voz, avisos y vibración -->
@@ -44,7 +45,10 @@
 
     <application
         android:name=".App"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="@string/app_name"
@@ -53,17 +57,72 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Intent filter para invitaciones QR de Ruta Biker Sync (RULES R2.2, R3.2) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rbs" />
+            </intent-filter>
         </activity>
+
+        <!-- Pantalla de bloqueo con Ficha de Emergencia (Fase 5 - P2, DESIGN.md §8) -->
+        <activity
+            android:name=".feature.sos.EmergencyLockScreenActivity"
+            android:exported="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:showOnLockScreen="true"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
 
         <!-- Servicio de rodada (mesh + GPS) habilitado en Fase 3 (Bloque 3.2) -->
         <service
             android:name=".core.mesh.RideService"
             android:exported="false"
             android:foregroundServiceType="location|connectedDevice" />
+        <!-- Servicio de Malla BLE y Radio PTT Off-Grid (T-04/B2-4): exported=false, solo intents expl?citos por componente. ADB externo: -n com.rutabikersync.app/.core.mesh.BleMeshService -a <ACTION>. -->
+        <service
+            android:name=".core.mesh.BleMeshService"
+            android:exported="false"
+            android:foregroundServiceType="location|connectedDevice|microphone">
+            <intent-filter>
+                <action android:name="com.rutabikersync.app.mesh.ACTION_START" />
+                <action android:name="com.rutabikersync.app.mesh.ACTION_STOP" />
+                <action android:name="com.rutabikersync.app.mesh.ACTION_PTT_START" />
+                <action android:name="com.rutabikersync.app.mesh.ACTION_PTT_STOP" />
+            </intent-filter>
+        </service>
+
+        <!-- Servicio de Mensajería Push Firebase Cloud Messaging (Fase 7.1.2) -->
+        <service
+            android:name=".core.network.RutaBikerMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Receiver para recordatorios de vencimiento de documentos de la Bóveda Biker (R10.1) -->
+        <receiver
+            android:name=".feature.vault.VaultAlarmReceiver"
+            android:exported="false" />
+
+        <!-- FileProvider para compartir exportaciones RGPD de datos personales (R15.5) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
