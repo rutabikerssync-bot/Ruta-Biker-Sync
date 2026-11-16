@@ -90,18 +90,47 @@ android {
     }
 
 
-    // T-03 (B5-4,B5-2): firma de release sin fallback a debug. TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI
-    // Proveer: RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD (o RBS_STORE_PASSWORD), RBS_KEY_ALIAS, RBS_KEY_PASSWORD
-    // v?a gradle.properties/local env vars/CI secrets. No hardcodear. No versionar keystore.
-    val releaseKeystorePath = (localProperties.getProperty("RBS_KEYSTORE_PATH") ?: System.getenv("RBS_KEYSTORE_PATH") ?: "").trim()
-    val releaseStorePassword = (localProperties.getProperty("RBS_KEYSTORE_PASSWORD") ?: localProperties.getProperty("RBS_STORE_PASSWORD") ?: System.getenv("RBS_KEYSTORE_PASSWORD") ?: System.getenv("RBS_STORE_PASSWORD") ?: "").trim()
-    val releaseKeyAlias = (localProperties.getProperty("RBS_KEY_ALIAS") ?: System.getenv("RBS_KEY_ALIAS") ?: "").trim()
-    val releaseKeyPassword = (localProperties.getProperty("RBS_KEY_PASSWORD") ?: System.getenv("RBS_KEY_PASSWORD") ?: "").trim()
-    val releaseSigningConfigured = listOf(releaseKeystorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { it.isNotBlank() }
+    // B5-4 (ANDAMIAJE_LISTO, no cerrado): firma de release parametrizada sin fallback a debug. TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI
+    // Precedencia: (a) Propiedades Gradle: -Prbs.keystore.path, -Prbs.keystore.password, -Prbs.key.alias, -Prbs.key.password
+    //              (b) Variables de entorno: RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD, RBS_KEY_ALIAS, RBS_KEY_PASSWORD
+    // (c) Si falta cualquiera de las cuatro, el build de release DEBE fallar (configuraci?n/tarea) con mensaje claro listando lo que falta.
+    // Si el path existe como valor pero el archivo no, falla con mensaje claro. Prohibido fallback a debug signing. No versionar keystore/secretos.
+    val releaseSigningInputs = listOf(
+        "rbs.keystore.path" to "RBS_KEYSTORE_PATH",
+        "rbs.keystore.password" to "RBS_KEYSTORE_PASSWORD",
+        "rbs.key.alias" to "RBS_KEY_ALIAS",
+        "rbs.key.password" to "RBS_KEY_PASSWORD",
+    )
+    fun resolveReleaseSigning(prop: String, env: String): String =
+        (providers.gradleProperty(prop).orNull ?: System.getenv(env) ?: "").trim()
+    val releaseKeystorePath = resolveReleaseSigning("rbs.keystore.path", "RBS_KEYSTORE_PATH")
+    val releaseStorePassword = resolveReleaseSigning("rbs.keystore.password", "RBS_KEYSTORE_PASSWORD")
+    val releaseKeyAlias = resolveReleaseSigning("rbs.key.alias", "RBS_KEY_ALIAS")
+    val releaseKeyPassword = resolveReleaseSigning("rbs.key.password", "RBS_KEY_PASSWORD")
+    val releaseSigningMissing = releaseSigningInputs.filter { (p, e) -> resolveReleaseSigning(p, e).isBlank() }
+        .map { (p, e) -> "-P$p / $e" }
+    val releaseSigningReady = releaseSigningMissing.isEmpty()
+    val releaseSigningKeystoreMissingFile = releaseSigningReady && !file(releaseKeystorePath).exists()
+    val isReleaseTaskRequested = gradle.startParameter.taskNames.any {
+        it.contains("Release", ignoreCase = true) || it.contains("bundleStandard", ignoreCase = true) || it.contains("assembleStandard", ignoreCase = true)
+    }
+    if (isReleaseTaskRequested) {
+        if (!releaseSigningReady) {
+            error(
+                "B5-4 FALLO DE FIRMA RELEASE (configuraci?n): faltan secretos/propiedades: ${releaseSigningMissing.joinToString(", ")}. " +
+                "Proveer -Prbs.keystore.path/-Prbs.keystore.password/-Prbs.key.alias/-Prbs.key.password o " +
+                "RBS_KEYSTORE_PATH/RBS_KEYSTORE_PASSWORD/RBS_KEY_ALIAS/RBS_KEY_PASSWORD. " +
+                "TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI. Prohibido fallback a debug signing."
+            )
+        }
+        if (releaseSigningKeystoreMissingFile) {
+            error("B5-4 FALLO DE FIRMA RELEASE (configuraci?n): keystore no encontrado en '$releaseKeystorePath'. TODO_EXTERNAL:KEYSTORE")
+        }
+    }
 
     signingConfigs {
         create("release") {
-            if (releaseSigningConfigured) {
+            if (releaseSigningReady) {
                 storeFile = file(releaseKeystorePath)
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
@@ -144,6 +173,7 @@ android {
             buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:3000\"")
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             // T-02/B1-4: BASE_URL release (prop rbs.prod.url > env RBS_PROD_URL > fallback .invalid que bloquea release).
             buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
             isMinifyEnabled = true       // ofuscaci?n R8 (app de c?digo cerrado)
@@ -183,33 +213,30 @@ androidComponents {
 
 val verifyReleaseSigningConfigured = tasks.register("verifyReleaseSigningConfigured") {
     group = "verification"
-    description = "Falla si standardRelease no tiene signingConfig de release válida (T-03, sin fallback a debug)"
+    description = "Falla si standardRelease no tiene firma release v?lida (B5-4, sin fallback a debug). ANDAMIAJE_LISTO."
     doLast {
-        val localProps = Properties().apply {
-            val localPropertiesFile = rootProject.file("local.properties")
-            if (localPropertiesFile.exists()) {
-                localPropertiesFile.inputStream().use { stream -> load(stream) }
-            }
-        }
-        val missing = mutableListOf<String>()
-        fun pick(prop: String, env: String, altEnv: String? = null): String {
-            val v = (localProps.getProperty(prop) ?: System.getenv(env) ?: (altEnv?.let { System.getenv(it) }) ?: "").trim()
-            if (v.isBlank()) missing += "$prop/$env"
-            return v
-        }
-        val path = pick("RBS_KEYSTORE_PATH", "RBS_KEYSTORE_PATH")
-        pick("RBS_KEYSTORE_PASSWORD", "RBS_KEYSTORE_PASSWORD", "RBS_STORE_PASSWORD")
-        pick("RBS_KEY_ALIAS", "RBS_KEY_ALIAS")
-        pick("RBS_KEY_PASSWORD", "RBS_KEY_PASSWORD")
+        fun resolve(prop: String, env: String): String =
+            (providers.gradleProperty(prop).orNull ?: System.getenv(env) ?: "").trim()
+        val inputs = listOf(
+            Triple("rbs.keystore.path", "RBS_KEYSTORE_PATH", "path"),
+            Triple("rbs.keystore.password", "RBS_KEYSTORE_PASSWORD", "storePassword"),
+            Triple("rbs.key.alias", "RBS_KEY_ALIAS", "keyAlias"),
+            Triple("rbs.key.password", "RBS_KEY_PASSWORD", "keyPassword"),
+        )
+        val values = inputs.associate { (p, e, _) -> "$p/$e" to resolve(p, e) }
+        val missing = values.filterValues { it.isBlank() }.keys.toList()
         check(missing.isEmpty()) {
-            "FALLO DE FIRMA RELEASE (T-03): faltan secretos/propiedades: ${missing.joinToString()}. " +
-            "Proveer RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD (o RBS_STORE_PASSWORD), RBS_KEY_ALIAS, RBS_KEY_PASSWORD. " +
+            "B5-4 FALLO DE FIRMA RELEASE: faltan secretos/propiedades: ${missing.joinToString(", ")}. " +
+            "Proveer -Prbs.keystore.path, -Prbs.keystore.password, -Prbs.key.alias, -Prbs.key.password " +
+            "o RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD, RBS_KEY_ALIAS, RBS_KEY_PASSWORD. " +
             "TODO_EXTERNAL:KEYSTORE TODO_EXTERNAL:CI. Prohibido fallback a debug signing."
         }
-        check(path.isNotBlank() && file(path).exists()) {
-            "FALLO DE FIRMA RELEASE (T-03): keystore no encontrado en '$path'. TODO_EXTERNAL:KEYSTORE"
+        val ksPath = resolve("rbs.keystore.path", "RBS_KEYSTORE_PATH")
+        check(file(ksPath).exists()) {
+            "B5-4 FALLO DE FIRMA RELEASE: keystore no encontrado en '$ksPath'. " +
+            "TODO_EXTERNAL:KEYSTORE. Prohibido fallback a debug signing."
         }
-        logger.lifecycle("✓ Configuración de firma release presente (keystore y secretos provistos).")
+        logger.lifecycle("? B5-4: configuraci?n de firma release presente (4 variables provistas y keystore existente).")
     }
 }
 
