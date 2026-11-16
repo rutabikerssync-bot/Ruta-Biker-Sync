@@ -76,7 +76,7 @@
         <!-- Pantalla de bloqueo con Ficha de Emergencia (Fase 5 - P2, DESIGN.md §8) -->
         <activity
             android:name=".feature.sos.EmergencyLockScreenActivity"
-            android:exported="true"
+            android:exported="false"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:showOnLockScreen="true"
