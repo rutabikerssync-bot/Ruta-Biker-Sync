@@ -1,4 +1,5 @@
 import java.io.ByteArrayOutputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -6,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -30,6 +32,14 @@ android {
         stdout.toString().trim().isNotEmpty()
     }.getOrDefault(false)
 
+    val localProperties = Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            load(localPropertiesFile.inputStream())
+        }
+    }
+    val mapboxToken = localProperties.getProperty("mapbox.token") ?: System.getenv("MAPBOX_TOKEN") ?: ""
+
     defaultConfig {
         applicationId = "com.rutabikersync.app"
         minSdk = 26          // Android 8.0; BLE extendido requiere 26+ (se comprueba en ejecución)
@@ -39,6 +49,7 @@ android {
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
         buildConfigField("boolean", "GIT_DIRTY", "$gitDirty")
         buildConfigField("boolean", "UX_TEST_MODE", "false")
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -82,12 +93,16 @@ android {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
+            // T-02 (B1-4): localhost solo en debug (overlay cleartext habilitado en src/debug).
+            buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:3000\"")
         }
         release {
             isMinifyEnabled = true       // ofuscación R8 (app de código cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "false")
+            // T-02 (B1-4): HTTPS obligatorio en release. TODO_EXTERNAL:URL_PROD - reemplazar por endpoint real prod/staging.
+            buildConfigField("String", "BASE_URL", "\"https://TODO_EXTERNAL_URL_PROD.example.invalid\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -103,6 +118,9 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -167,9 +185,21 @@ dependencies {
     implementation(libs.play.integrity)
     implementation(libs.maplibre)
     implementation(libs.tink)
+    implementation(libs.concentus)
+    // 5.2: Autenticación biométrica (Fase 5 — VaultBiometricGate)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment.ktx)
+    // 6.0: Google Sign-In via Credential Manager
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services)
+    implementation(libs.google.id)
     implementation(libs.mlkit.barcode)
     implementation(libs.zxing.core)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // 7.1.2: Notificaciones Push FCM
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

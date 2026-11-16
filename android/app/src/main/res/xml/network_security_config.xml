@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- T-01 (B1-1,B1-2,B1-3,B4-5): TLS por defecto en release; sin cleartext global. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!-- Excepciones de dominio local solo si son estrictamente necesarias; NUNCA global. -->
+</network-security-config>

@@ -1,11 +1,16 @@
 package com.rutabikersync.app.core.network
 
+import com.rutabikersync.app.BuildConfig
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import java.io.BufferedReader
 import java.io.OutputStreamWriter
@@ -17,10 +22,55 @@ import java.net.URL
  * Soporta autenticación con Authorization: Bearer <accessToken> (D35) y cabecera x-user-id de respaldo.
  */
 class ClubApiClient(
-    var baseUrl: String = "http://10.0.2.2:3000",
+    baseUrl: String = BuildConfig.BASE_URL,
     val tokenStore: TokenCipherStore = KeystoreEncryptedTokenStore()
 ) {
+    var baseUrl: String = baseUrl
+        set(value) {
+            field = normalizeAndValidateBaseUrl(value)
+        }
+
+    init {
+        this.baseUrl = baseUrl
+    }
+    companion object {
+        /**
+         * URL base por variante/build (T-02). Debug: localhost. Release: HTTPS (TODO_EXTERNAL:URL_PROD).
+         */
+        val DEFAULT_BASE_URL: String get() = BuildConfig.BASE_URL
+
+        internal fun normalizeAndValidateBaseUrl(value: String): String {
+            val normalized = value.trim().trimEnd('/')
+            require(normalized.isNotBlank()) { "BASE_URL must not be blank" }
+            if (!BuildConfig.DEBUG && !normalized.startsWith("https://", ignoreCase = true)) {
+                throw IllegalArgumentException("Release builds require an https BASE_URL (T-02/B1-4)")
+            }
+            return normalized
+        }
+
+        /**
+         * Estrategia de configuración de URL base centralizada:
+         * - Desarrollo USB con adb reverse: "http://127.0.0.1:3000"
+         * - Desarrollo Wi-Fi local: "http://192.168.1.144:3000" (cambiar por IP de la máquina)
+         * - Emulador oficial Android: "http://10.0.2.2:3000"
+         * - Staging / Producción: "https://api.rutabikersync.com"
+         */
+
+        @Volatile
+        private var instance: ClubApiClient? = null
+
+        fun getInstance(): ClubApiClient {
+            return instance ?: synchronized(this) {
+                instance ?: ClubApiClient().also { instance = it }
+            }
+        }
+    }
+
     private val json = Json { ignoreUnknownKeys = true }
+
+    suspend fun checkHealth(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/health", null)
+    }
 
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
@@ -39,9 +89,71 @@ class ClubApiClient(
 
     var currentUserId: String? = null
 
+    var appContext: android.content.Context? = null
+
+    fun initContext(context: android.content.Context) {
+        appContext = context.applicationContext
+        ensureAuthenticatedUser()
+    }
+
+    fun ensureAuthenticatedUser() {
+        val ctx = appContext ?: return
+        try {
+            val prefs = ctx.getSharedPreferences("rbs_auth_prefs", android.content.Context.MODE_PRIVATE)
+            val savedUid = prefs.getString("user_id", null)
+            if (!savedUid.isNullOrBlank() && (currentUserId.isNullOrBlank() || currentUserId?.startsWith("u-") == true)) {
+                currentUserId = savedUid
+            }
+        } catch (_: Throwable) {}
+    }
+
+    suspend fun attemptSilentReauth(): Boolean {
+        // 1. Intentar refresh si existe refreshToken (D40)
+        val rt = refreshToken
+        if (!rt.isNullOrBlank()) {
+            val refRes = refreshSession(rt)
+            if (refRes.getOrNull()?.isSuccess == true && !accessToken.isNullOrBlank()) {
+                return true
+            }
+        }
+        // 2. Intentar silent login si hay usuario autenticado en preferencias privadas
+        val ctx = appContext ?: return false
+        return try {
+            val prefs = ctx.getSharedPreferences("rbs_auth_prefs", android.content.Context.MODE_PRIVATE)
+            if (!prefs.getBoolean("is_authenticated", false)) return false
+            val email = prefs.getString("user_email", null) ?: return false
+            val displayName = prefs.getString("user_display_name", null) ?: email.substringBefore("@")
+            val isLeader = prefs.getString("account_type", "") == "LEADER"
+            val loginRes = login(
+                email = email,
+                password = null,
+                displayName = displayName,
+                countryCode = "VE",
+                acceptedTermsAndConvivencia = true,
+                activateLeaderDemo = isLeader
+            )
+            val success = loginRes.getOrNull()?.isSuccess == true
+            if (success) {
+                loginRes.getOrNull()?.body?.let { b ->
+                    val backendUid: String? = (b["user"] as? JsonObject)?.get("id")?.let { elem ->
+                        runCatching { elem.jsonPrimitive.contentOrNull }.getOrNull()
+                    } ?: runCatching { b["token"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+                    if (!backendUid.isNullOrBlank()) {
+                        currentUserId = backendUid
+                        prefs.edit().putString("user_id", backendUid).apply()
+                    }
+                }
+            }
+            success
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     data class ApiResponse(
         val statusCode: Int,
-        val body: JsonObject?
+        val body: JsonObject?,
+        val retryAfterSeconds: Long? = null
     ) {
         val isSuccess: Boolean get() = statusCode in 200..299
     }
@@ -71,6 +183,12 @@ class ClubApiClient(
                 apiRes.body["refreshToken"]?.let {
                     val rt = (it as? kotlinx.serialization.json.JsonPrimitive)?.content
                     if (!rt.isNullOrBlank()) refreshToken = rt
+                }
+                val backendUid: String? = (apiRes.body["user"] as? JsonObject)?.get("id")?.let { elem ->
+                    runCatching { elem.jsonPrimitive.contentOrNull }.getOrNull()
+                } ?: runCatching { apiRes.body["token"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+                if (!backendUid.isNullOrBlank()) {
+                    currentUserId = backendUid
                 }
             }
         }
@@ -111,6 +229,58 @@ class ClubApiClient(
 
     suspend fun getMyProfile(): Result<ApiResponse> = withContext(Dispatchers.IO) {
         executeRequest("GET", "/v1/users/me", null)
+    }
+
+    suspend fun checkAppVersion(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/app/version", null)
+    }
+
+    suspend fun updateEnrichedProfile(profile: com.rutabikersync.app.feature.auth.UserProfile): Result<ApiResponse> =
+        withContext(Dispatchers.IO) {
+            val payload = buildJsonObject {
+                put("aliasBiker", profile.aliasBiker)
+                put("pinColorHex", profile.pinColorHex)
+                put("motorcycleBrand", profile.motorcycleBrand)
+                put("motorcycleModel", profile.motorcycleModel)
+                if (profile.motorcycleDisplacement > 0) put("motorcycleDisplacement", profile.motorcycleDisplacement)
+                if (profile.motorcycleYear > 0) put("motorcycleYear", profile.motorcycleYear)
+                if (profile.motorcycleColor.isNotBlank()) put("motorcycleColor", profile.motorcycleColor)
+                if (profile.motorcycleSerial.isNotBlank()) put("motorcycleSerial", profile.motorcycleSerial)
+                put("profileVisibility", profile.profileVisibility.name)
+                put("motorcycleVisibility", profile.motorcycleVisibility.name)
+                if (!profile.photoBase64.isNullOrBlank()) put("photoBase64", profile.photoBase64)
+                if (!profile.motorcyclePhotoBase64.isNullOrBlank()) put("motorcyclePhotoBase64", profile.motorcyclePhotoBase64)
+            }
+            executeRequest("PUT", "/v1/users/profile", payload)
+        }
+
+    suspend fun uploadProfilePhoto(photoBase64: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            put("photoBase64", photoBase64)
+        }
+        executeRequest("POST", "/v1/users/photo", payload)
+    }
+
+    suspend fun uploadMotorcyclePhoto(photoBase64: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            put("photoBase64", photoBase64)
+        }
+        executeRequest("POST", "/v1/users/motorcycle-photo", payload)
+    }
+
+    suspend fun submitSupportReport(
+        subject: String,
+        message: String,
+        screenshotBase64: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            put("subject", subject)
+            put("message", message)
+            if (!screenshotBase64.isNullOrBlank()) {
+                put("screenshotBase64", screenshotBase64)
+            }
+        }
+        executeRequest("POST", "/v1/support/report", payload)
     }
 
     suspend fun updateMyProfile(
@@ -160,18 +330,80 @@ class ClubApiClient(
             executeRequest("DELETE", "/v1/groups/$groupId/leaders/$leaderUserId", null)
         }
 
+    suspend fun expelMember(groupId: String, memberUserId: String): Result<ApiResponse> =
+        withContext(Dispatchers.IO) {
+            executeRequest("DELETE", "/v1/groups/$groupId/members/$memberUserId", null)
+        }
+
     suspend fun getMyInvitations(): Result<ApiResponse> = withContext(Dispatchers.IO) {
         executeRequest("GET", "/v1/invitations/me", null)
     }
 
-    suspend fun sendInvitation(
+    suspend fun getGroupInvitations(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/invitations", null)
+    }
+
+    suspend fun updateMemberRoleOrStatus(
         groupId: String,
-        invitedUserId: String,
-        statusKind: String
+        memberUserId: String,
+        statusKind: String?,
+        clubRole: String?
     ): Result<ApiResponse> = withContext(Dispatchers.IO) {
         val payload = buildJsonObject {
-            put("invitedUserId", invitedUserId)
+            if (statusKind != null) put("statusKind", statusKind)
+            if (clubRole != null) {
+                put("clubRole", clubRole)
+            } else {
+                put("clubRole", kotlinx.serialization.json.JsonNull)
+            }
+        }
+        executeRequest("PATCH", "/v1/groups/$groupId/members/$memberUserId", payload)
+    }
+
+    suspend fun updateGroupProfile(
+        groupId: String,
+        colorsDescription: String?,
+        clubSiglas: String?,
+        traditionType: String?,
+        directivaScope: String?,
+        directivaRegion: String?,
+        motto: String?,
+        city: String?,
+        foundationDate: String?,
+        logoUrl: String? = null,
+        tier: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            if (colorsDescription != null) put("colorsDescription", colorsDescription)
+            if (clubSiglas != null) put("clubSiglas", clubSiglas)
+            if (traditionType != null) put("traditionType", traditionType)
+            if (directivaScope != null) put("directivaScope", directivaScope)
+            if (directivaRegion != null) put("directivaRegion", directivaRegion)
+            if (motto != null) put("motto", motto)
+            if (city != null) put("city", city)
+            if (foundationDate != null) put("foundationDate", foundationDate)
+            if (logoUrl != null) put("logoUrl", logoUrl)
+            if (tier != null) put("tier", tier)
+        }
+        executeRequest("PUT", "/v1/groups/$groupId/profile", payload)
+    }
+
+    suspend fun sendInvitation(
+        groupId: String,
+        invitedUserId: String? = null,
+        statusKind: String,
+        invitationType: String = "hermandad",
+        customId: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            if (invitedUserId != null && invitedUserId.isNotBlank()) {
+                put("invitedUserId", invitedUserId)
+            }
             put("statusKind", statusKind)
+            put("invitationType", invitationType)
+            if (customId != null && customId.isNotBlank()) {
+                put("customId", customId)
+            }
         }
         executeRequest("POST", "/v1/groups/$groupId/invitations", payload)
     }
@@ -202,13 +434,272 @@ class ClubApiClient(
             executeRequest("POST", "/v1/invitations/$invitationId/decline", buildJsonObject {})
         }
 
-    private fun executeRequest(
+    suspend fun getConsents(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/users/me/consents", null)
+    }
+
+    suspend fun updateConsent(
+        kind: String,
+        granted: Boolean,
+        groupId: String? = null,
+        policyVersion: String = "1.0"
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            put("kind", kind)
+            put("granted", granted)
+            if (groupId != null) put("groupId", groupId)
+            put("policyVersion", policyVersion)
+        }
+        executeRequest("POST", "/v1/users/me/consents", payload)
+    }
+
+    suspend fun exportUserData(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("${baseUrl.trimEnd('/')}/v1/users/me/export")
+            val conn = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 5_000
+                readTimeout = 8_000
+                setRequestProperty("Accept", "application/json")
+                accessToken?.let { setRequestProperty("Authorization", "Bearer $it") }
+                currentUserId?.let { setRequestProperty("x-user-id", it) }
+            }
+            val code = conn.responseCode
+            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
+            val text = stream?.bufferedReader(Charsets.UTF_8)?.use(BufferedReader::readText).orEmpty()
+            if (code in 200..299) {
+                Result.success(text)
+            } else {
+                Result.failure(IllegalStateException("HTTP $code: $text"))
+            }
+        } catch (e: Throwable) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteUserAccount(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("DELETE", "/v1/users/me", null)
+    }
+
+    suspend fun createModerationReport(
+        groupId: String,
+        reportedUserId: String,
+        rideId: String?,
+        reason: String,
+        note: String?
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("reportedUserId", reportedUserId)
+            rideId?.let { put("rideId", it) }
+            put("reason", reason)
+            note?.let { put("note", it) }
+        }
+        executeRequest("POST", "/v1/groups/$groupId/reports", body)
+    }
+
+    suspend fun getModerationReports(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/reports", null)
+    }
+
+    suspend fun resolveModerationReport(
+        groupId: String,
+        reportId: String,
+        resolution: String?,
+        state: String
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            resolution?.let { put("resolution", it) }
+            put("state", state)
+        }
+        executeRequest("POST", "/v1/groups/$groupId/reports/$reportId/resolve", body)
+    }
+
+    suspend fun getLeaderVotes(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/votes", null)
+    }
+
+    suspend fun proposeLeaderVote(
+        groupId: String,
+        proposal: String,
+        targetId: String?
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("proposal", proposal)
+            targetId?.let { put("targetId", it) }
+        }
+        executeRequest("POST", "/v1/groups/$groupId/votes", body)
+    }
+
+    suspend fun castLeaderVoteBallot(
+        voteId: String,
+        approve: Boolean
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("approve", approve)
+        }
+        executeRequest("POST", "/v1/votes/$voteId/ballot", body)
+    }
+
+    // -------------------------------------------------------------------------
+    // Fase 5 · Bóveda Biker E2EE (RULES.md §15, MEMORY.md D69)
+    // -------------------------------------------------------------------------
+
+    suspend fun uploadVaultDocument(
+        docType: String,
+        ciphertext: String,
+        iv: String,
+        authTag: String,
+        userSalt: String,
+        title: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("docType", docType)
+            put("ciphertext", ciphertext)
+            put("iv", iv)
+            put("authTag", authTag)
+            put("userSalt", userSalt)
+            title?.let { put("title", it) }
+        }
+        executeRequest("POST", "/v1/vault/documents", body)
+    }
+
+    suspend fun listVaultDocuments(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/vault/documents", null)
+    }
+
+    suspend fun getVaultDocument(id: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/vault/documents/$id", null)
+    }
+
+    suspend fun deleteVaultDocument(id: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("DELETE", "/v1/vault/documents/$id", null)
+    }
+
+    suspend fun requestRecoveryToken(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("POST", "/v1/vault/recovery/token", kotlinx.serialization.json.buildJsonObject {})
+    }
+
+    suspend fun uploadRecoveryKey(
+        recoveryToken: String,
+        encryptedMasterKey: String,
+        iv: String,
+        authTag: String,
+        pbkdf2Salt: String,
+        pbkdf2Iterations: Int = 100_000
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("encryptedMasterKey", encryptedMasterKey)
+            put("iv", iv)
+            put("authTag", authTag)
+            put("pbkdf2Salt", pbkdf2Salt)
+            put("pbkdf2Iterations", pbkdf2Iterations)
+        }
+        executeRequest("POST", "/v1/vault/recovery", body, mapOf("x-recovery-token" to recoveryToken))
+    }
+
+    suspend fun getRecoveryKey(recoveryToken: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/vault/recovery", null, mapOf("x-recovery-token" to recoveryToken))
+    }
+
+    suspend fun shareMedicalSheet(
+        rideId: String,
+        groupId: String,
+        ciphertext: String,
+        iv: String,
+        authTag: String,
+        durationHours: Int = 12
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("rideId", rideId)
+            put("groupId", groupId)
+            put("ciphertext", ciphertext)
+            put("iv", iv)
+            put("authTag", authTag)
+            put("durationHours", durationHours)
+        }
+        executeRequest("POST", "/v1/vault/medical/share", body)
+    }
+
+    suspend fun getEmergencyMedicalSheet(
+        targetUserId: String,
+        rideId: String
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/vault/medical/$targetUserId?rideId=$rideId", null)
+    }
+
+    suspend fun registerFcmToken(
+        token: String,
+        platform: String = "android"
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("token", token)
+            put("platform", platform)
+        }
+        executeRequest("POST", "/v1/users/fcm-token", body)
+    }
+
+    suspend fun sendTelemetryHeartbeat(
+        lat: Double,
+        lng: Double,
+        heading: Double = 0.0,
+        speedKmh: Double = 0.0
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("latitude", lat)
+            put("longitude", lng)
+            put("heading", heading)
+            put("speedKmh", speedKmh)
+        }
+        executeRequest("POST", "/v1/telemetry/heartbeat", body)
+    }
+
+    suspend fun getNearbySosAlerts(
+        lat: Double? = null,
+        lng: Double? = null,
+        radiusKm: Double = 5.0
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val query = if (lat != null && lng != null) "?lat=$lat&lng=$lng&radiusKm=$radiusKm" else "?radiusKm=$radiusKm"
+        executeRequest("GET", "/v1/sos/nearby$query", null)
+    }
+
+    suspend fun triggerSos(
+        lat: Double,
+        lng: Double,
+        hasMedicalSheet: Boolean = false,
+        radiusKm: Double = 5.0,
+        notes: String? = null,
+        source: String = "app",
+        meshPacketId: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("latitude", lat)
+            put("longitude", lng)
+            put("hasMedicalSheet", hasMedicalSheet)
+            put("radiusKm", radiusKm)
+            notes?.let { put("notes", it) }
+            put("source", source)
+            meshPacketId?.let { put("meshPacketId", it) }
+        }
+        executeRequest("POST", "/v1/sos", body)
+    }
+
+    suspend fun revokeSharedMedicalSheet(
+        rideId: String
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("DELETE", "/v1/vault/medical/share?rideId=$rideId", null)
+    }
+
+    private suspend fun executeRequest(
         method: String,
         path: String,
-        body: JsonObject?
+        body: JsonObject?,
+        extraHeaders: Map<String, String> = emptyMap(),
+        isRetry: Boolean = false
     ): Result<ApiResponse> {
         return try {
-            val url = URL("${baseUrl.trimEnd('/')}$path")
+            ensureAuthenticatedUser()
+            val safeBaseUrl = normalizeAndValidateBaseUrl(baseUrl)
+            val url = URL("$safeBaseUrl$path")
             val conn = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = method
                 connectTimeout = 5_000
@@ -216,6 +707,7 @@ class ClubApiClient(
                 setRequestProperty("Accept", "application/json")
                 accessToken?.let { setRequestProperty("Authorization", "Bearer $it") }
                 currentUserId?.let { setRequestProperty("x-user-id", it) }
+                extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
                 if (body != null) {
                     doOutput = true
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
@@ -229,6 +721,15 @@ class ClubApiClient(
             }
 
             val code = conn.responseCode
+
+            // Reintento transparente ante 401 UNAUTHORIZED (D35, D40)
+            if (code == 401 && !isRetry && path != "/v1/auth/login" && path != "/v1/auth/refresh") {
+                val reauthed = attemptSilentReauth()
+                if (reauthed) {
+                    return executeRequest(method, path, body, extraHeaders, isRetry = true)
+                }
+            }
+            val retryAfterHeader = conn.getHeaderField("Retry-After")?.toLongOrNull()
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use(BufferedReader::readText).orEmpty()
             val parsedJson = if (text.isNotBlank()) {
@@ -236,7 +737,9 @@ class ClubApiClient(
             } else {
                 null
             }
-            Result.success(ApiResponse(code, parsedJson))
+            val retryAfter = retryAfterHeader
+                ?: parsedJson?.get("retryAfter")?.jsonPrimitive?.contentOrNull?.toLongOrNull()
+            Result.success(ApiResponse(code, parsedJson, retryAfter))
         } catch (e: Throwable) {
             Result.failure(e)
         }
