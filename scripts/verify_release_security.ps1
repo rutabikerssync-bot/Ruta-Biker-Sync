@@ -12,7 +12,7 @@ function Ok($msg) { Write-Host "OK: $msg" }
 # 2) manifest fusionado CON networkSecurityConfig="@xml/network_security_config" -> PASS
 # 3) BleMeshService presente Y exported="false" -> PASS; si aparece con exported="true" o sin exported -> FAIL
 # 4) EmergencyLockScreenActivity presente Y exported="false" -> PASS; ídem
-# 5) BASE_URL release empieza por https:// Y no contiene example.invalid/TODO_EXTERNAL/localhost -> PASS
+# 5) BASE_URL: PASS_REAL (https y sin example.invalid/TODO_EXTERNAL/localhost/.invalid/pending), FAIL_PLACEHOLDER (marcadores), FAIL_INSEGURO (no https)
 # 6) grep de StrongLeaderPass!2026/StrongMemberPass!2026 en src/main y en outputs/apk = 0 -> PASS
 # Debe FALLAR si falta manifest o BuildConfig (sin falso verde por ausencia de artefacto).
 
@@ -89,13 +89,16 @@ function Assert-Component($display, $tag, $names) {
 Assert-Component "BleMeshService" "service" $bleNames
 Assert-Component "EmergencyLockScreenActivity" "activity" $lockNames
 
-# 5) BASE_URL: debe existir BuildConfig de standardRelease y cumplir política estricta (placeholder NO permitido)
+# 5) BASE_URL: 3 estados (PASS_REAL / FAIL_PLACEHOLDER / FAIL_INSEGURO). Artefacto requerido.
 $bc = "android/app/build/generated/source/buildConfig/standard/release/com/rutabikersync/app/BuildConfig.java"
 if (!(Test-Path $bc)) { Fail "falta BuildConfig de standardRelease ($bc). Artefacto requerido, sin falso verde." }
 $bct = Get-Content $bc -Raw
-if ($bct -notmatch 'String\s+BASE_URL\s*=\s*"https://') { Fail "BuildConfig standardRelease BASE_URL no empieza por https://" }
-if ($bct -match 'example\.invalid|TODO_EXTERNAL|localhost') { Fail "BuildConfig standardRelease BASE_URL contiene placeholder/no permitido (example.invalid, TODO_EXTERNAL o localhost). Estado esperado mientras falte TODO_EXTERNAL:URL_PROD." }
-Ok "BASE_URL release https sin placeholders"
+$m = [regex]::Match($bct, 'String\s+BASE_URL\s*=\s*"([^"]*)"')
+if (!$m.Success) { Fail "FAIL_INSEGURO: BASE_URL no encontrada en BuildConfig standardRelease" }
+$baseUrl = $m.Groups[1].Value
+if ($baseUrl -notmatch '^https://') { Fail "FAIL_INSEGURO: BASE_URL release no empieza por https:// (esquema no TLS). Actual=$baseUrl" }
+if ($baseUrl -match 'example\.invalid|TODO_EXTERNAL|localhost|\.invalid|pending') { Fail "FAIL_PLACEHOLDER: BASE_URL release es placeholder, falta URL_PROD real (.invalid/pending/TODO_EXTERNAL/example.invalid/localhost no permitidos). Actual=$baseUrl" }
+Ok "PASS_REAL: BASE_URL release https sin placeholders"
 
 # 6) seeds: 0 en src/main y en outputs/apk
 $seedPatterns = @("StrongLeaderPass!2026", "StrongMemberPass!2026")

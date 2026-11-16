@@ -110,6 +110,32 @@ android {
         }
     }
 
+    // T-02/B1-4: BASE_URL de release parametrizada y auditable.
+    // Precedencia: (1) propiedad Gradle -Prbs.prod.url=<https://...>, (2) variable de entorno RBS_PROD_URL,
+    // (3) fallback controlado "https://rbs-pending.invalid" (bloquea release a prop?sito; no publicable).
+    // Si (1)/(2) est?n definidos deben empezar por https:// y no contener example.invalid/TODO_EXTERNAL/localhost/.invalid/pending.
+    val releaseBaseUrlProp = (providers.gradleProperty("rbs.prod.url").orNull ?: "").trim()
+    val releaseBaseUrlEnv = (System.getenv("RBS_PROD_URL") ?: "").trim()
+    val releaseBaseUrl: String = when {
+        releaseBaseUrlProp.isNotBlank() -> {
+            val u = releaseBaseUrlProp
+            require(u.startsWith("https://", ignoreCase = true)) { "B1-4 FAIL_INSEGURO: -Prbs.prod.url debe empezar por https:// (actual: $u)" }
+            require(!Regex("example\\.invalid|TODO_EXTERNAL|localhost|\\.invalid|pending", RegexOption.IGNORE_CASE).containsMatchIn(u)) {
+                "B1-4 FAIL_PLACEHOLDER: -Prbs.prod.url no puede contener marcadores placeholder (example.invalid/TODO_EXTERNAL/localhost/.invalid/pending). Actual: $u"
+            }
+            u
+        }
+        releaseBaseUrlEnv.isNotBlank() -> {
+            val u = releaseBaseUrlEnv
+            require(u.startsWith("https://", ignoreCase = true)) { "B1-4 FAIL_INSEGURO: RBS_PROD_URL debe empezar por https:// (actual: $u)" }
+            require(!Regex("example\\.invalid|TODO_EXTERNAL|localhost|\\.invalid|pending", RegexOption.IGNORE_CASE).containsMatchIn(u)) {
+                "B1-4 FAIL_PLACEHOLDER: RBS_PROD_URL no puede contener marcadores placeholder (example.invalid/TODO_EXTERNAL/localhost/.invalid/pending). Actual: $u"
+            }
+            u
+        }
+        else -> "https://rbs-pending.invalid" // LISTO_PARA_URL_REAL: fallback intencional, gate regla 5 debe fallar hasta proveer URL real
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
@@ -118,12 +144,12 @@ android {
             buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:3000\"")
         }
         release {
-            isMinifyEnabled = true       // ofuscación R8 (app de código cerrado)
+            // T-02/B1-4: BASE_URL release (prop rbs.prod.url > env RBS_PROD_URL > fallback .invalid que bloquea release).
+            buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
+            isMinifyEnabled = true       // ofuscaci?n R8 (app de c?digo cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "false")
-            // T-02 (B1-4): HTTPS obligatorio en release. TODO_EXTERNAL:URL_PROD - reemplazar por endpoint real prod/staging.
-            buildConfigField("String", "BASE_URL", "\"https://TODO_EXTERNAL_URL_PROD.example.invalid\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -157,11 +183,17 @@ androidComponents {
 
 val verifyReleaseSigningConfigured = tasks.register("verifyReleaseSigningConfigured") {
     group = "verification"
-    description = "Falla si standardRelease no tiene signingConfig de release v?lida (T-03, sin fallback a debug)"
+    description = "Falla si standardRelease no tiene signingConfig de release válida (T-03, sin fallback a debug)"
     doLast {
+        val localProps = Properties().apply {
+            val localPropertiesFile = rootProject.file("local.properties")
+            if (localPropertiesFile.exists()) {
+                localPropertiesFile.inputStream().use { stream -> load(stream) }
+            }
+        }
         val missing = mutableListOf<String>()
         fun pick(prop: String, env: String, altEnv: String? = null): String {
-            val v = (localProperties.getProperty(prop) ?: System.getenv(env) ?: (altEnv?.let { System.getenv(it) }) ?: "").trim()
+            val v = (localProps.getProperty(prop) ?: System.getenv(env) ?: (altEnv?.let { System.getenv(it) }) ?: "").trim()
             if (v.isBlank()) missing += "$prop/$env"
             return v
         }
@@ -177,7 +209,7 @@ val verifyReleaseSigningConfigured = tasks.register("verifyReleaseSigningConfigu
         check(path.isNotBlank() && file(path).exists()) {
             "FALLO DE FIRMA RELEASE (T-03): keystore no encontrado en '$path'. TODO_EXTERNAL:KEYSTORE"
         }
-        logger.lifecycle("? Configuraci?n de firma release presente (keystore y secretos provistos).")
+        logger.lifecycle("✓ Configuración de firma release presente (keystore y secretos provistos).")
     }
 }
 
@@ -185,13 +217,14 @@ val verifyReleaseSigningConfigured = tasks.register("verifyReleaseSigningConfigu
 
 val verifyReleaseSecurityScript = tasks.register<Exec>("verifyReleaseSecurityScript") {
     group = "verification"
-    description = "Ejecuta scripts/verify_release_security (.sh/.ps1) - condici?n 5 T-01..T-08"
+    description = "Ejecuta scripts/verify_release_security (.sh/.ps1) - condición 5 T-01..T-08"
     dependsOn("generateStandardReleaseBuildConfig")
-    workingDir = rootProject.projectDir
+    val repoRoot = rootProject.projectDir.parentFile
+    workingDir = repoRoot
     if (System.getProperty("os.name").lowercase().contains("windows")) {
-        commandLine("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/verify_release_security.ps1")
+        commandLine("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", repoRoot.resolve("scripts/verify_release_security.ps1").absolutePath)
     } else {
-        commandLine("bash", "scripts/verify_release_security.sh")
+        commandLine("bash", repoRoot.resolve("scripts/verify_release_security.sh").absolutePath)
     }
 }
 

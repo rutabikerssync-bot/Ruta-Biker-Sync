@@ -12,7 +12,7 @@ ok() { echo "OK: $*"; }
 # 2) manifest fusionado CON networkSecurityConfig="@xml/network_security_config" -> PASS
 # 3) BleMeshService presente Y exported="false" -> PASS; si aparece con exported="true" o sin exported -> FAIL
 # 4) EmergencyLockScreenActivity presente Y exported="false" -> PASS; ídem
-# 5) BASE_URL release empieza por https:// Y no contiene example.invalid/TODO_EXTERNAL/localhost -> PASS
+# 5) BASE_URL: PASS_REAL (https y sin example.invalid/TODO_EXTERNAL/localhost/.invalid/pending), FAIL_PLACEHOLDER (marcadores), FAIL_INSEGURO (no https)
 # 6) grep de StrongLeaderPass!2026/StrongMemberPass!2026 en src/main y en outputs/apk = 0 -> PASS
 # Debe FALLAR si falta manifest o BuildConfig (sin falso verde por ausencia de artefacto).
 
@@ -95,11 +95,13 @@ check_component "EmergencyLockScreenActivity" "activity" ".feature.sos.Emergency
 
 BC="android/app/build/generated/source/buildConfig/standard/release/com/rutabikersync/app/BuildConfig.java"
 [ -f "$BC" ] || fail "falta BuildConfig de standardRelease ($BC). Artefacto requerido, sin falso verde."
-grep -Eq 'String[[:space:]]+BASE_URL[[:space:]]*=[[:space:]]*"https://' "$BC" || fail "BuildConfig standardRelease BASE_URL no empieza por https://"
-if grep -Eq 'example\.invalid|TODO_EXTERNAL|localhost' "$BC"; then
-  fail "BuildConfig standardRelease BASE_URL contiene placeholder/no permitido (example.invalid, TODO_EXTERNAL o localhost). Estado esperado mientras falte TODO_EXTERNAL:URL_PROD."
+BASE_URL_VAL=$(sed -n 's/.*String[[:space:]]\+BASE_URL[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$BC" | head -n1)
+[ -n "$BASE_URL_VAL" ] || fail "FAIL_INSEGURO: BASE_URL no encontrada en BuildConfig standardRelease"
+echo "$BASE_URL_VAL" | grep -Eq '^https://' || fail "FAIL_INSEGURO: BASE_URL release no empieza por https:// (esquema no TLS). Actual=$BASE_URL_VAL"
+if echo "$BASE_URL_VAL" | grep -Eiq 'example\.invalid|TODO_EXTERNAL|localhost|\.invalid|pending'; then
+  fail "FAIL_PLACEHOLDER: BASE_URL release es placeholder, falta URL_PROD real (.invalid/pending/TODO_EXTERNAL/example.invalid/localhost no permitidos). Actual=$BASE_URL_VAL"
 fi
-ok "BASE_URL release https sin placeholders"
+ok "PASS_REAL: BASE_URL release https sin placeholders"
 
 if grep -RIn --exclude-dir=build --include='*.kt' --include='*.java' --include='*.xml' -e "StrongLeaderPass!2026" -e "StrongMemberPass!2026" android/app/src/main >/dev/null 2>&1; then
   fail "credenciales seed encontradas en src/main"

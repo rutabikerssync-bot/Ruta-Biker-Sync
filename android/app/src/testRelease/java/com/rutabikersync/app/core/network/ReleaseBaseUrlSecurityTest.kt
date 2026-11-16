@@ -1,16 +1,29 @@
-﻿package com.rutabikersync.app.core.network
+package com.rutabikersync.app.core.network
 
 import com.rutabikersync.app.BuildConfig
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class ReleaseBaseUrlSecurityTest {
     @Test
-    fun `standardRelease BASE_URL uses https and no placeholders`() {
+    fun `standardRelease BASE_URL policy PASS_REAL FAIL_PLACEHOLDER FAIL_INSEGURO`() {
         val url = BuildConfig.BASE_URL
-        assertTrue("Release BASE_URL must start with https://. Actual=$url", url.startsWith("https://"))
-        assertTrue("Release BASE_URL must not contain example.invalid. Actual=$url", !url.contains("example.invalid", ignoreCase = true))
-        assertTrue("Release BASE_URL must not contain TODO_EXTERNAL. Actual=$url", !url.contains("TODO_EXTERNAL", ignoreCase = true))
-        assertTrue("Release BASE_URL must not contain localhost. Actual=$url", !url.contains("localhost", ignoreCase = true))
+        val isPlaceholder = Regex(
+            "example\\.invalid|TODO_EXTERNAL|localhost|\\.invalid|pending",
+            RegexOption.IGNORE_CASE
+        ).containsMatchIn(url)
+
+        if (!url.startsWith("https://")) {
+            fail("FAIL_INSEGURO: release BASE_URL no usa esquema TLS (https). Actual=$url")
+        }
+        if (isPlaceholder) {
+            fail("FAIL_PLACEHOLDER: release BASE_URL es placeholder, falta URL_PROD real (-Prbs.prod.url o RBS_PROD_URL). Actual=$url")
+        }
+
+        // PASS_REAL
+        assertTrue("PASS_REAL: release BASE_URL debe ser https. Actual=$url", url.startsWith("https://"))
+        assertFalse("PASS_REAL: release BASE_URL no debe contener marcadores placeholder. Actual=$url", isPlaceholder)
     }
 }
