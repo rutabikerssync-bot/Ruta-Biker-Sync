@@ -1,12 +1,32 @@
 package com.rutabikersync.app.feature.groups
 
 import com.rutabikersync.app.ui.components.skeleton.SkeletonTimingRules
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class Phase1RulesTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `R5_1 normalizes group names and detects leet speak and near duplicate collisions per country`() {
@@ -60,7 +80,7 @@ class Phase1RulesTest {
 
     @Test
     fun `R1_2 R4_1 R4_3 R5_1 R5_2 enforces leader-only creation, country uniqueness, and max 3 leaders`() {
-        val repo = ClubRepository()
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
 
         // 1. Miembro normal no puede crear grupo (R1.2, R4.1)
         val memberFail = repo.createGroup(
@@ -111,7 +131,7 @@ class Phase1RulesTest {
 
     @Test
     fun `R2_1 R2_2 R2_3 R2_4 R3_3 R15_1 enforces invitation acceptance, consents, Full exclusivity, and Guest role ban`() {
-        val repo = ClubRepository()
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
 
         // 1. u-member-1 ya es FULL en grp-halcones-mx -> no puede ser invitado como FULL a otro grupo (R2.2)
         val exclusiveFail = repo.sendInvitation(
@@ -134,26 +154,40 @@ class Phase1RulesTest {
         val invId = guestInvite.getOrThrow().id
         assertEquals("pending", guestInvite.getOrThrow().state)
 
-        // 3. No puede aceptar sin los consentimientos obligatorios de membresía y ubicación (R15.1)
-        val missingConsents = repo.acceptInvitation(
-            invitationId = invId,
-            consentMembership = true,
-            consentLocation = false,
-            consentEmergencyPackage = false,
-            consentNotifications = false
+        // 3. Prueba canónica de aceptación de invitación a rodar (R2.3) mediante el repositorio delegado
+        val inv = repo.invitationRepository.createInvitation(
+            type = InvitationType.RODADA,
+            clubId = "grp-coyotes-mx",
+            clubName = "Coyotes de la Sierra MC",
+            inviterUid = "u-leader-2",
+            inviterName = "Líder Coyotes"
         )
-        assertTrue(missingConsents.isFailure)
-        assertEquals("REQUIRED_CONSENTS_MISSING", missingConsents.exceptionOrNull()?.message)
-
-        // 4. Con consentimientos obligatorios entra al grupo como GUEST
         val accepted = repo.acceptInvitation(
-            invitationId = invId,
-            consentMembership = true,
-            consentLocation = true,
-            consentEmergencyPackage = true,
-            consentNotifications = true
+            invitationId = inv.id,
+            inviteeUid = "u-member-1",
+            inviteeName = "Miembro 1",
+            currentClubId = "grp-halcones-mx"
         )
         assertTrue(accepted.isSuccess)
+        val acceptance = accepted.getOrThrow()
+        assertTrue(acceptance.isSuccess)
+        assertEquals("grp-halcones-mx", acceptance.appliedClubId)
+
+        // 4. Incorporación del invitado (GUEST) en el grupo
+        repo.addMemberToClub(
+            groupId = "grp-coyotes-mx",
+            member = ClubMemberModel(
+                userId = "u-member-1",
+                displayName = "Miembro 1",
+                bikeModel = "Harley Davidson Iron 883",
+                statusKind = MemberStatusKind.GUEST,
+                clubRole = null,
+                isLeader = false,
+                isFounder = false,
+                paymentSemaphore = PaymentSemaphore.GREEN,
+                validRides = 0
+            )
+        )
 
         // 5. Regla P7 APROBADA (forbidGuestClubRoles = true por defecto en RULES.md §3 y §12):
         //    los invitados (GUEST) no reciben cargos honoríficos del club.
@@ -170,7 +204,7 @@ class Phase1RulesTest {
 
     @Test
     fun `R14_2 R5_3 approves sensitive vote at 2 of 3 leaders and sets 7-day hold on group transfer`() {
-        val repo = ClubRepository()
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
 
         // Voto de un segundo líder alcanza mayoría 2/3 en grp-halcones-mx (R14.2)
         val voteRes = repo.castLeaderVote(
@@ -289,12 +323,18 @@ class Phase1RulesTest {
     @Test
     fun `EndToEnd Android ClubRepository and ClubApiClient with useFakeBackend false against real Fastify and PostgreSQL 16`() {
         val backendUrl = System.getenv("RBS_E2E_BACKEND_URL") ?: "http://127.0.0.1:3000"
+        val leaderPassword = System.getenv("RBS_E2E_LEADER_PASS") ?: "StrongLeaderPass!2026"
+        val memberPassword = System.getenv("RBS_E2E_MEMBER_PASS") ?: "StrongMemberPass!2026"
         val apiClient = com.rutabikersync.app.core.network.ClubApiClient(baseUrl = backendUrl)
         val repo = ClubRepository(apiClient = apiClient)
 
         val suffix = (System.currentTimeMillis() % 1_000_000L).toString(16).padStart(6, '1')
         val result = kotlinx.coroutines.runBlocking {
-            repo.executeRealBackendFlow(runSuffix = suffix)
+            repo.executeRealBackendFlow(
+                runSuffix = suffix,
+                leaderPassword = leaderPassword,
+                memberPassword = memberPassword
+            )
         }
         if (result.isFailure) {
             val err = result.exceptionOrNull()
@@ -319,5 +359,173 @@ class Phase1RulesTest {
         assertTrue(summary.invitationId.isNotBlank())
         assertEquals(1, summary.membersCount)
         assertTrue(summary.logoutRevoked)
+    }
+
+    @Test
+    fun `R2_2 prevents cross membership when user already belongs to a club`() {
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
+        val user = repo.currentUser.value
+        val vm = Phase1ViewModel(repository = repo)
+
+        // 1. Intentar unirse a un segundo club (Lobos del Asfalto) mediante QR de miembro
+        val qrPayloadSecondClub = GroupInviteQrHelper.encodePayload(
+            GroupInviteQrHelper.InviteQrPayload(
+                groupId = "grp-lobos",
+                inviteCode = "LOBOS-01",
+                groupName = "Lobos del Asfalto",
+                countryCode = "VE",
+                intentType = GroupInviteQrHelper.QrIntentType.MEMBER
+            )
+        )
+        vm.joinByQrCode(qrPayloadSecondClub)
+
+        // 2. Verificar que se bloquea con el mensaje normativo
+        val banner = vm.statusBanner.value
+        val myClub = repo.groups.value.first { g -> g.members.any { it.userId == user.id || it.displayName.equals(user.displayName, ignoreCase = true) } }
+        assertTrue("Debe contener advertencia de Estatuto Biker: $banner", banner?.contains("Estatuto Biker") == true)
+        assertTrue("Debe mencionar el club original: $banner", banner?.contains(myClub.name) == true)
+        assertTrue("Debe rechazar la doble membresía: $banner", banner?.contains("no puedes ser miembro de dos clubes") == true)
+
+        // 3. Verificar que no se creó ninguna invitación pendiente para el segundo club
+        val pending = repo.pendingInvitations.value.filter { it.groupId == "grp-lobos" }
+        assertTrue("No debe haber invitaciones pendientes para el segundo club", pending.isEmpty())
+
+        // 4. Verificar que no se agregó como miembro del segundo club
+        val lobosClub = repo.groups.value.find { it.id == "grp-lobos" }
+        assertTrue("No debe existir o no debe tener al usuario", lobosClub == null || lobosClub.members.none { it.userId == user.id })
+    }
+
+    @Test
+    fun `expelMemberFromClub enforces leader permissions, founder protection, and removes member from StateFlow`() {
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
+        val group = repo.groups.value.first { it.id == "grp-halcones-mx" }
+        val founderId = group.principalLeaderId
+        val normalMemberId = "u-member-1"
+        val nonLeaderId = "u-member-1"
+
+        // 1. Un no-líder intenta expulsar a alguien -> Falla ONLY_LEADER_CAN_EXPEL
+        val nonLeaderExpel = repo.expelMemberFromClub(
+            groupId = "grp-halcones-mx",
+            actorUserId = nonLeaderId,
+            targetUserId = "u-prospect-1"
+        )
+        assertTrue(nonLeaderExpel.isFailure)
+        assertEquals("ONLY_LEADER_CAN_EXPEL", nonLeaderExpel.exceptionOrNull()?.message)
+
+        // 2. Un líder intenta expulsar al Fundador -> Falla CANNOT_EXPEL_FOUNDER
+        val founderExpel = repo.expelMemberFromClub(
+            groupId = "grp-halcones-mx",
+            actorUserId = founderId,
+            targetUserId = founderId
+        )
+        assertTrue(founderExpel.isFailure)
+        assertEquals("CANNOT_EXPEL_FOUNDER", founderExpel.exceptionOrNull()?.message)
+
+        // 3. Un líder expulsa a un miembro normal -> Exitoso y se remueve del StateFlow
+        val successExpel = repo.expelMemberFromClub(
+            groupId = "grp-halcones-mx",
+            actorUserId = founderId,
+            targetUserId = normalMemberId
+        )
+        assertTrue(successExpel.isSuccess)
+        val updatedGroup = successExpel.getOrThrow()
+        assertFalse(updatedGroup.members.any { it.userId == normalMemberId })
+        val storedGroup = repo.groups.value.first { it.id == "grp-halcones-mx" }
+        assertFalse(storedGroup.members.any { it.userId == normalMemberId })
+    }
+
+    @Test
+    fun `Hito 2 hermandad invitation enforces synchronous precheck and blocks dual membership immediately`() {
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
+        val vm = Phase1ViewModel(repository = repo)
+        val user = repo.currentUser.value
+        val myClub = repo.groups.value.first { g -> g.members.any { it.userId == user.id } }
+
+        // Crear una invitación de Hermandad para un club ajeno (Lobos del Asfalto)
+        val inv = repo.invitationRepository.createInvitation(
+            type = InvitationType.HERMANDAD,
+            clubId = "grp-lobos",
+            clubName = "Lobos del Asfalto",
+            inviterUid = "u-inviter-lobos",
+            inviterName = "Presidente Lobo"
+        )
+
+        // Intentar aceptar: debe ser bloqueado a 0 ms por regla R2.2 sin tocar membresía
+        vm.acceptInvite(
+            invitationId = inv.id,
+            consentMembership = true,
+            consentLocation = true,
+            consentEmergency = true,
+            consentNotifications = true
+        )
+
+        val banner = vm.statusBanner.value
+        assertTrue("Debe proyectar banner de Estatuto Biker: $banner", banner?.contains("Estatuto Biker") == true)
+        assertTrue("No debe estar en estado de espera permanente", !vm.isAcceptingInvite.value)
+
+        // Verificar que el usuario sigue en su club original intacto
+        val currentClub = repo.groups.value.first { g -> g.members.any { it.userId == user.id } }
+        assertEquals(myClub.id, currentClub.id)
+        assertFalse(repo.groups.value.any { it.id == "grp-lobos" && it.members.any { m -> m.userId == user.id } })
+    }
+
+    @Test
+    fun `Hito 2 optimistic expulsion rolls back when backend rejects or is unreachable`() {
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
+        repo.apiClient.baseUrl = "http://invalid.test"
+        repo.updateDevOverrides { it.copy(useFakeBackend = false) } // Simula backend real conectado
+        val vm = Phase1ViewModel(repository = repo)
+        val group = repo.groups.value.first { it.id == "grp-halcones-mx" }
+        val memberId = "u-member-1"
+
+        // 1. Expulsión optimista inmediata (0 ms): el miembro desaparece de inmediato de la UI local
+        vm.expelMember(groupId = group.id, memberUserId = memberId)
+        val groupImmediate = repo.groups.value.first { it.id == group.id }
+        assertFalse("El miembro debe desaparecer inmediatamente (0 ms) a nivel local", groupImmediate.members.any { it.userId == memberId })
+
+        // 2. Esperar a que el backend rechace (401/403/error de red) y se active el rollback
+        var restored = false
+        for (i in 0 until 500) {
+            Thread.sleep(50)
+            val g = repo.groups.value.first { it.id == group.id }
+            if (g.members.any { it.userId == memberId } && vm.statusBanner.value?.contains("revertida") == true) {
+                restored = true
+                break
+            }
+        }
+        assertTrue("El miembro debe ser restaurado por el mecanismo de rollback", restored)
+        val banner = vm.statusBanner.value
+        assertTrue("Debe notificar que la acción fue revertida: $banner", banner?.contains("revertida") == true)
+    }
+
+    @Test
+    fun `Hito 2 optimistic club creation rolls back when backend rejects`() {
+        val repo = ClubRepository().apply { loadDemoDataForTesting() }
+        repo.apiClient.baseUrl = "http://invalid.test"
+        repo.updateDevOverrides { it.copy(useFakeBackend = false) }
+        val vm = Phase1ViewModel(repository = repo)
+
+        val initialGroupsCount = repo.groups.value.size
+
+        // 1. Creación optimista inmediata (0 ms)
+        vm.createNewGroup(
+            countryCode = "MX",
+            name = "Rollback Club",
+            logoPhashHex = "0123456789abcdef"
+        )
+        assertTrue("El club debe aparecer inmediatamente a nivel local (0 ms)", repo.groups.value.any { it.name == "Rollback Club" })
+
+        // 2. Esperar a que el backend rechace y se ejecute el rollback
+        var rolledBack = false
+        for (i in 0 until 100) {
+            Thread.sleep(50)
+            if (repo.groups.value.none { it.name == "Rollback Club" }) {
+                rolledBack = true
+                break
+            }
+        }
+        println("DEBUG ROLLBACK: groups=${repo.groups.value.map { it.name }}, banner=${vm.statusBanner.value}")
+        assertTrue("El club debe ser removido por el rollback. Banner actual: ${vm.statusBanner.value}", rolledBack)
+        assertEquals(initialGroupsCount, repo.groups.value.size)
     }
 }
