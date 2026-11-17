@@ -127,3 +127,17 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [ ] Anunciador único probado con 5 o más nodos detectando la misma pérdida
 - [ ] Cifrado sellado probado: SOS abre con un líder, declaración exige confirmación y todo se destruye al cerrar
 - [ ] Sincronización forzada y rechazo manual de credenciales probados sin internet
+
+---
+
+## ⚠️ NOTA — Archivo obsoleto (2026-11-16)
+
+Este `docs/CHECKLIST.md` **ya no se mantiene**. La lista de verificación
+canónica está en [`CHECKLIST.md`](../CHECKLIST.md) en la raíz del repositorio,
+con las secciones D, K y §P actualizadas con los gates de seguridad de la
+auditoría 2026-11-16 (B1-1…B5-4, B3-3/4/5, B5-2) y las notas de estado de
+cada hallazgo.
+
+**No editar este archivo.** Cualquier actualización futura debe ir a
+`CHECKLIST.md` (raíz).
+
