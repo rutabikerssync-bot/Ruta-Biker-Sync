@@ -1,63 +1,35 @@
 # Informe de uso de permisos (T-08, B3-1/B3-3)
 
-Generado por grep est?tico en `android/app/src/main`.
+**Fuente:** `android/app/src/main/AndroidManifest.xml` (declaraciones) + grep estático de uso/API en `android/app/src/main` (Kotlin/Java/XML).  
+**Alcance:** evidencia estática (no runtime). **No se eliminan permisos** en este bloque. Decisión de eliminación: **producto**, con este reporte como insumo.  
+**Actualizado:** 2026-11-16 (B3-3).
 
-## android.permission.ACCESS_COARSE_LOCATION
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:21`
+## Tabla por permiso
 
-## android.permission.ACCESS_FINE_LOCATION
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:20`
+| Permiso | Uso (evidencia archivo:línea, API/símbolo) | Clasificación | Recomendación |
+|---|---|---|---|
+| `android.permission.INTERNET` | Declarado `AndroidManifest.xml:5`. Uso implícito por red/backend (p.ej. `core/network/ClubApiClient.kt`, `RutaBikerMessagingService.kt`, llamadas HTTP/API/Firebase/Mapas en `src/main`); requisito de conectividad para sincronización y servicios remotos. | **USADO** (infraestructura de red) | **MANTENER** |
+| `android.permission.ACCESS_NETWORK_STATE` | Declarado `AndroidManifest.xml:6`. **Grep estático:** sin usos de `ConnectivityManager`/`activeNetwork`/`ACCESS_NETWORK_STATE` identificados en `src/main` (búsqueda `rg -n "ACCESS_NETWORK_STATE|ConnectivityManager|activeNetwork"` → solo manifest). Posible dependencia indirecta de SDKs no evidenciada en código propio. | **NO_USADO** (en código propio, según evidencia estática) / **REVISAR_PRODUCTO** | **REVISAR_PRODUCTO** (confirmar necesidad por SDKs/flujos antes de eliminar) |
+| `android.permission.BLUETOOTH_SCAN` | Declarado `AndroidManifest.xml:9-10` (`neverForLocation`). Uso: `core/mesh/BleMeshService.kt:19,207,846,1116` (`BluetoothLeScanner`, `startScan`, check permiso); `core/mesh/RideService.kt:766,869,878,925`; `core/transport/BleAdvTransport.kt:14,159,301,303,308,311` | **USADO** (mesh BLE) | **MANTENER** |
+| `android.permission.BLUETOOTH_ADVERTISE` | Declarado `AndroidManifest.xml:11`. Uso: `core/mesh/BleMeshService.kt:763,804,1117`; `core/mesh/RideService.kt:766,870,879,926` | **USADO** (mesh BLE advertising) | **MANTENER** |
+| `android.permission.BLUETOOTH_CONNECT` | Declarado `AndroidManifest.xml:12`. Uso: `core/mesh/RideService.kt:880,927,1123-1124` (inspección/dispositivos conectados, chequeo permiso) | **USADO** / **USO_CONDICIONAL** (según flujo/dispositivo) | **MANTENER** |
+| `android.permission.BLUETOOTH` (maxSdk 30) | Declarado `AndroidManifest.xml:14`. Compatibilidad legacy Android 11-: `core/mesh/RideService.kt:768,923`, `core/mesh/BleMeshService.kt`/transporte BLE legacy APIs | **USADO** (legacy/compat) | **MANTENER** |
+| `android.permission.BLUETOOTH_ADMIN` (maxSdk 30) | Declarado `AndroidManifest.xml:15`. Uso legacy: `core/mesh/RideService.kt:768,873,883,923` | **USADO** (legacy/compat) | **MANTENER** |
+| `android.permission.ACCESS_FINE_LOCATION` | Declarado `AndroidManifest.xml:20`. Uso: mapa/rodada/servicios (`core/mesh/BleMeshService.kt:1120`, `core/mesh/RideService.kt:769,865,920,949`, `feature/livemap/LiveMapScreen.kt:460,476,534-535`, `feature/routes/ScheduleRideMapScreen.kt:731,819,829-830`, `MainActivity.kt:250,270`, `ui/navigation/MainAppScaffold.kt:747`) | **USADO** | **MANTENER** |
+| `android.permission.ACCESS_COARSE_LOCATION` | Declarado `AndroidManifest.xml:21`. Uso en solicitudes/checks junto a fine location: `core/mesh/RideService.kt:866,921,950`, `feature/livemap/LiveMapScreen.kt:461,477,535`, `feature/routes/ScheduleRideMapScreen.kt:732,820,830`, `MainActivity.kt:251`, `ui/navigation/MainAppScaffold.kt:748` | **USADO** (fallback/compat solicitud) | **MANTENER** |
+| `android.permission.FOREGROUND_SERVICE` | Declarado `AndroidManifest.xml:28`. Uso en servicios foreground mesh/ride (`core/mesh/BleMeshService.kt`, `core/mesh/RideService.kt`, manifest services `:87-101`) | **USADO** | **MANTENER** |
+| `android.permission.FOREGROUND_SERVICE_LOCATION` | Declarado `AndroidManifest.xml:29`. Uso: `BleMeshService`/`RideService` FGS types (p.ej. `BleMeshService.kt:391`, `RideService.kt:778,896`) y manifest service types | **USADO** | **MANTENER** |
+| `android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE` | Declarado `AndroidManifest.xml:30`. Uso: `BleMeshService.kt:391`, `RideService.kt:777,893` y manifest service types | **USADO** | **MANTENER** |
+| `android.permission.FOREGROUND_SERVICE_MICROPHONE` | Declarado `AndroidManifest.xml:31`. Uso: `BleMeshService.kt:395` (añade tipo cuando hay transmisión), manifest service `foregroundServiceType` incluye microphone | **USADO** / **USO_CONDICIONAL** (PTT/transmisión) | **MANTENER** |
+| `android.permission.WAKE_LOCK` | Declarado `AndroidManifest.xml:32`. Uso: `core/mesh/BleMeshService.kt:36,69,204,231,352,687-702` (PARTIAL_WAKE_LOCK), `core/mesh/RideService.kt:20,1169,1241,1312,1331,1361,1507-1519` | **USADO** | **MANTENER** |
+| `android.permission.RECORD_AUDIO` | Declarado `AndroidManifest.xml:35`. Uso: PTT/voz (`core/audio/OpusVoiceRecorder.kt:4,49,58-100` `MediaRecorder`/MIC), `core/mesh/audio/PttAudioEngine.kt:6,8,64,72-101,123,158,190,293,298` (`AudioRecord`, `VOICE_COMMUNICATION`), UI/acciones PTT en `ui/navigation/MainAppScaffold.kt`, `ui/components/PttButton.kt`, `feature/livemap/LiveMapScreen.kt` | **USADO** (PTT/voz) | **MANTENER** |
+| `android.permission.MODIFY_AUDIO_SETTINGS` | Declarado `AndroidManifest.xml:36`. Uso: `core/announcer/TtsAnnouncer.kt:6,20,36,262,280` (`AudioManager`/ducking), `core/audio/AudioDuckingManager.kt:6,20,41-58`, `core/mesh/audio/AudioFocusController.kt:5,12,22,40-58`, `core/mesh/BleMeshService.kt:30,408` | **USADO** (audio focus/ducking PTT/TTS) | **MANTENER** |
+| `android.permission.POST_NOTIFICATIONS` | Declarado `AndroidManifest.xml:37`. Uso: canales/notificaciones y FGS (`core/mesh/BleMeshService.kt`, `core/mesh/RideService.kt:779,858,906,930,1396,1492-1503`, `core/network/RutaBikerMessagingService.kt:4,13,51-103`, `App.kt:16`) | **USADO** | **MANTENER** |
+| `android.permission.VIBRATE` | Declarado `AndroidManifest.xml:38`. Uso: `core/announcer/TtsAnnouncer.kt:9,290-291`, `feature/livemap/LiveMapScreen.kt:218-234`, `feature/sos/SosCountdownManager.kt:6-176` | **USADO** | **MANTENER** |
+| `android.permission.USE_BIOMETRIC` | Declarado `AndroidManifest.xml:39`. Uso: `feature/vault/VaultBiometricGate.kt:4-5,57,135,193,205-253` (`BiometricPrompt`/`BiometricManager`) | **USADO** (bóveda) | **MANTENER** |
+| `android.permission.CAMERA` | Declarado `AndroidManifest.xml:40`. Uso: escaneo QR (`feature/qr/QrScannerHelper.kt:6,8,9,16,31,36,66` ML Kit/GMS barcode), generación/uso QR en `feature/groups/GroupInviteQrHelper.kt:160` | **USADO** (QR) | **MANTENER** |
 
-## android.permission.ACCESS_NETWORK_STATE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:6`
-
-## android.permission.BLUETOOTH
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:9`, `android/app/src/main/AndroidManifest.xml:11`, `android/app/src/main/AndroidManifest.xml:12`, `android/app/src/main/AndroidManifest.xml:14`, `android/app/src/main/AndroidManifest.xml:15`
-
-## android.permission.BLUETOOTH_ADMIN
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:15`
-
-## android.permission.BLUETOOTH_ADVERTISE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:11`
-
-## android.permission.BLUETOOTH_CONNECT
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:12`
-
-## android.permission.BLUETOOTH_SCAN
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:9`
-
-## android.permission.CAMERA
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:40`
-
-## android.permission.FOREGROUND_SERVICE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:28`, `android/app/src/main/AndroidManifest.xml:29`, `android/app/src/main/AndroidManifest.xml:30`, `android/app/src/main/AndroidManifest.xml:31`
-
-## android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:30`
-
-## android.permission.FOREGROUND_SERVICE_LOCATION
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:29`
-
-## android.permission.FOREGROUND_SERVICE_MICROPHONE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:31`
-
-## android.permission.INTERNET
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:5`
-
-## android.permission.MODIFY_AUDIO_SETTINGS
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:36`
-
-## android.permission.POST_NOTIFICATIONS
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:37`
-
-## android.permission.RECORD_AUDIO
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:35`
-
-## android.permission.USE_BIOMETRIC
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:39`
-
-## android.permission.VIBRATE
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:38`
-
-## android.permission.WAKE_LOCK
-- Evidencia (muestras): `android/app/src/main/AndroidManifest.xml:32`
+## Notas
+- **Sin eliminaciones aplicadas.** Candidatos a revisar con producto/QA: `ACCESS_NETWORK_STATE` (sin evidencia de uso directo en código propio; confirmar SDKs) y permisos legacy Bluetooth (`BLUETOOTH`/`BLUETOOTH_ADMIN`, `maxSdkVersion=30`) solo si se eleva `minSdk`/estrategia de compatibilidad (actualmente requeridos por compatibilidad).
+- Evidencia basada en grep de patrones/API; no sustituye pruebas de regresión por flavor/flujo.
+- Validación runtime (solicitud en contexto, rationale, degradación) pendiente (B3-1, ver `docs/PERMISSIONS_MATRIX_T08.md`).
