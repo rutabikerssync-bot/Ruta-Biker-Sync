@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
-        <!-- T-08 (B3-4,B3-5): exclusión quirúrgica de rutas sensibles conocidas (inventario estático). -->
+        <!-- B3-4/B3-5 (inventario docs/STORAGE_INVENTORY_T08.md): exclusiones quirúrgicas; coherente con device-transfer y backup_rules.xml. Prohibido excluir dominios completos. -->
         <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
         <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
+        <exclude domain="sharedpref" path="rbs_vault_keystore_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_sos_crypto_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_auth_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_fcm_prefs.xml" />
+        <exclude domain="database" path="ruta_biker_sync.db" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
         <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
+        <exclude domain="sharedpref" path="rbs_vault_keystore_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_sos_crypto_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_auth_prefs.xml" />
+        <exclude domain="sharedpref" path="rbs_fcm_prefs.xml" />
+        <exclude domain="database" path="ruta_biker_sync.db" />
     </device-transfer>
 </data-extraction-rules>

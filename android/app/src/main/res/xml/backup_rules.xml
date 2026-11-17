@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- T-08 (B3-4,B3-5): exclusión quirúrgica de rutas sensibles conocidas (inventario estático). -->
+    <!-- B3-4/B3-5 (inventario docs/STORAGE_INVENTORY_T08.md): exclusiones quirúrgicas de almacenes sensibles. Prohibido excluir dominios completos. -->
+    <!-- SharedPreferences sensibles (sesión, bóveda, claves SOS/bóveda, PII/auth, token FCM) -->
     <exclude domain="sharedpref" path="rbs_encrypted_session_store.xml" />
     <exclude domain="sharedpref" path="rbs_biker_vault_local_store.xml" />
-    <!-- No se excluyen dominios completos database/file: no hay rutas adicionales identificadas con evidencia en el inventario. Revisar si aparecen nuevas BD/archivos sensibles. -->
+    <exclude domain="sharedpref" path="rbs_vault_keystore_prefs.xml" />
+    <exclude domain="sharedpref" path="rbs_sos_crypto_prefs.xml" />
+    <exclude domain="sharedpref" path="rbs_auth_prefs.xml" />
+    <exclude domain="sharedpref" path="rbs_fcm_prefs.xml" />
+    <!-- Base de datos local sensible (SOS pendientes con ubicación/salud, eventos gamificación) -->
+    <exclude domain="database" path="ruta_biker_sync.db" />
 </full-backup-content>
