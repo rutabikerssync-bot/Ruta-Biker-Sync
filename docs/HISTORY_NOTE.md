@@ -105,3 +105,17 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - mapPeerTrackToMeshPeerLiveState propaga 	rack.lastRssiDbm a MeshPeerLiveState.rssiDbm; la tarjeta del monitor muestra ahora los dBm reales y las barras de señal calculadas por RssiSignalLevel.fromDbm (datos reales, sin inventar).
 - Prueba unitaria nueva 	estMapeoPropagaRssiRealDelStack (PASS): track con lastRssiDbm=-45 → peer.rssiDbm=-45, nivel EXCELLENT, 4 barras. Suite MeshConvoyStatusScreenTest completa en verde.
 - Build firmada e instalada en TECNO (098813734B105395) y Redmi (b2c398bb) con Success; force-stop aplicado en ambos.
+
+### Fix UI Chat TÃ¡ctico â€” contraste y layout (2026-11-18, commit 70da790)
+- Problema detectado en campo: el preset "â›½ Gasolinera a 2 km" aparecÃ­a ilegible sobre el acento naranja; el chip Broadcast seleccionado usaba blanco sobre `HeritageCopper` (#C86D44) con ratio real 3.67:1 (por debajo de WCAG AA 4.5:1).
+- SoluciÃ³n: nueva paleta centralizada `TacticalChatPalette.kt`:
+  - Burbuja saliente Broadcast: fondo naranja oscuro `HeritageCopperDark` (#8B3A1A) + texto blanco â†’ 7.10:1 (AA).
+  - Burbuja saliente Unicast: fondo verde oscuro `HeritageGreenLight` (#064E3B) + blanco â†’ 8.93:1 (AA), distinto tambiÃ©n en el fondo, no solo en el badge.
+  - Burbuja entrante: `DarkCardElevated` + blanco â†’ 14.00:1 (AA).
+  - Cabecera dorada 4.77:1, metadatos 5.20â€“6.55:1, badge 10.15:1.
+  - Chip Broadcast seleccionado: `HeritageCopperDark` + `TextWhite` â†’ 7.10:1 (antes 3.67:1).
+- Layout: padding del mensaje 14.dp horizontal / 10.dp vertical (antes 10.dp uniforme) y ancho mÃ¡ximo `fillMaxWidth(0.8f)`; los 6 presets siguen renderizÃ¡ndose como botones y ahora sus mensajes usan la paleta AA.
+- Tests: `TacticalChatContrastTest` nuevo (5 tests: WCAG AA de cuerpo/cabecera/meta/badge, fondos Broadcast distinto de Unicast, 6 presets AA, sanity 21:1) mas `TacticalChatScreenTest` existente â†’ `:app:testStandardDebugUnitTest` BUILD SUCCESSFUL.
+- Sin cambios en envÃ­o/recepciÃ³n, crypto ni backend. Build firmada e instalada en TECNO y Redmi con Success; force-stop aplicado.
+- Pendiente de verificaciÃ³n visual en campo: captura del chat legible con mensaje enviado/recibido (no disponible en este entorno; no se marca como verificado hasta evidencia real).
+
