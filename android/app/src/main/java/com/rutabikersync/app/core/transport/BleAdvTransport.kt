@@ -472,7 +472,7 @@ class BleAdvTransport(
         val advertiseData = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .setIncludeTxPowerLevel(false)
-            .addManufacturerData(0xFFFF, payload)
+            .addManufacturerData(0x5242, payload)
             .build()
 
         val mode = caps.resolveEffectiveMode(modeOverride)
@@ -659,7 +659,7 @@ class BleAdvTransport(
             val sr = result?.scanRecord
             val svcData = sr?.manufacturerSpecificData
             Log.e(TAG, "onScanResult: addr=${result?.device?.address} rssi=${result?.rssi} mfrDataKeys=${svcData?.size()}")
-            val bytes = sr?.getManufacturerSpecificData(0xFFFF) ?: return
+            val bytes = sr?.getManufacturerSpecificData(0x5242) ?: return
             val rssi = result.rssi
             val rawAddr = runCatching { result.device?.address }.getOrNull()
             val addrSuffix = rawAddr?.let {
@@ -679,7 +679,7 @@ class BleAdvTransport(
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             results?.forEach { res ->
-                val bytes = res.scanRecord?.getManufacturerSpecificData(0xFFFF) ?: return@forEach
+                val bytes = res.scanRecord?.getManufacturerSpecificData(0x5242) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
                 val addrSuffix = rawAddr?.let {
