@@ -200,7 +200,7 @@ fun TacticalChatScreen(
                                     selectedTargetShortId = peers.first().first
                                 }
                             },
-                            label = { Text("👤 Compañero Directo (Unicast)") },
+                            label = { Text("👤 Directo (Unicast)") },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = HeritageGreenLight,
                                 selectedLabelColor = TextWhite,
