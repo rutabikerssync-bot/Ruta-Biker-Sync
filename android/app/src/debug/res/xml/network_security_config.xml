@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Overlay SOLO debug: permite HTTP para 127.0.0.1 (adb reverse), 10.0.2.2
+         (emulador) o la IP LAN configurada con -Prbs.debug.url / RBS_DEBUG_URL.
+         El config de main mantiene TLS obligatorio en release. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

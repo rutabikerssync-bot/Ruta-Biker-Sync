@@ -1,0 +1,76 @@
+BLOQUE A — DIAGNÓSTICO Y RECUPERACIÓN DE FASTIFY — 2026-11-18
+================================================================
+
+CONCLUSIÓN
+----------
+Fastify NO estaba caído: el proceso seguía vivo en WSL2 y /health respondía 200.
+El banner rojo de la app era un problema de configuración del cliente Android:
+la build debug usaba BASE_URL=http://127.0.0.1:3000, pero el networkSecurityConfig
+de main (cleartextTrafficPermitted=false) prevalecía sobre usesCleartextTraffic=true
+del manifest debug. La app fallaba con:
+  🔴 Fastify offline (Cleartext HTTP traffic to 127.0.0.1 not permitted)
+
+Se corrigieron dos cosas:
+  1. backend/src/db/pool.ts ahora registra 0015_add_mf_tier.sql y 0016_club_profile.sql
+     (defecto latente: en una BD limpia faltarían columnas de identidad de club).
+  2. Cliente debug: BASE_URL parametrizable (-Prbs.debug.url / RBS_DEBUG_URL) y overlay
+     android/app/src/debug/res/xml/network_security_config.xml solo para debug.
+     Release conserva TLS obligatorio.
+
+POSTGRESQL 16 (WSL2, 5433)
+--------------------------
+Comando: wsl -u root -d Ubuntu -e bash -lc "pg_isready -h 127.0.0.1 -p 5433"
+Resultado: 127.0.0.1:5433 - accepting connections
+Comando: Test-NetConnection 127.0.0.1 -Port 5433 → TcpTestSucceeded: True
+
+MIGRACIONES
+-----------
+Antes: readInitMigrationSql() terminaba en 0014_profile_enrichment.sql.
+Después: incluye 0015 y 0016 en orden.
+Test: npm test -- test/migrations_registry.test.ts → 1 passed.
+Build: npm run build → OK.
+Verificación en BD (psql):
+  COLUMNS_0016 → city, club_siglas, foundation_date, motto
+  CONSTRAINT_0015 → CHECK ((tier = ANY (ARRAY['RC','MF','MG','GANG','MC'])))
+
+ARRANQUE CON LOGS PERSISTENTES
+------------------------------
+Se detuvo el daemon anterior (PID 9650, salida a /dev/pts/0 sin archivo) y se inició:
+  cd /mnt/d/Ruta-Biker-Sync/backend
+  nohup setsid env PORT=3000 \
+    PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs \
+    npm run dev >> logs/fastify_dev_20261118.log 2>&1 < /dev/null &
+Procesos observados: npm run dev → sh -c tsx watch src/index.ts → node src/index.ts.
+Logs: docs/evidence/backend_fastify_startup_20261118.log (recorte legible).
+Log completo local: backend/logs/fastify_dev_20261118.log (gitignored).
+
+PETICIONES DE PRUEBA
+--------------------
+Comando: curl.exe -sS -i http://127.0.0.1:3000/health
+Resultado: HTTP/1.1 200 OK · {"status":"ok"}
+
+Comando: curl.exe -sS -i -H 'x-user-id: 4fb8dbf0-ef56-405d-8f6f-84022429ba09' \
+         http://127.0.0.1:3000/v1/groups
+Resultado: HTTP/1.1 200 OK · ledGroups[0].name="¡Lóbos del Sur!" ·
+           foundationDate/colorSiglas/traditionType/motto presentes (columnas 0016).
+En el log aparece:
+  GET /v1/groups called for UID: 4fb8dbf0-ef56-405d-8f6f-84022429ba09
+  memberRes rows count: 0 first row: undefined
+
+CLIENTE ANDROID
+---------------
+Antes (Redmi b2c398bb, pestaña Mi Club):
+  🔴 Fastify offline (Cleartext HTTP traffic to 127.0.0.1 not permitted)
+Acción: adb -s <serial> reverse tcp:3000 tcp:3000 en ambos dispositivos.
+Build: .\gradlew.bat :app:assembleStandardDebug --no-daemon --console=plain → BUILD SUCCESSFUL.
+Firma: apksigner ... --out app-standard-debug-rbssigned.apk → OK.
+Install: adb -s <serial> install -r app-standard-debug-rbssigned.apk → Success en ambos.
+Después (Redmi b2c398bb, pestaña Mi Club):
+  🟢 Fastify online (status: ok) · PostgreSQL 16
+Evidencia: backend_fastify_ui_green_20261118.png / .xml.
+
+LÍMITES
+-------
+No se modificó GATT, criptografía ni transporte BLE.
+No se afirma que el backend "estuviera caído" por un crash: no había logs previos y el
+proceso estaba activo. El fallo observable era de configuración cleartext del cliente.

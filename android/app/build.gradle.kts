@@ -165,12 +165,26 @@ android {
         else -> "https://rbs-pending.invalid" // LISTO_PARA_URL_REAL: fallback intencional, gate regla 5 debe fallar hasta proveer URL real
     }
 
+    // BASE_URL debug parametrizable: por defecto 127.0.0.1:3000 (requiere `adb reverse tcp:3000 tcp:3000`).
+    // En dispositivos sin reverse se puede pasar -Prbs.debug.url=http://<IP_HOST>:3000 o RBS_DEBUG_URL.
+    val debugBaseUrlProp = (providers.gradleProperty("rbs.debug.url").orNull ?: "").trim()
+    val debugBaseUrlEnv = (System.getenv("RBS_DEBUG_URL") ?: "").trim()
+    val debugBaseUrl: String = when {
+        debugBaseUrlProp.isNotBlank() -> debugBaseUrlProp
+        debugBaseUrlEnv.isNotBlank() -> debugBaseUrlEnv
+        else -> "http://127.0.0.1:3000"
+    }
+    require(
+        debugBaseUrl.startsWith("http://", ignoreCase = true) ||
+            debugBaseUrl.startsWith("https://", ignoreCase = true)
+    ) { "BASE_URL debug inválida: $debugBaseUrl" }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
-            // T-02 (B1-4): localhost solo en debug (overlay cleartext habilitado en src/debug).
-            buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:3000\"")
+            // T-02 (B1-4): localhost/HTTP solo en debug (overlay cleartext habilitado en src/debug).
+            buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
         }
         release {
             signingConfig = signingConfigs.getByName("release")

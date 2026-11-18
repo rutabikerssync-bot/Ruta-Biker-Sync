@@ -58,7 +58,9 @@ export function readInitMigrationSql(): string {
     '0011_fcm_tokens.sql',
     '0012_sos_radar.sql',
     '0013_sos_mesh_bridge.sql',
-    '0014_profile_enrichment.sql'
+    '0014_profile_enrichment.sql',
+    '0015_add_mf_tier.sql',
+    '0016_club_profile.sql'
   ];
   return migrationFiles
     .map((file) => path.join(__dirname, 'migrations', file))

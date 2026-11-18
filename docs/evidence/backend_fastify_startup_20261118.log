@@ -1,0 +1,19 @@
+> ruta-biker-sync-backend@0.1.0 dev
+> tsx watch src/index.ts
+
+ℹ️ Firebase admin.credential.cert no disponible. Usando modo Stub/Test.
+✅ Base de datos PostgreSQL conectada y migraciones aplicadas.
+🧹 Cron de Purga RGPD (24h) iniciado.
+
+======================================================
+🚀 Servidor Ruta Biker Sync activo en http://localhost:3000
+🏍️ Panel Backoffice activo en http://localhost:3000/admin
+======================================================
+
+GET /v1/groups called for UID: 4fb8dbf0-ef56-405d-8f6f-84022429ba09
+memberRes rows count: 0 first row: undefined
+GET /v1/groups called for UID: 1ec5e592-5b2d-3737-9820-1107fa43bcf8
+memberRes rows count: 1 first row: { id: '9b68b42e-...', name: 'BUFALO BEIKERS', tier: 'RC', ... }
+
+[Nota: el archivo completo en backend/logs/fastify_dev_20261118.log contiene respuestas
+con logo embebido en base64; aquí se recortan esas líneas para evitar ruido.]
