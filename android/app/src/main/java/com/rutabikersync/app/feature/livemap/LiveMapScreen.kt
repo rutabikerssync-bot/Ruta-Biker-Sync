@@ -16,10 +16,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.rutabikersync.app.core.audio.AudioDuckingManager
-import com.rutabikersync.app.core.audio.OpusVoiceRecorder
-import com.rutabikersync.app.core.audio.VoiceClipModel
-import com.rutabikersync.app.core.audio.VoiceClipMeshRelay
 import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
+import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
+import com.rutabikersync.app.core.mesh.audio.PttState
 import com.rutabikersync.app.ui.components.AppIcons
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -158,31 +157,73 @@ fun LiveMapScreen(
     }
     val duckingManager = remember(context) { AudioDuckingManager(context) }
     val voicePlayerQueue = remember(context) { VoiceClipPlayerQueue(context, duckingManager, coroutineScope) }
-    val voiceMeshRelay = remember(context) { VoiceClipMeshRelay(context, voicePlayerQueue) }
-    val voiceRecorder = remember(context) { OpusVoiceRecorder(context, duckingManager) }
-
-    val recordingState by voiceRecorder.recordingState.collectAsState()
     val currentlyPlayingClip by voicePlayerQueue.currentlyPlaying.collectAsState()
     val playbackProgress by voicePlayerQueue.playbackProgress.collectAsState()
     val mutedSenders by voicePlayerQueue.mutedSenders.collectAsState()
 
-    val isRecording = recordingState is OpusVoiceRecorder.RecordingState.Recording
-    val recordingSeconds = (recordingState as? OpusVoiceRecorder.RecordingState.Recording)?.elapsedSeconds ?: 0
-    val audioAmplitude by voiceRecorder.audioAmplitude.collectAsState()
+    // Fix funcional PTT (Hito 7.0.3): el botón usa el MISMO MeshRelayEngine activo del
+    // RideService. PttAudioEngine ya implementa AudioRecord → Opus → ChaCha20 → VoicePacket
+    // y la reproducción con JitterBuffer + AudioTrack; aquí solo se cablean ambos extremos.
+    val selfShortId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
+    val activeRelayEngine = RideService.getActiveRelayEngine()
+    val pttEngine = remember(selfShortId, activeRelayEngine?.clubNetworkId) {
+        PttAudioEngine(
+            scope = coroutineScope,
+            clubNetworkId = activeRelayEngine?.clubNetworkId ?: 0x52425301u,
+            localShortId = selfShortId,
+            audioFocusController = null,
+            onSendVoicePacket = { packet ->
+                val engine = RideService.getActiveRelayEngine()
+                if (engine?.emitVoicePacket(packet) != true) {
+                    android.util.Log.w("LiveMapScreen", "VoicePacketTx abortado: no hay relayEngine activo")
+                }
+            }
+        )
+    }
+    DisposableEffect(pttEngine) {
+        onDispose { pttEngine.release() }
+    }
+    // El engine puede sustituirse al reiniciar BLE: re-suscribir la recepción de voz.
+    DisposableEffect(rideServiceState.lifecycleState, rideServiceState.isUsingSimulatedTransport, pttEngine) {
+        val unsubscribe = RideService.getActiveRelayEngine()?.onVoiceReceived { packet ->
+            pttEngine.onVoicePacketReceived(packet)
+            android.util.Log.i(
+                "LiveMapScreen",
+                "VoicePacketRx entregado al reproductor PTT frame=${packet.frameIndex}"
+            )
+        }
+        onDispose { unsubscribe?.invoke() }
+    }
+
+    val pttState by pttEngine.pttState.collectAsState()
+    val isRecording = pttState is PttState.Transmitting
+    var recordingSeconds by remember { mutableIntStateOf(0) }
+
+    // Auto-parada de 15 s y contador de la cápsula de transmisión.
+    LaunchedEffect(isRecording) {
+        if (isRecording) {
+            recordingSeconds = 0
+            while (isRecording) {
+                kotlinx.coroutines.delay(1000L)
+                recordingSeconds++
+                if (recordingSeconds >= PttAudioEngine.MAX_TALK_SECONDS) {
+                    pttEngine.stopTalking()
+                    break
+                }
+            }
+        }
+    }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            val selfMarker = state.markers.firstOrNull { it.isSelf }
-            val started = voiceRecorder.startRecording(
-                senderShortId = selfMarker?.shortId ?: 1u,
-                senderName = selfMarker?.fullName ?: "Mi Piloto",
-                senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
-            )
-            if (started) {
+            if (RideService.getActiveRelayEngine() == null) {
+                actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
+            } else {
+                pttEngine.startTalking()
                 com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent("LIVE_MAP", "PTT_TRANSMIT_START", "btn_hablar")
-                actionFeedback = "🎙 Grabando voz PTT (suelta o pulsa para enviar · máx 15 s)"
+                actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
             }
         } else {
             actionFeedback = "Se requiere permiso de micrófono para transmitir por PTT"
@@ -380,7 +421,7 @@ fun LiveMapScreen(
             fallDetector.stop()
             sosCountdownManager.resetToIdle()
             runCatching { context.unregisterReceiver(receiver) }
-            voiceRecorder.cancelRecording()
+            pttEngine.stopTalking()
             voicePlayerQueue.discardAll()
         }
     }
@@ -950,6 +991,26 @@ fun LiveMapScreen(
                 }
             }
 
+            // Indicador visual de recepción PTT (evidencia en hardware del par RX).
+            (pttState as? PttState.Receiving)?.let { incoming ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF0C4A6E))
+                        .border(1.dp, Color(0xFF38BDF8), RoundedCornerShape(10.dp))
+                        .padding(vertical = 6.dp, horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🔊 Recibiendo voz de Piloto #${incoming.senderShortId} · ${incoming.packetsReceived} tramas",
+                        color = Color(0xFFBAE6FD),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
             // Banner dinámico: Clip de voz entrante con ducking activo
             currentlyPlayingClip?.let { incoming ->
                 Box(
@@ -1282,29 +1343,20 @@ fun LiveMapScreen(
             GlovesPrimaryActionBar(
                 isSosActive = rideServiceState.isSosActive,
                 isPttActive = isRecording,
-                audioAmplitude = audioAmplitude,
                 pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
                 onTalkPttClick = {
                     if (isRecording) {
-                        val selfMarker = state.markers.firstOrNull { it.isSelf }
-                        val clip = voiceRecorder.stopRecording(
-                            senderShortId = selfMarker?.shortId ?: 1u,
-                            senderName = selfMarker?.fullName ?: "Mi Piloto",
-                            senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
+                        pttEngine.stopTalking()
+                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                            "LIVE_MAP",
+                            "PTT_TRANSMIT_STOP",
+                            "btn_hablar"
                         )
-                        if (clip != null) {
-                            coroutineScope.launch {
-                                voiceMeshRelay.broadcastLocalClip(clip)
-                            }
-                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                "LIVE_MAP",
-                                "PTT_TRANSMIT_STOP",
-                                "btn_hablar"
-                            )
-                            actionFeedback = "🎙 Clip de voz emitido al convoy (${clip.durationSeconds}s · 12 kbps Opus)"
-                        } else {
-                            actionFeedback = "Clip descartado (< 400 ms)"
-                        }
+                        val frames = (pttState as? PttState.Transmitting)?.packetsSent
+                            ?: pttEngine.voicePacketsSent.get()
+                        actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
+                    } else if (RideService.getActiveRelayEngine() == null) {
+                        actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
                     } else {
                         val hasMicPermission = ContextCompat.checkSelfPermission(
                             context,
@@ -1312,20 +1364,13 @@ fun LiveMapScreen(
                         ) == PackageManager.PERMISSION_GRANTED
 
                         if (hasMicPermission) {
-                            val selfMarker = state.markers.firstOrNull { it.isSelf }
-                            val started = voiceRecorder.startRecording(
-                                senderShortId = selfMarker?.shortId ?: 1u,
-                                senderName = selfMarker?.fullName ?: "Mi Piloto",
-                                senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
+                            pttEngine.startTalking()
+                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                "LIVE_MAP",
+                                "PTT_TRANSMIT_START",
+                                "btn_hablar"
                             )
-                            if (started) {
-                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                    "LIVE_MAP",
-                                    "PTT_TRANSMIT_START",
-                                    "btn_hablar"
-                                )
-                                actionFeedback = "🎙 Grabando voz PTT (pulsa de nuevo para enviar · máx 15 s)"
-                            }
+                            actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
                         } else {
                             audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         }

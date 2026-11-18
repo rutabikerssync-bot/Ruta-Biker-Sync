@@ -239,7 +239,11 @@ class MainActivity : ComponentActivity() {
             try {
                 startService(intent)
             } catch (ex: Exception) {
-                Log.e(TAG, "Fallo al despachar acción PTT: ${ex.message}")
+                val message = "No se pudo iniciar el PTT: ${ex.message ?: "error desconocido"}"
+                Log.e(TAG, message)
+                runCatching {
+                    android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

@@ -148,6 +148,10 @@ class BleMeshService : Service() {
     var pttAudioEngine: PttAudioEngine? = null
         private set
 
+    @Volatile
+    private var foregroundStarted = false
+    private var voiceRxUnsubscribe: (() -> Unit)? = null
+
     var relayEngine: MeshRelayEngine? = null
         private set
 
@@ -239,6 +243,61 @@ class BleMeshService : Service() {
         startMetricsReporter()
     }
 
+    /**
+     * Llama a startForeground() ANTES de cualquier operación larga. El crash
+     * ForegroundServiceDidNotStartInTimeException ocurría porque ACTION_PTT_START/STOP
+     * llegaban sin ACTION_START y nunca se promovía el servicio a foreground.
+     */
+    private fun ensureForeground() {
+        if (foregroundStarted) return
+        val notification = buildPersistentNotification(connectedCount = 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            var fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            ) {
+                fgsType = fgsType or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            }
+            startForeground(NOTIFICATION_ID, notification, fgsType)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        foregroundStarted = true
+        Log.i(TAG, "startForeground garantizado antes de procesar la acción PTT")
+    }
+
+    /**
+     * Inicializa el motor PTT aunque el servicio no haya recibido ACTION_START, cableando
+     * su salida al MeshRelayEngine activo del RideService (mismo transporte fragmentado
+     * que el chat) y su entrada a las tramas recibidas por ese engine.
+     */
+    private fun ensurePttEngineInitialized() {
+        if (pttAudioEngine != null) return
+        val active = RideService.getActiveRelayEngine()
+        val clubId = active?.clubNetworkId ?: 0x52425301u
+        val shortId = active?.localShortId ?: 1u
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        pttAudioEngine = PttAudioEngine(
+            scope = serviceScope,
+            clubNetworkId = clubId,
+            localShortId = shortId,
+            audioFocusController = AndroidAudioFocusController(audioManager),
+            onSendVoicePacket = { packet ->
+                val engine = RideService.getActiveRelayEngine()
+                val sent = engine?.emitVoicePacket(packet) == true
+                voicePacketsSentCount.incrementAndGet()
+                if (!sent) {
+                    Log.w(TAG, "VoicePacketTx descartado: no hay relayEngine activo en RideService")
+                }
+            }
+        )
+        voiceRxUnsubscribe?.invoke()
+        voiceRxUnsubscribe = active?.onVoiceReceived { packet ->
+            pttAudioEngine?.onVoicePacketReceived(packet)
+        }
+        Log.i(TAG, "PttAudioEngine inicializado club=$clubId short=$shortId sobre la malla activa")
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action ?: ACTION_START
         // Defensa en profundidad (T-04/B2-4): el servicio es no exportado, pero se validan
@@ -247,6 +306,7 @@ class BleMeshService : Service() {
             Log.w(TAG, "Acción ignorada (no permitida): $action")
             return START_STICKY
         }
+        if (action != ACTION_STOP) ensureForeground()
         when (action) {
             ACTION_STOP -> {
                 Log.i(TAG, "ACTION_STOP recibido en BleMeshService")
@@ -262,6 +322,7 @@ class BleMeshService : Service() {
             }
             ACTION_PTT_START -> {
                 Log.i(TAG, "ACTION_PTT_START recibido")
+                ensurePttEngineInitialized()
                 pttAudioEngine?.startTalking()
             }
             ACTION_PTT_STOP -> {
@@ -386,19 +447,7 @@ class BleMeshService : Service() {
     }
 
     fun startMeshService(clubId: UInt, shortId: UShort) {
-        val notification = buildPersistentNotification(connectedCount = 0)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            var fgsType = ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                val hasMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                if (hasMic) {
-                    fgsType = fgsType or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                }
-            }
-            startForeground(NOTIFICATION_ID, notification, fgsType)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
-        }
+        ensureForeground()
 
         initBluetooth()
         val bootEpoch = getNextBootEpoch()
@@ -415,10 +464,19 @@ class BleMeshService : Service() {
             localShortId = shortId,
             audioFocusController = audioFocusController,
             onSendVoicePacket = { voicePacket ->
+                val active = RideService.getActiveRelayEngine()
+                val sent = active?.emitVoicePacket(voicePacket) == true
                 voicePacketsSentCount.incrementAndGet()
-                transmitBleFrame(voicePacket.toBinary())
+                if (!sent) {
+                    Log.w(TAG, "VoicePacketTx sin engine activo: fallback alAdvertising legado")
+                    transmitBleFrame(voicePacket.toBinary())
+                }
             }
         )
+        voiceRxUnsubscribe?.invoke()
+        voiceRxUnsubscribe = RideService.getActiveRelayEngine()?.onVoiceReceived { packet ->
+            pttAudioEngine?.onVoicePacketReceived(packet)
+        }
 
         // Monitorear estado de PTT para actualizar la notificación
         serviceScope.launch {
@@ -518,8 +576,11 @@ class BleMeshService : Service() {
         engine.stopMeshEngine()
         relayEngine?.resetMetrics()
         relayEngine = null
+        voiceRxUnsubscribe?.invoke()
+        voiceRxUnsubscribe = null
         pttAudioEngine?.release()
         pttAudioEngine = null
+        foregroundStarted = false
         // R12: purgar fichas médicas y mensajes tácticos en RAM al detener el servicio
         medicalSheetStore.purgeAllOnRideClosed()
         com.rutabikersync.app.core.mesh.text.TacticalChatStore.purgeR12()

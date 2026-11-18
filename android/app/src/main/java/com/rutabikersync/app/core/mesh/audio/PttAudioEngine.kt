@@ -44,6 +44,8 @@ class PttAudioEngine(
 ) {
     companion object {
         private const val TAG = "PttAudioEngine"
+        /** Duración máxima de una ráfaga PTT (misma que OpusVoiceRecorder). */
+        const val MAX_TALK_SECONDS = 15
     }
 
     private val _pttState = MutableStateFlow<PttState>(PttState.Idle)
