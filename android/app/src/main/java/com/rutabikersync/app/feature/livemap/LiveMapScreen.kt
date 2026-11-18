@@ -69,6 +69,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import com.rutabikersync.app.feature.mesh.TacticalChatScreen
 import com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreen
 import androidx.compose.ui.text.font.FontWeight
@@ -150,6 +151,11 @@ fun LiveMapScreen(
     var reportReason by remember { mutableStateOf("dangerous") }
 
     val coroutineScope = rememberCoroutineScope()
+    val view = LocalView.current
+    DisposableEffect(rideServiceState.lifecycleState) {
+        view.keepScreenOn = rideServiceState.lifecycleState == RideLifecycleState.RUNNING
+        onDispose { view.keepScreenOn = false }
+    }
     val duckingManager = remember(context) { AudioDuckingManager(context) }
     val voicePlayerQueue = remember(context) { VoiceClipPlayerQueue(context, duckingManager, coroutineScope) }
     val voiceMeshRelay = remember(context) { VoiceClipMeshRelay(context, voicePlayerQueue) }
