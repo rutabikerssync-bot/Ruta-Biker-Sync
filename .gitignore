@@ -40,3 +40,7 @@ tools/gradle-*/
 
 # Dumps locales de pruebas de campo en hardware
 fieldtest_*/
+
+.vite/
+android/.kotlin/
+_tmp_log_inventory.txt
