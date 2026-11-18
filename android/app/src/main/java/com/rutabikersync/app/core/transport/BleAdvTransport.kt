@@ -99,6 +99,16 @@ class BleAdvTransport(
         private const val FRAGMENT_GAP_MS = 120L
         private const val FRAGMENT_REPEATS = 2
 
+        /**
+         * Voz PTT: MISMA lógica de espera (BURST_MS + GAP_MS) que el chat, pero con ráfaga
+         * corta. Con los valores del chat un VoicePacket de 80-100 B son 6 fragmentos
+         * × (1000 + 120) ms × 2 repeticiones ≈ 13 s por trama, incompatible con la
+         * latencia objetivo de 1-3 s. No se toca el codec de fragmentación ni el de audio.
+         */
+        private const val VOICE_FRAGMENT_BURST_MS = 120
+        private const val VOICE_FRAGMENT_GAP_MS = 20L
+        private const val VOICE_FRAGMENT_REPEATS = 2
+
         fun describeScanSettings(effectiveMode: String): String {
             val isExtended = effectiveMode == "EXTENDED_1M" || effectiveMode == "EXTENDED_CODED_PHY"
             return if (isExtended) {
@@ -488,23 +498,50 @@ class BleAdvTransport(
         }
     }
 
-    /** Emite un payload cifrado de texto en fragmentos de <=29 B, uno por ráfaga corta. */
+    /**
+     * Envío específico de voz PTT: usa el MISMO BleFragmentationCodec de 24 B que el chat,
+     * con prioridad VOICE y la ráfaga corta descrita en [VOICE_FRAGMENT_BURST_MS].
+     * No modifica Opus, ChaCha20-Poly1305 ni las constantes del chat.
+     */
+    suspend fun sendVoice(payload: ByteArray) {
+        sendMutex.withLock {
+            if (payload.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) {
+                sendFrame(payload, Transport.Priority.VOICE, VOICE_FRAGMENT_BURST_MS)
+            } else {
+                sendFragmented(
+                    payload = payload,
+                    priority = Transport.Priority.VOICE,
+                    burstMs = VOICE_FRAGMENT_BURST_MS,
+                    gapMs = VOICE_FRAGMENT_GAP_MS,
+                    repeats = VOICE_FRAGMENT_REPEATS
+                )
+            }
+        }
+    }
+
+    /** Emite un payload cifrado en fragmentos de <=24 B, uno por ráfaga corta. */
     @SuppressLint("MissingPermission")
-    private suspend fun sendFragmented(payload: ByteArray, priority: Transport.Priority) {
+    private suspend fun sendFragmented(
+        payload: ByteArray,
+        priority: Transport.Priority,
+        burstMs: Int = FRAGMENT_BURST_MS,
+        gapMs: Long = FRAGMENT_GAP_MS,
+        repeats: Int = FRAGMENT_REPEATS
+    ) {
         val sessionId = fragmentSessionCounter.incrementAndGet() and 0xFFFF
         val frames = BleFragmentationCodec.fragment(payload, sessionId)
         Log.i(
             TAG,
             "FragmentTx session=$sessionId bytes=${payload.size} fragments=${frames.size} " +
-                "maxBytes=${BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES}"
+                "maxBytes=${BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES} priority=$priority"
         )
-        repeat(FRAGMENT_REPEATS) {
+        repeat(repeats) {
             frames.forEach { frame ->
-                sendFrame(frame, priority, FRAGMENT_BURST_MS)
+                sendFrame(frame, priority, burstMs)
                 // sendFrame inicia la ráfaga en hardware y RETORNA enseguida: hay que esperar
                 // a que termine antes de emitir el siguiente fragmento, o se solapan y el
                 // scanner solo captura 2 de 4 (evidencia: FRAG_TX idx 0..3 en 400 ms).
-                delay(FRAGMENT_BURST_MS.toLong() + FRAGMENT_GAP_MS)
+                delay(burstMs.toLong() + gapMs)
             }
         }
     }

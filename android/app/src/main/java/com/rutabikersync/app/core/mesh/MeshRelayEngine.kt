@@ -8,6 +8,7 @@ import com.rutabikersync.app.core.mesh.sos.MedicalSheetStore
 import com.rutabikersync.app.core.mesh.sos.SosAckPacket
 import com.rutabikersync.app.core.mesh.sos.SosPacket
 import com.rutabikersync.app.core.mesh.sos.SosPublicKeyResolver
+import com.rutabikersync.app.core.mesh.audio.VoicePacket
 import com.rutabikersync.app.core.mesh.text.TextMessageCrypto
 import com.rutabikersync.app.core.mesh.text.TextMessagePacket
 import com.rutabikersync.app.core.transport.BleAdvTransport
@@ -31,6 +32,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.PriorityQueue
 import java.util.TimeZone
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.math.roundToInt
 
 /**
@@ -236,12 +238,28 @@ class MeshRelayEngine(
     val totalPacketsDroppedDuplicate = java.util.concurrent.atomic.AtomicInteger(0)
     val totalPacketsDroppedLoopback = java.util.concurrent.atomic.AtomicInteger(0)
 
+    // Métricas y suscriptores de voz PTT (fix funcional: la voz usa la malla activa).
+    val voicePacketsEmitted = java.util.concurrent.atomic.AtomicInteger(0)
+    val voicePacketsReceived = java.util.concurrent.atomic.AtomicInteger(0)
+    private val voiceReceivedCallbacks = CopyOnWriteArrayList<(VoicePacket) -> Unit>()
+
+    /**
+     * Suscribe un receptor de [VoicePacket] ya reensamblado por el transporte.
+     * Devuelve una función para cancelar la suscripción (útil desde un DisposableEffect).
+     */
+    fun onVoiceReceived(callback: (VoicePacket) -> Unit): () -> Unit {
+        if (callback !in voiceReceivedCallbacks) voiceReceivedCallbacks.add(callback)
+        return { voiceReceivedCallbacks.remove(callback) }
+    }
+
     fun resetMetrics() {
         totalPacketsReceived.set(0)
         totalPacketsRelayed.set(0)
         totalPacketsDroppedTtl.set(0)
         totalPacketsDroppedDuplicate.set(0)
         totalPacketsDroppedLoopback.set(0)
+        voicePacketsEmitted.set(0)
+        voicePacketsReceived.set(0)
         deduplicationTable.clear()
     }
 
@@ -573,6 +591,33 @@ class MeshRelayEngine(
                     jitterMs = jitterMs,
                     relayedBytes = relayedBytes,
                     isHighPriority = true
+                )
+            }
+
+            MeshHeader.TYPE_PTT_VOICE -> {
+                // La voz NO se deduplica por (sender, sequence): todos los frames de una
+                // ráfaga PTT comparten sequenceNum y solo cambia frameIndex.
+                val voicePacket = try {
+                    VoicePacket.fromBinary(rawBytes)
+                } catch (e: Exception) {
+                    return RelayDecision.DroppedMalformed("VoicePacket parsing error: ${e.message}")
+                }
+                voicePacketsReceived.incrementAndGet()
+                try {
+                    android.util.Log.i(
+                        "MeshRelayEngine",
+                        "VoicePacketRx sender=${header.senderShortId} frame=${voicePacket.frameIndex} " +
+                            "last=${voicePacket.isLastFrame} bytes=${rawBytes.size}"
+                    )
+                } catch (_: Throwable) {}
+                voiceReceivedCallbacks.forEach { callback ->
+                    runCatching { callback(voicePacket) }
+                }
+                // TTL de voz = 1: consumir localmente, nunca retransmitir (evita tormentas).
+                return RelayDecision.ConsumedLocallyTtlExhausted(
+                    finalTtl = header.currentTtl,
+                    isHighPriority = true,
+                    packetType = header.packetType
                 )
             }
 
@@ -981,6 +1026,60 @@ class MeshRelayEngine(
             ?: android.util.Log.w("MeshRelayEngine", "TextMessageTx sin relayScope: no se pudo emitir")
         refreshStateFlows()
         return packet
+    }
+
+    /**
+     * Emite un [VoicePacket] PTT por el transporte activo del RideService.
+     *
+     * El paquete YA viene cifrado con ChaCha20-Poly1305 por `PttAudioEngine`
+     * (AudioRecord → Opus → ChaCha20 → VoicePacket): aquí solo se serializa y se entrega
+     * al transporte, que aplica el MISMO `BleFragmentationCodec` de 24 B usado por el
+     * chat táctico. No se vuelve a cifrar nada: eso rompería el descifrado receptor y
+     * cambiaría la criptografía, que está fuera de este fix.
+     */
+    fun emitVoicePacket(packet: VoicePacket): Boolean {
+        val activeTransport = this.transport ?: run {
+            android.util.Log.w("MeshRelayEngine", "VoicePacketTx abortado: no hay transport activo")
+            return false
+        }
+        val bytes = packet.toBinary()
+        synchronized(this) {
+            voicePacketsEmitted.incrementAndGet()
+            packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = formatUtc(System.currentTimeMillis()),
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = packet.header.sequenceNum.toInt(),
+                    ttl = packet.header.currentTtl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = activeTransport.name,
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
+        }
+        val scope = relayScope ?: run {
+            android.util.Log.w("MeshRelayEngine", "VoicePacketTx abortado: sin relayScope")
+            return false
+        }
+        scope.launch {
+            if (activeTransport is BleAdvTransport) {
+                activeTransport.sendVoice(bytes)
+            } else {
+                activeTransport.send(bytes, Transport.Priority.VOICE)
+            }
+        }
+        try {
+            android.util.Log.i(
+                "MeshRelayEngine",
+                "VoicePacketTx frame=${packet.frameIndex} last=${packet.isLastFrame} bytes=${bytes.size}"
+            )
+        } catch (_: Throwable) {}
+        refreshStateFlows()
+        return true
     }
 
     /**
