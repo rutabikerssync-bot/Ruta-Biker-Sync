@@ -1,26 +1,45 @@
 package com.rutabikersync.app.feature.livemap
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.os.BatteryManager
+import androidx.activity.compose.BackHandler
 import androidx.core.content.ContextCompat
 import com.rutabikersync.app.BuildConfig
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import com.rutabikersync.app.core.audio.AudioDuckingManager
+import com.rutabikersync.app.core.audio.OpusVoiceRecorder
+import com.rutabikersync.app.core.audio.VoiceClipModel
+import com.rutabikersync.app.core.audio.VoiceClipMeshRelay
+import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
+import com.rutabikersync.app.ui.components.AppIcons
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -50,23 +69,50 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
+import com.rutabikersync.app.feature.mesh.TacticalChatScreen
+import com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.rutabikersync.app.core.mesh.BleMeshService
 import com.rutabikersync.app.core.mesh.RideLifecycleState
 import com.rutabikersync.app.core.mesh.RideService
-import com.rutabikersync.app.ui.components.AppIcons
+import com.rutabikersync.app.feature.sos.MeshSosReceptionDialog
 import com.rutabikersync.app.ui.components.HeritageStopRideHoldButton
-import com.rutabikersync.app.ui.theme.BikerColors
-import com.rutabikersync.app.ui.theme.HeritageTheme
+import com.rutabikersync.app.ui.theme.*
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.annotations.PolylineOptions
+import com.rutabikersync.app.feature.routes.DeviationStatus
+import com.rutabikersync.app.feature.routes.LatLngPoint
+import com.rutabikersync.app.feature.routes.RideScheduleRepository
+import com.rutabikersync.app.feature.routes.RouteDeviationDetector
+import com.rutabikersync.app.feature.routes.RoutePolylineMeshRelay
+import com.rutabikersync.app.feature.routes.StopReason
+import com.rutabikersync.app.feature.sos.EmergencyRescuePacketDialog
+import com.rutabikersync.app.feature.sos.FallDetector
+import com.rutabikersync.app.feature.sos.SosActiveBanner
+import com.rutabikersync.app.feature.sos.SosCountdownManager
+import com.rutabikersync.app.feature.sos.SosCountdownOverlay
+import com.rutabikersync.app.feature.sos.SosRepository
+import com.rutabikersync.app.feature.sos.SosTriggerType
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.BorderStroke
+import android.os.Build
+import com.rutabikersync.app.core.mesh.sos.SosProximityEngine
+import com.rutabikersync.app.core.mesh.sos.SosProximityAlert
 import kotlin.math.roundToInt
 
 /**
@@ -84,6 +130,9 @@ import kotlin.math.roundToInt
 fun LiveMapScreen(
     liveMapViewModel: LiveMapViewModel = viewModel(),
     onStopRideHoldCompleted: (() -> Unit)? = null,
+    initialShowTacticalChat: Boolean = false,
+    initialShowMeshMonitor: Boolean = false,
+    initialFocusKeyboard: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -93,13 +142,290 @@ fun LiveMapScreen(
     val uxParticipant by com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.collectAsState()
     val uxLeaderId by com.rutabikersync.app.core.uxtest.UxTestTracker.leaderShortId.collectAsState()
     var actionFeedback by remember { mutableStateOf<String?>(null) }
+    var showSignalsDialog by remember { mutableStateOf(false) }
+    var showConvoyDialog by remember { mutableStateOf(false) }
+    var showTacticalChat by remember { mutableStateOf(initialShowTacticalChat) }
+    var showMeshMonitor by remember { mutableStateOf(initialShowMeshMonitor) }
+    var reportingMarker by remember { mutableStateOf<RiderMarkerUiModel?>(null) }
+    var reportReason by remember { mutableStateOf("dangerous") }
 
-    androidx.compose.runtime.LaunchedEffect(uxParticipant, uxLeaderId) {
+    val coroutineScope = rememberCoroutineScope()
+    val duckingManager = remember(context) { AudioDuckingManager(context) }
+    val voicePlayerQueue = remember(context) { VoiceClipPlayerQueue(context, duckingManager, coroutineScope) }
+    val voiceMeshRelay = remember(context) { VoiceClipMeshRelay(context, voicePlayerQueue) }
+    val voiceRecorder = remember(context) { OpusVoiceRecorder(context, duckingManager) }
+
+    val recordingState by voiceRecorder.recordingState.collectAsState()
+    val currentlyPlayingClip by voicePlayerQueue.currentlyPlaying.collectAsState()
+    val playbackProgress by voicePlayerQueue.playbackProgress.collectAsState()
+    val mutedSenders by voicePlayerQueue.mutedSenders.collectAsState()
+
+    val isRecording = recordingState is OpusVoiceRecorder.RecordingState.Recording
+    val recordingSeconds = (recordingState as? OpusVoiceRecorder.RecordingState.Recording)?.elapsedSeconds ?: 0
+    val audioAmplitude by voiceRecorder.audioAmplitude.collectAsState()
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val selfMarker = state.markers.firstOrNull { it.isSelf }
+            val started = voiceRecorder.startRecording(
+                senderShortId = selfMarker?.shortId ?: 1u,
+                senderName = selfMarker?.fullName ?: "Mi Piloto",
+                senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
+            )
+            if (started) {
+                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent("LIVE_MAP", "PTT_TRANSMIT_START", "btn_hablar")
+                actionFeedback = "🎙 Grabando voz PTT (suelta o pulsa para enviar · máx 15 s)"
+            }
+        } else {
+            actionFeedback = "Se requiere permiso de micrófono para transmitir por PTT"
+        }
+    }
+
+    val batteryManager = remember(context) { context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager }
+    var realBatteryLevel by remember {
+        mutableIntStateOf(
+            runCatching {
+                batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)?.takeIf { it in 1..100 }
+            }.getOrNull() ?: 88
+        )
+    }
+
+    // Sistema de Emergencias y Ficha de Rescate Médico (Fase 5 - R10.2, R10.3)
+    val sosRepository = remember { SosRepository.getInstance(context) }
+    val activeSosAlerts by sosRepository.activeAlerts.collectAsState()
+    var viewingRescuePacket by remember { mutableStateOf<com.rutabikersync.app.feature.sos.EmergencyRescuePacket?>(null) }
+
+    // Recepción de SOS por Malla BLE (Hito 4 · Etapa 4)
+    val bleMeshService: BleMeshService? = remember { BleMeshService.getActiveInstance() }
+    val incomingSosMeshEvent by (bleMeshService?.incomingSosMeshEvent
+        ?: kotlinx.coroutines.flow.MutableStateFlow(null)).collectAsState()
+    var showMeshSosDialog by remember { mutableStateOf<BleMeshService.IncomingSosMeshEvent?>(null) }
+
+    LaunchedEffect(incomingSosMeshEvent) {
+        incomingSosMeshEvent?.let { event ->
+            showMeshSosDialog = event
+            actionFeedback = "🚨 SOS MESH recibido de Piloto #${event.senderShortId.toInt()} (${event.hopCount} saltos)"
+        }
+    }
+
+    // Radar SOS de Proximidad 5 km (Fase 7.1.5)
+    var activeRadarSosAlert by remember { mutableStateOf<SosProximityAlert?>(null) }
+
+    fun triggerMorseSosVibration(ctx: Context) {
+        try {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = ctx.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                ctx.getSystemService(Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(
+                    android.os.VibrationEffect.createWaveform(
+                        SosProximityEngine.SOS_MORSE_VIBRATION_PATTERN,
+                        -1
+                    )
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(
+                    SosProximityEngine.SOS_MORSE_VIBRATION_PATTERN,
+                    -1
+                )
+            }
+        } catch (_: Exception) {}
+    }
+
+    // Monitoreo del Radar SOS de proximidad (telemetría + radar 5 km)
+    LaunchedEffect(Unit) {
+        val client = com.rutabikersync.app.core.network.ClubApiClient.getInstance()
+        while (true) {
+            try {
+                val currentLat = liveMapViewModel.uiState.value.cameraLatitude
+                val currentLng = liveMapViewModel.uiState.value.cameraLongitude
+
+                // 1. Emitir telemetría efímera si el usuario está autenticado
+                if (currentLat != 0.0 && currentLng != 0.0 && (client.accessToken != null || client.currentUserId != null)) {
+                    client.sendTelemetryHeartbeat(currentLat, currentLng)
+                }
+
+                // 2. Consultar alertas SOS cercanas activas (< 5 km)
+                if (client.accessToken != null || client.currentUserId != null) {
+                    val res = client.getNearbySosAlerts(currentLat, currentLng, 5.0)
+                    res.getOrNull()?.body?.let { jsonBody ->
+                        val alertsArray = jsonBody["sosAlerts"] as? kotlinx.serialization.json.JsonArray
+                        if (alertsArray != null && alertsArray.isNotEmpty()) {
+                            val first = alertsArray[0] as? kotlinx.serialization.json.JsonObject
+                            if (first != null) {
+                                val sId = (first["id"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+                                val uId = (first["userId"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+                                val alias = (first["emitterAlias"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "Compañero Motero"
+                                val sLat = (first["latitude"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull() ?: currentLat
+                                val sLng = (first["longitude"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull() ?: currentLng
+                                val dKm = (first["distanceKm"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull() ?: 1.8
+                                val brg = (first["bearing"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: "Noreste ↗"
+                                val hasMed = (first["hasMedicalSheet"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toBooleanStrictOrNull() ?: false
+
+                                if (activeRadarSosAlert == null || activeRadarSosAlert?.sosId != sId) {
+                                    activeRadarSosAlert = SosProximityAlert(
+                                        sosId = sId,
+                                        userId = uId,
+                                        emitterAlias = alias,
+                                        latitude = sLat,
+                                        longitude = sLng,
+                                        distanceKm = dKm,
+                                        bearing = brg,
+                                        hasMedicalSheet = hasMed
+                                    )
+                                    triggerMorseSosVibration(context)
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+            kotlinx.coroutines.delay(10_000L)
+        }
+    }
+
+    val incomingSosAckEvent by (bleMeshService?.incomingSosAckEvent
+        ?: kotlinx.coroutines.flow.MutableStateFlow(null)).collectAsState()
+
+    LaunchedEffect(incomingSosAckEvent) {
+        incomingSosAckEvent?.let { ack ->
+            bleMeshService?.stopSosBroadcaster()
+            actionFeedback = "✅ SOS confirmado por Líder #${ack.ackerShortId.toInt()}"
+        }
+    }
+
+    val sosCountdownManager = remember(context) {
+        SosCountdownManager(
+            context = context,
+            coroutineScope = coroutineScope,
+            onSosConfirmed = { trigger ->
+                val selfMarker = state.markers.firstOrNull { it.isSelf }
+                RideService.dispatchTriggerSos(context, true)
+                sosRepository.emitLocalSos(
+                    senderShortId = selfMarker?.shortId ?: 1u,
+                    senderName = selfMarker?.fullName ?: "Mi Piloto",
+                    senderRole = selfMarker?.rideRole?.name ?: "LÍDER",
+                    lat = liveMapViewModel.uiState.value.cameraLatitude,
+                    lon = liveMapViewModel.uiState.value.cameraLongitude,
+                    triggerType = trigger
+                )
+                liveMapViewModel.controller.updateLocalRiderPose(
+                    latitude = liveMapViewModel.uiState.value.cameraLatitude,
+                    longitude = liveMapViewModel.uiState.value.cameraLongitude,
+                    speedKmh = 0,
+                    batteryPercent = realBatteryLevel,
+                    isSos = true
+                )
+                liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+                bleMeshService?.emitLocalSosPacket(
+                    latitude = liveMapViewModel.uiState.value.cameraLatitude,
+                    longitude = liveMapViewModel.uiState.value.cameraLongitude
+                )
+                actionFeedback = "🚨 ¡SOS ACTIVADO! Posición y ficha médica transmitidos al convoy"
+            }
+        )
+    }
+    val sosCountdownState by sosCountdownManager.countdownState.collectAsState()
+
+    // Sistema de Navegación Offline y Detección de Desvíos (Fase 4 - P1)
+    val scheduledRide by RideScheduleRepository.currentRide.collectAsState()
+    val deviationState by RouteDeviationDetector.deviationState.collectAsState()
+    val lastReceivedMeshRoute by RoutePolylineMeshRelay.lastReceivedRoute.collectAsState()
+    var showStopReasonDialog by remember { mutableStateOf(false) }
+    var showOfflineMapsScreen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(scheduledRide) {
+        scheduledRide?.selectedRoute?.waypoints?.let {
+            RouteDeviationDetector.setActiveRoutePolyline(it)
+        }
+    }
+
+    val fallDetector = remember(context) {
+        FallDetector(context) { trigger ->
+            sosCountdownManager.startCountdown(trigger)
+            actionFeedback = "⚠ ¡IMPACTO O CAÍDA DETECTADA! Iniciando cuenta regresiva de 20 s"
+        }
+    }
+
+    DisposableEffect(context) {
+        fallDetector.start()
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+                val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+                if (level >= 0 && scale > 0) {
+                    realBatteryLevel = (level * 100 / scale.toFloat()).roundToInt()
+                } else {
+                    val cap = runCatching { batteryManager?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) }.getOrNull() ?: -1
+                    if (cap in 1..100) realBatteryLevel = cap
+                }
+            }
+        }
+        context.registerReceiver(receiver, filter)
+        onDispose {
+            fallDetector.stop()
+            sosCountdownManager.resetToIdle()
+            runCatching { context.unregisterReceiver(receiver) }
+            voiceRecorder.cancelRecording()
+            voicePlayerQueue.discardAll()
+        }
+    }
+
+    LaunchedEffect(rideServiceState.lifecycleState) {
+        if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
+            val engine = RideService.getActiveRelayEngine()
+            if (engine != null) {
+                liveMapViewModel.controller.bindToMeshEngine(engine, enablePeriodicCadenceLoop = true)
+            }
+            val selfMarker = state.markers.firstOrNull { it.isSelf }
+            val isLeader = (selfMarker?.rideRole == com.rutabikersync.app.feature.livemap.RiderRideRole.LEADER) ||
+                (uxLeaderId == selfMarker?.shortId)
+            if (isLeader) {
+                bleMeshService?.medicalSheetStore?.setRescueContext(true, BleMeshService.DEFAULT_DEMO_RESCUE_KEY)
+            } else {
+                bleMeshService?.medicalSheetStore?.setRescueContext(false, null)
+                val clinicalData = com.rutabikersync.app.core.mesh.sos.MedicalRescueData(
+                    bloodType = "O+",
+                    allergies = "Penicilina",
+                    medication = "Ninguna",
+                    conditions = "Ninguna",
+                    insurancePolicy = "GMX-98231-M",
+                    iceName = "Laura Esposa",
+                    icePhone = "+525512345678"
+                )
+                bleMeshService?.emitLocalMedicalSheetViaMesh(
+                    rescueKey = BleMeshService.DEFAULT_DEMO_RESCUE_KEY,
+                    rideId = java.util.UUID.randomUUID(),
+                    clinicalData = clinicalData,
+                    ownerShortId = selfMarker?.shortId ?: 2u,
+                    seqNum = 1u
+                )
+            }
+        }
+    }
+
+    BackHandler(enabled = true) {
+        if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
+            actionFeedback = "⚠ Para finalizar la rodada mantén presionado 3 s el botón inferior"
+        } else {
+            onStopRideHoldCompleted?.invoke()
+        }
+    }
+
+    LaunchedEffect(uxParticipant, uxLeaderId) {
         val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
         liveMapViewModel.controller.updateConvoyIds(localId = localShortId, targetLeaderId = uxLeaderId)
     }
 
-    androidx.compose.runtime.LaunchedEffect(simulatedAlert) {
+    LaunchedEffect(simulatedAlert) {
         simulatedAlert?.let {
             actionFeedback = it
         }
@@ -118,7 +444,11 @@ fun LiveMapScreen(
             longitude = loc.longitude,
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
             bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
-            batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+            batteryPercent = realBatteryLevel
+        )
+        RouteDeviationDetector.updateRiderLocation(
+            location = LatLngPoint(loc.latitude, loc.longitude),
+            speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6f) else 0f
         )
         liveMapViewModel.controller.centerOnMyLocation()
         liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
@@ -215,6 +545,13 @@ fun LiveMapScreen(
             .background(Color(0xFF0B0E14))
     ) {
         // 1. Lienzo de mapa MapLibre (estilo oscuro PMTiles offline + trazo de convoy)
+        // M8: Variables de rol elevadas al scope del Box para acceso desde HUD y cápsulas
+        val selfMarker = state.markers.firstOrNull { it.isSelf }
+        val currentLeaderPin = state.leaderPin
+        val isLeader = (selfMarker?.rideRole == com.rutabikersync.app.feature.livemap.RiderRideRole.LEADER) ||
+            (uxLeaderId == selfMarker?.shortId) ||
+            (selfMarker != null && currentLeaderPin != null && selfMarker.shortId == currentLeaderPin.leaderShortId)
+
         MapLibreCorridorSurface(
             state = state,
             onSelectRider = { shortId -> liveMapViewModel.controller.selectRiderMarker(shortId) },
@@ -234,35 +571,110 @@ fun LiveMapScreen(
                     end = 12.dp
                 )
         ) {
-            // Cápsula 1: Líder con distancia y flecha
-            val leaderDist = state.leaderPin?.let { "320 m" } ?: "320 m"
-            FloatingHudCapsule(
+            // Cápsula 1: Líder con rol inteligente y distancia real
+
+            val leaderDistMeters = selfMarker?.distanceToLeaderMeters ?: 0
+            val leaderDistText = when {
+                leaderDistMeters < 1000 -> "$leaderDistMeters m"
+                else -> "%.1f km".format(leaderDistMeters / 1000f)
+            }
+            val leaderCapsuleText = if (isLeader) "👑 Eres Líder" else "Líder a $leaderDistText ↗"
+
+            HudStatusChip(
                 icon = Icons.Default.Shield,
-                iconTint = Color(0xFF10B981),
-                text = "Líder a $leaderDist ↗",
+                iconTint = if (isLeader) Color(0xFFF59E0B) else Color(0xFF10B981),
+                text = leaderCapsuleText,
                 onClick = {
-                    liveMapViewModel.controller.followLeader(
-                        nowEpochMs = System.currentTimeMillis(),
-                        scheduleAutoRevert = true
-                    )
+                    if (isLeader) {
+                        actionFeedback = "👑 Eres el Líder y Guía del Convoy"
+                    } else {
+                        liveMapViewModel.controller.followLeader(
+                            nowEpochMs = System.currentTimeMillis(),
+                            scheduleAutoRevert = true
+                        )
+                        actionFeedback = "Siguiendo posición del líder ($leaderDistText)"
+                    }
                 }
             )
 
-            // Cápsula 2: Velocidad actual en km/h
-            val currentSpeed = state.markers.firstOrNull { it.isSelf }?.speedKmh ?: 85
-            FloatingHudCapsule(
+            // Cápsula 2: Velocidad actual en km/h (GPS o crucero en simulación activa)
+            val selfSpeed = selfMarker?.speedKmh ?: 0
+            val isSimulatedRide = rideServiceState.isUsingSimulatedTransport
+            val effectiveSpeed = if (selfSpeed > 0) {
+                selfSpeed
+            } else if (isSimulatedRide && rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
+                48
+            } else {
+                0
+            }
+
+            HudStatusChip(
                 icon = Icons.Default.Speed,
-                iconTint = Color(0xFF10B981),
-                text = "$currentSpeed km/h"
+                iconTint = if (effectiveSpeed > 0) Color(0xFF10B981) else Color(0xFF9CA3AF),
+                text = "$effectiveSpeed km/h",
+                onClick = {
+                    actionFeedback = if (effectiveSpeed > 0) {
+                        "Velocidad de marcha: $effectiveSpeed km/h"
+                    } else {
+                        "Velocidad: 0 km/h · Detenido (GPS activo)"
+                    }
+                }
             )
 
-            // Cápsula 3: Nivel de batería
-            val battery = state.localBatteryPercent.coerceIn(1, 100)
-            FloatingHudCapsule(
+            // Cápsula 3: Nivel de batería real del dispositivo
+            val battery = realBatteryLevel.coerceIn(1, 100)
+            HudStatusChip(
                 icon = AppIcons.BatteryStd,
-                iconTint = if (battery < 15) Color(0xFFEAB308) else Color(0xFF10B981),
-                text = "$battery%"
+                iconTint = when {
+                    battery <= 15 -> Color(0xFFEF4444)
+                    battery <= 30 -> Color(0xFFEAB308)
+                    else -> Color(0xFF10B981)
+                },
+                text = "$battery%",
+                onClick = {
+                    actionFeedback = "Batería del dispositivo: $battery% disponible"
+                }
             )
+        }
+
+        // 2.5 Badge de Corredor Offline PMTiles a la izquierda
+        val nearestOfflineCorridor = remember(state.cameraLatitude, state.cameraLongitude) {
+            com.rutabikersync.app.feature.routes.CorridorOfflineManager.findNearestOfflineCorridor(
+                state.cameraLatitude,
+                state.cameraLongitude,
+                context
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                .border(
+                    1.2.dp,
+                    if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
+                    RoundedCornerShape(20.dp)
+                )
+                .clickable { showOfflineMapsScreen = true }
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF9CA3AF))
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (nearestOfflineCorridor != null) "OFFLINE: ${nearestOfflineCorridor.name}" else "MAPAS OFFLINE",
+                    color = if (nearestOfflineCorridor != null) EmeraldMesh else Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         // 3. Brújula circular norte flotante a la derecha
@@ -298,22 +710,30 @@ fun LiveMapScreen(
         }
 
         // 4. Contenedor inferior de Cabina de Rodada Activa (con gradiente oscuro ascendente)
+        val isDarkTheme = HeritageTheme.colors.isDark
+        val cockpitBgColors = if (isDarkTheme) {
+            listOf(
+                Color.Transparent,
+                DarkSlate950.copy(alpha = 0.85f),
+                DarkSlate950.copy(alpha = 0.98f),
+                DarkSlate950
+            )
+        } else {
+            listOf(
+                Color.Transparent,
+                HeritageSand.copy(alpha = 0.85f),
+                HeritageSand.copy(alpha = 0.98f),
+                HeritageSand
+            )
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color(0xCC0B0E14),
-                            Color(0xF20B0E14),
-                            Color(0xFF0B0E14)
-                        )
-                    )
-                )
+                .background(Brush.verticalGradient(cockpitBgColors))
+                .navigationBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 20.dp)
         ) {
             // Cápsulas intermedias sobre el mapa: Convoy (izquierda) y Seguir líder (derecha)
@@ -322,33 +742,34 @@ fun LiveMapScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Cápsula izquierda: Convoy + cantidad de riders
+                // Cápsula izquierda: Convoy + cantidad de riders (Clickable para silenciar y reportar riders R13)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF181A20).copy(alpha = 0.94f))
-                        .border(1.2.dp, Color(0xFF3E3A32), RoundedCornerShape(14.dp))
+                        .background(DarkCardElevated.copy(alpha = 0.95f))
+                        .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
+                        .clickable { showConvoyDialog = true }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Link,
                         contentDescription = "Convoy",
-                        tint = Color(0xFFE5B869),
+                        tint = HeritageCopper,
                         modifier = Modifier.size(18.dp)
                     )
                     Column {
                         Text(
                             text = "Convoy",
-                            color = Color.White,
+                            color = HeritageLeatherBrown,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             lineHeight = 12.sp
                         )
                         Text(
                             text = "${state.connectedNodesCount.coerceAtLeast(1)} riders",
-                            color = Color(0xFF9CA3AF),
+                            color = HeritageLeatherMuted,
                             fontWeight = FontWeight.Medium,
                             fontSize = 10.sp,
                             lineHeight = 11.sp
@@ -356,99 +777,580 @@ fun LiveMapScreen(
                     }
                 }
 
-                // Cápsula derecha: Botón "Seguir líder"
-                val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                if (!isLeader && currentLeaderPin != null) {
+                    // Cápsula derecha: Botón "Seguir líder"
+                    val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                if (isFollowing) HeritageCopper else HeritageCardWarm.copy(alpha = 0.95f)
+                            )
+                            .border(
+                                1.2.dp,
+                                if (isFollowing) HeritageCopperDark else HeritageBorder,
+                                RoundedCornerShape(14.dp)
+                            )
+                            .clickable {
+                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                    "LIVE_MAP",
+                                    "TAP_FOLLOW_LEADER",
+                                    "btn_seguir_lider"
+                                )
+                                liveMapViewModel.controller.followLeader(
+                                    nowEpochMs = System.currentTimeMillis(),
+                                    scheduleAutoRevert = true
+                                )
+                            }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NearMe,
+                            contentDescription = "Seguir líder",
+                            tint = if (isFollowing) Color.White else HeritageLeatherBrown,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
+                            color = if (isFollowing) Color.White else HeritageLeatherBrown,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            // Feedback o aviso de acciones tácticas (Ticker dinámico de alta visibilidad)
+            actionFeedback?.let { feedback ->
+                var isMarqueeActive by remember(feedback) { mutableStateOf(true) }
+
+                LaunchedEffect(feedback) {
+                    isMarqueeActive = true
+                    kotlinx.coroutines.delay(60_000L) // Se desplaza repetidamente durante 1 minuto
+                    isMarqueeActive = false // Al cumplirse el minuto, queda estático hasta nuevo texto
+                }
+
+                Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(
-                            if (isFollowing) Color(0xFFC99A45) else Color(0xFF181A20).copy(alpha = 0.94f)
-                        )
-                        .border(
-                            1.2.dp,
-                            if (isFollowing) Color(0xFFF3D082) else Color(0xFF3E3A32),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .clickable {
-                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                "LIVE_MAP",
-                                "TAP_FOLLOW_LEADER",
-                                "btn_seguir_lider"
+                            Brush.horizontalGradient(
+                                listOf(
+                                    DarkSlate900.copy(alpha = 0.96f),
+                                    DarkCardElevated.copy(alpha = 0.96f),
+                                    DarkSlate900.copy(alpha = 0.96f)
+                                )
                             )
-                            liveMapViewModel.controller.followLeader(
-                                nowEpochMs = System.currentTimeMillis(),
-                                scheduleAutoRevert = true
-                            )
-                        }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                        .border(1.5.dp, Color(0xFFE5B869), RoundedCornerShape(18.dp))
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.NearMe,
-                        contentDescription = "Seguir líder",
-                        tint = if (isFollowing) Color(0xFF101114) else Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
                     Text(
-                        text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
-                        color = if (isFollowing) Color(0xFF101114) else Color.White,
-                        fontWeight = FontWeight.Bold,
+                        text = feedback,
+                        color = Color(0xFFFFD580),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(
+                                if (isMarqueeActive) {
+                                    Modifier.basicMarquee(
+                                        iterations = Int.MAX_VALUE,
+                                        repeatDelayMillis = 1000,
+                                        velocity = 45.dp
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    )
+                }
+            }
+
+            // Banner dinámico: Emergencia SOS activa en el convoy
+            val topSosAlert = activeSosAlerts.firstOrNull()
+            if (topSosAlert != null) {
+                val selfId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
+                SosActiveBanner(
+                    alertEvent = topSosAlert,
+                    isSelf = topSosAlert.senderShortId == selfId,
+                    onViewPacketClick = {
+                        topSosAlert.rescuePacket?.let { packet ->
+                            sosRepository.logAccessToEmergencyPacket(
+                                sosId = topSosAlert.sosId,
+                                viewerUserId = "u-self",
+                                viewerUserName = state.markers.firstOrNull { it.isSelf }?.fullName ?: "Mi Piloto",
+                                targetRiderName = topSosAlert.senderName
+                            )
+                            viewingRescuePacket = packet
+                        }
+                    },
+                    onResolveClick = {
+                        sosRepository.resolveSos(topSosAlert.sosId)
+                        RideService.dispatchTriggerSos(context, false)
+                        bleMeshService?.stopSosBroadcaster()
+                        liveMapViewModel.controller.updateLocalRiderPose(
+                            latitude = liveMapViewModel.uiState.value.cameraLatitude,
+                            longitude = liveMapViewModel.uiState.value.cameraLongitude,
+                            speedKmh = 45,
+                            batteryPercent = realBatteryLevel,
+                            isSos = false
+                        )
+                        actionFeedback = "✓ Emergencia SOS resuelta"
+                    }
+                )
+            } else if (rideServiceState.isSosActive) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFB91C1C))
+                        .border(1.dp, Color(0xFFFF4D4D), RoundedCornerShape(8.dp))
+                        .padding(vertical = 6.dp, horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🚨 ALERTA SOS ACTIVA · TRANSMITIENDO A TODOS",
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            // Banner dinámico: Transmisión PTT en curso
+            if (isRecording) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF064E3B))
+                        .border(1.dp, Color(0xFF10B981), RoundedCornerShape(10.dp))
+                        .padding(vertical = 6.dp, horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🎙 TRANSMITIENDO PTT AL CONVOY (${recordingSeconds}s / 15s · Opus)",
+                        color = Color(0xFFA7F3D0),
+                        fontWeight = FontWeight.Black,
                         fontSize = 11.sp
                     )
                 }
             }
 
-            // Feedback o aviso de acciones
-            actionFeedback?.let { feedback ->
-                Text(
-                    text = feedback,
-                    color = Color(0xFFE5B869),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+            // Banner dinámico: Clip de voz entrante con ducking activo
+            currentlyPlayingClip?.let { incoming ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF141926))
+                        .border(1.2.dp, Color(0xFF38BDF8), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF242732))
+                                .border(1.2.dp, Color(0xFFE5B869), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = incoming.senderName.take(2).uppercase(),
+                                color = Color(0xFFE5B869),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "${incoming.senderName} (${incoming.senderRole})",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                text = "🔊 Escuchando en casco · Atenuando música (${incoming.durationSeconds}s)",
+                                color = Color(0xFF38BDF8),
+                                fontSize = 10.sp
+                            )
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "${(playbackProgress * 100).toInt()}%",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF7F1D1D))
+                                    .clickable {
+                                        voicePlayerQueue.toggleMuteSender(incoming.senderShortId)
+                                        actionFeedback = "🔇 Silenciado localmente a ${incoming.senderName} (RULES R13.3)"
+                                    }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "Silenciar",
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Banner de Emergencia: Radar SOS de Proximidad 5 km (Fase 7.1.5)
+            activeRadarSosAlert?.let { alert ->
+                val infiniteTransition = rememberInfiniteTransition(label = "SosPulse")
+                val pulseAlpha by infiniteTransition.animateFloat(
+                    initialValue = 0.6f,
+                    targetValue = 1.0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(600, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "SosPulseAlpha"
                 )
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .border(
+                            1.5.dp,
+                            Color(0xFFEF4444).copy(alpha = pulseAlpha),
+                            RoundedCornerShape(12.dp)
+                        ),
+                    color = Color(0xFF1E1418),
+                    shadowElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "🚨",
+                                    fontSize = 20.sp,
+                                    modifier = Modifier.graphicsLayer { alpha = pulseAlpha }
+                                )
+                                Column {
+                                    Text(
+                                        text = SosProximityEngine.formatAlert(alert.distanceKm, alert.bearing),
+                                        color = Color(0xFFFCA5A5),
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = "Piloto: ${alert.emitterAlias}${if (alert.hasMedicalSheet) " · 🩺 Ficha disponible" else ""}",
+                                        color = Color(0xFFE2E8F0),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { activeRadarSosAlert = null },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Text("✕", color = Color(0xFF94A3B8), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = {
+                                    liveMapViewModel.controller.updateLocalRiderPose(
+                                        latitude = alert.latitude,
+                                        longitude = alert.longitude,
+                                        speedKmh = 0,
+                                        batteryPercent = realBatteryLevel
+                                    )
+                                    liveMapViewModel.controller.centerOnMyLocation()
+                                    liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+                                    actionFeedback = "🧭 Rumbo de auxilio trazado hacia ${alert.emitterAlias} (${alert.distanceKm} km)"
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "🧭 ACUDIR AL RESCATE",
+                                    color = Color.White,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+
+                            if (alert.hasMedicalSheet) {
+                                OutlinedButton(
+                                    onClick = {
+                                        actionFeedback = "🩺 Ficha Médica de emergencia de ${alert.emitterAlias}"
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF38BDF8)),
+                                    border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Text(
+                                        text = "🩺 FICHA",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Banner dinámico: Alerta de desvío de ruta (> 150m) o parada voluntaria (MD3 High Contrast)
+            if (deviationState.isAlertActive) {
+                OffRouteBanner(
+                    distanceMeters = deviationState.distanceToRouteMeters,
+                    onStop = { showStopReasonDialog = true }
+                )
+            } else if (deviationState.status == DeviationStatus.VOLUNTARY_STOP) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF064E3B))
+                        .border(1.2.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(deviationState.stopReason?.emoji ?: "☕", fontSize = 18.sp)
+                            Column {
+                                Text(
+                                    text = "PARADA: ${deviationState.stopReason?.label ?: "Voluntaria"}",
+                                    color = Color(0xFFA7F3D0),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    text = "Alerta silenciada · Auto-reanuda al avanzar",
+                                    color = Color(0xFF6EE7B7),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                RouteDeviationDetector.resumeRouteTracking()
+                                actionFeedback = "✓ Monitoreo de ruta reanudado"
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Reanudar", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // Banner dinámico: Nueva ruta compartida por la malla (Hash verificado)
+            lastReceivedMeshRoute?.let { meshRoute ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF1E2838))
+                        .border(1.2.dp, Color(0xFF38BDF8), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("📡", fontSize = 18.sp)
+                            Column {
+                                Text(
+                                    text = "Ruta por Malla (Hash verificado)",
+                                    color = Color(0xFF38BDF8),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    text = meshRoute.route.name,
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                RouteDeviationDetector.setActiveRoutePolyline(meshRoute.route.waypoints)
+                                actionFeedback = "✓ Ruta de malla cargada en cabina: ${meshRoute.route.name}"
+                            },
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8)),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Cargar", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // 4.5. Botón flotante Monitor de Malla (esquina inferior derecha, encima del botón SOS)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 4.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(HeritageCardWarm.copy(alpha = 0.95f))
+                        .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
+                        .clickable { showMeshMonitor = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text("📡", fontSize = 14.sp)
+                    Text(
+                        text = "MONITOR MALLA",
+                        color = EmeraldMesh,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp
+                    )
+                }
             }
 
             // 5. Las 3 acciones circulares de cabina Heritage (≥ 72 dp)
             GlovesPrimaryActionBar(
                 isSosActive = rideServiceState.isSosActive,
+                isPttActive = isRecording,
+                audioAmplitude = audioAmplitude,
+                pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
                 onTalkPttClick = {
-                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                        "LIVE_MAP",
-                        "TAP_TALK_PTT",
-                        "btn_hablar"
-                    )
-                    actionFeedback = "Audio PTT activo · Transmitiendo a convoy"
+                    if (isRecording) {
+                        val selfMarker = state.markers.firstOrNull { it.isSelf }
+                        val clip = voiceRecorder.stopRecording(
+                            senderShortId = selfMarker?.shortId ?: 1u,
+                            senderName = selfMarker?.fullName ?: "Mi Piloto",
+                            senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
+                        )
+                        if (clip != null) {
+                            coroutineScope.launch {
+                                voiceMeshRelay.broadcastLocalClip(clip)
+                            }
+                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                "LIVE_MAP",
+                                "PTT_TRANSMIT_STOP",
+                                "btn_hablar"
+                            )
+                            actionFeedback = "🎙 Clip de voz emitido al convoy (${clip.durationSeconds}s · 12 kbps Opus)"
+                        } else {
+                            actionFeedback = "Clip descartado (< 400 ms)"
+                        }
+                    } else {
+                        val hasMicPermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (hasMicPermission) {
+                            val selfMarker = state.markers.firstOrNull { it.isSelf }
+                            val started = voiceRecorder.startRecording(
+                                senderShortId = selfMarker?.shortId ?: 1u,
+                                senderName = selfMarker?.fullName ?: "Mi Piloto",
+                                senderRole = selfMarker?.rideRole?.name ?: "PILOTO"
+                            )
+                            if (started) {
+                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                    "LIVE_MAP",
+                                    "PTT_TRANSMIT_START",
+                                    "btn_hablar"
+                                )
+                                actionFeedback = "🎙 Grabando voz PTT (pulsa de nuevo para enviar · máx 15 s)"
+                            }
+                        } else {
+                            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    }
                 },
                 onSosClick = {
-                    val isUxMode = BuildConfig.UX_TEST_MODE
-                    val meshBroadcastAllowed = isUxMode && com.rutabikersync.app.core.uxtest.UxTestTracker.isSosMeshBroadcastEnabled
+                    val selfId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
+                    val isCurrentlyActive = rideServiceState.isSosActive || activeSosAlerts.any { it.senderShortId == selfId }
 
-                    if (!isUxMode || meshBroadcastAllowed) {
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            screen = "LIVE_MAP",
-                            action = "TAP_SOS",
-                            target = if (isUxMode) "btn_sos_prueba" else "btn_sos",
-                            details = "task=T9,broadcast=true"
+                    if (isCurrentlyActive) {
+                        activeSosAlerts.firstOrNull { it.senderShortId == selfId }?.let {
+                            sosRepository.resolveSos(it.sosId)
+                        }
+                        RideService.dispatchTriggerSos(context, false)
+                        bleMeshService?.stopSosBroadcaster()
+                        liveMapViewModel.controller.updateLocalRiderPose(
+                            latitude = liveMapViewModel.uiState.value.cameraLatitude,
+                            longitude = liveMapViewModel.uiState.value.cameraLongitude,
+                            speedKmh = 48,
+                            batteryPercent = realBatteryLevel,
+                            isSos = false
                         )
-                        val sosIntent = Intent(context, RideService::class.java).apply {
-                            action = RideService.ACTION_TRIGGER_SOS
-                        }
-                        runCatching { context.startService(sosIntent) }
-                        actionFeedback = if (isUxMode) {
-                            "[MODO PRUEBA UX] SOS emitido por la malla BLE"
-                        } else {
-                            "SOS emitido por la malla con prioridad máxima"
-                        }
+                        liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+                        actionFeedback = "✓ Emergencia SOS desactivada"
                     } else {
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                             screen = "LIVE_MAP",
-                            action = "TAP_SOS",
-                            target = "btn_sos_prueba",
-                            details = "task=T9,broadcast=false"
+                            action = "START_SOS_COUNTDOWN",
+                            target = "btn_sos"
                         )
-                        actionFeedback = "[MODO PRUEBA UX] SOS simulado LOCAL (sin emisión BLE)"
+                        sosCountdownManager.startCountdown(SosTriggerType.MANUAL)
                     }
                 },
                 onQuickSignalsClick = {
@@ -457,7 +1359,7 @@ fun LiveMapScreen(
                         "TAP_SIGNALS",
                         "btn_senales"
                     )
-                    actionFeedback = "Señal de ruta emitida · Precaución en convoy"
+                    showSignalsDialog = true
                 }
             )
 
@@ -469,7 +1371,7 @@ fun LiveMapScreen(
                         "STOP_RIDE_HOLD_3S",
                         "btn_detener_rodada_3s"
                     )
-                    RideService.dispatchStopRide(context)
+                    RideService.dispatchImmediateStopRide(context)
                     onStopRideHoldCompleted?.invoke()
                     actionFeedback = "Rodada finalizada. Guardando métricas..."
                 },
@@ -478,19 +1380,550 @@ fun LiveMapScreen(
                     .padding(horizontal = 4.dp)
             )
 
-            // 7. Pie de cabina oficial
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Cabina de Rodada Activa",
-                    color = Color(0xFFE5E7EB),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+        }
+
+        if (showSignalsDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showSignalsDialog = false },
+                containerColor = HeritageSand,
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("📢", fontSize = 18.sp)
+                        Text(
+                            text = "SEÑALES RÁPIDAS DE CONVOY",
+                            color = HeritageLeatherBrown,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Acceso Directo al Chat Táctico Off-Grid
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.horizontalGradient(listOf(DarkCardElevated, DarkCardBg)))
+                                .border(1.dp, HeritageCopper, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    showSignalsDialog = false
+                                    showTacticalChat = true
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💬", fontSize = 22.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "CHAT TÁCTICO OFF-GRID",
+                                    color = TextWhite,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "ChaCha20-Poly1305 · Modo Guantes",
+                                    color = TextMuted,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(HeritageCopper.copy(alpha = 0.15f))
+                                    .border(1.dp, HeritageCopper.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "ABRIR ➔",
+                                    color = HeritageCopper,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    softWrap = false,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        val signals = listOf(
+                            Triple("⚠ Obstáculo en la vía", "Bache, grava o escombros", HeritageAmber),
+                            Triple("🛑 Reducir velocidad", "Frenado fuerte / Peligro", HeritageRustRed),
+                            Triple("🔁 Reagrupar convoy", "Cerrar filas de convoy", HeritageCopper),
+                            Triple("⛽ Parada de gasolina", "Estación de servicio próxima", HeritageGreen),
+                            Triple("👮 Retén / Precaución", "Control o alerta en la vía", HeritageAmber)
+                        )
+                        signals.forEach { (title, subtitle, accentColor) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(HeritageCardWarm)
+                                    .border(1.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                            "LIVE_MAP",
+                                            "BROADCAST_SIGNAL",
+                                            title
+                                        )
+                                        actionFeedback = "📢 Señal emitida: ¡$title!"
+                                        showSignalsDialog = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(text = title, color = HeritageLeatherBrown, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(text = subtitle, color = HeritageLeatherMuted, fontSize = 10.sp)
+                                }
+                                Text("➔", color = accentColor, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { showSignalsDialog = false }) {
+                        Text("Cerrar", color = HeritageCopper, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        // Diálogo para Guantes: "Voy a parar" (Pausa de alerta de desvío por parada voluntaria)
+        if (showStopReasonDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showStopReasonDialog = false },
+                containerColor = HeritageSand,
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("🛑", fontSize = 18.sp)
+                        Text(
+                            text = "VOY A PARAR (PARADA VOLUNTARIA)",
+                            color = HeritageLeatherBrown,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 14.sp
+                        )
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Selecciona el motivo. Esto silenciará la alarma de desvío y avisará al convoy que tu detención es intencional:",
+                            color = HeritageLeatherMuted,
+                            fontSize = 11.sp
+                        )
+                        StopReason.values().forEach { reason ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(HeritageCardWarm)
+                                    .border(1.dp, HeritageBorder, RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        RouteDeviationDetector.activateVoluntaryStop(reason)
+                                        actionFeedback = "✓ Parada registrada: ${reason.label}. Alerta silenciada."
+                                        showStopReasonDialog = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text(reason.emoji, fontSize = 20.sp)
+                                Text(reason.label, color = HeritageLeatherBrown, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { showStopReasonDialog = false }) {
+                        Text("Cancelar", color = HeritageCopper, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        // 8. Superposición de cuenta regresiva de 20 s para guantes (Fase 5 - C4)
+        val countdown = sosCountdownState
+        if (countdown is SosCountdownManager.State.Counting) {
+            SosCountdownOverlay(
+                remainingSeconds = countdown.remainingSeconds,
+                triggerType = countdown.triggerType,
+                onCancelFalseAlarm = {
+                    sosCountdownManager.cancelCountdown("Cancelado por el usuario (Estoy bien)")
+                    actionFeedback = "✓ Alerta SOS cancelada (falsa alarma registrada)"
+                },
+                onConfirmImmediately = {
+                    sosCountdownManager.confirmImmediately()
+                }
+            )
+        }
+
+        // 9. Diálogo de Ficha Médica de Rescate de 60 min (Fase 5 - R10.2, R10.3, C5)
+        viewingRescuePacket?.let { packet ->
+            EmergencyRescuePacketDialog(
+                packet = packet,
+                remainingMinutes = 60,
+                onDismiss = { viewingRescuePacket = null }
+            )
+        }
+
+        // 9b. Diálogo de Recepción SOS por Malla BLE (Hito 4 · Etapa 4) — FLAG_SECURE activo
+        showMeshSosDialog?.let { event ->
+            MeshSosReceptionDialog(
+                senderName = event.senderName,
+                senderShortId = event.senderShortId,
+                hopCount = event.hopCount,
+                latitude = event.latitude,
+                longitude = event.longitude,
+                medicalData = event.medicalData,
+                onConfirmReception = {
+                    // Crear y emitir SosAckPacket usando el servicio BLE activo
+                    val selfMarker = state.markers.firstOrNull { it.isSelf }
+                    val ackerShortId = selfMarker?.shortId ?: 1u
+                    val ack = try {
+                        com.rutabikersync.app.core.mesh.sos.SosAckPacket.create(
+                            clubNetworkId = 0x52425301u,
+                            ackerShortId = ackerShortId,
+                            sequenceNum = (System.currentTimeMillis() and 0xFFFF).toUShort(),
+                            originalSenderShortId = event.senderShortId,
+                            originalSequenceNum = 0u,
+                            ackTimestampEpochSec = (System.currentTimeMillis() / 1000L).toInt(),
+                            signature = ByteArray(64)
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
+                    if (ack != null) {
+                        bleMeshService?.sendSosAckPacket(ack)
+                    }
+                    bleMeshService?.clearIncomingSosMeshEvent()
+                    showMeshSosDialog = null
+                    actionFeedback = "✅ ACK enviado a Piloto #${event.senderShortId.toInt()}"
+                },
+                onDismiss = {
+                    bleMeshService?.clearIncomingSosMeshEvent()
+                    showMeshSosDialog = null
+                }
+            )
+        }
+
+        // 10. Diálogo de Convoy: Lista de Riders en Malla, Silenciamiento Local y Reporte (RULES R13)
+        if (showConvoyDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showConvoyDialog = false },
+                containerColor = HeritageSand,
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Link, contentDescription = null, tint = HeritageCopper)
+                        Text(
+                            text = "Riders en Convoy (${state.markers.size})",
+                            color = HeritageLeatherBrown,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp
+                        )
+                    }
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Acceso Directo al Monitor de Malla y Enlaces RF
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.horizontalGradient(listOf(DarkCardElevated, DarkCardBg)))
+                                .border(1.dp, EmeraldMesh, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    showConvoyDialog = false
+                                    showMeshMonitor = true
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📡", fontSize = 22.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "MONITOR DE MALLA Y RF",
+                                    color = TextWhite,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 12.sp,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = "Topología en vivo · RSSI · LPN",
+                                    color = TextMuted,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(EmeraldMesh.copy(alpha = 0.15f))
+                                    .border(1.dp, EmeraldMesh.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = "ABRIR ➔",
+                                    color = EmeraldMesh,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    softWrap = false,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "Gestiona el audio y reporte de participantes en la rodada activa (RULES R13).",
+                            color = HeritageLeatherMuted,
+                            fontSize = 11.sp
+                        )
+                        state.markers.forEach { marker ->
+                            val isMuted = mutedSenders.contains(marker.shortId)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(HeritageCardWarm)
+                                    .border(1.dp, HeritageBorder, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${marker.fullName}${if (marker.isSelf) " (Tú)" else ""}",
+                                        color = if (marker.isSelf) HeritageCopper else HeritageLeatherBrown,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        text = "${marker.rideRole.name} · ${marker.batteryPercent}% bat",
+                                        color = HeritageLeatherMuted,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                                if (!marker.isSelf) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(if (isMuted) HeritageGreenLight else HeritageRustRed.copy(alpha = 0.15f))
+                                                .clickable {
+                                                    voicePlayerQueue.toggleMuteSender(marker.shortId)
+                                                    actionFeedback = if (!isMuted) {
+                                                        "🔇 Silenciado localmente a ${marker.fullName} (R13.3)"
+                                                    } else {
+                                                        "🔊 Audio reactivado para ${marker.fullName}"
+                                                    }
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isMuted) "Activar" else "Silenciar",
+                                                color = if (isMuted) HeritageGreen else HeritageRustRed,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(HeritageCard)
+                                                .border(1.dp, HeritageBorder, RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    reportingMarker = marker
+                                                    showConvoyDialog = false
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Reportar",
+                                                color = HeritageCopper,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { showConvoyDialog = false }) {
+                        Text("Cerrar", color = HeritageCopper, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        // 11. Diálogo de Reportar Rider (RULES R13.1, R13.2 - Sin Audio)
+        val reported = reportingMarker
+        if (reported != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { reportingMarker = null },
+                containerColor = HeritageSand,
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(imageVector = AppIcons.Report, contentDescription = null, tint = HeritageRustRed)
+                        Text(
+                            text = "Reportar a ${reported.fullName}",
+                            color = HeritageRustRed,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp
+                        )
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "El reporte llega a los líderes del grupo y queda en auditoría sin audio ni ubicación (RULES R13.2).",
+                            color = HeritageLeatherMuted,
+                            fontSize = 11.sp
+                        )
+                        val reasons = listOf(
+                            "dangerous" to "Conducta peligrosa en ruta",
+                            "abuse" to "Insultos o agresividad por voz",
+                            "harassment" to "Acoso a otros participantes",
+                            "other" to "Otro motivo"
+                        )
+                        reasons.forEach { (code, label) ->
+                            val isSelected = reportReason == code
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) HeritageCardWarm else HeritageCard)
+                                    .border(if (isSelected) 1.5.dp else 1.dp, if (isSelected) HeritageRustRed else HeritageBorder, RoundedCornerShape(8.dp))
+                                    .clickable { reportReason = code }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) HeritageRustRed else HeritageLeatherBrown,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                                if (isSelected) {
+                                    Text("✓", color = HeritageRustRed, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            val targetName = reported.fullName
+                            reportingMarker = null
+                            actionFeedback = "🛡️ Reporte enviado a la Mesa Directiva contra $targetName (R13.1)"
+                        },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = HeritageRustRed)
+                    ) {
+                        Text("Enviar Reporte", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { reportingMarker = null }) {
+                        Text("Cancelar", color = HeritageLeatherMuted)
+                    }
+                }
+            )
+        }
+
+        // 12. Overlay Pantalla Completa: Chat Táctico Off-Grid
+        if (showTacticalChat) {
+            val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkSlate950)
+            ) {
+                TacticalChatScreen(
+                    localShortId = localShortId,
+                    peers = state.markers.filter { !it.isSelf }.map { Pair(it.shortId, it.fullName) },
+                    initialFocusKeyboard = initialFocusKeyboard,
+                    onSendMessage = { targetId, text ->
+                        RideService.dispatchSendTextMessage(context, targetId, text)
+                        actionFeedback = "💬 Mensaje enviado: $text"
+                    },
+                    onNavigateBack = { showTacticalChat = false }
                 )
-                Text(
-                    text = "Pantalla completa · 3 acciones principales · Máxima seguridad",
-                    color = Color(0xFF9CA3AF),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Normal
+            }
+        }
+
+        // 13. Overlay Pantalla Completa: Monitor de Malla y Enlaces RF
+        if (showMeshMonitor) {
+            val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+            val relayEngine = remember(
+                rideServiceState.lifecycleState,
+                rideServiceState.rideId,
+                rideServiceState.isUsingSimulatedTransport
+            ) {
+                RideService.getActiveRelayEngine()
+            }
+            val meshPeersMap by (relayEngine?.peers
+                ?: kotlinx.coroutines.flow.MutableStateFlow(emptyMap<UShort, com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack>()))
+                .collectAsState()
+            val meshPeers = com.rutabikersync.app.feature.mesh.mapPeerTracksToMeshPeerLiveStates(
+                peers = meshPeersMap,
+                nowEpochMs = System.currentTimeMillis()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkSlate950)
+            ) {
+                MeshConvoyStatusScreen(
+                    localShortId = localShortId,
+                    localBatteryPercent = realBatteryLevel.coerceIn(0, 100),
+                    isLocalLpnActive = false,
+                    peers = meshPeers,
+                    isLpnToggleEnabled = false,
+                    lpnToggleDisabledReason = "No implementado aún",
+                    onOpenChatWithPeer = { _ ->
+                        showMeshMonitor = false
+                        showTacticalChat = true
+                    },
+                    onNavigateBack = { showMeshMonitor = false }
+                )
+            }
+        }
+
+        // 14. Overlay Pantalla Completa: Gestión de Mapas Offline (PMTiles v3)
+        if (showOfflineMapsScreen) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0F141C))
+            ) {
+                com.rutabikersync.app.feature.routes.OfflineMapsScreen(
+                    onNavigateBack = { showOfflineMapsScreen = false }
                 )
             }
         }
@@ -513,8 +1946,8 @@ private fun FloatingHudCapsule(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF141519).copy(alpha = 0.92f))
-            .border(1.dp, Color(0xFF2C2F38), RoundedCornerShape(20.dp))
+            .background(DarkCardElevated.copy(alpha = 0.94f))
+            .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(20.dp))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
@@ -577,6 +2010,9 @@ private fun MapLibreCorridorSurface(
         val widthPx = constraints.maxWidth.toFloat().coerceAtLeast(1f)
         val heightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
 
+        val scheduledRide by RideScheduleRepository.currentRide.collectAsState()
+        val activeRoute = scheduledRide?.selectedRoute
+
         // MapLibre nativo conectado a capas cartográficas
         AndroidView(
             factory = {
@@ -597,6 +2033,15 @@ private fun MapLibreCorridorSurface(
                                         .build()
                                 )
                             )
+                            if (activeRoute != null && activeRoute.waypoints.isNotEmpty()) {
+                                val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
+                                map.addPolyline(
+                                    PolylineOptions()
+                                        .addAll(latLngs)
+                                        .color(android.graphics.Color.parseColor("#C05A2A"))
+                                        .width(8.0f)
+                                )
+                            }
                         }
                     }
                 }
@@ -611,48 +2056,19 @@ private fun MapLibreCorridorSurface(
                                 .build()
                         )
                     )
+                    if (activeRoute != null && map.polylines.isEmpty()) {
+                        val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
+                        map.addPolyline(
+                            PolylineOptions()
+                                .addAll(latLngs)
+                                .color(android.graphics.Color.parseColor("#C05A2A"))
+                                .width(8.0f)
+                        )
+                    }
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
-
-        // Trazado del corredor offline: ruta montañosa en azul eléctrico luminoso con halo (como en el mockup oficial)
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val path = androidx.compose.ui.graphics.Path().apply {
-                val startX = size.width * 0.52f
-                moveTo(startX, size.height * 0.08f)
-                cubicTo(
-                    size.width * 0.56f, size.height * 0.20f,
-                    size.width * 0.44f, size.height * 0.35f,
-                    size.width * 0.50f, size.height * 0.50f
-                )
-                cubicTo(
-                    size.width * 0.56f, size.height * 0.65f,
-                    size.width * 0.42f, size.height * 0.78f,
-                    size.width * 0.48f, size.height * 0.92f
-                )
-            }
-
-            // Halo exterior azul eléctrico
-            drawPath(
-                path = path,
-                color = Color(0xFF0284C7).copy(alpha = 0.35f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 16f,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            )
-
-            // Línea central de convoy en cian/azul brillante
-            drawPath(
-                path = path,
-                color = Color(0xFF38BDF8),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(
-                    width = 5.5f,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
-            )
-        }
 
         // Posicionar cada RiderMarker interpolado sobre el lienzo del corredor
         state.markers.forEachIndexed { index, marker ->
