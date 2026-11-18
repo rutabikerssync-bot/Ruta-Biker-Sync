@@ -89,9 +89,15 @@ class BleAdvTransport(
 
         private const val TAG = "BleAdvTransport"
 
-        /** Ráfaga corta por fragmento y separación suficiente para que el scanner lo capte. */
-        private const val FRAGMENT_BURST_MS = 300
-        private const val FRAGMENT_GAP_MS = 340L
+        /**
+         * Ráfaga por fragmento tan larga como un heartbeat (1s): en campo, 300 ms solo
+         * entregaba 2 de 3 fragmentos por pérdida en el scanner (RX_RAW parcial).
+         * Cada fragmento se repite [FRAGMENT_REPEATS] veces: en campo, el último
+         * fragmento (idx=3, 10 B) se perdía mientras idx=0..2 llegaban duplicados.
+         */
+        private const val FRAGMENT_BURST_MS = 1000
+        private const val FRAGMENT_GAP_MS = 120L
+        private const val FRAGMENT_REPEATS = 2
 
         fun describeScanSettings(effectiveMode: String): String {
             val isExtended = effectiveMode == "EXTENDED_1M" || effectiveMode == "EXTENDED_CODED_PHY"
@@ -492,9 +498,14 @@ class BleAdvTransport(
             "FragmentTx session=$sessionId bytes=${payload.size} fragments=${frames.size} " +
                 "maxBytes=${BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES}"
         )
-        frames.forEachIndexed { index, frame ->
-            sendFrame(frame, priority, FRAGMENT_BURST_MS)
-            if (index < frames.size - 1) delay(FRAGMENT_GAP_MS)
+        repeat(FRAGMENT_REPEATS) {
+            frames.forEach { frame ->
+                sendFrame(frame, priority, FRAGMENT_BURST_MS)
+                // sendFrame inicia la ráfaga en hardware y RETORNA enseguida: hay que esperar
+                // a que termine antes de emitir el siguiente fragmento, o se solapan y el
+                // scanner solo captura 2 de 4 (evidencia: FRAG_TX idx 0..3 en 400 ms).
+                delay(FRAGMENT_BURST_MS.toLong() + FRAGMENT_GAP_MS)
+            }
         }
     }
 
