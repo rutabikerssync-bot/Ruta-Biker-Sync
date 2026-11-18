@@ -163,3 +163,36 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 
 **No se marcan casillas de PTT como verificado.** No se modificó codec, criptografía ni flooding.Para corregirlo haría falta cablear `PttAudioEngine` al `getActiveRelayEngine()` de `RideService` (añadiendo `emitVoicePacket`/`onVoiceReceived` al engine) o arrancar `BleMeshService` con `ACTION_START` y `startForeground()` correcto, y sustituir `voiceMeshRelay.broadcastLocalClip` por el envío fragmentado por `BleAdvTransport`; pendiente de confirmación antes de tocar audio/crypto.
 
+
+### Fix funcional PTT en la malla activa - verificacion bidireccional en hardware real (2026-11-18)
+**Commits funcionales**: `b170b52` (API de voz en `MeshRelayEngine` + fragmentation de `VoicePacket` con el `BleFragmentationCodec` de 24 B), `bd4e4f8` (boton PTT cableado al engine activo de `RideService` + correccion del crash FGS), `865beb2` (limitacion de publicacion de estado UI y backpressure de 2 envios pendientes) y `54cf626` (rafaga de voz BLE a 300 ms, timeout de reproduccion a 2,5 s y `senderShortId` tomado del engine activo).
+
+**Diagnostico de la causa raiz (mantenido arriba, resultado negativo original)**: la prueba anterior con `d7c50db` no entrego audio porque la ruta PTT no estaba conectada al `MeshRelayEngine` activo y `VoicePacket` no usaba el codec de fragmentacion de 24 B. Esa evidencia negativa NO se borra; este apartado documenta el fix posterior.
+
+**Cambios funcionales sin tocar Opus ni ChaCha20-Poly1305**:
+- `MeshRelayEngine.emitVoicePacket()` serializa el `VoicePacket` ya cifrado por `PttAudioEngine` y lo entrega a `BleAdvTransport.sendVoice()`. No se vuelve a cifrar nada.
+- `MeshRelayEngine.processIncomingPacket()` enruta `TYPE_PTT_VOICE` a `VoicePacket.fromBinary()` y a los callbacks `onVoiceReceived`.
+- `BleAdvTransport.sendVoice()` usa el mismo `BleFragmentationCodec` de 24 B del chat. Con 120 ms por fragmento el scanner de Redmi no recibia ningun fragmento de voz (solo heartbeats de 20 B); con 300 ms y 2 rondas si los recibe y reensambla. Se midio latencia de primer frame de 1,607 s (TECNO->Redmi) y 0,900 s (Redmi->TECNO), dentro del objetivo 1-3 s.
+- `PttAudioEngine` publica estado UI como maximo 1 vez/s para no bloquear la UI de LiveMap; el JitterBuffer y el cifrado siguen en 20 ms.
+- `PttAudioEngine` mantiene el AudioTrack hasta 2,5 s sin tramas (antes 350 ms), porque con fragmentacion BLE las tramas llegan separadas ~2 s.
+- El `senderShortId` de voz se toma del `MeshRelayEngine` activo: antes ambos telefonos caian en el fallback `#1`; ahora el banner muestra `#12982` (TECNO) y `#12243` (Redmi).
+
+**Verificacion en campo (TECNO KI5k `098813734B105395` + Redmi Note 13 Pro 5G `b2c398bb`)**:
+- `RideService` en primer plano en ambos, `RideStarted ... transport=BleAdvTransport(LEGACY_1M)`, monitor con 1 peer En linea; `BleMeshService` NO iniciado en ningun momento.
+- TECNO -> Redmi: `PttAudioEngine: PTT: Iniciando transmision de audio...`, `MeshRelayEngine: VoicePacketTx frame=0`, `BleAdvTransport: FragmentTx session=1 ... priority=VOICE`; en Redmi `FragmentReassembled bytes=67`, `VoicePacketRx sender=12982 frame=0`, `LiveMapScreen: VoicePacketRx entregado al reproductor PTT frame=0` y banner UI `Recibiendo voz de Piloto #12982`.
+- Redmi -> TECNO: `VoicePacketTx frame=0`, `FragmentTx session=4 ... priority=VOICE`; en TECNO `VoicePacketRx sender=12243 frame=0/1`, `LiveMapScreen: VoicePacketRx entregado al reproductor PTT` y banner `Recibiendo voz de Piloto #12243`.
+- `AudioTrackImpl` en el receptor confirma reproduccion del stream 16 kHz mono; no se han tocado los buffers de Opus ni las claves ChaCha20-Poly1305.
+- Limitacion real medida: el microfono genera ~50 frames/s y la cola se limita a 2 envios para acotar latencia; no todas las tramas cruzan. La inteligibilidad/calidad auditiva NO puede ser afirmada por este agente y queda pendiente de confirmacion humana.
+
+**Evidencia**: `docs/evidence/ptt_bidir_logcat_2026-11-18.txt`, `docs/evidence/ptt_bidir_ui_2026-11-18.txt`, `docs/evidence/ptt_bidir_tecno_2026-11-18.png`, `docs/evidence/ptt_bidir_redmi_2026-11-18.png`.
+
+### Tabla final de entrega (PTT bidireccional)
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Compilar y firmar APK funcional | `gradlew :app:assembleStandardDebug` + `apksigner sign ...` | APK firmada `CN=Ruta Biker Sync` | BUILD SUCCESSFUL; certificado verificado | `docs/HISTORY_NOTE.md` (este apartado) |
+| Instalar en TECNO y Redmi | `adb -s <dev> install -r app-standard-debug-rbssigned.apk` | `Success` en ambos | `Success` en ambos | Logcat de instalacion y `pm path` |
+| Rodada activa y peer BLE | UI tap inicio + `uiautomator dump` | `RideStarted ... LEGACY_1M`, 1 peer | `RideStarted`, monitor 1 peer En linea | `docs/evidence/ptt_bidir_ui_2026-11-18.txt` |
+| TECNO -> Redmi | tap PTT TECNO `(151,1202)` + `logcat *:V` | TX fragmentado y RX en peer | `VoicePacketTx`/`FragmentTx` + `VoicePacketRx sender=12982` + banner | `docs/evidence/ptt_bidir_logcat_2026-11-18.txt`, `ptt_bidir_redmi_2026-11-18.png` |
+| Redmi -> TECNO | tap PTT Redmi `(261,2098)` + `logcat *:V` | TX fragmentado y RX en peer | `VoicePacketTx`/`FragmentTx` + `VoicePacketRx sender=12243` + banner | `docs/evidence/ptt_bidir_logcat_2026-11-18.txt`, `ptt_bidir_tecno_2026-11-18.png` |
+| Latencia de primer frame | comparar timestamps TX/RX | 1-3 s | 1,607 s y 0,900 s | `docs/evidence/ptt_bidir_logcat_2026-11-18.txt` |
+| Confirmacion auditiva | escucha humana en altavoz | "Se escucha claro, sin cortes" | NO verificable por este agente | Requiere confirmacion del usuario |

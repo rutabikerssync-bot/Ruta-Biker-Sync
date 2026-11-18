@@ -1,0 +1,11 @@
+INDICADORES UI DE RECEPCION PTT - HARDWARE REAL (2026-11-18)
+Comando: adb -s <dispositivo> shell uiautomator dump /data/local/tmp/rbs_ui.xml && adb pull ...
+
+=== TECNO -> Redmi: banner en Redmi durante TX ===
+&#128266; Recibiendo voz de Piloto #12982 · 1 tramas
+
+=== Redmi -> TECNO: banner en TECNO durante TX ===
+&#128266; Recibiendo voz de Piloto #12243 · 6 tramas
+
+Nota: los IDs de piloto son los del MeshRelayEngine activo (TECNO #12982, Redmi #12243), no el fallback #1.
+Capturas: docs/evidence/ptt_bidir_redmi_2026-11-18.png y ptt_bidir_tecno_2026-11-18.png
