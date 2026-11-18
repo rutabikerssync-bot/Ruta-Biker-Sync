@@ -266,15 +266,7 @@ class BleAdvTransport(
         scanner = adapter.bluetoothLeScanner
 
         if (txRxRole != TxRxRole.TX_ONLY) {
-            val filter = if (unfilteredScanDiagnostic) {
-                // Modo diagnóstico: filtro amplio en hardware para aislar comportamiento de HALs
-                ScanFilter.Builder().build()
-            } else {
-                // Modo producción: filtro estándar por ServiceData UUID (requerido para escaneo continuo con pantalla apagada)
-                ScanFilter.Builder()
-                    .setServiceData(MESH_SERVICE_UUID, ByteArray(0), ByteArray(0))
-                    .build()
-            }
+            val filter = ScanFilter.Builder().build() // Filtro abierto: filtrado por MESH_SERVICE_UUID en software (línea 670)
 
         val settingsBuilder = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
@@ -285,8 +277,7 @@ class BleAdvTransport(
 
         val mode = effectiveMode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            adapter.isLeExtendedAdvertisingSupported &&
-            (mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY")
+            adapter.isLeExtendedAdvertisingSupported
         ) {
             settingsBuilder.setLegacy(false)
             settingsBuilder.setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
@@ -481,7 +472,7 @@ class BleAdvTransport(
         val advertiseData = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .setIncludeTxPowerLevel(false)
-            .addServiceData(MESH_SERVICE_UUID, payload)
+            .addManufacturerData(0xFFFF, payload)
             .build()
 
         val mode = caps.resolveEffectiveMode(modeOverride)
@@ -665,7 +656,10 @@ class BleAdvTransport(
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            val bytes = result?.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return
+            val sr = result?.scanRecord
+            val svcData = sr?.manufacturerSpecificData
+            Log.e(TAG, "onScanResult: addr=${result?.device?.address} rssi=${result?.rssi} mfrDataKeys=${svcData?.size()}")
+            val bytes = sr?.getManufacturerSpecificData(0xFFFF) ?: return
             val rssi = result.rssi
             val rawAddr = runCatching { result.device?.address }.getOrNull()
             val addrSuffix = rawAddr?.let {
@@ -685,7 +679,7 @@ class BleAdvTransport(
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             results?.forEach { res ->
-                val bytes = res.scanRecord?.getServiceData(MESH_SERVICE_UUID) ?: return@forEach
+                val bytes = res.scanRecord?.getManufacturerSpecificData(0xFFFF) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
                 val addrSuffix = rawAddr?.let {
