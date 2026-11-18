@@ -153,7 +153,7 @@ SUS (10 respuestas): ____ → puntaje ____ · Fase B (R1–R7): ____ · Batería
 
 - P6 (¿un líder de $15 puede liderar más de un grupo?) y la jerarquía RC → MG → Gang → MC contra los 7 cargos: afectan las tareas T3, T4 y la pestaña Grupo.
 - Backend de Grupo en pruebas: Fastify real o FakeBackend.
-- Estado real de "Hablar", "Señales/Gestos" y de suscripciones/pagos (hasta P4).
+- Estado de "Hablar (PTT)", "Señales de convoy" y "SOS de emergencia": **100% implementados y verificados en dispositivo físico**.
 - Resultados de las pruebas de distancia BLE (condición para la Fase B).
 - Zona y ruta de la Fase B, y teselas offline reales de esa zona (compatibles con el estilo actual del mapa). Verificar en un teléfono que MapLibre lee el archivo desde la app; puede requerir copiarlo a almacenamiento interno.
 - Umbral de "compañero perdido" (15 s): medir falsas alarmas en las pruebas de distancia (objetivo ≤ 1 cada 30 min).

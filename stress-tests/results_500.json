@@ -1,0 +1,148 @@
+{
+    "metrics": {
+        "http_req_sending": {
+            "min": 0,
+            "med": 0,
+            "max": 3.7813,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.007403882879911107
+        },
+        "data_sent": {
+            "count": 70501176,
+            "rate": 234591.3196141061
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iteration_duration": {
+            "avg": 1044.092127565562,
+            "min": 1000.0336,
+            "med": 1001.69785,
+            "max": 1863.9163,
+            "p(90)": 1213.1335199999999,
+            "p(95)": 1384.6766049999999
+        },
+        "data_received": {
+            "count": 251008424,
+            "rate": 835225.74744593
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 96.61003771545263,
+            "min": 0,
+            "med": 96.18365,
+            "max": 333.0925,
+            "p(90)": 183.64711000000003,
+            "p(95)": 210.96030999999988
+        },
+        "vus": {
+            "value": 6,
+            "min": 6,
+            "max": 500
+        },
+        "vus_max": {
+            "value": 500,
+            "min": 500,
+            "max": 500
+        },
+        "http_req_waiting": {
+            "p(90)": 55.572940000000074,
+            "p(95)": 127.17753499999995,
+            "avg": 14.49035122253346,
+            "min": 0,
+            "med": 0.5144,
+            "max": 335.3603
+        },
+        "http_req_blocked": {
+            "min": 0,
+            "med": 0,
+            "max": 2.0735,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.002158431569992534
+        },
+        "http_req_failed": {
+            "passes": 312292,
+            "fails": 33302,
+            "thresholds": {
+                "rate<0.01": true
+            },
+            "value": 0.9036383733513892
+        },
+        "http_req_duration": {
+            "min": 0,
+            "med": 0.5163,
+            "max": 335.3603,
+            "p(90)": 55.694520000000075,
+            "p(95)": 127.24304999999998,
+            "avg": 14.540616151322626,
+            "thresholds": {
+                "p(95)<300": false,
+                "p(99)<800": false
+            }
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.0006671559691429831,
+            "min": 0,
+            "med": 0,
+            "max": 1.0867
+        },
+        "checks": {
+            "passes": 33302,
+            "fails": 312292,
+            "value": 0.0963616266486108
+        },
+        "http_req_receiving": {
+            "p(95)": 0.5126,
+            "avg": 0.04286104590936189,
+            "min": 0,
+            "med": 0,
+            "max": 7.9931,
+            "p(90)": 0
+        },
+        "iterations": {
+            "count": 115198,
+            "rate": 383.31914969625177
+        },
+        "http_reqs": {
+            "count": 345594,
+            "rate": 1149.9574490887553
+        }
+    },
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {
+                "groups 200": {
+                    "path": "::groups 200",
+                    "id": "8c261c12539ceabf97a0004e8d90ae03",
+                    "passes": 16821,
+                    "fails": 98377,
+                    "name": "groups 200"
+                },
+                "heartbeat 200": {
+                    "passes": 0,
+                    "fails": 115198,
+                    "name": "heartbeat 200",
+                    "path": "::heartbeat 200",
+                    "id": "a1b3fb9637c6f00085de63b1c47c5a73"
+                },
+                "sos 200": {
+                    "id": "ac5f9d57c688179d1722c862a513e2c0",
+                    "passes": 16481,
+                    "fails": 98717,
+                    "name": "sos 200",
+                    "path": "::sos 200"
+                }
+            },
+        "name": ""
+    }
+}

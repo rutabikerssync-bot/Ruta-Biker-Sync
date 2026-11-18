@@ -1,7 +1,7 @@
 # FIELD_TEST_PLAN — Plan de prueba de campo BLE de Ruta Biker Sync
 
-Versión 1.2 · 2026-10-23
-Complementa `field-tests/FIELD_TEST_GUIDE.md` y `FIELD_TEST_REPORT.md` (generados en la Fase 0). Objetivo: medir con teléfonos reales, en moto y con casco, si la mesh BLE sirve para un grupo en marcha, y decidir con números el transporte (legacy, extendido, LoRa).
+Versión 2.0 · Noviembre 2026 (Fase 7.2 — Validación Empírica en Carretera · Opción B)
+Complementa `docs/FIELD_TEST_PROTOCOL.md` (v2.0) y `FIELD_TEST_REPORT.md`. Objetivo: medir con teléfonos reales, en moto y con casco, si la mesh BLE, el PTT Opus, el Radar SOS 5 km y el puente off-grid sirven para un convoy en marcha en carretera abierta.
 
 > **Todos los umbrales de este documento son propuestas** para calibrar con la primera ronda de datos. Ninguno es un resultado medido.
 

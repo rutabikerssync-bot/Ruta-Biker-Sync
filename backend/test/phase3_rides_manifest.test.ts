@@ -39,6 +39,8 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
         group_certifications,
         ride_guest_invitations,
         refresh_tokens,
+      rate_limit_events,
+      ephemeral_telemetry,
         imitation_reports,
         play_events,
         ride_mesh_metrics,

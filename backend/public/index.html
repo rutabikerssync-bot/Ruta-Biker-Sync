@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta Biker Sync — El Sistema Operativo para Rodadas y Motoclubes</title>
+  <meta name="description" content="Red mesh Bluetooth off-grid sin cobertura celular, mapas con 3 alternativas viales reales, voz PTT por clips cifrados, bóveda médica SOS y gobernanza para motoclubes.">
+  <meta name="keywords" content="motociclistas, motoclub, mesh bluetooth, intercomunicador moto, rodadas, mapas offline, SOS biker, MC, MG, RC">
+  
+  <!-- Open Graph / Redes Sociales -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Ruta Biker Sync — Sistema Operativo para Rodadas y Motoclubes">
+  <meta property="og:description" content="Rueda conectado sin internet. Malla Bluetooth entre motos, radar de convoy en tiempo real, radio PTT y ficha médica de rescate.">
+  <meta property="og:image" content="https://rutabikersync.app/og-banner.jpg">
+  
+  <link rel="icon" type="image/png" href="./favicon.png">
+  
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="./css/landing.css?v=20261102_2">
+</head>
+<body>
+
+  <!-- ========================================================================
+       1. NAVEGACIÓN SUPERIOR
+       ======================================================================== -->
+  <header class="site-header" id="mainHeader">
+    <div class="container nav-container">
+      <a href="#" class="brand-link" id="navBrand">
+        <img src="./images/logo-patch.webp" alt="Ruta Biker Sync Logo" class="brand-logo-img">
+        <div class="brand-text">
+          <h1>RUTA BIKER <span>SYNC</span></h1>
+          <div class="brand-badge">● MESH OFF-GRID V1.0</div>
+        </div>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features">Tecnología</a></li>
+          <li><a href="#simulator">Simulador Malla</a></li>
+          <li><a href="#safety">Seguridad & SOS</a></li>
+          <li><a href="#pricing">Planes & Clubes</a></li>
+          <li><a href="#faq">Preguntas</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="/admin" class="btn btn-glass" id="btnAdminAccess" title="Acceso al Centro de Comando">
+          🛡️ Backoffice
+        </a>
+        <a href="#download" class="btn btn-primary" id="btnNavDownload">
+          📲 Descargar APK
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ========================================================================
+         2. HERO SECTION
+         ======================================================================== -->
+    <section class="hero-section" id="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-content">
+            <div class="live-pill" id="heroLivePill">
+              <span class="pulse-dot"></span>
+              RED MESH BLE 100% OFF-GRID · SIN SEÑAL CELULAR REQUERIDA
+            </div>
+
+            <h1 class="hero-title">
+              El Sistema Operativo Definitivo para <span class="gradient-text">Rodadas de Motociclistas</span>
+            </h1>
+
+            <p class="hero-description">
+              Mantén a tu motoclub unido incluso en las carreteras más remotas. Rastreo en convoy punto a punto por Bluetooth, trazado inteligente de 3 vías viales sobre asfalto real, radio PTT cifrado y protocolo de rescate médico.
+            </p>
+
+            <div class="hero-cta-group">
+              <a href="#download" class="btn btn-primary" id="btnHeroDownload">
+                📲 Descargar APK Oficial (Android)
+              </a>
+              <a href="#simulator" class="btn btn-glass" id="btnHeroSim">
+                ⚡ Probar Malla en Vivo
+              </a>
+            </div>
+
+            <div class="badge-strip">
+              <div class="badge-item">
+                <span>🛡️</span>
+                <span>Cifrado Militar Local</span>
+              </div>
+              <div class="badge-item">
+                <span>⛰️</span>
+                <span>100% Sin Cobertura Móvil</span>
+              </div>
+              <div class="badge-item">
+                <span>🦅</span>
+                <span>Gobernanza MC, MG & RC</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- MOCKUP DEL SMARTPHONE EN RUTA -->
+          <div class="mockup-container">
+            <div class="mockup-glow"></div>
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <!-- Simulación del Mapa y Trazados -->
+                <div class="map-simulation">
+                  <!-- Polilíneas simuladas -->
+                  <div class="road-line-1"></div>
+                  <div class="road-line-2"></div>
+
+                  <!-- Nodos de Motociclistas en Ruta -->
+                  <div class="biker-node node-leader" title="Líder Águila">👑</div>
+                  <div class="biker-node node-wingman" title="Capitán de Ruta">🛡️</div>
+                  <div class="biker-node node-tail" title="Barredora">🏍️</div>
+                </div>
+
+                <!-- Cabecera Mockup -->
+                <div class="mockup-top-bar">
+                  <div>
+                    <strong>Paso 3: Rutas Viales</strong>
+                    <div style="font-size: 9px; color: #665;">3 calzadas sobre mapa real</div>
+                  </div>
+                  <span style="background: #10b981; color: #fff; padding: 2px 6px; border-radius: 6px; font-weight: 700; font-size: 9px;">MESH OK</span>
+                </div>
+
+                <!-- Tarjeta Inferior de Rutas Translúcida con Tirador Retráctil -->
+                <div class="mockup-bottom-card">
+                  <div class="card-handle"></div>
+                  <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; margin-bottom: 6px;">
+                    <span>📍 Carreteras Disponibles</span>
+                    <span style="color: var(--copper-heritage);">Bajar para ver mapa ˅</span>
+                  </div>
+                  <div class="route-pill-active">
+                    <span>🔵 Ruta 1 (Directa Autopista)</span>
+                    <span>118 min (127 km)</span>
+                  </div>
+                  <div style="font-size: 9px; color: #64748b; margin-bottom: 8px;">
+                    Asfalto óptimo · Tráfico fluido · Alerta desvío activa
+                  </div>
+                  <div class="btn-mockup-share">
+                    ✓ Guardar Ruta y Sincronizar Malla 🏍️
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         3. LIVE METRICS TICKER
+         ======================================================================== -->
+    <section class="metrics-section" id="metrics">
+      <div class="container">
+        <div class="metrics-grid">
+          <div class="metric-item">
+            <div class="metric-val">100%</div>
+            <div class="metric-label">Autónomo sin internet ni datos móviles</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val">&lt; 150 m</div>
+            <div class="metric-label">Detección de desvío del convoy en tiempo real</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val">3 Vías</div>
+            <div class="metric-label">Cálculo de calzada principal y alternas</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-val">256-bit</div>
+            <div class="metric-label">Cifrado Shamir + Ed25519 en Bóveda y Voz</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         4. CARACTERÍSTICAS CLAVE (PILARES)
+         ======================================================================== -->
+    <section class="features-section" id="features">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">TECNOLOGÍA DE VANGUARDIA</div>
+          <h2 class="section-title">Diseñado para la Hermandad sobre Dos Ruedas</h2>
+          <p class="section-subtitle">
+            Cada módulo resuelve un problema real que los moteros enfrentan en carretera: pérdida de señal, rezagados, accidentes y organización interna.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Card 1 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">📡</div>
+            <h3>Malla Bluetooth Off-Grid</h3>
+            <p>
+              Tu teléfono se convierte en un nodo repetidor. Cada moto retransmite paquetes de telemetría hacia las demás mediante radio BLE, extendiendo el alcance del grupo a lo largo de kilómetros de curvas sin gastar saldo.
+            </p>
+          </article>
+
+          <!-- Card 2 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">🗺️</div>
+            <h3>3 Rutas Viales & Alerta de Desvío</h3>
+            <p>
+              Trazado exacto de calzadas sobre carreteras reales (OSRM / MapLibre offline). Panel translúcido con tirador retráctil para despejar el mapa y alertas inmediatas si alguien se aparta más de 150 metros.
+            </p>
+          </article>
+
+          <!-- Card 3 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">🎙️</div>
+            <h3>Radio PTT por Clips Cifrados</h3>
+            <p>
+              Comunícate como un walkie-talkie profesional. Transmite clips ultraligeros de audio cifrado a través de la red mesh, compatible con intercomunicadores de casco y mandos de manillar.
+            </p>
+          </article>
+
+          <!-- Card 4 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">🛡️</div>
+            <h3>Bóveda Médica & SOS Shamir</h3>
+            <p>
+              Ficha médica cifrada (tipo de sangre, alergias, seguros, contactos de emergencia). En caso de accidente o caída súbita, se activa el protocolo de rescate con geolocalización automática.
+            </p>
+          </article>
+
+          <!-- Card 5 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">🦅</div>
+            <h3>Gobernanza de Clubes (MC/MG/RC)</h3>
+            <p>
+              Estructura jerárquica auténtica: Presidente, Capitán de Ruta, Sargento de Armas, Tesorero y Prospectos. Votaciones democráticas de líderes, libro de actas digital y semáforo de cuotas.
+            </p>
+          </article>
+
+          <!-- Card 6 -->
+          <article class="feature-card">
+            <div class="feature-icon-wrap">🔒</div>
+            <h3>Privacidad Local-First</h3>
+            <p>
+              Tus coordenadas GPS y tus clips de voz jamás se almacenan en servidores corporativos ni se venden a terceros. El control total de tus datos reside únicamente en tu dispositivo.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         5. SIMULADOR INTERACTIVO DE MALLA BLE
+         ======================================================================== -->
+    <section class="sim-section" id="simulator">
+      <div class="container">
+        <div class="sim-box">
+          <div class="sim-header">
+            <div>
+              <div class="section-tag">EXPERIENCIA INTERACTIVA</div>
+              <h2 style="font-size: 26px; color: #fff;">Simulador de Saltos Mesh Bluetooth</h2>
+              <p style="color: var(--text-muted); font-size: 14px;">
+                Observa cómo los paquetes de datos y voz saltan entre las motos en una carretera sin señal celular.
+              </p>
+            </div>
+            <div class="sim-controls">
+              <button class="btn btn-primary" id="btnSimulateSos" style="padding: 8px 16px; font-size: 13px;">
+                🚨 Simular Alerta SOS
+              </button>
+            </div>
+          </div>
+
+          <div class="sim-canvas-wrapper">
+            <canvas id="meshCanvas" class="sim-canvas"></canvas>
+          </div>
+
+          <div class="sim-status-bar">
+            <span>● 5 Nodos Conectados en Cadena (Hop-to-Hop)</span>
+            <span>⚡ Latencia de salto: ~15ms · Cobertura: 100% Off-Grid</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         6. CALCULADORA DE PRECIOS PARA MOTOCLUBES
+         ======================================================================== -->
+    <section class="pricing-section" id="pricing">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">PRECIOS TRANSPARENTES</div>
+          <h2 class="section-title">Calcula la Inversión para tu Club</h2>
+          <p class="section-subtitle">
+            Sin contratos forzosos. Cada miembro paga su cuota individual o el club asume la membresía.
+          </p>
+        </div>
+
+        <div class="calculator-card">
+          <!-- Slider Miembros -->
+          <div class="calc-range-group">
+            <div class="calc-range-header">
+              <span>Número de Miembros (Pilotos)</span>
+              <span id="membersCount">15 pilotos</span>
+            </div>
+            <input type="range" id="membersRange" min="3" max="60" value="15" step="1">
+          </div>
+
+          <!-- Slider Líderes -->
+          <div class="calc-range-group">
+            <div class="calc-range-header">
+              <span>Líderes / Administradores de Mesa</span>
+              <span id="leadersCount">1 líder</span>
+            </div>
+            <input type="range" id="leadersRange" min="1" max="3" value="1" step="1">
+          </div>
+
+          <div class="calc-breakdown">
+            <div class="breakdown-item">
+              <h4>Mesa Directiva (Líderes)</h4>
+              <div class="price" id="leadersSubtotal">$15.00/mes</div>
+              <small style="color: var(--text-dim); font-size: 12px;">$15/mes por líder con control total de grupo</small>
+            </div>
+            <div class="breakdown-item">
+              <h4>Membresías de Miembros</h4>
+              <div class="price" id="membersSubtotal">$37.50/mes</div>
+              <small style="color: var(--text-dim); font-size: 12px;">$2.50/mes por miembro (malla, mapa, voz, SOS)</small>
+            </div>
+          </div>
+
+          <div class="total-bar">
+            <div>
+              <div class="total-label">Inversión Total del Motoclub</div>
+              <div id="costPerRider" style="font-size: 13px; color: var(--emerald-mesh); font-weight: 600;">~$3.28 / mes por piloto</div>
+            </div>
+            <div class="total-amount" id="grandTotal">$52.50 USD</div>
+          </div>
+
+          <div style="margin-top: 24px; text-align: center;">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+              💡 <em>Comparativa: Un intercomunicador satelital de hardware cuesta entre $300 y $600 USD por casco. Ruta Biker Sync ofrece comunicación grupal y radar por una fracción mínima.</em>
+            </p>
+            <a href="#download" class="btn btn-primary" style="padding: 12px 32px;">
+              Registrar mi Club para el Piloto Gratuito 🔥
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         7. PREGUNTAS FRECUENTES (FAQ)
+         ======================================================================== -->
+    <section class="faq-section" id="faq">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-tag">RESOLVEMOS TUS DUDAS</div>
+          <h2 class="section-title">Preguntas Frecuentes</h2>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item active">
+            <div class="faq-question">
+              <span>¿Realmente funciona en carreteras donde no hay señal celular?</span>
+              <span class="faq-toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+              <strong>Sí, absolutamente.</strong> La tecnología principal de Ruta Biker Sync se basa en radio Bluetooth Low Energy (BLE) y mapas vectoriales locales descargados en el teléfono. Los paquetes de posición y voz saltan directamente de un teléfono a otro en la carretera sin requerir antenas telefónicas ni internet.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Qué distancia cubre la red entre motocicletas?</span>
+              <span class="faq-toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+              La conexión directa entre dos motos suele alcanzar entre 80 y 200 metros en línea visual directa. Sin embargo, gracias a la topología de malla multi-salto (multi-hop mesh), un convoy de 10 o 20 motos distribuidas a lo largo de la calzada puede extender la red durante varios kilómetros continuos.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Cómo protege la Bóveda Médica mis datos personales?</span>
+              <span class="faq-toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+              Utilizamos el esquema criptográfico de Shamir's Secret Sharing. Tu información de emergencia (grupo sanguíneo, alergias, contactos de rescate) está cifrada localmente. Solo en caso de un incidente de caída o activación SOS verificada, los fragmentos clave permiten a tus compañeros de ruta acceder a tu ficha de rescate para brindarte auxilio inmediato.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <div class="faq-question">
+              <span>¿Es compatible con intercomunicadores de casco (Cardo, Sena, etc.)?</span>
+              <span class="faq-toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+              Sí. Cualquier auricular o intercomunicador Bluetooth conectado a tu teléfono Android sirve como micrófono y altavoz para el canal PTT de la app, permitiéndote hablar sin soltar las manos del manillar.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         8. CTA DE DESCARGA FINAL
+         ======================================================================== -->
+    <section class="cta-banner-section" id="download">
+      <div class="container">
+        <div class="cta-banner">
+          <h2>Equipa a tu Motoclub Hoy Mismo</h2>
+          <p>
+            Descarga el archivo APK directamente en tu dispositivo Android o solicita el acceso para el piloto oficial de clubes fundadores con insignia exclusiva.
+          </p>
+
+          <div class="cta-buttons">
+            <a href="https://github.com" class="btn btn-primary" id="btnDownloadApkFinal" style="padding: 16px 36px; font-size: 16px;">
+              ⚡ Descargar APK v1.0 (Producción)
+            </a>
+            <a href="/admin" class="btn btn-glass" style="padding: 16px 28px; font-size: 15px;">
+              🛡️ Entrar al Centro de Comando
+            </a>
+          </div>
+
+          <div style="margin-top: 24px; font-size: 12px; color: var(--text-dim);">
+            Compatible con Android 8.0 o superior · Bluetooth 5.0 recomendado · Sin anuncios molestos
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================================
+       9. FOOTER CORPORATIVO
+       ======================================================================== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="brand-link">
+            <div class="brand-logo-icon" style="width: 36px; height: 36px; font-size: 18px;">🏍️</div>
+            <strong style="color: #fff; font-size: 18px; font-family: var(--font-heading);">
+              RUTA BIKER <span style="color: var(--copper-heritage);">SYNC</span>
+            </strong>
+          </div>
+          <p>
+            Plataforma local-first de conectividad para motociclistas. Navegación, radio mesh, seguridad médica y administración de clubes.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Producto</h4>
+          <ul>
+            <li><a href="#features">Red Mesh Off-Grid</a></li>
+            <li><a href="#features">Planificador de Rutas</a></li>
+            <li><a href="#simulator">Simulador en Vivo</a></li>
+            <li><a href="#pricing">Planes para Clubes</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Seguridad & Ley</h4>
+          <ul>
+            <li><a href="#safety">Bóveda Shamir SOS</a></li>
+            <li><a href="#">Privacidad Local-First</a></li>
+            <li><a href="#">Términos de Convivencia</a></li>
+            <li><a href="#">Cumplimiento RGPD / LGPD</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Gestión & Soporte</h4>
+          <ul>
+            <li><a href="/admin">Centro de Comando Admin</a></li>
+            <li><a href="#">Mesa Directiva Nacional</a></li>
+            <li><a href="#">Reportes de Usurpación</a></li>
+            <li><a href="#">Soporte Técnico</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 Ruta Biker Sync. Todos los derechos reservados. Diseñado por y para moteros.</div>
+        <div>Nodo Central Operativo · Hecho con orgullo motero</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./js/landing.js?v=20261102_1"></script>
+</body>
+</html>

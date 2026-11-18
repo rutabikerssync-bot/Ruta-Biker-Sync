@@ -2,6 +2,7 @@ import {
   createPrivateKey,
   createPublicKey,
   generateKeyPairSync,
+  randomBytes,
   randomUUID,
   sign,
   verify,
@@ -113,6 +114,10 @@ export class CredentialKeyring {
     this.keys.set(newKid, entry);
     this.activeKid = newKid;
     return entry;
+  }
+
+  registerKey(kid: string, _seed?: string): Ed25519KeyPairEntry {
+    return this.rotateKey(kid);
   }
 
   getEntry(kid: string): Ed25519KeyPairEntry | undefined {
@@ -344,6 +349,7 @@ export interface RideManifestPayload {
   cohostLeaderId: string | null;
   routeHash: string | null;
   participants: RideManifestParticipant[];
+  rideSecretKeyHex?: string | null;
   iat: number;
   exp: number;
   kid: string;
@@ -377,6 +383,7 @@ export function issueRideManifest(
     cohostLeaderId?: string | null;
     routeHash?: string | null;
     participants: RideManifestParticipant[];
+    rideSecretKeyHex?: string | null;
     nowSec?: number;
     ttlSeconds?: number;
   },
@@ -398,6 +405,8 @@ export function issueRideManifest(
     throw new Error(`MISSING_ACTIVE_ED25519_KEY:${activeKid}`);
   }
 
+  const rideSecretKeyHex = params.rideSecretKeyHex ?? randomBytes(32).toString('hex');
+
   const payload: RideManifestPayload = {
     v: 1,
     type: 'ride_manifest',
@@ -409,6 +418,7 @@ export function issueRideManifest(
     cohostLeaderId: params.cohostLeaderId ?? null,
     routeHash: params.routeHash ?? null,
     participants: params.participants,
+    rideSecretKeyHex,
     iat: nowSec,
     exp: nowSec + ttlSeconds,
     kid: activeKid
@@ -493,3 +503,58 @@ export function verifyRideManifest(
 
   return { valid: true, payload };
 }
+
+export interface RideSummaryData {
+  rideId: string;
+  distanceKm: number;
+  durationMinutes: number;
+  meshKm?: number;
+  maxSpeedKmh?: number;
+  elevationGainM?: number;
+  startedAtNight?: boolean;
+  rained?: boolean;
+  offlineMinutes?: number;
+  closedAtIso?: string;
+}
+
+export function canonicalRideSummaryString(data: RideSummaryData): string {
+  const meshKm = typeof data.meshKm === 'number' ? data.meshKm.toFixed(2) : '0.00';
+  const distKm = Number(data.distanceKm ?? 0).toFixed(2);
+  const durMin = Math.floor(Number(data.durationMinutes ?? 0));
+  const maxSpd = typeof data.maxSpeedKmh === 'number' ? data.maxSpeedKmh.toFixed(1) : '0.0';
+  const closedAt = data.closedAtIso ?? '';
+  return `RIDE_SUMMARY|id:${data.rideId}|dist:${distKm}|mesh:${meshKm}|dur:${durMin}|maxSpd:${maxSpd}|closed:${closedAt}`;
+}
+
+export function toEd25519PublicKey(rawOrSpki: string | Buffer): KeyObject {
+  let buf: Buffer = typeof rawOrSpki === 'string'
+    ? (rawOrSpki.includes('-----BEGIN')
+        ? Buffer.from(rawOrSpki, 'utf8')
+        : (rawOrSpki.length === 64 ? Buffer.from(rawOrSpki, 'hex') : Buffer.from(rawOrSpki, 'base64')))
+    : rawOrSpki;
+
+  if (buf.length === 32) {
+    // Clave pública bruta Ed25519 de 32 bytes -> encapsular en cabecera SPKI DER de 44 bytes
+    const spkiHeader = Buffer.from('302a300506032b6570032100', 'hex');
+    buf = Buffer.concat([spkiHeader, buf]);
+  }
+  return createPublicKey({ key: buf, format: 'der', type: 'spki' });
+}
+
+export function verifyRideSummarySignature(
+  summary: RideSummaryData,
+  signatureBase64OrHex: string,
+  publicKeyRawOrSpki: string | Buffer
+): boolean {
+  try {
+    const keyObject = toEd25519PublicKey(publicKeyRawOrSpki);
+    const canonicalStr = canonicalRideSummaryString(summary);
+    const sigBuf = signatureBase64OrHex.length === 128
+      ? Buffer.from(signatureBase64OrHex, 'hex')
+      : Buffer.from(signatureBase64OrHex, 'base64');
+    return verify(null, Buffer.from(canonicalStr, 'utf8'), keyObject, sigBuf);
+  } catch {
+    return false;
+  }
+}
+

@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Shield
@@ -19,6 +19,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -31,8 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.rutabikersync.app.R
 import com.rutabikersync.app.ui.theme.BikerDimens
 import com.rutabikersync.app.ui.theme.HeritageTheme
+import com.rutabikersync.app.ui.theme.*
 
 /**
  * Placa biselada con relieve 3D oficial "Heritage Premium" (luz cenital, sombra de profundidad y fondo grafito).
@@ -40,18 +45,28 @@ import com.rutabikersync.app.ui.theme.HeritageTheme
 @Composable
 fun HeritageBevelCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 18.dp,
+    cornerRadius: Dp = 16.dp,
     cardColor: Color? = null,
     borderColor: Color? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val isDark = HeritageTheme.colors.isDark
+
     val backgroundBrush = if (cardColor != null) {
         Brush.verticalGradient(
             colors = listOf(
-                cardColor.copy(alpha = 0.95f),
+                cardColor.copy(alpha = 0.98f),
                 cardColor,
-                cardColor.copy(alpha = 0.85f)
+                cardColor.copy(alpha = 0.95f)
+            )
+        )
+    } else if (!isDark) {
+        // Heritage Warm: Pergamino / Arena cálido
+        Brush.verticalGradient(
+            colors = listOf(
+                HeritageTheme.colors.surface,
+                HeritageTheme.colors.surface
             )
         )
     } else {
@@ -67,45 +82,84 @@ fun HeritageBevelCard(
     val borderBrush = if (borderColor != null) {
         Brush.verticalGradient(
             colors = listOf(
-                borderColor,
-                borderColor.copy(alpha = 0.5f),
-                borderColor.copy(alpha = 0.2f)
+                borderColor.copy(alpha = 0.70f),
+                borderColor.copy(alpha = 0.30f)
+            )
+        )
+    } else if (!isDark) {
+        // Heritage Warm: Borde costura de cuero
+        Brush.verticalGradient(
+            colors = listOf(
+                HeritageTheme.colors.borderSubtle,
+                HeritageTheme.colors.borderSubtle
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color(0xFF454B5C), // Borde superior iluminado (luz cenital)
-                Color(0xFF222631),
-                Color(0xFF14161C)  // Sombra profunda inferior
+                Color.White.copy(alpha = 0.30f),
+                Color(0xFF454B5C).copy(alpha = 0.45f),
+                Color(0xFF242733).copy(alpha = 0.25f),
+                Color.Transparent
             )
         )
     }
+
+    val shadowElevation = if (!isDark) 2.5.dp else 6.dp
+    val ambientShadow = if (!isDark) Color(0x123E2723) else Color.Black
+    val spotShadow = if (!isDark) Color(0x183E2723) else Color.Black.copy(alpha = 0.5f)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .shadow(
-                elevation = 6.dp,
+                elevation = shadowElevation,
                 shape = RoundedCornerShape(cornerRadius),
-                ambientColor = Color.Black,
-                spotColor = Color.Black.copy(alpha = 0.5f)
+                ambientColor = ambientShadow,
+                spotColor = spotShadow
             )
             .clip(RoundedCornerShape(cornerRadius))
             .background(brush = backgroundBrush)
             .border(
-                width = 1.2.dp,
+                width = if (!isDark) 1.dp else 1.2.dp,
                 brush = borderBrush,
                 shape = RoundedCornerShape(cornerRadius)
             )
             .padding(contentPadding)
     ) {
-        Column(content = content)
+        CompositionLocalProvider(
+            LocalContentColor provides HeritageTheme.colors.textPrimary
+        ) {
+            Column(content = content)
+        }
     }
 }
 
 /**
- * Botón Placa de Latón Envejecido con relieve físico y degradado cálido.
+ * Borde mínimo blanco superior que se va desvaneciendo gradualmente mientras baja y llega al centro.
+ */
+fun Modifier.fadingTopBorder(
+    cornerRadius: Dp = 12.dp,
+    strokeWidth: Dp = 1.dp,
+    topWhiteAlpha: Float = 0.30f,
+    midColor: Color = Color(0xFF454B5C)
+): Modifier = this.border(
+    width = strokeWidth,
+    brush = Brush.verticalGradient(
+        colors = listOf(
+            Color.White.copy(alpha = topWhiteAlpha),
+            midColor.copy(alpha = 0.45f),
+            midColor.copy(alpha = 0.15f),
+            Color.Transparent
+        )
+    ),
+    shape = RoundedCornerShape(cornerRadius)
+)
+
+
+/**
+ * Botón Placa de Latón Envejecido con relieve físico y degradado cálido,
+ * adaptado a Coral Radiante en el estilo Urban Fresh.
  */
 @Composable
 fun HeritageBrassButton(
@@ -115,40 +169,59 @@ fun HeritageBrassButton(
     icon: ImageVector? = null,
     enabled: Boolean = true
 ) {
+    val isDark = HeritageTheme.colors.isDark
+
+    val buttonBgColors = if (!isDark) {
+        // Heritage Warm: Cobre profundo / Terracota quemado elegante
+        if (enabled) listOf(Color(0xFFC26640), Color(0xFFB85C38), Color(0xFF9C4A2F))
+        else listOf(Color(0xFFEADBC8), Color(0xFFD7C4B2))
+    } else if (enabled) listOf(
+        Color(0xFFF6CE74),
+        Color(0xFFDF9E32),
+        Color(0xFFB8781B)
+    ) else listOf(
+        Color(0xFF4A4438),
+        Color(0xFF2D2922)
+    )
+
+    val buttonBorderColors = if (!isDark) {
+        if (enabled) listOf(Color(0xFFD47C56), Color(0xFF8B3A1A))
+        else listOf(Color(0xFFD7C4B2), Color(0xFFC5B09E))
+    } else if (enabled) listOf(
+        Color(0xFFFFEEBA),
+        Color(0xFF8A550C)
+    ) else listOf(
+        Color(0xFF6B6252),
+        Color(0xFF1F1C17)
+    )
+
+    val textColor = if (!isDark) {
+        if (enabled) Color.White else Color(0xFF8D7B68)
+    } else {
+        if (enabled) Color(0xFF101216) else Color(0xFF8A8275)
+    }
+
+    val shadowSpot = if (!isDark) {
+        if (enabled) Color(0x309C4A2F) else Color.Transparent
+    } else {
+        if (enabled) Color(0xFFE5B869) else Color.Transparent
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(54.dp)
             .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = Color(0xFFE5B869)
+                elevation = if (!isDark) 4.dp else 6.dp,
+                shape = RoundedCornerShape(14.dp),
+                spotColor = shadowSpot
             )
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = if (enabled) listOf(
-                        Color(0xFFF6CE74),
-                        Color(0xFFDF9E32),
-                        Color(0xFFB8781B)
-                    ) else listOf(
-                        Color(0xFF4A4438),
-                        Color(0xFF2D2922)
-                    )
-                )
-            )
+            .clip(RoundedCornerShape(14.dp))
+            .background(brush = Brush.verticalGradient(colors = buttonBgColors))
             .border(
-                width = 1.2.dp,
-                brush = Brush.verticalGradient(
-                    colors = if (enabled) listOf(
-                        Color(0xFFFFEEBA),
-                        Color(0xFF8A550C)
-                    ) else listOf(
-                        Color(0xFF6B6252),
-                        Color(0xFF1F1C17)
-                    )
-                ),
-                shape = RoundedCornerShape(16.dp)
+                width = 1.dp,
+                brush = Brush.verticalGradient(colors = buttonBorderColors),
+                shape = RoundedCornerShape(14.dp)
             )
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
@@ -162,14 +235,14 @@ fun HeritageBrassButton(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = if (enabled) Color(0xFF101216) else Color(0xFF8A8275),
+                    tint = textColor,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(
                 text = text,
-                color = if (enabled) Color(0xFF101216) else Color(0xFF8A8275),
+                color = textColor,
                 fontWeight = FontWeight.Black,
                 fontSize = 14.sp,
                 letterSpacing = 0.4.sp
@@ -191,31 +264,58 @@ fun HeritageEmblemBadge(
     iconSize: Dp = 22.dp,
     glowColor: Color = Color(0xFFF3C766)
 ) {
+    val isBright = HeritageTheme.isBrightRider
     Box(
         modifier = modifier
             .size(badgeSize)
-            .shadow(elevation = 4.dp, shape = CircleShape, spotColor = glowColor)
+            .shadow(
+                elevation = if (isBright) 2.dp else 4.dp,
+                shape = CircleShape,
+                spotColor = if (isBright) Color(0x331769E0) else glowColor
+            )
             .clip(CircleShape)
             .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF2C313E),
-                        Color(0xFF14161C),
-                        Color(0xFF0B0C0F)
+                brush = if (isBright) {
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color.White,
+                            Color(0xFFEFF6FF),
+                            Color(0xFFDBEAFE)
+                        )
                     )
-                )
+                } else {
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF2C313E),
+                            Color(0xFF14161C),
+                            Color(0xFF0B0C0F)
+                        )
+                    )
+                }
             )
             .border(
-                width = 1.8.dp,
-                brush = Brush.sweepGradient(
-                    colors = listOf(
-                        Color(0xFFF6CE74),
-                        Color(0xFF8A550C),
-                        Color(0xFFF6CE74),
-                        Color(0xFFB8781B),
-                        Color(0xFFF6CE74)
+                width = if (isBright) 1.5.dp else 1.8.dp,
+                brush = if (isBright) {
+                    Brush.sweepGradient(
+                        colors = listOf(
+                            Color(0xFF93C5FD),
+                            Color(0xFF1769E0),
+                            Color(0xFF93C5FD),
+                            Color(0xFF2563EB),
+                            Color(0xFF93C5FD)
+                        )
                     )
-                ),
+                } else {
+                    Brush.sweepGradient(
+                        colors = listOf(
+                            Color(0xFFF6CE74),
+                            Color(0xFF8A550C),
+                            Color(0xFFF6CE74),
+                            Color(0xFFB8781B),
+                            Color(0xFFF6CE74)
+                        )
+                    )
+                },
                 shape = CircleShape
             ),
         contentAlignment = Alignment.Center
@@ -230,7 +330,7 @@ fun HeritageEmblemBadge(
             Icon(
                 imageVector = imageVector,
                 contentDescription = contentDescription,
-                tint = glowColor,
+                tint = if (isBright && (glowColor == Color(0xFFF3C766) || glowColor == Color(0xFFD4AF37))) Color(0xFF1769E0) else glowColor,
                 modifier = Modifier.size(iconSize)
             )
         }
@@ -358,26 +458,10 @@ fun HeritageStatusBadge(
     modifier: Modifier = Modifier
 ) {
     val (dotColor, bgColor, textColor) = when (type) {
-        HeritageBadgeType.SAFE -> Triple(
-            HeritageTheme.colors.safe,
-            HeritageTheme.colors.safe.copy(alpha = 0.14f),
-            HeritageTheme.colors.safe
-        )
-        HeritageBadgeType.WARNING -> Triple(
-            HeritageTheme.colors.warning,
-            HeritageTheme.colors.warning.copy(alpha = 0.16f),
-            HeritageTheme.colors.warning
-        )
-        HeritageBadgeType.DANGER -> Triple(
-            HeritageTheme.colors.danger,
-            HeritageTheme.colors.danger.copy(alpha = 0.16f),
-            HeritageTheme.colors.danger
-        )
-        HeritageBadgeType.NEUTRAL -> Triple(
-            HeritageTheme.colors.textSecondary,
-            HeritageTheme.colors.textSecondary.copy(alpha = 0.12f),
-            HeritageTheme.colors.textSecondary
-        )
+        HeritageBadgeType.SAFE -> Triple(HeritageGreen, HeritageGreenLight, HeritageGreen)
+        HeritageBadgeType.WARNING -> Triple(HeritageAmber, HeritageCardWarm, HeritageAmber)
+        HeritageBadgeType.DANGER -> Triple(HeritageRustRed, HeritageRustRed.copy(alpha = 0.14f), HeritageRustRed)
+        HeritageBadgeType.NEUTRAL -> Triple(HeritageLeatherMuted, HeritageCardWarm, HeritageLeatherMuted)
     }
 
     Row(
@@ -398,7 +482,9 @@ fun HeritageStatusBadge(
             text = text,
             color = textColor,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            softWrap = false
         )
     }
 }
@@ -589,82 +675,72 @@ fun HeritageStopRideHoldButton(
         )
     )
 
+    val haptics = LocalHapticFeedback.current
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(Color(0xFF141519).copy(alpha = 0.92f))
-            .border(1.5.dp, capsuleBorderBrush, RoundedCornerShape(28.dp))
+            .height(52.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(HeritageCardWarm)
+            .border(
+                1.5.dp,
+                if (isHolding) HeritageRustRed else HeritageRustRed.copy(alpha = 0.6f),
+                RoundedCornerShape(14.dp)
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
                         isHolding = true
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         tryAwaitRelease()
                         isHolding = false
                     }
                 )
             },
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.Center
     ) {
-        // Barra de progreso de llenado en rojo peligro con gradiente
+        // Fondo de progreso suave
         if (progress > 0f) {
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFFD92D35).copy(alpha = 0.45f),
-                                Color(0xFFD92D35)
-                            )
-                        )
-                    )
+                    .fillMaxSize()
+                    .background(HeritageRustRed.copy(alpha = 0.22f * progress))
             )
         }
 
-        // Thumb circular rojo a la izquierda con icono '>'
-        Box(
-            modifier = Modifier
-                .padding(start = 6.dp)
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.radialGradient(
-                        listOf(
-                            Color(0xFFFF5252),
-                            Color(0xFFD92D35),
-                            Color(0xFF991B1B)
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Detener",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-
-        // Texto central
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 54.dp, end = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(horizontal = 14.dp)
         ) {
+            Box(
+                modifier = Modifier.size(28.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    progress = if (isHolding) progress else 0f,
+                    modifier = Modifier.fillMaxSize(),
+                    color = HeritageRustRed,
+                    trackColor = HeritageBorder,
+                    strokeWidth = 3.dp
+                )
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null,
+                    tint = HeritageRustRed,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+
             Text(
                 text = if (isHolding) {
                     val remaining = ((3000L - (progress * 3000f).toLong()) / 1000L).coerceAtLeast(1L)
                     "Soltar cancela · Deteniendo en ${remaining}s..."
                 } else {
-                    "Mantén presionado 3 s para detener"
+                    "Mantén presionado para detener"
                 },
-                color = Color.White,
+                color = HeritageRustRed,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
                 letterSpacing = 0.2.sp
@@ -684,33 +760,44 @@ fun HeritageBottomNavigationBar(
     modifier: Modifier = Modifier
 ) {
     val tabs = listOf(
-        Triple("Rodadas", AppIcons.TabRides, 0),
-        Triple("Mi Club", AppIcons.TabGroups, 1),
-        Triple("Bóveda", AppIcons.LeaderFallback, 2),
-        Triple("Perfil", AppIcons.TabProfile, 3)
+        Triple(stringResource(R.string.nav_tab_rides), AppIcons.TabRides, 0),
+        Triple(stringResource(R.string.nav_tab_club), AppIcons.TabGroups, 1),
+        Triple(stringResource(R.string.nav_tab_vault), AppIcons.LeaderFallback, 2),
+        Triple(stringResource(R.string.nav_tab_profile), AppIcons.TabProfile, 3)
     )
 
+    val isDark = HeritageTheme.colors.isDark
+    val barBg = if (!isDark) HeritageTheme.colors.surface else Color(0xFF111317)
+    val borderCol = HeritageTheme.colors.borderSubtle
+    val barBorderBrush = if (!isDark) {
+        Brush.horizontalGradient(listOf(borderCol, borderCol, borderCol))
+    } else {
+        Brush.horizontalGradient(listOf(Color(0xFF20232B), Color(0xFF434A5B), Color(0xFF20232B)))
+    }
+    val activeColor = if (!isDark) HeritageTheme.colors.primary else Color(0xFFF3C766)
+    val inactiveColor = if (!isDark) HeritageTheme.colors.textSecondary else Color(0xFF7E8494)
+
     Surface(
-        color = Color(0xFF111317),
+        color = barBg,
         modifier = modifier
             .fillMaxWidth()
+            .shadow(if (!isDark) 6.dp else 0.dp, RectangleShape, ambientColor = Color(0x06183153), spotColor = Color(0x0A183153))
             .border(
                 width = 1.dp,
-                brush = Brush.horizontalGradient(
-                    listOf(Color(0xFF20232B), Color(0xFF434A5B), Color(0xFF20232B))
-                ),
+                brush = barBorderBrush,
                 shape = RectangleShape
             )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEach { (title, icon, index) ->
                 val isSelected = selectedTabIndex == index
-                val itemColor = if (isSelected) Color(0xFFF3C766) else Color(0xFF7E8494)
+                val itemColor = if (isSelected) activeColor else inactiveColor
 
                 Box(
                     modifier = Modifier
@@ -726,11 +813,7 @@ fun HeritageBottomNavigationBar(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (isSelected) Color(0xFFF3C766).copy(alpha = 0.16f) else Color.Transparent
-                                ),
+                                .size(28.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -744,15 +827,15 @@ fun HeritageBottomNavigationBar(
                             text = title,
                             color = itemColor,
                             fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
-                        // Indicador inferior con halo dorado
+                        // Indicador inferior con píldora
                         Box(
                             modifier = Modifier
-                                .width(22.dp)
+                                .width(if (isSelected) 20.dp else 0.dp)
                                 .height(2.5.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(if (isSelected) Color(0xFFF3C766) else Color.Transparent)
+                                .background(if (isSelected) activeColor else Color.Transparent)
                         )
                     }
                 }
@@ -822,46 +905,56 @@ fun HeritageMetricCard(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val isLight = !HeritageTheme.colors.isDark
+    val iconBgColor = if (isLight) iconTint.copy(alpha = 0.12f) else iconTint.copy(alpha = 0.2f)
+
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF1D2028), Color(0xFF121419))
-                )
+            .shadow(
+                elevation = if (isLight) 1.dp else 0.dp,
+                shape = RoundedCornerShape(16.dp),
+                spotColor = Color(0x0C183153)
             )
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isLight) HeritageCard else Color(0xFF14161D))
             .border(
                 width = 1.dp,
-                brush = Brush.verticalGradient(
-                    listOf(Color(0xFF3E4455), Color(0xFF1B1E26))
-                ),
-                shape = RoundedCornerShape(14.dp)
+                color = if (isLight) HeritageBorder else Color(0xFF242733),
+                shape = RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 6.dp, vertical = 10.dp)
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(22.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(iconBgColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
             Text(
                 text = value,
-                color = Color.White,
+                color = if (isLight) HeritageLeatherBrown else Color.White,
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 textAlign = TextAlign.Center,
                 maxLines = 1
             )
             Text(
                 text = label,
-                color = Color(0xFF8E95A5),
-                fontSize = 9.sp,
+                color = if (isLight) HeritageLeatherMuted else Color(0xFF94A3B8),
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
                 maxLines = 1
@@ -872,6 +965,7 @@ fun HeritageMetricCard(
 
 /**
  * Escudo de insignia / logro con relieve (Aventurero, Lluvia, Montaña, MC Honor).
+ * Soporta efecto de bloqueo para insignias aún no conseguidas.
  */
 @Composable
 fun HeritageAchievementBadge(
@@ -881,43 +975,81 @@ fun HeritageAchievementBadge(
     badgeRes: Int? = null,
     borderColor: Color = Color(0xFFE5B869),
     iconTint: Color = Color(0xFFF6CE74),
+    isUnlocked: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val isLight = !HeritageTheme.colors.isDark
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier.width(76.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = modifier.width(88.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
-                .clip(RoundedCornerShape(14.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1F232D), Color(0xFF101217))
-                    )
+                .shadow(
+                    elevation = if (isLight && isUnlocked) 2.dp else 0.dp,
+                    shape = RoundedCornerShape(18.dp),
+                    spotColor = if (isUnlocked) borderColor.copy(alpha = 0.35f) else Color.Transparent
                 )
-                .border(1.5.dp, borderColor, RoundedCornerShape(14.dp)),
+                .size(74.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    if (isUnlocked) {
+                        if (isLight) HeritageCard else Color(0xFF1F232D)
+                    } else {
+                        if (isLight) HeritageCardWarm else Color(0xFF13151B)
+                    }
+                )
+                .border(
+                    width = 1.5.dp,
+                    color = if (isUnlocked) {
+                        if (isLight) borderColor.copy(alpha = 0.6f) else borderColor
+                    } else {
+                        if (isLight) HeritageBorder else Color(0xFF272B36)
+                    },
+                    shape = RoundedCornerShape(18.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (badgeRes != null) {
                 androidx.compose.foundation.Image(
                     painter = androidx.compose.ui.res.painterResource(id = badgeRes),
                     contentDescription = title,
-                    modifier = Modifier.size(40.dp)
+                    alpha = if (isUnlocked) 1f else 0.35f,
+                    modifier = Modifier.size(64.dp)
                 )
             } else if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(26.dp)
+                    tint = if (isUnlocked) iconTint else Color(0xFF94A3B8),
+                    modifier = Modifier.size(36.dp)
                 )
+            }
+
+            if (!isUnlocked) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(if (isLight) HeritageLeatherBrown.copy(alpha = 0.8f) else Color(0xFF0F172A).copy(alpha = 0.8f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "🔒",
+                        fontSize = 11.sp
+                    )
+                }
             }
         }
         Text(
             text = title,
-            color = Color.White,
+            color = if (isUnlocked) {
+                if (isLight) HeritageLeatherBrown else Color.White
+            } else {
+                if (isLight) HeritageLeatherMuted else Color(0xFF64748B)
+            },
             fontWeight = FontWeight.Bold,
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
@@ -925,8 +1057,8 @@ fun HeritageAchievementBadge(
         )
         Text(
             text = subtitle,
-            color = Color(0xFF8E95A5),
-            fontSize = 9.sp,
+            color = if (isLight) HeritageLeatherMuted else Color(0xFF94A3B8),
+            fontSize = 10.sp,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -945,50 +1077,59 @@ fun HeritageClubPatchBadge(
     badgeRes: Int? = null,
     modifier: Modifier = Modifier
 ) {
+    val isDark = HeritageTheme.colors.isDark
+    val bgBrush = if (!isDark) {
+        Brush.verticalGradient(listOf(HeritageCard, HeritageCard))
+    } else {
+        Brush.verticalGradient(listOf(Color(0xFF1F222B), Color(0xFF0F1116)))
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = modifier.width(96.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(58.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF1F222B), Color(0xFF0F1116))
-                    )
+                .shadow(
+                    elevation = if (!isDark) 2.dp else 0.dp,
+                    shape = RoundedCornerShape(18.dp),
+                    ambientColor = Color(0x0A183153),
+                    spotColor = Color(0x0C183153)
                 )
-                .border(1.5.dp, patchColor, RoundedCornerShape(16.dp)),
+                .size(74.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(bgBrush)
+                .border(1.5.dp, patchColor, RoundedCornerShape(18.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (badgeRes != null) {
                 androidx.compose.foundation.Image(
                     painter = androidx.compose.ui.res.painterResource(id = badgeRes),
                     contentDescription = clubName,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(64.dp)
                 )
             } else if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = patchColor,
-                    modifier = Modifier.size(30.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
         Text(
             text = clubName,
-            color = Color.White,
+            color = HeritageTheme.colors.textPrimary,
             fontWeight = FontWeight.Bold,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             textAlign = TextAlign.Center,
             maxLines = 2
         )
         Text(
             text = badgeText,
-            color = Color(0xFFE5B869),
-            fontSize = 9.sp,
+            color = if (!isDark) HeritageTheme.colors.primary else Color(0xFFE5B869),
+            fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )

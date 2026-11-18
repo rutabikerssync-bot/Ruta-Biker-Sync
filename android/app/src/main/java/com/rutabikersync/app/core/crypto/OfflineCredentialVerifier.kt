@@ -308,10 +308,22 @@ data class RideManifestPayload(
     val cohostLeaderId: String? = null,
     val routeHash: String? = null,
     val participants: List<RideManifestParticipantPayload>,
+    val rideSecretKeyHex: String? = null,
     val iat: Long,
     val exp: Long,
     val kid: String
-)
+) {
+    fun resolveRideSecretKey(): ByteArray? {
+        val hex = rideSecretKeyHex?.trim()?.takeIf { it.length == 64 } ?: return null
+        return try {
+            ByteArray(32) { i ->
+                hex.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+}
 
 data class RideManifestVerificationOutcome(
     val valid: Boolean,

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruta Biker Sync — Centro de Comando, Administración & Soporte</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/admin.css?v=20261102">
+  <script>
+    function switchTab(targetTab) {
+      document.querySelectorAll('.nav-item').forEach(function(n) {
+        if (n.getAttribute('data-tab') === targetTab) n.classList.add('active');
+        else n.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-pane').forEach(function(p) {
+        if (p.id === 'tab-' + targetTab) p.classList.add('active');
+        else p.classList.remove('active');
+      });
+      if (window.loadTabContent) {
+        window.loadTabContent(targetTab);
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Cabecera Superior -->
+  <header class="admin-header">
+    <div class="brand-section">
+      <div class="brand-crest">🏍️</div>
+      <div class="brand-titles">
+        <h1>RUTA BIKER <span>SYNC</span></h1>
+        <div class="brand-subtitle">CENTRO DE COMANDO &middot; BACKOFFICE &middot; SOPORTE &middot; ANALÍTICA V1.0</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="status-badge" id="live-indicator">
+        <div class="pulse-dot"></div>
+        <span>NODO CENTRAL ACTIVO</span>
+      </div>
+      <button class="btn-primary" onclick="switchTab('settings')">
+        ⚙️ Configurar API
+      </button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal con Sidebar y Paneles -->
+  <div class="admin-container">
+
+    <!-- Barra Lateral de Navegación -->
+    <aside class="admin-sidebar">
+      <div class="nav-item active" data-tab="analytics" onclick="switchTab('analytics')">
+        <span class="nav-icon">📊</span>
+        <span>Métricas & Comportamiento</span>
+      </div>
+      <div class="nav-item" data-tab="groups" onclick="switchTab('groups')">
+        <span class="nav-icon">🛡️</span>
+        <span>Clubes & Mesa Directiva</span>
+      </div>
+      <div class="nav-item" data-tab="users" onclick="switchTab('users')">
+        <span class="nav-icon">👥</span>
+        <span>Pilotos & Membresías</span>
+      </div>
+      <div class="nav-item" data-tab="support" onclick="switchTab('support')">
+        <span class="nav-icon">🎧</span>
+        <span>Soporte & Moderación</span>
+        <span class="nav-badge" id="badge-escalated-count">2</span>
+      </div>
+      <div class="nav-item" data-tab="audit" onclick="switchTab('audit')">
+        <span class="nav-icon">🚨</span>
+        <span>Auditoría de Rescate SOS</span>
+      </div>
+      <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <span class="nav-icon">⚙️</span>
+        <span>Ajustes & Conexión API</span>
+      </div>
+
+      <div style="margin-top: auto; padding: 20px; font-size: 0.72rem; color: var(--text-subtle); border-top: 1px solid var(--border-subtle);">
+        <div>🔒 <strong>Privacidad RGPD/CCPA</strong></div>
+        <div style="margin-top: 4px;">Sin almacenamiento de audio en nube ni rastreo GPS continuo.</div>
+      </div>
+    </aside>
+
+    <!-- Área de Contenido Principal -->
+    <main class="admin-content">
+
+      <!-- PESTAÑA 1: ANALÍTICA Y COMPORTAMIENTO -->
+      <section id="tab-analytics" class="tab-pane active">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">📊 Comportamiento de Usuarios & KPIs en Vivo</h2>
+            <p class="section-desc">Métricas agregadas anónimas y telemetría de carretera conforme al protocolo de privacidad.</p>
+          </div>
+          <button class="btn-secondary" onclick="window.location.reload()">🔄 Refrescar Métricas</button>
+        </div>
+
+        <!-- Rejilla de KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-card gold">
+            <div class="kpi-top">
+              <span class="kpi-label">Pilotos Registrados</span>
+              <div class="kpi-icon">👥</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-users">1,420</div>
+            <div class="kpi-sub">
+              <span class="trend-up" id="kpi-active-riders">1,388 en ruta</span> &middot; 97.7% activos
+            </div>
+          </div>
+
+          <div class="kpi-card emerald">
+            <div class="kpi-top">
+              <span class="kpi-label">Clubes Oficiales</span>
+              <div class="kpi-icon">🛡️</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-groups">84</div>
+            <div class="kpi-sub">
+              <span class="trend-up">4 MCs</span> &middot; 10 Gangs &middot; 24 MGs &middot; 46 RCs
+            </div>
+          </div>
+
+          <div class="kpi-card cyan">
+            <div class="kpi-top">
+              <span class="kpi-label">Kilómetros Rodados</span>
+              <div class="kpi-icon">🛣️</div>
+            </div>
+            <div class="kpi-value" id="kpi-total-km">148,560 km</div>
+            <div class="kpi-sub">
+              <span class="trend-neutral">96% rodadas completadas</span>
+            </div>
+          </div>
+
+          <div class="kpi-card gold">
+            <div class="kpi-top">
+              <span class="kpi-label">Ingresos Mensuales</span>
+              <div class="kpi-icon">💳</div>
+            </div>
+            <div class="kpi-value" id="kpi-monthly-revenue">$2,960 USD</div>
+            <div class="kpi-sub">
+              <span class="trend-up">84 líderes</span> &middot; 680 cupos miembros
+            </div>
+          </div>
+
+          <div class="kpi-card crimson">
+            <div class="kpi-top">
+              <span class="kpi-label">Precisión Caída SOS</span>
+              <div class="kpi-icon">🚨</div>
+            </div>
+            <div class="kpi-value" id="kpi-sos-accuracy">76%</div>
+            <div class="kpi-sub">
+              <span>Canceladas en 20 s (falsas alarmas evitadas)</span>
+            </div>
+          </div>
+
+          <div class="kpi-card cyan">
+            <div class="kpi-top">
+              <span class="kpi-label">Adopción Mesh Offline</span>
+              <div class="kpi-icon">📡</div>
+            </div>
+            <div class="kpi-value" id="kpi-mesh-ratio">42%</div>
+            <div class="kpi-sub">
+              <span class="trend-neutral">914 rodadas en zonas sin señal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rejilla de Gráficos -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title">📈 Actividad Semanal de Rodadas en Convoy</div>
+              <span class="pill pill-mg">PICO: FINES DE SEMANA</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-rides-activity"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <div class="chart-card-title">🏆 Distribución de Rangos</div>
+              <span class="pill pill-mc">XP COMUNITARIA</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-ranks-donut"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico Horizontal SOS -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">🚨 Eficiencia del Sensor de Caídas & Rescate SOS</div>
+            <span class="pill pill-active">VENTANA TÁCTIL DE 20S OPERATIVA</span>
+          </div>
+          <div class="chart-container" style="height: 180px;">
+            <canvas id="chart-sos-metrics"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 2: GESTIÓN DE CLUBES -->
+      <section id="tab-groups" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">🛡️ Administración de Clubes & Mesa Directiva</h2>
+            <p class="section-desc">Auditoría de jerarquía (RC ➔ MG ➔ Gang ➔ MC), semáforo de suscripciones y prórrogas.</p>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-groups" placeholder="Buscar por nombre de club o email de líder...">
+            </div>
+            <div class="filter-group">
+              <select id="filter-group-tier" class="filter-select">
+                <option value="">Todos los Tiers</option>
+                <option value="RC">Riding Club (RC)</option>
+                <option value="MG">Moto Group (MG)</option>
+                <option value="GANG">Gang</option>
+                <option value="MC">Motorcycle Club (MC)</option>
+              </select>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Club & País</th>
+                <th>Jerarquía</th>
+                <th>Presidente (Líder)</th>
+                <th>Miembros</th>
+                <th>Semáforo Pago</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="groups-table-body">
+              <!-- Se puebla dinámicamente con JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 3: PILOTOS Y MEMBRESÍAS -->
+      <section id="tab-users" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">👥 Directorio de Pilotos & Membresías</h2>
+            <p class="section-desc">Historial de kilometraje, rangos de experiencia, club actual y cargos oficiales.</p>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-users" placeholder="Buscar por nombre o correo de piloto...">
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Piloto & Email</th>
+                <th>País</th>
+                <th>Rango & XP</th>
+                <th>Club & Cargo</th>
+                <th>Km Totales</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <!-- Se puebla dinámicamente con JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 4: SOPORTE Y MODERACIÓN (HELPDESK) -->
+      <section id="tab-support" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">🎧 Soporte al Cliente & Moderación Escalada</h2>
+            <p class="section-desc">Atención de tickets para líderes y resolución de reportes de convivencia (Regla R13.5).</p>
+          </div>
+        </div>
+
+        <h3 style="font-size: 1.1rem; color: var(--gold-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span>⚖️</span> Reportes de Convivencia Escalados a Soporte (R13.5)
+        </h3>
+        <div id="escalated-reports-list" style="margin-bottom: 30px;">
+          <!-- Lista de reportes escalados -->
+        </div>
+
+        <h3 style="font-size: 1.1rem; color: var(--gold-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span>💬</span> Mesa de Ayuda (Tickets de Asistencia Técnica y Pagos)
+        </h3>
+
+        <div class="tickets-grid">
+          <!-- Columna Izquierda: Lista de Tickets -->
+          <div style="display: flex; flex-direction: column; gap: 12px;" id="support-tickets-list">
+            <!-- Items de tickets -->
+          </div>
+
+          <!-- Columna Derecha: Chat del Ticket Seleccionado -->
+          <div class="ticket-chat-card">
+            <div class="ticket-chat-header">
+              <div>
+                <div style="font-weight: 700; color: var(--text-main);" id="chat-ticket-subject">Selecciona un ticket</div>
+                <div style="font-size: 0.75rem; color: var(--text-subtle);" id="chat-ticket-meta">Detalles del caso</div>
+              </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages-container">
+              <div style="text-align: center; color: var(--text-subtle); margin-top: 50px;">
+                Selecciona una consulta de la lista para ver el hilo y responder al piloto o líder.
+              </div>
+            </div>
+
+            <div class="chat-input-area">
+              <input type="text" id="input-ticket-reply" placeholder="Escribe tu respuesta oficial como soporte de Ruta Biker Sync...">
+              <button class="btn-primary" id="btn-send-reply">Enviar Respuesta</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 5: AUDITORÍA DE SEGURIDAD SOS -->
+      <section id="tab-audit" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">🚨 Trazabilidad & Auditoría Forense de Rescate SOS</h2>
+            <p class="section-desc">Bitácora inmutable de cada ocasión en que se abrió la ficha médica y contactos ICE durante una emergencia (R10.3, R10.4).</p>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Rodada Convocada</th>
+                <th>Piloto Auxiliado</th>
+                <th>Líder / Auxiliador que Accedió</th>
+                <th>Motivo de Apertura</th>
+              </tr>
+            </thead>
+            <tbody id="sos-audit-table-body">
+              <!-- Se puebla dinámicamente con JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PESTAÑA 6: AJUSTES Y CONEXIÓN API -->
+      <section id="tab-settings" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">⚙️ Ajustes del Sistema & Conexión de Servidor</h2>
+            <p class="section-desc">Configuración de credenciales del Backoffice y enlace con el backend de producción.</p>
+          </div>
+        </div>
+
+        <div class="table-card" style="padding: 24px; max-width: 650px;">
+          <div class="form-group">
+            <label>Clave Maestra de Administrador (x-admin-key)</label>
+            <input type="password" id="input-admin-key" value="rbs-dev-admin-secret-key-2026">
+            <p style="font-size: 0.75rem; color: var(--text-subtle); margin-top: 4px;">
+              Configurada en la variable de entorno <code>ADMIN_API_KEY</code> de tu servidor Node.js.
+            </p>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="btn-primary" id="btn-save-key">Guardar Clave</button>
+            <button class="btn-secondary" id="btn-test-connection">Probar Enlace en Vivo</button>
+          </div>
+
+          <div style="margin-top: 20px; font-size: 0.85rem;" id="connection-status-text">
+            🟢 Enlace en vivo activo.
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="./js/charts.js?v=20261102"></script>
+  <script src="./js/api.js?v=20261102"></script>
+  <script src="./js/admin.js?v=20261102"></script>
+</body>
+</html>

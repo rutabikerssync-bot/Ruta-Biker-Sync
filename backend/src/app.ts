@@ -7,6 +7,10 @@ import Fastify, {
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { DbExecutor } from './db/pool.js';
@@ -22,7 +26,8 @@ import {
   P7_FORBID_GUEST_CLUB_ROLES,
   canMemberHoldClubRole,
   computePaymentSemaphore,
-  requiredLeaderVotesForMajority
+  requiredLeaderVotesForMajority,
+  type ClubRole
 } from './lib/roles.js';
 import {
   AUTH_POLICY,
@@ -50,7 +55,9 @@ import {
   type CredentialRoleKind,
   type RevocationEntry,
   type RideManifestParticipant,
-  type RideRoleKind
+  type RideRoleKind,
+  verifyRideSummarySignature,
+  type RideSummaryData
 } from './lib/credentials.js';
 import {
   FakePlayBillingVerifier,
@@ -62,6 +69,36 @@ import {
   type SubscriptionKind,
   type SubscriptionState
 } from './lib/subscriptions.js';
+import {
+  DEFAULT_ADMIN_KEY,
+  verifyAdminAccess,
+  logAdminAction,
+  getAdminAnalyticsOverview,
+  listAdminGroups,
+  getAdminGroupDetails,
+  updateAdminGroupStatus,
+  extendGroupGracePeriod,
+  listAdminUsers,
+  updateAdminUserStatus,
+  listEscalatedReports,
+  resolveEscalatedReport,
+  listSupportTickets,
+  createSupportTicket,
+  getSupportTicketDetails,
+  addTicketMessage,
+  listSosAccessAudit,
+  listAdminAuditLogs
+} from './lib/admin.js';
+import { FcmService, defaultFcmService, type SendResult } from './lib/fcm.js';
+import { calculateBearingDegrees, degreesToCardinal, formatSosAlertText } from './lib/geo.js';
+import {
+  getCanonicalRegions,
+  getAllRegions,
+  findRegionById,
+  registerCustomRouteRegion,
+  ensureCanonicalPmtilesFiles,
+  getMapFilePath
+} from './lib/offlineMaps.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
@@ -73,6 +110,9 @@ export interface BuildAppOptions {
   playVerifier?: FakePlayBillingVerifier;
   credentialKeyring?: CredentialKeyring;
   env?: NodeJS.ProcessEnv;
+  rateLimitAuthMaxPerHour?: number;
+  rateLimitInviteMaxPerHour?: number;
+  fcmService?: FcmService;
 }
 
 const CountryCodeSchema = z
@@ -92,6 +132,32 @@ const LoginBodySchema = z.object({
 
 const RefreshTokenBodySchema = z.object({
   refreshToken: z.string().min(16)
+});
+
+const VisibilityEnum = z.enum(['PUBLIC', 'CLUB_ONLY', 'PRIVATE']);
+
+const UpdateEnrichedProfileSchema = z.object({
+  displayName: z.string().min(2).max(60).optional(),
+  aliasBiker: z.string().min(2).max(60).optional(),
+  bikeModel: z.string().max(80).optional(),
+  mapColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  pinColorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  motorcycleBrand: z.string().max(80).optional().nullable(),
+  motorcycleModel: z.string().max(80).optional().nullable(),
+  motorcycleDisplacement: z.number().int().positive().max(10000).optional().nullable(),
+  motorcycleYear: z.number().int().min(1900).max(2100).optional().nullable(),
+  motorcycleColor: z.string().max(40).optional().nullable(),
+  motorcycleSerial: z.string().max(100).optional().nullable(),
+  profileVisibility: VisibilityEnum.optional(),
+  motorcycleVisibility: VisibilityEnum.optional(),
+  photoBase64: z.string().max(3_000_000).optional().nullable(),
+  motorcyclePhotoBase64: z.string().max(3_000_000).optional().nullable()
+});
+
+const SupportReportSchema = z.object({
+  subject: z.string().min(3).max(200),
+  message: z.string().min(5).max(5000),
+  screenshotBase64: z.string().max(3_000_000).optional().nullable()
 });
 
 const UpdateProfileSchema = z.object({
@@ -119,24 +185,65 @@ const AddLeaderSchema = z.object({
 });
 
 const CreateInvitationSchema = z.object({
-  invitedUserId: z.string().uuid(),
-  statusKind: z.enum(MEMBER_STATUS_KINDS),
-  clubRole: z.enum(CLUB_ROLES).nullable().optional()
+  invitedUserId: z.string().uuid().optional().nullable(),
+  statusKind: z.enum(MEMBER_STATUS_KINDS).default('full').optional(),
+  clubRole: z.enum(CLUB_ROLES).nullable().optional(),
+  invitationType: z.enum(['hermandad', 'rodada']).default('hermandad').optional(),
+  customId: z.string().uuid().optional()
 });
 
 const AcceptInvitationSchema = z.object({
   consents: z.object({
-    membership: z.boolean(),
+    membership: z.boolean().optional(),
     location: z.boolean(),
-    emergencyPackage: z.boolean(),
-    notifications: z.boolean()
+    emergencyPackage: z.boolean().optional(),
+    notifications: z.boolean().optional()
   }),
   policyVersion: z.string().default('1.0')
 });
 
+const UpdateConsentSchema = z.object({
+  groupId: z.string().uuid().nullable().optional(),
+  kind: z.enum(['membership', 'location', 'emergency_package', 'notifications', 'terms']),
+  granted: z.boolean(),
+  policyVersion: z.string().default('1.0')
+});
+
+function normalizeIncomingClubRole(role: string | null | undefined): ClubRole | null | undefined {
+  if (!role) return role as null | undefined;
+  const lower = role.toLowerCase().trim();
+  switch (lower) {
+    case 'presidente':
+    case 'president':
+      return 'presidente';
+    case 'vice':
+    case 'vice_president':
+    case 'vicepresidente':
+      return 'vice';
+    case 'capitan_ruta':
+    case 'road_captain':
+    case 'capitán de ruta':
+      return 'capitan_ruta';
+    case 'sargento_armas':
+    case 'sergeant_at_arms':
+    case 'sargento de armas':
+      return 'sargento_armas';
+    case 'secretario':
+    case 'secretary':
+      return 'secretario';
+    case 'tesorero':
+    case 'treasurer':
+      return 'tesorero';
+    case 'road_marshal':
+      return 'road_marshal';
+    default:
+      return null;
+  }
+}
+
 const PatchMemberSchema = z.object({
   statusKind: z.enum(MEMBER_STATUS_KINDS).optional(),
-  clubRole: z.enum(CLUB_ROLES).nullable().optional()
+  clubRole: z.string().nullable().optional()
 });
 
 const TransferGroupSchema = z.object({
@@ -155,6 +262,18 @@ const ProposeVoteSchema = z.object({
 
 const BallotSchema = z.object({
   approve: z.boolean()
+});
+
+const CreateModerationReportSchema = z.object({
+  reportedUserId: z.string().uuid(),
+  rideId: z.string().uuid().optional(),
+  reason: z.enum(['abuse', 'harassment', 'dangerous', 'other']),
+  note: z.string().max(500).optional()
+});
+
+const ResolveModerationReportSchema = z.object({
+  resolution: z.enum(['warning', 'muted', 'ride_removed', 'group_removed', 'platform_suspended']).optional(),
+  state: z.enum(['actioned', 'dismissed']).default('actioned')
 });
 
 const VerifySubscriptionSchema = z.object({
@@ -209,6 +328,21 @@ function requireUserId(req: FastifyRequest, reply: FastifyReply): string | null 
   return uid;
 }
 
+function getUserIdOrNull(req: FastifyRequest): string | null {
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    const rawToken = authHeader.slice(7).trim();
+    const verified = verifySessionToken(rawToken, undefined, 'access');
+    if (verified) return verified.sub;
+  }
+  const header = req.headers['x-user-id'];
+  const uid = Array.isArray(header) ? header[0] : header;
+  if (uid && z.string().uuid().safeParse(uid).success) {
+    return uid;
+  }
+  return null;
+}
+
 async function appendAudit(
   db: DbExecutor,
   actor: string | null,
@@ -257,7 +391,10 @@ export async function buildApp({
   useFakeBilling = process.env.USE_FAKE_BILLING !== 'false',
   playVerifier = defaultFakePlayVerifier,
   credentialKeyring = defaultCredentialKeyring,
-  env = process.env
+  env = process.env,
+  rateLimitAuthMaxPerHour = 10,
+  rateLimitInviteMaxPerHour = 5,
+  fcmService = defaultFcmService
 }: BuildAppOptions): Promise<FastifyInstance> {
   // En producción, exigir AUTH_TOKEN_KEYS_JSON explícito y rechazar arranque con claves por defecto
   const verifiedKeyring = validateProductionAuthConfig(env);
@@ -271,16 +408,119 @@ export async function buildApp({
       : (trustProxy ?? parseTrustProxyConfig(env));
   const fastifyOpts: FastifyServerOptions = {
     logger,
-    trustProxy: resolvedTrustProxy
+    trustProxy: resolvedTrustProxy,
+    bodyLimit: 10 * 1024 * 1024 // 10 MB para soportar imágenes de perfil y reportes
   };
   const app = Fastify(fastifyOpts);
   const loginTracker = new LoginAttemptTracker();
 
-  await app.register(helmet);
-  await app.register(cors, { origin: true });
-  await app.register(rateLimit, { max: 200, timeWindow: '1 minute' });
+  async function checkAndEnforceAuthRateLimit(
+    ip: string,
+    reply: FastifyReply
+  ): Promise<boolean> {
+    const res = await db.query(
+      `SELECT COUNT(*)::int AS count
+       FROM rate_limit_events
+       WHERE scope = 'auth' AND ip = $1 AND created_at > now() - interval '1 hour'`,
+      [ip]
+    );
+    const count = Number(res.rows[0]?.count ?? 0);
+    if (count >= rateLimitAuthMaxPerHour) {
+      reply.header('Retry-After', '3600').code(429).send({
+        error: 'TOO_MANY_AUTH_ATTEMPTS',
+        message: `Demasiados intentos de autenticación desde esta dirección IP (máximo ${rateLimitAuthMaxPerHour} por hora)`,
+        retryAfter: 3600
+      });
+      return true;
+    }
+    await db.query(
+      `INSERT INTO rate_limit_events (scope, ip, user_id) VALUES ('auth', $1, NULL)`,
+      [ip]
+    );
+    return false;
+  }
+
+  async function checkAndEnforceInviteRateLimit(
+    ip: string,
+    userId: string,
+    reply: FastifyReply
+  ): Promise<boolean> {
+    const res = await db.query(
+      `SELECT COUNT(*)::int AS count
+       FROM rate_limit_events
+       WHERE scope = 'invite' AND ip = $1 AND user_id = $2 AND created_at > now() - interval '1 hour'`,
+      [ip, userId]
+    );
+    const count = Number(res.rows[0]?.count ?? 0);
+    if (count >= rateLimitInviteMaxPerHour) {
+      reply.header('Retry-After', '3600').code(429).send({
+        error: 'TOO_MANY_INVITE_ATTEMPTS',
+        message: `Demasiadas invitaciones enviadas desde esta IP/cuenta (máximo ${rateLimitInviteMaxPerHour} por hora)`,
+        retryAfter: 3600
+      });
+      return true;
+    }
+    await db.query(
+      `INSERT INTO rate_limit_events (scope, ip, user_id) VALUES ('invite', $1, $2)`,
+      [ip, userId]
+    );
+    return false;
+  }
+
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: false
+  });
+  await app.register(cors, {
+    origin: (_origin, cb) => cb(null, true),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+  });
+  app.addContentTypeParser(['application/x-www-form-urlencoded', 'text/plain', 'application/octet-stream'], (_req, _payload, done) => {
+    done(null, null);
+  });
+  await app.register(rateLimit, {
+    max: 10000,
+    timeWindow: '1 minute',
+    keyGenerator: (req) => (req.headers['x-user-id'] as string) || req.ip
+  });
+
+  const __appFilename = fileURLToPath(import.meta.url);
+  const __appDirname = path.dirname(__appFilename);
+  const publicDir = path.resolve(__appDirname, '..', 'public');
+  if (fs.existsSync(publicDir)) {
+    await app.register(fastifyStatic, {
+      root: publicDir,
+      prefix: '/'
+    });
+    app.get('/admin', async (_req, reply) => {
+      return reply.sendFile('admin.html');
+    });
+    app.get('/admin/', async (_req, reply) => {
+      return reply.sendFile('admin.html');
+    });
+    app.get('/admin/css/:filename', async (req, reply) => {
+      return reply.sendFile(`css/${(req.params as any).filename}`);
+    });
+    app.get('/admin/js/:filename', async (req, reply) => {
+      return reply.sendFile(`js/${(req.params as any).filename}`);
+    });
+  }
 
   app.get('/health', async () => ({ status: 'ok' }));
+
+  // Verificación de versiones y control de actualización (D98)
+  app.get('/v1/app/version', async () => ({
+    minVersion: '1.0.0',
+    minVersionCode: 1,
+    latestVersion: '1.0.0',
+    latestVersionCode: 1,
+    forceUpdate: false,
+    updateUrl: 'https://play.google.com/store/apps/details?id=com.rutabikersync.app',
+    releaseNotes: 'Ruta Biker Sync — Versión estable para rodadas seguras y malla táctica off-grid.'
+  }));
 
   // ---------------------------------------------------------------------------
   // 1. Autenticación, rotación de refresh token y cierre de sesión (RULES R1.1, R1.2, R13.6, R15.1; D35, D37, D40)
@@ -301,6 +541,9 @@ export async function buildApp({
     } = parsed.data;
 
     const clientIp = getClientIp(req);
+    const authRateLimited = await checkAndEnforceAuthRateLimit(clientIp, reply);
+    if (authRateLimited) return;
+
     if (loginTracker.isLockedOut(email, clientIp)) {
       return reply.code(429).send({
         error: 'TOO_MANY_AUTH_ATTEMPTS',
@@ -528,8 +771,39 @@ export async function buildApp({
     });
   });
 
+  function cleanBase64(str: string): string {
+    const commaIdx = str.indexOf(',');
+    if (commaIdx !== -1 && str.startsWith('data:')) {
+      return str.substring(commaIdx + 1);
+    }
+    return str.trim();
+  }
+
+  function validateImageBuffer(buf: Buffer): { valid: boolean; error?: string; mime?: string } {
+    if (buf.length > 2 * 1024 * 1024) {
+      return { valid: false, error: 'FILE_TOO_LARGE' };
+    }
+    // JPEG: FF D8 FF
+    if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+      return { valid: true, mime: 'image/jpeg' };
+    }
+    // PNG: 89 50 4E 47
+    if (buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+      return { valid: true, mime: 'image/png' };
+    }
+    // WebP: RIFF .... WEBP
+    if (
+      buf.length >= 12 &&
+      buf.toString('ascii', 0, 4) === 'RIFF' &&
+      buf.toString('ascii', 8, 12) === 'WEBP'
+    ) {
+      return { valid: true, mime: 'image/webp' };
+    }
+    return { valid: false, error: 'INVALID_FILE_FORMAT' };
+  }
+
   // ---------------------------------------------------------------------------
-  // 2. Perfil personal y avatar 64x64 WebP (RULES R1.3, DESIGN §7)
+  // 2. Perfil personal, motocicleta, privacidad y fotos (RULES R1.3, DESIGN §7, D98)
   // ---------------------------------------------------------------------------
   app.get('/v1/users/me', async (req, reply) => {
     const uid = requireUserId(req, reply);
@@ -538,6 +812,11 @@ export async function buildApp({
     const res = await db.query(
       `SELECT u.id, u.email, u.display_name, u.country_code, u.account_type,
               u.bike_model, u.map_color, u.avatar_webp, u.status,
+              u.photo_url, u.photo_blob,
+              u.motorcycle_brand, u.motorcycle_model, u.motorcycle_displacement,
+              u.motorcycle_year, u.motorcycle_color, u.motorcycle_serial,
+              u.motorcycle_photo_url, u.motorcycle_photo_blob,
+              u.profile_visibility, u.motorcycle_visibility,
               COALESCE(rp.valid_rides, 0) AS valid_rides
        FROM users u
        LEFT JOIN rank_progress rp ON rp.user_id = u.id
@@ -559,11 +838,78 @@ export async function buildApp({
       displayName: u.display_name,
       countryCode: u.country_code,
       accountType: u.account_type,
-      bikeModel: u.bike_model ?? null,
+      bikeModel: u.bike_model ?? u.motorcycle_model ?? null,
       mapColor: u.map_color ?? '#FFB300',
       avatarWebpBase64: parseBytea(u.avatar_webp)?.toString('base64') ?? null,
+      photoUrl: u.photo_url ?? (u.photo_blob ? `/v1/users/photo/${u.id}` : null),
+      photoBase64: parseBytea(u.photo_blob)?.toString('base64') ?? null,
+      motorcycleBrand: u.motorcycle_brand ?? null,
+      motorcycleModel: u.motorcycle_model ?? u.bike_model ?? null,
+      motorcycleDisplacement: u.motorcycle_displacement ? Number(u.motorcycle_displacement) : null,
+      motorcycleYear: u.motorcycle_year ? Number(u.motorcycle_year) : null,
+      motorcycleColor: u.motorcycle_color ?? null,
+      motorcycleSerial: u.motorcycle_serial ?? null,
+      motorcyclePhotoUrl: u.motorcycle_photo_url ?? (u.motorcycle_photo_blob ? `/v1/users/motorcycle-photo/${u.id}` : null),
+      motorcyclePhotoBase64: parseBytea(u.motorcycle_photo_blob)?.toString('base64') ?? null,
+      profileVisibility: u.profile_visibility ?? 'PUBLIC',
+      motorcycleVisibility: u.motorcycle_visibility ?? 'PUBLIC',
       validRides: Number(u.valid_rides ?? 0),
       badges: badgesRes.rows
+    };
+  });
+
+  // Consulta de estatus de club y pertenencia (RULES R2.2, D43)
+  app.get('/v1/users/club-status', async (req, reply) => {
+    const uid = getUserIdOrNull(req);
+    const { email } = (req.query ?? {}) as { email?: string };
+
+    let targetUid = uid;
+    if (email && isUuid(targetUid ?? '')) {
+      // Si se pasa email y no hay targetUid, buscar usuario por email
+    }
+    if (!targetUid && email) {
+      const uRes = await db.query(`SELECT id FROM users WHERE email = $1`, [email.trim().toLowerCase()]);
+      if (uRes.rows.length > 0) {
+        targetUid = uRes.rows[0].id;
+      }
+    }
+
+    if (!targetUid) {
+      return {
+        hasClub: false,
+        clubId: null,
+        clubName: null,
+        statusKind: null,
+        message: 'Usuario no registrado en base de datos central o sin club'
+      };
+    }
+
+    const mRes = await db.query(
+      `SELECT m.group_id, g.name AS group_name, m.status_kind, m.club_role, m.invite_state
+       FROM memberships m
+       JOIN groups g ON g.id = m.group_id
+       WHERE m.user_id = $1 AND m.status_kind IN ('full', 'prospect') AND m.invite_state = 'accepted'`,
+      [targetUid]
+    );
+
+    if (mRes.rows.length === 0) {
+      return {
+        hasClub: false,
+        clubId: null,
+        clubName: null,
+        statusKind: null,
+        message: 'Piloto libre: no pertenece a ninguna hermandad en la base de datos'
+      };
+    }
+
+    const m = mRes.rows[0];
+    return {
+      hasClub: true,
+      clubId: m.group_id,
+      clubName: m.group_name,
+      statusKind: m.status_kind,
+      clubRole: m.club_role,
+      message: `El piloto ya pertenece a la hermandad '${m.group_name}'`
     };
   });
 
@@ -615,6 +961,289 @@ export async function buildApp({
   };
 
   app.patch('/v1/users/me', handlePatchProfile);
+
+  // PUT /v1/users/profile — Actualización integral de perfil de piloto y moto
+  app.put('/v1/users/profile', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = UpdateEnrichedProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const d = parsed.data;
+
+    let photoBuf: Buffer | undefined;
+    if (d.photoBase64) {
+      const b64 = cleanBase64(d.photoBase64);
+      const b = Buffer.from(b64, 'base64');
+      const v = validateImageBuffer(b);
+      if (!v.valid) {
+        return reply.code(400).send({
+          error: v.error,
+          message: v.error === 'FILE_TOO_LARGE' ? 'La foto no debe superar 2 MB' : 'Formato de imagen inválido (solo WebP, JPEG, PNG)'
+        });
+      }
+      photoBuf = b;
+    }
+
+    let motoPhotoBuf: Buffer | undefined;
+    if (d.motorcyclePhotoBase64) {
+      const b64 = cleanBase64(d.motorcyclePhotoBase64);
+      const b = Buffer.from(b64, 'base64');
+      const v = validateImageBuffer(b);
+      if (!v.valid) {
+        return reply.code(400).send({
+          error: v.error,
+          message: v.error === 'FILE_TOO_LARGE' ? 'La foto de la moto no debe superar 2 MB' : 'Formato de imagen inválido (solo WebP, JPEG, PNG)'
+        });
+      }
+      motoPhotoBuf = b;
+    }
+
+    const cur = await db.query(
+      `SELECT display_name, bike_model, map_color,
+              motorcycle_brand, motorcycle_model, motorcycle_displacement,
+              motorcycle_year, motorcycle_color, motorcycle_serial,
+              profile_visibility, motorcycle_visibility, photo_blob, motorcycle_photo_blob
+       FROM users WHERE id = $1`,
+      [uid]
+    );
+    if (cur.rows.length === 0) return reply.code(404).send({ error: 'USER_NOT_FOUND' });
+    const row = cur.rows[0];
+
+    const finalDisplayName = d.displayName ?? d.aliasBiker ?? row.display_name;
+    const finalMapColor = d.mapColor ?? d.pinColorHex ?? row.map_color;
+    const finalBrand = d.motorcycleBrand !== undefined ? d.motorcycleBrand : row.motorcycle_brand;
+    const finalModel = d.motorcycleModel !== undefined ? d.motorcycleModel : (d.bikeModel !== undefined ? d.bikeModel : row.motorcycle_model);
+    const finalDisp = d.motorcycleDisplacement !== undefined ? d.motorcycleDisplacement : row.motorcycle_displacement;
+    const finalYear = d.motorcycleYear !== undefined ? d.motorcycleYear : row.motorcycle_year;
+    const finalColor = d.motorcycleColor !== undefined ? d.motorcycleColor : row.motorcycle_color;
+    const finalSerial = d.motorcycleSerial !== undefined ? d.motorcycleSerial : row.motorcycle_serial;
+    const finalProfVis = d.profileVisibility ?? row.profile_visibility ?? 'PUBLIC';
+    const finalMotoVis = d.motorcycleVisibility ?? row.motorcycle_visibility ?? 'PUBLIC';
+    const finalPhotoBlob = photoBuf !== undefined ? photoBuf : row.photo_blob;
+    const finalMotoBlob = motoPhotoBuf !== undefined ? motoPhotoBuf : row.motorcycle_photo_blob;
+    const photoUrl = finalPhotoBlob ? `/v1/users/photo/${uid}` : null;
+    const motoPhotoUrl = finalMotoBlob ? `/v1/users/motorcycle-photo/${uid}` : null;
+
+    await db.query(
+      `UPDATE users
+       SET display_name = $1,
+           bike_model = $2,
+           map_color = $3,
+           motorcycle_brand = $4,
+           motorcycle_model = $5,
+           motorcycle_displacement = $6,
+           motorcycle_year = $7,
+           motorcycle_color = $8,
+           motorcycle_serial = $9,
+           profile_visibility = $10,
+           motorcycle_visibility = $11,
+           photo_blob = $12,
+           photo_url = $13,
+           motorcycle_photo_blob = $14,
+           motorcycle_photo_url = $15
+       WHERE id = $16`,
+      [
+        finalDisplayName,
+        finalModel,
+        finalMapColor,
+        finalBrand,
+        finalModel,
+        finalDisp,
+        finalYear,
+        finalColor,
+        finalSerial,
+        finalProfVis,
+        finalMotoVis,
+        finalPhotoBlob,
+        photoUrl,
+        finalMotoBlob,
+        motoPhotoUrl,
+        uid
+      ]
+    );
+
+    return {
+      updated: true,
+      profile: {
+        id: uid,
+        displayName: finalDisplayName,
+        mapColor: finalMapColor,
+        motorcycleBrand: finalBrand,
+        motorcycleModel: finalModel,
+        motorcycleDisplacement: finalDisp,
+        motorcycleYear: finalYear,
+        motorcycleColor: finalColor,
+        motorcycleSerial: finalSerial,
+        profileVisibility: finalProfVis,
+        motorcycleVisibility: finalMotoVis,
+        photoUrl,
+        motorcyclePhotoUrl: motoPhotoUrl
+      }
+    };
+  });
+
+  // POST /v1/users/photo — Subida de foto de perfil
+  app.post('/v1/users/photo', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    let buf: Buffer;
+    const body = req.body as any;
+    if (body?.photoBase64) {
+      buf = Buffer.from(cleanBase64(body.photoBase64), 'base64');
+    } else if (Buffer.isBuffer(req.body)) {
+      buf = req.body;
+    } else {
+      return reply.code(400).send({ error: 'MISSING_PHOTO', message: 'Se requiere photoBase64' });
+    }
+
+    const validation = validateImageBuffer(buf);
+    if (!validation.valid) {
+      return reply.code(400).send({
+        error: validation.error,
+        message: validation.error === 'FILE_TOO_LARGE'
+          ? 'La foto no debe superar 2 MB'
+          : 'Formato de imagen inválido. Solo se admiten WebP, JPEG o PNG.'
+      });
+    }
+
+    const photoUrl = `/v1/users/photo/${uid}`;
+    await db.query(
+      `UPDATE users SET photo_blob = $1, photo_url = $2 WHERE id = $3`,
+      [buf, photoUrl, uid]
+    );
+
+    return { success: true, photoUrl };
+  });
+
+  // GET /v1/users/photo/:id — Obtener foto de perfil
+  app.get('/v1/users/photo/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const res = await db.query(`SELECT photo_blob FROM users WHERE id = $1`, [id]);
+    if (res.rows.length === 0 || !res.rows[0].photo_blob) {
+      return reply.code(404).send({ error: 'PHOTO_NOT_FOUND' });
+    }
+    const buf = parseBytea(res.rows[0].photo_blob);
+    if (!buf) return reply.code(404).send({ error: 'PHOTO_NOT_FOUND' });
+    const v = validateImageBuffer(buf);
+    reply.type(v.mime ?? 'image/webp').send(buf);
+  });
+
+  // POST /v1/users/motorcycle-photo — Subida de foto de la moto
+  app.post('/v1/users/motorcycle-photo', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    let buf: Buffer;
+    const body = req.body as any;
+    if (body?.photoBase64) {
+      buf = Buffer.from(cleanBase64(body.photoBase64), 'base64');
+    } else if (Buffer.isBuffer(req.body)) {
+      buf = req.body;
+    } else {
+      return reply.code(400).send({ error: 'MISSING_PHOTO', message: 'Se requiere photoBase64' });
+    }
+
+    const validation = validateImageBuffer(buf);
+    if (!validation.valid) {
+      return reply.code(400).send({
+        error: validation.error,
+        message: validation.error === 'FILE_TOO_LARGE'
+          ? 'La foto no debe superar 2 MB'
+          : 'Formato de imagen inválido. Solo se admiten WebP, JPEG o PNG.'
+      });
+    }
+
+    const motoPhotoUrl = `/v1/users/motorcycle-photo/${uid}`;
+    await db.query(
+      `UPDATE users SET motorcycle_photo_blob = $1, motorcycle_photo_url = $2 WHERE id = $3`,
+      [buf, motoPhotoUrl, uid]
+    );
+
+    return { success: true, motorcyclePhotoUrl: motoPhotoUrl };
+  });
+
+  // GET /v1/users/motorcycle-photo/:id — Obtener foto de la moto
+  app.get('/v1/users/motorcycle-photo/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const res = await db.query(`SELECT motorcycle_photo_blob FROM users WHERE id = $1`, [id]);
+    if (res.rows.length === 0 || !res.rows[0].motorcycle_photo_blob) {
+      return reply.code(404).send({ error: 'PHOTO_NOT_FOUND' });
+    }
+    const buf = parseBytea(res.rows[0].motorcycle_photo_blob);
+    if (!buf) return reply.code(404).send({ error: 'PHOTO_NOT_FOUND' });
+    const v = validateImageBuffer(buf);
+    reply.type(v.mime ?? 'image/webp').send(buf);
+  });
+
+  // POST /v1/support/report — Envío de reporte de bug o soporte técnico
+  app.post('/v1/support/report', async (req, reply) => {
+    const parsed = SupportReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { subject, message, screenshotBase64 } = parsed.data;
+
+    let screenshotBuf: Buffer | null = null;
+    if (screenshotBase64) {
+      const b = Buffer.from(cleanBase64(screenshotBase64), 'base64');
+      const v = validateImageBuffer(b);
+      if (!v.valid) {
+        return reply.code(400).send({
+          error: v.error,
+          message: v.error === 'FILE_TOO_LARGE' ? 'La captura no debe superar 2 MB' : 'Formato de captura inválido (solo WebP, JPEG, PNG)'
+        });
+      }
+      screenshotBuf = b;
+    }
+
+    let uid: string | null = null;
+    const authHeader = req.headers.authorization;
+    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      const session = verifySessionToken(token, undefined, 'access');
+      if (session) uid = session.sub;
+    }
+    if (!uid && typeof req.headers['x-user-id'] === 'string') {
+      const candidate = req.headers['x-user-id'].trim();
+      if (/^[0-9a-fA-F-]{36}$/.test(candidate)) uid = candidate;
+    }
+
+    const insertRes = await db.query(
+      `INSERT INTO support_reports (user_id, subject, message, screenshot_blob, status)
+       VALUES ($1, $2, $3, $4, 'open')
+       RETURNING id, created_at, status`,
+      [uid, subject, message, screenshotBuf]
+    );
+    const report = insertRes.rows[0];
+
+    return reply.code(201).send({
+      success: true,
+      reportId: report.id,
+      status: report.status,
+      message: 'Reporte de soporte recibido correctamente. Nuestro equipo lo revisará a la brevedad.'
+    });
+  });
+
+  // GET /v1/support/reports — Consultar reportes enviados por el usuario
+  app.get('/v1/support/reports', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const res = await db.query(
+      `SELECT id, subject, message, status, created_at,
+              CASE WHEN screenshot_blob IS NOT NULL THEN true ELSE false END AS has_screenshot
+       FROM support_reports
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [uid]
+    );
+
+    return { reports: res.rows };
+  });
 
   // ---------------------------------------------------------------------------
   // 3. Crear grupo con unicidad de nombre (leet) y logo (pHash) por país (RULES R4, R5, R8.2)
@@ -747,6 +1376,8 @@ export async function buildApp({
 
     const ledRes = await db.query(
       `SELECT g.id, g.country_code, g.name, g.logo_url, g.principal_leader, g.status,
+              g.tier, g.foundation_date, g.colors_description, g.club_siglas, g.tradition_type,
+              g.directiva_scope, g.directiva_region, g.motto, g.city,
               gl.is_principal
        FROM group_leaders gl
        JOIN groups g ON g.id = gl.group_id
@@ -756,6 +1387,8 @@ export async function buildApp({
 
     const memberRes = await db.query(
       `SELECT g.id, g.country_code, g.name, g.logo_url, g.principal_leader, g.status,
+              g.tier, g.foundation_date, g.colors_description, g.club_siglas, g.tradition_type,
+              g.directiva_scope, g.directiva_region, g.motto, g.city,
               m.status_kind, m.club_role, m.paid_until
        FROM memberships m
        JOIN groups g ON g.id = m.group_id
@@ -763,6 +1396,8 @@ export async function buildApp({
       [uid]
     );
 
+    console.log('GET /v1/groups called for UID:', uid);
+    console.log('memberRes rows count:', memberRes.rows.length, 'first row:', memberRes.rows[0]);
     return {
       ledGroups: ledRes.rows.map((r) => ({
         id: r.id,
@@ -771,6 +1406,15 @@ export async function buildApp({
         logoUrl: r.logo_url,
         principalLeader: r.principal_leader,
         status: r.status,
+        tier: r.tier,
+        foundationDate: r.foundation_date,
+        colorsDescription: r.colors_description,
+        clubSiglas: r.club_siglas,
+        traditionType: r.tradition_type,
+        directivaScope: r.directiva_scope,
+        directivaRegion: r.directiva_region,
+        motto: r.motto,
+        city: r.city,
         myRole: r.is_principal ? 'principal_leader' : 'co_leader',
         paymentSemaphore: 'green' // R4.4: El líder no paga $2.50 en su propio grupo
       })),
@@ -781,6 +1425,15 @@ export async function buildApp({
         logoUrl: r.logo_url,
         principalLeader: r.principal_leader,
         status: r.status,
+        tier: r.tier,
+        foundationDate: r.foundation_date,
+        colorsDescription: r.colors_description,
+        clubSiglas: r.club_siglas,
+        traditionType: r.tradition_type,
+        directivaScope: r.directiva_scope,
+        directivaRegion: r.directiva_region,
+        motto: r.motto,
+        city: r.city,
         statusKind: r.status_kind,
         clubRole: r.club_role,
         paymentSemaphore: computePaymentSemaphore(
@@ -862,7 +1515,9 @@ export async function buildApp({
     const { id: groupId } = req.params as { id: string };
 
     const grpRes = await db.query(
-      `SELECT id, country_code, name, name_normalized, logo_url, principal_leader, role_permissions, status
+      `SELECT id, country_code, name, name_normalized, logo_url, principal_leader, role_permissions, status,
+              tier, foundation_date, colors_description, club_siglas, tradition_type,
+              directiva_scope, directiva_region, motto, city
        FROM groups WHERE id = $1 AND status <> 'deleted'`,
       [groupId]
     );
@@ -882,12 +1537,97 @@ export async function buildApp({
       logoUrl: g.logo_url,
       principalLeader: g.principal_leader,
       status: g.status,
+      tier: g.tier,
+      foundationDate: g.foundation_date,
+      colorsDescription: g.colors_description,
+      clubSiglas: g.club_siglas,
+      traditionType: g.tradition_type,
+      directivaScope: g.directiva_scope,
+      directivaRegion: g.directiva_region,
+      motto: g.motto,
+      city: g.city,
       rolePermissions: g.role_permissions,
       leaders: leadersRes.rows.map((l) => ({
         userId: l.user_id,
         isPrincipal: Boolean(l.is_principal)
       }))
     };
+  });
+
+  // Actualizar Identidad Biker / Perfil del Club (RULES R3.3, R5.1)
+  app.put('/v1/groups/:id/profile', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+
+    const leaderCheck = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderCheck.rows.length === 0) {
+      return reply.code(403).send({ error: 'LEADER_REQUIRED', message: 'Solo un líder del club puede editar su perfil' });
+    }
+
+    const body = (req.body ?? {}) as {
+      colorsDescription?: string;
+      clubSiglas?: string;
+      traditionType?: string;
+      directivaScope?: string;
+      directivaRegion?: string;
+      motto?: string;
+      city?: string;
+      foundationDate?: string;
+      logoUrl?: string;
+      tier?: string;
+    };
+
+    const updateRes = await db.query(
+      `UPDATE groups
+       SET colors_description = COALESCE($1, colors_description),
+           club_siglas = COALESCE($2, club_siglas),
+           tradition_type = COALESCE($3, tradition_type),
+           directiva_scope = COALESCE($4, directiva_scope),
+           directiva_region = COALESCE($5, directiva_region),
+           motto = COALESCE($6, motto),
+           city = COALESCE($7, city),
+           foundation_date = COALESCE($8, foundation_date),
+           logo_url = COALESCE($9, logo_url),
+           tier = COALESCE($10, tier)
+       WHERE id = $11
+       RETURNING id, name, tier, colors_description, club_siglas, tradition_type, directiva_scope, directiva_region, motto, city, foundation_date, logo_url`,
+      [
+        body.colorsDescription ?? null,
+        body.clubSiglas ?? null,
+        body.traditionType ?? null,
+        body.directivaScope ?? null,
+        body.directivaRegion ?? null,
+        body.motto ?? null,
+        body.city ?? null,
+        body.foundationDate ?? null,
+        body.logoUrl ?? null,
+        body.tier ?? null,
+        groupId
+      ]
+    );
+
+    const updated = updateRes.rows[0];
+    return reply.send({
+      success: true,
+      group: {
+        id: updated.id,
+        name: updated.name,
+        tier: updated.tier,
+        colorsDescription: updated.colors_description,
+        clubSiglas: updated.club_siglas,
+        traditionType: updated.tradition_type,
+        directivaScope: updated.directiva_scope,
+        directivaRegion: updated.directiva_region,
+        motto: updated.motto,
+        city: updated.city,
+        foundationDate: updated.foundation_date,
+        logoUrl: updated.logo_url
+      }
+    });
   });
 
   app.delete('/v1/groups/:id/leaders/:leaderUid', async (req, reply) => {
@@ -937,6 +1677,59 @@ export async function buildApp({
     return { groupId, removedLeaderId: leaderUid };
   });
 
+  // Expulsión formal de un miembro (solo líderes; protección de Fundador RULES R14.3)
+  app.delete('/v1/groups/:id/members/:memberUid', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId, memberUid } = req.params as { id: string; memberUid: string };
+
+    const grpRes = await db.query(
+      `SELECT id, principal_leader FROM groups WHERE id = $1`,
+      [groupId]
+    );
+    const group = grpRes.rows[0];
+    if (!group) return reply.code(404).send({ error: 'GROUP_NOT_FOUND' });
+
+    // R14.3: El líder principal (Fundador) no puede ser expulsado
+    if (group.principal_leader === memberUid) {
+      return reply.code(403).send({
+        error: 'CANNOT_EXPEL_FOUNDER',
+        message: 'El líder principal (Fundador) no puede ser expulsado del club (RULES R14.3)'
+      });
+    }
+
+    // Solo un líder del grupo puede expulsar miembros
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderRes.rows.length === 0 && group.principal_leader !== uid) {
+      return reply.code(403).send({
+        error: 'LEADER_REQUIRED',
+        message: 'Solo un líder del grupo puede expulsar miembros (RULES R2.1, R14)'
+      });
+    }
+
+    await db.query(
+      `DELETE FROM memberships WHERE group_id = $1 AND user_id = $2`,
+      [groupId, memberUid]
+    );
+    await db.query(
+      `DELETE FROM group_leaders WHERE group_id = $1 AND user_id = $2 AND is_principal = false`,
+      [groupId, memberUid]
+    );
+
+    await appendAudit(db, uid, 'MEMBER_EXPELLED', 'group', groupId, {
+      expelledMember: memberUid
+    });
+
+    return reply.code(200).send({
+      success: true,
+      groupId,
+      expelledUserId: memberUid
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // 6. Lista de miembros con semáforo de pagos (RULES R7.2, R3.3; BACKEND_LICENSING §8)
   // ---------------------------------------------------------------------------
@@ -967,7 +1760,7 @@ export async function buildApp({
     const canSeeTrafficLight = isLeader || isTreasurer;
 
     const leadersRes = await db.query(
-      `SELECT gl.user_id, gl.is_principal, gl.added_at,
+      `SELECT gl.user_id, gl.is_principal, gl.added_at, gl.club_role,
               u.display_name, u.bike_model, u.map_color,
               s.state AS sub_state, s.current_period_end, s.grace_until
        FROM group_leaders gl
@@ -998,6 +1791,7 @@ export async function buildApp({
         bikeModel: l.bike_model ?? null,
         mapColor: l.map_color ?? '#FFB300',
         isPrincipal: Boolean(l.is_principal),
+        clubRole: l.club_role || (l.is_principal ? 'presidente' : 'vicepresidente'),
         // R7.2: Solo estado del semáforo, jamás montos ni tarjeta
         paymentSemaphore: canSeeTrafficLight
           ? computePaymentSemaphore(
@@ -1026,6 +1820,36 @@ export async function buildApp({
   });
 
   // ---------------------------------------------------------------------------
+  // Rate Limiting /v1/invites (Fase 7.1.1)
+  // ---------------------------------------------------------------------------
+  app.post('/v1/invites', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const clientIp = getClientIp(req);
+    const inviteRateLimited = await checkAndEnforceInviteRateLimit(clientIp, uid, reply);
+    if (inviteRateLimited) return;
+
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const groupId = body.groupId as string | undefined;
+    if (groupId) {
+      const leaderRes = await db.query(
+        `SELECT 1 FROM group_leaders WHERE user_id = $1 AND group_id = $2`,
+        [uid, groupId]
+      );
+      if (leaderRes.rows.length === 0) {
+        return reply.code(403).send({ error: 'LEADER_REQUIRED', message: 'Se requiere rol de líder para invitar' });
+      }
+    }
+
+    return reply.code(201).send({
+      status: 'sent',
+      invitedBy: uid,
+      ip: clientIp,
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // 7. Invitaciones con consentimiento obligatorio (RULES R2.1, R2.2, R15.1)
   // ---------------------------------------------------------------------------
   app.post('/v1/groups/:id/invitations', async (req, reply) => {
@@ -1033,14 +1857,18 @@ export async function buildApp({
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
 
+    const clientIp = getClientIp(req);
+    const inviteRateLimited = await checkAndEnforceInviteRateLimit(clientIp, uid, reply);
+    if (inviteRateLimited) return;
+
     const parsed = CreateInvitationSchema.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     }
-    const { invitedUserId, statusKind, clubRole } = parsed.data;
+    const { invitedUserId, statusKind, clubRole, invitationType = 'hermandad' } = parsed.data;
 
     // P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42): Los invitados (`guest`) no reciben cargos honoríficos
-    if (!canMemberHoldClubRole(statusKind, clubRole, forbidGuestClubRoles)) {
+    if (!canMemberHoldClubRole(statusKind ?? 'prospect', clubRole, forbidGuestClubRoles)) {
       return reply.code(400).send({
         error: 'GUEST_CANNOT_HOLD_CLUB_ROLE',
         message: 'Los invitados (guest) no pueden recibir cargos honoríficos del club (RULES R3, P7 / D42)'
@@ -1058,46 +1886,93 @@ export async function buildApp({
       });
     }
 
-    // Si se invita como full o prospect, comprobar que el usuario no sea ya full/prospect en otro grupo (RULES R2)
-    if (statusKind === 'full' || statusKind === 'prospect') {
+    const targetUserId = (invitedUserId && invitedUserId !== uid) ? invitedUserId : null;
+
+    // Si se invita a Hermandad como full o prospect a un usuario específico, comprobar que no sea ya full/prospect en otro grupo (RULES R2.2)
+    if (targetUserId && invitationType === 'hermandad' && (statusKind === 'full' || statusKind === 'prospect')) {
       const existingPrimary = await db.query(
         `SELECT group_id FROM memberships
          WHERE user_id = $1 AND status_kind IN ('full','prospect') AND invite_state = 'accepted'
            AND group_id <> $2`,
-        [invitedUserId, groupId]
+        [targetUserId, groupId]
       );
       if (existingPrimary.rows.length > 0) {
         return reply.code(409).send({
-          error: 'ALREADY_IN_PRIMARY_GROUP',
+          error: 'ERR_DUAL_MEMBERSHIP_PROHIBITED',
           message:
-            'El usuario ya pertenece a otro grupo como Full member o Prospecto; solo puede ser Invitado en grupos adicionales (RULES R2)'
+            'RULES R2.2: El usuario ya pertenece a otra hermandad biker; solo puede participar en rodadas libres o como invitado (RULES R2.2/R2.3)'
         });
       }
     }
 
-    const invId = randomUUID();
-    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(); // 72h según BACKEND_LICENSING §6.2
+    const invId = parsed.data.customId || randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h según modelo canónico
     await db.query(
-      `INSERT INTO invitations (id, group_id, invited_user, invited_by, status_kind, state, expires_at)
-       VALUES ($1, $2, $3, $4, $5, 'pending', $6)`,
-      [invId, groupId, invitedUserId, uid, statusKind, expiresAt]
+      `INSERT INTO invitations (id, group_id, invited_user, invited_by, status_kind, invitation_type, state, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7)`,
+      [invId, groupId, targetUserId, uid, statusKind || 'full', invitationType, expiresAt]
     );
 
     await appendAudit(db, uid, 'INVITATION_SENT', 'invitation', invId, {
       groupId,
-      invitedUserId,
-      statusKind
+      invitedUserId: targetUserId,
+      statusKind: statusKind || 'full',
+      invitationType
     });
 
     return reply.code(201).send({
       id: invId,
       groupId,
-      invitedUserId,
+      invitedUserId: targetUserId,
       statusKind,
-      monthlyCostUsd: 2.5,
+      invitationType,
+      monthlyCostUsd: invitationType === 'rodada' ? 0.0 : 2.5,
       state: 'pending',
       expiresAt
     });
+  });
+
+  // Lista de invitaciones emitidas de un grupo (para líderes del club)
+  app.get('/v1/groups/:id/invitations', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+
+    const leaderCheck = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderCheck.rows.length === 0) {
+      return reply.code(403).send({ error: 'LEADER_REQUIRED' });
+    }
+
+    const res = await db.query(
+      `SELECT i.id, i.group_id, i.invited_user, i.invited_by, i.status_kind, i.invitation_type, i.state, i.expires_at, i.created_at,
+              u.display_name AS invitee_name,
+              l.display_name AS inviter_name
+       FROM invitations i
+       LEFT JOIN users u ON u.id = i.invited_user
+       LEFT JOIN users l ON l.id = i.invited_by
+       WHERE i.group_id = $1
+       ORDER BY i.created_at DESC`,
+      [groupId]
+    );
+
+    return {
+      invitations: res.rows.map((r) => ({
+        id: r.id,
+        groupId: r.group_id,
+        invitedUser: r.invited_user,
+        inviteeName: r.invitee_name,
+        invitedBy: r.invited_by,
+        inviterName: r.inviter_name,
+        statusKind: r.status_kind,
+        invitationType: r.invitation_type || 'hermandad',
+        state: r.state,
+        expiresAt: r.expires_at,
+        createdAt: r.created_at
+      }))
+    };
   });
 
   app.get('/v1/invitations/me', async (req, reply) => {
@@ -1105,7 +1980,7 @@ export async function buildApp({
     if (!uid) return;
 
     const res = await db.query(
-      `SELECT i.id, i.group_id, i.invited_by, i.status_kind, i.state, i.expires_at,
+      `SELECT i.id, i.group_id, i.invited_by, i.status_kind, i.invitation_type, i.state, i.expires_at,
               g.name AS group_name, g.country_code, g.logo_url
        FROM invitations i
        JOIN groups g ON g.id = i.group_id
@@ -1122,11 +1997,17 @@ export async function buildApp({
         countryCode: r.country_code,
         logoUrl: r.logo_url,
         statusKind: r.status_kind,
-        monthlyCostUsd: 2.5,
+        invitationType: r.invitation_type || 'hermandad',
+        monthlyCostUsd: r.invitation_type === 'rodada' ? 0.0 : 2.5,
         expiresAt: r.expires_at
       }))
     };
   });
+
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  function isUuid(id: string): boolean {
+    return typeof id === 'string' && UUID_REGEX.test(id);
+  }
 
   app.post('/v1/invitations/:id/accept', async (req, reply) => {
     const uid = requireUserId(req, reply);
@@ -1139,22 +2020,21 @@ export async function buildApp({
     }
     const { consents, policyVersion } = parsed.data;
 
-    // R2.1 y R15.1: El consentimiento de pertenencia y cuota ($2.50/mes) es obligatorio para entrar al grupo
-    if (!consents.membership) {
-      return reply.code(400).send({
-        error: 'MEMBERSHIP_CONSENT_REQUIRED',
-        message: 'Nadie entra a un grupo sin aceptar la pertenencia y cuota de $2.50/mes (RULES R2.1, R15.1a)'
+    if (!isUuid(invId)) {
+      return reply.code(404).send({
+        error: 'INVITATION_NOT_FOUND',
+        message: 'La invitación no existe en el servidor central (invitación local o fuera de línea).'
       });
     }
 
     const invRes = await db.query(
-      `SELECT id, group_id, invited_user, status_kind, state, expires_at
+      `SELECT id, group_id, invited_user, status_kind, invitation_type, state, expires_at
        FROM invitations WHERE id = $1`,
       [invId]
     );
     const inv = invRes.rows[0];
     if (!inv) return reply.code(404).send({ error: 'INVITATION_NOT_FOUND' });
-    if (inv.invited_user !== uid) {
+    if (inv.invited_user && inv.invited_user !== uid && inv.invited_user !== inv.invited_by) {
       return reply.code(403).send({ error: 'FORBIDDEN' });
     }
     if (inv.state !== 'pending') {
@@ -1165,7 +2045,18 @@ export async function buildApp({
       return reply.code(410).send({ error: 'INVITATION_EXPIRED' });
     }
 
-    if (inv.status_kind === 'full' || inv.status_kind === 'prospect') {
+    const isHermandad = (inv.invitation_type || 'hermandad') === 'hermandad';
+
+    if (isHermandad) {
+      // R2.1 y R15.1: El consentimiento de pertenencia y cuota ($2.50/mes) es obligatorio para entrar a la hermandad
+      if (!consents.membership) {
+        return reply.code(400).send({
+          error: 'MEMBERSHIP_CONSENT_REQUIRED',
+          message: 'Nadie entra a un grupo sin aceptar la pertenencia y cuota de $2.50/mes (RULES R2.1, R15.1a)'
+        });
+      }
+
+      // Regla R2.2: Prohibición de doble membresía
       const existingPrimary = await db.query(
         `SELECT group_id FROM memberships
          WHERE user_id = $1 AND status_kind IN ('full','prospect') AND invite_state = 'accepted'
@@ -1174,16 +2065,43 @@ export async function buildApp({
       );
       if (existingPrimary.rows.length > 0) {
         return reply.code(409).send({
-          error: 'ALREADY_IN_PRIMARY_GROUP',
-          message: 'Solo puedes pertenecer a un grupo como Full member o Prospecto (RULES R2)'
+          error: 'ERR_DUAL_MEMBERSHIP_PROHIBITED',
+          message: 'RULES R2.2: Un piloto solo puede pertenecer a una hermandad biker a la vez. No se permite la doble membresía.'
         });
       }
     }
 
+    // Regla R2.3: Si es rodada oficial, confirma la invitación sin crear registro de membresía formal
+    if (!isHermandad || inv.invitation_type === 'rodada') {
+      await db.query(`UPDATE invitations SET state = 'accepted', invited_user = $1 WHERE id = $2`, [uid, invId]);
+
+      if (consents.location) {
+        await db.query(
+          `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
+           VALUES ($1, $2, $3, 'location', true, $4)`,
+          [randomUUID(), uid, inv.group_id, policyVersion]
+        );
+      }
+
+      await appendAudit(db, uid, 'RIDE_INVITATION_ACCEPTED', 'invitation', invId, {
+        groupId: inv.group_id
+      });
+
+      return reply.code(200).send({
+        invitationId: invId,
+        groupId: inv.group_id,
+        invitationType: 'rodada',
+        statusKind: 'guest',
+        inviteState: 'accepted',
+        message: 'Invitación a rodar confirmada libre y gratuitamente (RULES R2.3)'
+      });
+    }
+
+    // Flujo canónico de Hermandad (Full / Prospect)
     const membershipId = randomUUID();
     const paidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    await db.query(`UPDATE invitations SET state = 'accepted' WHERE id = $1`, [invId]);
+    await db.query(`UPDATE invitations SET state = 'accepted', invited_user = $1 WHERE id = $2`, [uid, invId]);
     await db.query(
       `INSERT INTO memberships (
          id, group_id, user_id, status_kind, club_role, invite_state, accepted_at, paid_until
@@ -1191,19 +2109,21 @@ export async function buildApp({
       [membershipId, inv.group_id, uid, inv.status_kind, paidUntil]
     );
 
-    // Registrar los 4 consentimientos separados por grupo (RULES R15.1)
-    const consentEntries: Array<[string, boolean]> = [
+    // Registrar consentimientos otorgados (RULES R15.1)
+    const consentEntries: Array<[string, boolean | undefined]> = [
       ['membership', consents.membership],
       ['location', consents.location],
       ['emergency_package', consents.emergencyPackage],
       ['notifications', consents.notifications]
     ];
     for (const [kind, granted] of consentEntries) {
-      await db.query(
-        `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [randomUUID(), uid, inv.group_id, kind, granted, policyVersion]
-      );
+      if (granted !== undefined) {
+        await db.query(
+          `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [randomUUID(), uid, inv.group_id, kind, granted, policyVersion]
+        );
+      }
     }
 
     await appendAudit(db, uid, 'INVITATION_ACCEPTED', 'membership', membershipId, {
@@ -1215,6 +2135,7 @@ export async function buildApp({
       membershipId,
       groupId: inv.group_id,
       statusKind: inv.status_kind,
+      invitationType: 'hermandad',
       inviteState: 'accepted',
       paidUntil
     });
@@ -1224,6 +2145,13 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: invId } = req.params as { id: string };
+
+    if (!isUuid(invId)) {
+      return reply.code(404).send({
+        error: 'INVITATION_NOT_FOUND',
+        message: 'La invitación no existe en el servidor central (invitación local o fuera de línea).'
+      });
+    }
 
     const invRes = await db.query(
       `SELECT id, invited_user, state FROM invitations WHERE id = $1`,
@@ -1268,7 +2196,28 @@ export async function buildApp({
       [groupId, memberUid]
     );
     const mem = memRes.rows[0];
-    if (!mem) return reply.code(404).send({ error: 'MEMBERSHIP_NOT_FOUND' });
+    if (!mem) {
+      const glRes = await db.query(
+        `SELECT is_principal FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+        [groupId, memberUid]
+      );
+      if (glRes.rows.length > 0) {
+        const nextRole = (clubRole !== undefined)
+          ? (clubRole ? normalizeIncomingClubRole(clubRole) : null)
+          : 'presidente';
+        await db.query(
+          `UPDATE group_leaders SET club_role = $1 WHERE group_id = $2 AND user_id = $3`,
+          [nextRole, groupId, memberUid]
+        );
+        return {
+          groupId,
+          userId: memberUid,
+          statusKind: 'full',
+          clubRole: nextRole
+        };
+      }
+      return reply.code(404).send({ error: 'MEMBERSHIP_NOT_FOUND' });
+    }
 
     if (statusKind && (statusKind === 'full' || statusKind === 'prospect')) {
       const otherPrimary = await db.query(
@@ -1286,7 +2235,9 @@ export async function buildApp({
     }
 
     const nextStatus = statusKind ?? mem.status_kind;
-    const nextRole = clubRole !== undefined ? clubRole : mem.club_role;
+    const nextRole = (clubRole !== undefined)
+      ? (clubRole ? normalizeIncomingClubRole(clubRole) : null)
+      : mem.club_role;
 
     // P7 APROBADA (RULES.md §3 y §12, MEMORY.md D42): Los invitados (`guest`) no reciben cargos honoríficos
     if (!canMemberHoldClubRole(nextStatus, nextRole, forbidGuestClubRoles)) {
@@ -1620,6 +2571,186 @@ export async function buildApp({
     return { id: voteId, state: newState };
   });
 
+  app.get('/v1/groups/:id/votes', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderRes.rows.length === 0) {
+      return reply.code(403).send({ error: 'LEADER_REQUIRED' });
+    }
+
+    const votesRes = await db.query(
+      `SELECT v.id, v.group_id, v.proposal, v.target_id, v.proposed_by, v.state, v.expires_at,
+              u.display_name AS proposed_by_name,
+              tu.display_name AS target_name
+       FROM leader_votes v
+       LEFT JOIN users u ON u.id = v.proposed_by
+       LEFT JOIN users tu ON tu.id = v.target_id
+       WHERE v.group_id = $1
+       ORDER BY v.expires_at DESC`,
+      [groupId]
+    );
+
+    const votesWithBallots = await Promise.all(
+      votesRes.rows.map(async (row) => {
+        const ballotsRes = await db.query(
+          `SELECT b.leader, b.approve, u.display_name AS leader_name
+           FROM leader_vote_ballots b
+           JOIN users u ON u.id = b.leader
+           WHERE b.vote_id = $1`,
+          [row.id]
+        );
+        return {
+          ...row,
+          ballots: ballotsRes.rows
+        };
+      })
+    );
+
+    return { votes: votesWithBallots };
+  });
+
+  // ---------------------------------------------------------------------------
+  // 10b. Moderación y Reportes de Riders (RULES R13.1, R13.2, R13.5)
+  // ---------------------------------------------------------------------------
+  app.post('/v1/groups/:id/reports', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+
+    const parsed = CreateModerationReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { reportedUserId, rideId, reason, note } = parsed.data;
+
+    // R13.5: Si el reportado es un líder, verificar si hay otros líderes en el grupo
+    const reportedLeaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, reportedUserId]
+    );
+    const isReportedLeader = reportedLeaderRes.rows.length > 0;
+
+    const otherLeadersRes = await db.query(
+      `SELECT count(*)::int AS count FROM group_leaders WHERE group_id = $1 AND user_id != $2`,
+      [groupId, reportedUserId]
+    );
+    const otherLeadersCount = otherLeadersRes.rows[0]?.count ?? 0;
+
+    let initialState = 'open';
+    if (isReportedLeader && otherLeadersCount === 0) {
+      // R13.5: si no hay otro líder, se escala a soporte de la plataforma
+      initialState = 'escalated';
+    }
+
+    const reportId = randomUUID();
+    await db.query(
+      `INSERT INTO moderation_reports (id, reporter, reported, group_id, ride_id, reason, state)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [reportId, uid, reportedUserId, groupId, rideId ?? null, reason, initialState]
+    );
+
+    await appendAudit(db, uid, 'MODERATION_REPORT_FILED', 'moderation_report', reportId, {
+      groupId,
+      reportedUserId,
+      rideId: rideId ?? null,
+      reason,
+      state: initialState,
+      note: note ?? null
+    });
+
+    return reply.code(201).send({
+      id: reportId,
+      groupId,
+      reportedUserId,
+      reason,
+      state: initialState
+    });
+  });
+
+  app.get('/v1/groups/:id/reports', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderRes.rows.length === 0) {
+      return reply.code(403).send({ error: 'LEADER_REQUIRED' });
+    }
+
+    // R13.5: Un reporte contra un líder lo revisan los otros líderes del grupo.
+    // El líder acusado no ve los reportes en su contra.
+    const reportsRes = await db.query(
+      `SELECT r.id, r.reporter, r.reported, r.group_id, r.ride_id, r.reason, r.state, r.resolution,
+              r.decided_by, r.created_at,
+              u_rep.display_name AS reporter_name,
+              u_tar.display_name AS reported_name
+       FROM moderation_reports r
+       JOIN users u_rep ON u_rep.id = r.reporter
+       JOIN users u_tar ON u_tar.id = r.reported
+       WHERE r.group_id = $1 AND r.reported != $2
+       ORDER BY r.created_at DESC`,
+      [groupId, uid]
+    );
+
+    return { reports: reportsRes.rows };
+  });
+
+  app.post('/v1/groups/:id/reports/:reportId/resolve', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId, reportId } = req.params as { id: string; reportId: string };
+
+    const leaderRes = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderRes.rows.length === 0) {
+      return reply.code(403).send({ error: 'LEADER_REQUIRED' });
+    }
+
+    const parsed = ResolveModerationReportSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { resolution, state } = parsed.data;
+
+    const repRes = await db.query(
+      `SELECT reported FROM moderation_reports WHERE id = $1 AND group_id = $2`,
+      [reportId, groupId]
+    );
+    if (repRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'REPORT_NOT_FOUND' });
+    }
+    // R13.5: No puede resolver un reporte contra sí mismo
+    if (repRes.rows[0].reported === uid) {
+      return reply.code(403).send({ error: 'CANNOT_DECIDE_OWN_REPORT' });
+    }
+
+    await db.query(
+      `UPDATE moderation_reports
+       SET state = $1, resolution = $2, decided_by = array_append(COALESCE(decided_by, '{}'::uuid[]), $3)
+       WHERE id = $4`,
+      [state, resolution ?? null, uid, reportId]
+    );
+
+    await appendAudit(db, uid, 'MODERATION_REPORT_RESOLVED', 'moderation_report', reportId, {
+      groupId,
+      state,
+      resolution
+    });
+
+    return { id: reportId, state, resolution };
+  });
+
   // ---------------------------------------------------------------------------
   // 11. Denuncia por imitación de nombre o logo (RULES R5.4)
   // ---------------------------------------------------------------------------
@@ -1662,6 +2793,700 @@ export async function buildApp({
       [uid]
     );
     return { consents: res.rows };
+  });
+
+  app.post('/v1/users/me/consents', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = UpdateConsentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    const { groupId, kind, granted, policyVersion } = parsed.data;
+
+    // Revocar cualquier consentimiento activo del mismo tipo y grupo
+    await db.query(
+      `UPDATE consents
+       SET granted = false, revoked_at = now()
+       WHERE user_id = $1 AND kind = $2
+         AND (($3::uuid IS NULL AND group_id IS NULL) OR group_id = $3::uuid)
+         AND revoked_at IS NULL`,
+      [uid, kind, groupId || null]
+    );
+
+    if (granted) {
+      const consentId = randomUUID();
+      await db.query(
+        `INSERT INTO consents (id, user_id, group_id, kind, granted, policy_version)
+         VALUES ($1, $2, $3, $4, true, $5)`,
+        [consentId, uid, groupId || null, kind, policyVersion]
+      );
+      await appendAudit(db, uid, 'CONSENT_GRANTED', 'consent', consentId, { kind, groupId, policyVersion });
+    } else {
+      if (kind === 'location') {
+        await appendAudit(db, uid, 'CONSENT_LOCATION_REVOKED', 'consent', uid, { groupId });
+      } else if (kind === 'emergency_package') {
+        await appendAudit(db, uid, 'CONSENT_EMERGENCY_PACKAGE_REVOKED', 'consent', uid, { groupId });
+      } else {
+        await appendAudit(db, uid, 'CONSENT_REVOKED', 'consent', uid, { kind, groupId });
+      }
+    }
+
+    const updatedRes = await db.query(
+      `SELECT id, group_id, kind, granted, policy_version, created_at, revoked_at
+       FROM consents WHERE user_id = $1 ORDER BY created_at DESC`,
+      [uid]
+    );
+
+    return {
+      success: true,
+      kind,
+      groupId: groupId || null,
+      granted,
+      consents: updatedRes.rows
+    };
+  });
+
+  // ===========================================================================
+  // Notificaciones Push FCM (Fase 7.1.2)
+  // ===========================================================================
+  const FcmTokenSchema = z.object({
+    token: z.string().min(10).max(500),
+    platform: z.enum(['android', 'ios']).default('android').optional()
+  });
+
+  app.post('/v1/users/fcm-token', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = FcmTokenSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    const { token, platform = 'android' } = parsed.data;
+    await fcmService.registerToken(db, uid, token, platform);
+
+    return reply.code(200).send({
+      success: true,
+      userId: uid,
+      platform,
+      registeredAt: new Date().toISOString()
+    });
+  });
+
+  const SendNotificationSchema = z.object({
+    type: z.enum(['SOS_PROXIMITY', 'RIDE_INVITATION', 'CLUB_INVITATION', 'DIRECT_MESSAGE']),
+    recipientUserIds: z.array(z.string().uuid()).min(1),
+    params: z.record(z.any())
+  });
+
+  app.post('/v1/notifications/send', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = SendNotificationSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    const { type, recipientUserIds, params } = parsed.data;
+
+    let allTokens: string[] = [];
+    for (const rId of recipientUserIds) {
+      const userTokens = await fcmService.getActiveTokensForUser(db, rId);
+      allTokens = allTokens.concat(userTokens);
+    }
+
+    if (allTokens.length === 0) {
+      return reply.code(200).send({
+        success: true,
+        sentCount: 0,
+        failureCount: 0,
+        message: 'No hay tokens FCM activos o con consentimiento para los destinatarios'
+      });
+    }
+
+    let result: SendResult;
+    switch (type) {
+      case 'SOS_PROXIMITY':
+        result = await fcmService.sendSosProximity(allTokens, {
+          rideId: params.rideId,
+          senderUserId: uid,
+          lat: Number(params.lat ?? 0),
+          lng: Number(params.lng ?? 0)
+        });
+        break;
+      case 'RIDE_INVITATION':
+        result = await fcmService.sendRideInvitation(allTokens, {
+          rideId: params.rideId,
+          clubName: String(params.clubName ?? 'Club Biker'),
+          rideTitle: String(params.rideTitle ?? 'Nueva Rodada')
+        });
+        break;
+      case 'CLUB_INVITATION':
+        result = await fcmService.sendClubInvitation(allTokens, {
+          groupId: params.groupId,
+          clubName: String(params.clubName ?? 'Club Biker'),
+          inviterName: String(params.inviterName ?? 'Líder')
+        });
+        break;
+      case 'DIRECT_MESSAGE':
+        result = await fcmService.sendDirectMessage(allTokens, {
+          fromUserId: uid,
+          fromAlias: String(params.fromAlias ?? 'Compañero'),
+          preview: String(params.preview ?? 'Nuevo mensaje')
+        });
+        break;
+    }
+
+    return reply.code(200).send({
+      success: true,
+      type,
+      sentCount: result.successCount,
+      failureCount: result.failureCount
+    });
+  });
+
+  // ===========================================================================
+  // Radar SOS de Proximidad 5 km y Telemetría Efímera (Fase 7.1.5)
+  // ===========================================================================
+
+  const TelemetryHeartbeatSchema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    heading: z.number().min(0).max(360).optional().default(0.0),
+    speedKmh: z.number().min(0).max(350).optional().default(0.0)
+  });
+
+  app.post('/v1/telemetry/heartbeat', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = TelemetryHeartbeatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    // Verificar consentimiento de ubicación (R15)
+    const consentRes = await db.query(
+      `SELECT granted FROM consents
+       WHERE user_id = $1 AND kind = 'location' AND revoked_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [uid]
+    );
+
+    if (consentRes.rows.length > 0 && consentRes.rows[0].granted === false) {
+      return reply.code(403).send({
+        error: 'LOCATION_CONSENT_REQUIRED',
+        message: 'Se requiere consentimiento de ubicación para emitir telemetría y activar el radar'
+      });
+    }
+
+    const { latitude, longitude, heading = 0.0, speedKmh = 0.0 } = parsed.data;
+
+    await db.query(
+      `INSERT INTO ephemeral_telemetry (user_id, lat, lng, heading, speed, recorded_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+      [uid, latitude, longitude, heading, speedKmh]
+    );
+
+    return reply.code(200).send({
+      success: true,
+      userId: uid,
+      updatedAt: new Date().toISOString()
+    });
+  });
+
+  const TriggerSosSchema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    hasMedicalSheet: z.boolean().optional().default(false),
+    radiusKm: z.number().min(0.5).max(50.0).optional().default(5.0),
+    notes: z.string().max(250).optional(),
+    source: z.enum(['app', 'ble_mesh']).optional().default('app'),
+    meshPacketId: z.string().optional()
+  });
+
+  app.post('/v1/sos', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = TriggerSosSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    // Verificar consentimiento emergency_package del emisor (R15)
+    const consentRes = await db.query(
+      `SELECT granted FROM consents
+       WHERE user_id = $1 AND kind = 'emergency_package' AND revoked_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [uid]
+    );
+
+    if (consentRes.rows.length > 0 && consentRes.rows[0].granted === false) {
+      return reply.code(403).send({
+        error: 'EMERGENCY_PACKAGE_CONSENT_REQUIRED',
+        message: 'Se requiere consentimiento de paquete de emergencia para detonar el radar SOS'
+      });
+    }
+
+    const { latitude, longitude, hasMedicalSheet = false, radiusKm = 5.0, notes = null, source = 'app', meshPacketId = null } = parsed.data;
+
+    // Deduplicación por meshPacketId si viene de retransmisión BLE Mesh
+    if (meshPacketId) {
+      const existing = await db.query(
+        `SELECT id, created_at, status FROM sos_events WHERE mesh_packet_id = $1 LIMIT 1`,
+        [meshPacketId]
+      );
+      if (existing.rows.length > 0) {
+        return reply.code(200).send({
+          success: true,
+          sosId: existing.rows[0].id,
+          latitude,
+          longitude,
+          radiusKm,
+          hasMedicalSheet,
+          source,
+          meshPacketId,
+          duplicate: true,
+          nearbyDetectedCount: 0,
+          notifiedUsersCount: 0,
+          notifiedUserIds: [],
+          createdAt: existing.rows[0].created_at
+        });
+      }
+    }
+
+    // 1. Insertar evento SOS activo
+    const sosRes = await db.query(
+      `INSERT INTO sos_events (user_id, latitude, longitude, has_medical_sheet, radius_km, status, notes, source, mesh_packet_id)
+       VALUES ($1, $2, $3, $4, $5, 'active', $6, $7, $8)
+       RETURNING id, created_at`,
+      [uid, latitude, longitude, hasMedicalSheet, radiusKm, notes, source, meshPacketId]
+    );
+    const sosEvent = sosRes.rows[0];
+
+    // 2. Actualizar telemetría efímera del accidentado
+    await db.query(
+      `INSERT INTO ephemeral_telemetry (user_id, lat, lng, heading, speed, recorded_at, created_at)
+       VALUES ($1, $2, $3, 0.0, 0.0, NOW(), NOW())`,
+      [uid, latitude, longitude]
+    );
+
+    // 3. Consulta Haversine en SQL puro con Bounding Box indexado (±0.05° lat, ±0.06° lon)
+    // Filtro de consentimiento estricto: emergency_package = true Y notifications = true
+    const nearbyRes = await db.query(
+      `WITH latest_telemetry AS (
+         SELECT DISTINCT ON (user_id) user_id, lat, lng, recorded_at
+         FROM ephemeral_telemetry
+         WHERE recorded_at >= NOW() - INTERVAL '30 minutes'
+           AND lat BETWEEN ($1 - 0.05) AND ($1 + 0.05)
+           AND lng BETWEEN ($2 - 0.06) AND ($2 + 0.06)
+         ORDER BY user_id, recorded_at DESC
+       )
+       SELECT 
+         t.user_id,
+         t.lat,
+         t.lng,
+         (
+           6371.0 * 2.0 * ASIN(
+             SQRT(
+               POWER(SIN(RADIANS(t.lat - $1) / 2.0), 2) +
+               COS(RADIANS($1)) * COS(RADIANS(t.lat)) *
+               POWER(SIN(RADIANS(t.lng - $2) / 2.0), 2)
+             )
+           )
+         ) AS distance_km
+       FROM latest_telemetry t
+       JOIN consents c_em ON c_em.user_id = t.user_id AND c_em.kind = 'emergency_package' AND c_em.granted = TRUE
+       JOIN consents c_notif ON c_notif.user_id = t.user_id AND c_notif.kind = 'notifications' AND c_notif.granted = TRUE
+       WHERE t.user_id != $3
+         AND (
+           6371.0 * 2.0 * ASIN(
+             SQRT(
+               POWER(SIN(RADIANS(t.lat - $1) / 2.0), 2) +
+               COS(RADIANS($1)) * COS(RADIANS(t.lat)) *
+               POWER(SIN(RADIANS(t.lng - $2) / 2.0), 2)
+             )
+           )
+         ) <= $4
+       ORDER BY distance_km ASC`,
+      [latitude, longitude, uid, radiusKm]
+    );
+
+    let notifiedCount = 0;
+    const notifiedUserIds: string[] = [];
+
+    // 4. Despachar notificaciones push a cada rescatista cercano
+    for (const row of nearbyRes.rows) {
+      const dist = parseFloat(Number(row.distance_km).toFixed(1));
+      const bearingDeg = calculateBearingDegrees(row.lat, row.lng, latitude, longitude);
+      const cardinal = degreesToCardinal(bearingDeg);
+
+      const tokenRes = await db.query(
+        `SELECT token FROM fcm_tokens WHERE user_id = $1`,
+        [row.user_id]
+      );
+      const tokens = tokenRes.rows.map((r: { token: string }) => r.token);
+
+      if (tokens.length > 0) {
+        await fcmService.sendSosProximity(tokens, {
+          sosId: sosEvent.id,
+          distanceKm: dist.toString(),
+          bearing: cardinal,
+          hasMedicalSheet: hasMedicalSheet ? 'true' : 'false'
+        });
+        notifiedCount++;
+        notifiedUserIds.push(row.user_id);
+      }
+    }
+
+    return reply.code(201).send({
+      success: true,
+      sosId: sosEvent.id,
+      latitude,
+      longitude,
+      radiusKm,
+      hasMedicalSheet,
+      source,
+      meshPacketId,
+      nearbyDetectedCount: nearbyRes.rows.length,
+      notifiedUsersCount: notifiedCount,
+      notifiedUserIds,
+      createdAt: sosEvent.created_at
+    });
+  });
+
+  app.get('/v1/sos/nearby', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    // Verificar consentimiento emergency_package (R15)
+    const consentRes = await db.query(
+      `SELECT granted FROM consents
+       WHERE user_id = $1 AND kind = 'emergency_package' AND revoked_at IS NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [uid]
+    );
+
+    if (consentRes.rows.length > 0 && consentRes.rows[0].granted === false) {
+      return reply.code(403).send({
+        error: 'EMERGENCY_PACKAGE_CONSENT_REQUIRED',
+        message: 'Se requiere consentimiento de paquete de emergencia para acceder al radar de proximidad'
+      });
+    }
+
+    const query = req.query as { lat?: string; lng?: string; radiusKm?: string };
+    let userLat = query.lat ? parseFloat(query.lat) : NaN;
+    let userLng = query.lng ? parseFloat(query.lng) : NaN;
+    const radiusKm = query.radiusKm ? parseFloat(query.radiusKm) : 5.0;
+
+    if (isNaN(userLat) || isNaN(userLng)) {
+      // Fallback a última posición conocida en ephemeral_telemetry
+      const locRes = await db.query(
+        `SELECT lat, lng FROM ephemeral_telemetry WHERE user_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
+        [uid]
+      );
+      if (locRes.rows.length > 0) {
+        userLat = locRes.rows[0].lat;
+        userLng = locRes.rows[0].lng;
+      } else {
+        return reply.code(200).send({
+          count: 0,
+          sosAlerts: []
+        });
+      }
+    }
+
+    const sosRows = await db.query(
+      `SELECT 
+         s.id,
+         s.user_id,
+         s.latitude,
+         s.longitude,
+         s.has_medical_sheet,
+         s.radius_km,
+         s.created_at,
+         s.notes,
+         s.source,
+         s.mesh_packet_id,
+         u.display_name AS emitter_alias,
+         (
+           6371.0 * 2.0 * ASIN(
+             SQRT(
+               POWER(SIN(RADIANS(s.latitude - $1) / 2.0), 2) +
+               COS(RADIANS($1)) * COS(RADIANS(s.latitude)) *
+               POWER(SIN(RADIANS(s.longitude - $2) / 2.0), 2)
+             )
+           )
+         ) AS distance_km
+       FROM sos_events s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.status = 'active'
+         AND s.user_id != $3
+         AND s.created_at >= NOW() - INTERVAL '6 hours'
+         AND s.latitude BETWEEN ($1 - 0.05) AND ($1 + 0.05)
+         AND s.longitude BETWEEN ($2 - 0.06) AND ($2 + 0.06)
+         AND (
+           6371.0 * 2.0 * ASIN(
+             SQRT(
+               POWER(SIN(RADIANS(s.latitude - $1) / 2.0), 2) +
+               COS(RADIANS($1)) * COS(RADIANS(s.latitude)) *
+               POWER(SIN(RADIANS(s.longitude - $2) / 2.0), 2)
+             )
+           )
+         ) <= $4
+       ORDER BY distance_km ASC`,
+      [userLat, userLng, uid, radiusKm]
+    );
+
+    const alerts = sosRows.rows.map((row: any) => {
+      const dist = parseFloat(Number(row.distance_km).toFixed(1));
+      const bearingDeg = calculateBearingDegrees(userLat, userLng, row.latitude, row.longitude);
+      const cardinal = degreesToCardinal(bearingDeg);
+      return {
+        id: row.id,
+        userId: row.user_id,
+        emitterAlias: row.emitter_alias ?? 'Compañero Motero',
+        latitude: row.latitude,
+        longitude: row.longitude,
+        distanceKm: dist,
+        bearing: cardinal,
+        hasMedicalSheet: Boolean(row.has_medical_sheet),
+        notes: row.notes,
+        source: row.source ?? 'app',
+        meshPacketId: row.mesh_packet_id ?? null,
+        createdAt: row.created_at
+      };
+    });
+
+    return reply.code(200).send({
+      count: alerts.length,
+      sosAlerts: alerts
+    });
+  });
+
+  app.get('/v1/sos/:id', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const { id } = req.params as { id: string };
+    const sosRes = await db.query(
+      `SELECT s.*, u.display_name AS emitter_alias
+       FROM sos_events s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.id = $1`,
+      [id]
+    );
+
+    if (sosRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Evento SOS no encontrado' });
+    }
+
+    const s = sosRes.rows[0];
+    return reply.code(200).send({
+      id: s.id,
+      userId: s.user_id,
+      emitterAlias: s.emitter_alias ?? 'Compañero Motero',
+      latitude: s.latitude,
+      longitude: s.longitude,
+      status: s.status,
+      hasMedicalSheet: Boolean(s.has_medical_sheet),
+      radiusKm: s.radius_km,
+      source: s.source ?? 'app',
+      meshPacketId: s.mesh_packet_id ?? null,
+      createdAt: s.created_at,
+      resolvedAt: s.resolved_at,
+      resolvedBy: s.resolved_by,
+      notes: s.notes
+    });
+  });
+
+  app.post('/v1/sos/:id/resolve', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const { id } = req.params as { id: string };
+    const updateRes = await db.query(
+      `UPDATE sos_events
+       SET status = 'resolved', resolved_at = NOW(), resolved_by = $1
+       WHERE id = $2 AND status = 'active'
+       RETURNING id, resolved_at`,
+      [uid, id]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Evento SOS no encontrado o ya resuelto' });
+    }
+
+    return reply.code(200).send({
+      success: true,
+      sosId: id,
+      status: 'resolved',
+      resolvedAt: updateRes.rows[0].resolved_at
+    });
+  });
+
+  // =========================================================================
+  // FASE 7.1.3: MAPAS OFFLINE CON PMTILES (CORREDORES VIALES)
+  // =========================================================================
+  const mapsDir = path.join(fileURLToPath(new URL('..', import.meta.url)), '..', 'public', 'maps');
+  ensureCanonicalPmtilesFiles(mapsDir);
+
+  app.get('/v1/maps/regions', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    return reply.code(200).send({
+      success: true,
+      regions: getAllRegions()
+    });
+  });
+
+  app.post('/v1/maps/custom-route', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const body = (req.body as any) || {};
+    if (!body.name || !body.boundingBox || !Array.isArray(body.boundingBox) || body.boundingBox.length !== 4) {
+      return reply.code(400).send({
+        error: 'VALIDATION_ERROR',
+        message: 'name y boundingBox [minLat, minLng, maxLat, maxLng] son requeridos'
+      });
+    }
+
+    const routeId = body.id || `custom-${Date.now()}`;
+    const region = registerCustomRouteRegion(
+      {
+        id: routeId,
+        name: body.name,
+        description: body.description,
+        boundingBox: body.boundingBox,
+        estimatedSizeMb: typeof body.estimatedSizeMb === 'number' ? body.estimatedSizeMb : 12.0
+      },
+      mapsDir
+    );
+
+    return reply.code(201).send({
+      success: true,
+      region
+    });
+  });
+
+  app.get('/v1/maps/regions/:id/download', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const { id } = req.params as { id: string };
+    const region = findRegionById(id);
+    if (!region) {
+      return reply.code(404).send({ error: 'NOT_FOUND', message: 'Región de mapa offline no encontrada' });
+    }
+
+    const filePath = getMapFilePath(mapsDir, region.fileName);
+    if (!fs.existsSync(filePath)) {
+      ensureCanonicalPmtilesFiles(mapsDir);
+    }
+
+    const stat = fs.statSync(filePath);
+    const rangeHeader = req.headers.range;
+
+    reply.header('Accept-Ranges', 'bytes');
+    reply.header('Content-Type', 'application/vnd.pmtiles');
+    reply.header('Content-Disposition', `attachment; filename="${region.fileName}"`);
+
+    if (rangeHeader) {
+      const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+      if (match) {
+        const start = parseInt(match[1], 10);
+        const end = match[2] ? parseInt(match[2], 10) : stat.size - 1;
+
+        if (start >= stat.size || end >= stat.size || start > end) {
+          reply.header('Content-Range', `bytes */${stat.size}`);
+          return reply.code(416).send({ error: 'RANGE_NOT_SATISFIABLE' });
+        }
+
+        const chunkLength = end - start + 1;
+        reply.code(206);
+        reply.header('Content-Range', `bytes ${start}-${end}/${stat.size}`);
+        reply.header('Content-Length', chunkLength);
+
+        const stream = fs.createReadStream(filePath, { start, end });
+        return reply.send(stream);
+      }
+    }
+
+    reply.code(200);
+    reply.header('Content-Length', stat.size);
+    const stream = fs.createReadStream(filePath);
+    return reply.send(stream);
+  });
+
+    app.get('/v1/users/me/export', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    // 1. Perfil del usuario
+    const userRes = await db.query(
+      `SELECT id, display_name, email, bike_model, status, created_at
+       FROM users WHERE id = $1`,
+      [uid]
+    );
+    const user = userRes.rows[0] || null;
+
+    // 2. Membresías y grupos
+    const membershipsRes = await db.query(
+      `SELECT m.group_id, g.name AS group_name, m.status_kind, m.club_role, m.invite_state, m.accepted_at AS created_at
+       FROM memberships m
+       JOIN groups g ON m.group_id = g.id
+       WHERE m.user_id = $1`,
+      [uid]
+    );
+
+    // 3. Consentimientos
+    const consentsRes = await db.query(
+      `SELECT id, group_id, kind, granted, policy_version, created_at, revoked_at
+       FROM consents WHERE user_id = $1 ORDER BY created_at DESC`,
+      [uid]
+    );
+
+    // 4. Suscripciones
+    const subsRes = await db.query(
+      `SELECT id, play_product_id AS product_id, state, created_at, current_period_end AS expires_at, grace_until
+       FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC`,
+      [uid]
+    );
+
+    // 5. Historial de rodadas
+    const ridesRes = await db.query(
+      `SELECT r.id AS ride_id, r.title, r.host_group, r.state, r.starts_at, r.closed_at, rp.counted_for_rank
+       FROM ride_participants rp
+       JOIN rides r ON rp.ride_id = r.id
+       WHERE rp.user_id = $1 ORDER BY r.starts_at DESC`,
+      [uid]
+    );
+
+    // 6. Insignias obtenidas
+    const badgesRes = await db.query(
+      `SELECT id, family, code, issuer_group, issuer_user, created_at
+       FROM badges WHERE receiver = $1 ORDER BY created_at DESC`,
+      [uid]
+    );
+
+    return {
+      exportedAt: new Date().toISOString(),
+      gdprCompliance: 'Exportación oficial de datos personales generada conforme a RGPD, LGPD, CCPA y RULES R15.5 de Ruta Biker Sync.',
+      user,
+      memberships: membershipsRes.rows,
+      consents: consentsRes.rows,
+      subscriptions: subsRes.rows,
+      rides: ridesRes.rows,
+      badges: badgesRes.rows
+    };
   });
 
   app.delete('/v1/users/me', async (req, reply) => {
@@ -2267,6 +4092,13 @@ export async function buildApp({
       });
     }
 
+    if (!isUuid(rideId) || !isUuid(invitationId)) {
+      return reply.code(404).send({
+        error: 'GUEST_INVITATION_NOT_FOUND',
+        message: 'La invitación no existe en el servidor central (invitación local o fuera de línea).'
+      });
+    }
+
     const invRes = await db.query(
       `SELECT id, ride_id, user_id, state, expires_at
        FROM ride_guest_invitations
@@ -2588,6 +4420,10 @@ export async function buildApp({
       rained?: boolean;
       offlineMinutes?: number;
       closedAtIso?: string;
+      meshKm?: number;
+      maxSpeedKmh?: number;
+      signature?: string;
+      leaderPublicKey?: string;
       participants?: Array<{
         userId: string;
         hasMeshContact: boolean;
@@ -2622,6 +4458,58 @@ export async function buildApp({
     const rained = Boolean(body.rained ?? false);
     const offlineMinutes = Math.floor(Number(body.offlineMinutes ?? 0));
     const closedAtIso = body.closedAtIso ? new Date(body.closedAtIso).toISOString() : new Date().toISOString();
+
+    // Anti-Cheat (Fase 7.1.1): Los kilómetros en malla no pueden superar los kilómetros totales
+    if (typeof body.meshKm === 'number' && body.meshKm > distanceKm) {
+      return reply.code(403).send({
+        error: 'INVALID_SUMMARY',
+        message: 'Los kilómetros en malla no pueden superar los kilómetros totales'
+      });
+    }
+
+    // Anti-Cheat (Fase 7.1.1): La velocidad máxima registrada no puede exceder 200 km/h
+    if (typeof body.maxSpeedKmh === 'number' && body.maxSpeedKmh > 200) {
+      return reply.code(403).send({
+        error: 'INVALID_SUMMARY',
+        message: 'La velocidad máxima registrada excede 200 km/h'
+      });
+    }
+
+    // Verificación de Firma Asimétrica Ed25519 (Fase 7.1.1)
+    if (body.signature) {
+      let pubKey = body.leaderPublicKey;
+      if (!pubKey) {
+        const uRes = await db.query(`SELECT public_key FROM users WHERE id = $1`, [uid]);
+        pubKey = uRes.rows[0]?.public_key;
+      }
+      if (!pubKey) {
+        return reply.code(403).send({
+          error: 'INVALID_SIGNATURE',
+          message: 'Falta la clave pública del líder para verificar el resumen de la rodada'
+        });
+      }
+
+      const summaryData: RideSummaryData = {
+        rideId,
+        distanceKm,
+        durationMinutes,
+        meshKm: body.meshKm,
+        maxSpeedKmh: body.maxSpeedKmh,
+        elevationGainM,
+        startedAtNight,
+        rained,
+        offlineMinutes,
+        closedAtIso
+      };
+
+      const validSig = verifyRideSummarySignature(summaryData, body.signature, pubKey);
+      if (!validSig) {
+        return reply.code(403).send({
+          error: 'INVALID_SIGNATURE',
+          message: 'La firma Ed25519 del resumen de rodada es inválida'
+        });
+      }
+    }
 
     await db.query(
       `UPDATE rides
@@ -2667,7 +4555,7 @@ export async function buildApp({
     // 5. cierre confirmado por líder
     // 6. máximo 3 rodadas contadas por día por usuario
     const allPartsRes = await db.query(
-      `SELECT user_id, has_mesh_contact, presence_pct, counted_for_rank
+      `SELECT user_id, has_mesh_contact, presence_pct, counted_for_rank, ride_role
        FROM ride_participants WHERE ride_id = $1`,
       [rideId]
     );
@@ -2703,14 +4591,72 @@ export async function buildApp({
              WHERE ride_id = $2 AND user_id = $3`,
             [closedAtIso, rideId, userId]
           );
+
+          // Cálculo de XP según GAMIFICATION.md §7:
+          const baseXP = 10;
+          const distanceXP = Math.floor(distanceKm / 50);
+          const roleXP =
+            p.ride_role === 'capitan_rodada'
+              ? 5
+              : p.ride_role === 'sweep'
+                ? 3
+                : p.ride_role === 'scout'
+                  ? 2
+                  : 0;
+          const earnedXP = baseXP + distanceXP + roleXP;
+
+          const currentMonth = closedAtIso.slice(0, 7);
+          const rankRes = await db.query(
+            `SELECT valid_rides, total_km, streak_months, last_ride_month, xp
+             FROM rank_progress WHERE user_id = $1`,
+            [userId]
+          );
+
+          let newStreak = 1;
+          let streakBonusXP = 0;
+          if (rankRes.rows.length > 0) {
+            const lastMonth = rankRes.rows[0].last_ride_month;
+            const currentStreak = Number(rankRes.rows[0].streak_months ?? 0);
+            if (lastMonth === currentMonth) {
+              newStreak = Math.max(1, currentStreak);
+            } else if (lastMonth && isConsecutiveMonth(lastMonth, currentMonth)) {
+              newStreak = currentStreak + 1;
+              if (newStreak % 3 === 0) {
+                streakBonusXP = 20; // +20 XP por racha de 3 meses
+              }
+            } else {
+              newStreak = 1;
+            }
+          }
+
+          const totalEarnedXP = earnedXP + streakBonusXP;
+
           await db.query(
-            `INSERT INTO rank_progress (user_id, valid_rides, total_km)
-             VALUES ($1, 1, $2)
+            `INSERT INTO rank_progress (user_id, valid_rides, total_km, streak_months, last_ride_month, xp)
+             VALUES ($1, 1, $2, $3, $4, $5)
              ON CONFLICT (user_id) DO UPDATE SET
                valid_rides = rank_progress.valid_rides + 1,
-               total_km = rank_progress.total_km + $2`,
-            [userId, distanceKm]
+               total_km = rank_progress.total_km + $2,
+               streak_months = $3,
+               last_ride_month = $4,
+               xp = rank_progress.xp + $5`,
+            [userId, distanceKm, newStreak, currentMonth, totalEarnedXP]
           );
+
+          const updatedKmRes = await db.query(
+            `SELECT total_km, valid_rides, streak_months FROM rank_progress WHERE user_id = $1`,
+            [userId]
+          );
+          const currentTotalKm = Number(updatedKmRes.rows[0]?.total_km ?? distanceKm);
+          const currentValidRides = Number(updatedKmRes.rows[0]?.valid_rides ?? 1);
+
+          await awardMileageAndExperienceBadges(db, userId, currentTotalKm, currentValidRides, newStreak, {
+            started_at_night: startedAtNight,
+            rained,
+            offline_minutes: offlineMinutes,
+            elevation_gain_m: elevationGainM
+          });
+
           countedUsers.push(userId);
         } catch (err) {
           skippedUsers.push({ userId, reason: (err as Error).message });
@@ -2751,9 +4697,807 @@ export async function buildApp({
       meshContactCount,
       countedUsers,
       skippedUsers,
-      voiceClipsPurged: true, // R6.5: al cerrar la rodada se borran las notas de voz y el acceso temporal a emergencia
+      voiceClipsPurged: true,
       emergencyAccessRevoked: true
     });
+  });
+
+  // --------------------------------------------------------------------------
+  // GAMIFICACIÓN (Fase 6 — GAMIFICATION.md & SCREENS.md F2)
+  // --------------------------------------------------------------------------
+  app.get('/v1/users/:id/gamification', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id } = req.params as { id: string };
+    const rankRes = await db.query(
+      `SELECT valid_rides, total_km, streak_months, last_ride_month, xp
+       FROM rank_progress WHERE user_id = $1`,
+      [id]
+    );
+
+    const validRides = Number(rankRes.rows[0]?.valid_rides ?? 0);
+    const totalKm = Number(rankRes.rows[0]?.total_km ?? 0);
+    const streakMonths = Number(rankRes.rows[0]?.streak_months ?? 0);
+    const lastRideMonth = rankRes.rows[0]?.last_ride_month ?? null;
+    const xp = Number(rankRes.rows[0]?.xp ?? 0);
+
+    const rankInfo = computeBikerRankInfo(xp);
+
+    const badgesRes = await db.query(
+      `SELECT b.id, b.family, b.code, b.issuer_group, b.issuer_user, b.created_at,
+              g.name as issuer_group_name
+       FROM badges b
+       LEFT JOIN groups g ON g.id = b.issuer_group
+       WHERE b.receiver = $1
+       ORDER BY b.created_at DESC`,
+      [id]
+    );
+
+    return reply.code(200).send({
+      userId: id,
+      validRides,
+      totalKm,
+      streakMonths,
+      lastRideMonth,
+      xp,
+      currentRank: rankInfo,
+      badges: badgesRes.rows.map((r) => ({
+        id: r.id,
+        family: r.family,
+        code: r.code,
+        issuerGroupId: r.issuer_group,
+        issuerGroupName: r.issuer_group_name,
+        createdAt: r.created_at
+      }))
+    });
+  });
+
+  // Otorgar insignia de honor (RULES R8.6, D43)
+  app.post('/v1/groups/:id/badges/honor', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id: groupId } = req.params as { id: string };
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    // Validar que el emisor sea líder del grupo
+    const leaderCheck = await db.query(
+      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      [groupId, uid]
+    );
+    if (leaderCheck.rows.length === 0) {
+      return reply.code(403).send({ error: 'FORBIDDEN_NOT_GROUP_LEADER' });
+    }
+
+    const body = (req.body ?? {}) as { receiverUserId?: string; code?: string };
+    if (!body.receiverUserId || !body.code) {
+      return reply.code(400).send({ error: 'MISSING_RECEIVER_OR_CODE' });
+    }
+
+    try {
+      const badgeId = randomUUID();
+      await db.query(
+        `INSERT INTO badges (id, family, code, issuer_group, issuer_user, receiver)
+         VALUES ($1, 'honor', $2, $3, $4, $5)`,
+        [badgeId, body.code, groupId, uid, body.receiverUserId]
+      );
+
+      // Otorgar +15 XP por insignia de honor recibida (GAMIFICATION.md §7)
+      await db.query(
+        `INSERT INTO rank_progress (user_id, valid_rides, total_km, xp)
+         VALUES ($1, 0, 0, 15)
+         ON CONFLICT (user_id) DO UPDATE SET xp = rank_progress.xp + 15`,
+        [body.receiverUserId]
+      );
+
+      return reply.code(201).send({
+        id: badgeId,
+        family: 'honor',
+        code: body.code,
+        issuerGroupId: groupId,
+        issuerUserId: uid,
+        receiverUserId: body.receiverUserId,
+        xpAwarded: 15
+      });
+    } catch (err) {
+      return reply.code(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // Transición de jerarquía de clubes RC -> MG -> Gang -> MC (RULES R3.4, D45)
+  app.post('/v1/groups/:id/transition-tier', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { id: groupId } = req.params as { id: string };
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    // Solo el líder principal puede solicitar o cambiar el tier
+    const groupRes = await db.query(
+      `SELECT principal_leader, tier FROM groups WHERE id = $1`,
+      [groupId]
+    );
+    if (groupRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'GROUP_NOT_FOUND' });
+    }
+    if (String(groupRes.rows[0].principal_leader) !== uid) {
+      return reply.code(403).send({ error: 'FORBIDDEN_ONLY_PRINCIPAL_LEADER' });
+    }
+
+    const body = (req.body ?? {}) as { targetTier?: string; sponsorGroupId?: string };
+    if (!body.targetTier || !['RC', 'MF', 'MG', 'GANG', 'MC'].includes(body.targetTier)) {
+      return reply.code(400).send({ error: 'INVALID_TIER' });
+    }
+
+    try {
+      await db.query(
+        `UPDATE groups
+         SET tier = $1, sponsor_group_id = $2
+         WHERE id = $3`,
+        [body.targetTier, body.sponsorGroupId ?? null, groupId]
+      );
+
+      return reply.code(200).send({
+        groupId,
+        previousTier: groupRes.rows[0].tier,
+        newTier: body.targetTier,
+        sponsorGroupId: body.sponsorGroupId ?? null
+      });
+    } catch (err) {
+      return reply.code(400).send({ error: (err as Error).message });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // 17. Módulo de Administración, Soporte y Analítica (Backoffice / Helpdesk / KPIs)
+  // ---------------------------------------------------------------------------
+  const requireAdminAuth = async (req: FastifyRequest, reply: FastifyReply) => {
+    const key =
+      (req.headers['x-admin-key'] as string | undefined) ??
+      (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : undefined);
+    if (!verifyAdminAccess(key, env.ADMIN_API_KEY)) {
+      reply.code(401).send({ error: 'UNAUTHORIZED_ADMIN', message: 'Clave de administración inválida o no proporcionada' });
+      return;
+    }
+  };
+
+  // 17.1 Analítica y Visión General de la Plataforma
+  app.get('/v1/admin/analytics/overview', { preHandler: requireAdminAuth }, async () => {
+    const overview = await getAdminAnalyticsOverview(db);
+    return overview;
+  });
+
+  // 17.2 Gestión de Clubes / Grupos
+  app.get('/v1/admin/groups', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { search?: string; countryCode?: string; tier?: string; status?: string; limit?: string; offset?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const offset = q.offset ? parseInt(q.offset, 10) : 0;
+    return await listAdminGroups(db, { search: q.search, countryCode: q.countryCode, tier: q.tier, status: q.status, limit, offset });
+  });
+
+  app.get('/v1/admin/groups/:id', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const details = await getAdminGroupDetails(db, id);
+    if (!details) return reply.code(404).send({ error: 'GROUP_NOT_FOUND' });
+    return details;
+  });
+
+  app.patch('/v1/admin/groups/:id/status', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as { status?: 'active' | 'suspended'; reason?: string; adminEmail?: string };
+    if (!body.status || !['active', 'suspended'].includes(body.status)) {
+      return reply.code(400).send({ error: 'INVALID_STATUS' });
+    }
+    const success = await updateAdminGroupStatus(db, id, body.status, body.adminEmail ?? 'admin@rutabikersync.com', body.reason ?? 'Acción de administrador');
+    if (!success) return reply.code(404).send({ error: 'GROUP_NOT_FOUND' });
+    return { success: true, groupId: id, status: body.status };
+  });
+
+  app.post('/v1/admin/groups/:id/extend-grace', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as { extraDays?: number; reason?: string; adminEmail?: string };
+    const extraDays = body.extraDays && body.extraDays > 0 ? body.extraDays : 7;
+    const success = await extendGroupGracePeriod(db, id, extraDays, body.adminEmail ?? 'admin@rutabikersync.com', body.reason ?? 'Prórroga autorizada por soporte');
+    if (!success) return reply.code(404).send({ error: 'GROUP_OR_LEADER_NOT_FOUND' });
+    return { success: true, groupId: id, extraDaysGranted: extraDays };
+  });
+
+  // 17.3 Gestión de Usuarios
+  app.get('/v1/admin/users', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { search?: string; status?: string; limit?: string; offset?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const offset = q.offset ? parseInt(q.offset, 10) : 0;
+    return await listAdminUsers(db, { search: q.search, status: q.status, limit, offset });
+  });
+
+  app.patch('/v1/admin/users/:id/status', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as { status?: 'active' | 'suspended'; reason?: string; adminEmail?: string };
+    if (!body.status || !['active', 'suspended'].includes(body.status)) {
+      return reply.code(400).send({ error: 'INVALID_STATUS' });
+    }
+    const success = await updateAdminUserStatus(db, id, body.status, body.adminEmail ?? 'admin@rutabikersync.com', body.reason ?? 'Acción de moderación');
+    if (!success) return reply.code(404).send({ error: 'USER_NOT_FOUND' });
+    return { success: true, userId: id, status: body.status };
+  });
+
+  // 17.4 Moderación Escalada (R13.5)
+  app.get('/v1/admin/support/reports', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { limit?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const reports = await listEscalatedReports(db, limit);
+    return { reports };
+  });
+
+  app.patch('/v1/admin/support/reports/:id', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as {
+      resolution?: 'warning' | 'muted' | 'ride_removed' | 'group_removed' | 'platform_suspended';
+      adminEmail?: string;
+      notes?: string;
+    };
+    if (!body.resolution || !['warning', 'muted', 'ride_removed', 'group_removed', 'platform_suspended'].includes(body.resolution)) {
+      return reply.code(400).send({ error: 'INVALID_RESOLUTION' });
+    }
+    const success = await resolveEscalatedReport(db, id, body.resolution, body.adminEmail ?? 'admin@rutabikersync.com', body.notes ?? '');
+    if (!success) return reply.code(404).send({ error: 'REPORT_NOT_FOUND' });
+    return { success: true, reportId: id, resolution: body.resolution };
+  });
+
+  // 17.5 Tickets de Soporte
+  app.get('/v1/admin/support/tickets', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { status?: string; category?: string; priority?: string; limit?: string; offset?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const offset = q.offset ? parseInt(q.offset, 10) : 0;
+    return await listSupportTickets(db, { status: q.status, category: q.category, priority: q.priority, limit, offset });
+  });
+
+  app.post('/v1/admin/support/tickets', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const body = req.body as {
+      userId: string;
+      groupId?: string | null;
+      subject: string;
+      category: string;
+      priority?: string;
+      initialMessage: string;
+    };
+    if (!body.userId || !body.subject || !body.category || !body.initialMessage) {
+      return reply.code(400).send({ error: 'MISSING_REQUIRED_FIELDS' });
+    }
+    const ticketId = await createSupportTicket(db, body);
+    return reply.code(201).send({ success: true, ticketId });
+  });
+
+  app.get('/v1/admin/support/tickets/:id', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const details = await getSupportTicketDetails(db, id);
+    if (!details) return reply.code(404).send({ error: 'TICKET_NOT_FOUND' });
+    return details;
+  });
+
+  app.post('/v1/admin/support/tickets/:id/messages', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = req.body as {
+      senderId: string;
+      isAdmin?: boolean;
+      message: string;
+      nextStatus?: string;
+    };
+    if (!body.senderId || !body.message) {
+      return reply.code(400).send({ error: 'MISSING_REQUIRED_FIELDS' });
+    }
+    const messageId = await addTicketMessage(db, {
+      ticketId: id,
+      senderId: body.senderId,
+      isAdmin: body.isAdmin ?? true,
+      message: body.message,
+      nextStatus: body.nextStatus
+    });
+    return reply.code(201).send({ success: true, messageId });
+  });
+
+  // 17.6 Auditoría de Seguridad SOS y Acciones de Administrador
+  app.get('/v1/admin/audit/sos', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { limit?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const logs = await listSosAccessAudit(db, limit);
+    return { logs };
+  });
+
+  app.get('/v1/admin/audit/logs', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { limit?: string };
+    const limit = q.limit ? parseInt(q.limit, 10) : 50;
+    const logs = await listAdminAuditLogs(db, limit);
+    return { logs };
+  });
+
+
+  // ===========================================================================
+  // 18. FASE 5: BÓVEDA BIKER AVANZADA (E2EE & RECUPERACIÓN & FICHA MÉDICA)
+  // ===========================================================================
+
+  const VaultDocumentSchema = z.object({
+    docType: z.string().min(1).max(50),
+    ciphertext: z.string().min(1),
+    iv: z.string().min(1),
+    authTag: z.string().min(1),
+    userSalt: z.string().min(1),
+    title: z.string().optional()
+  });
+
+  const VaultRecoveryKeySchema = z.object({
+    encryptedMasterKey: z.string().min(1),
+    iv: z.string().min(1),
+    authTag: z.string().min(1),
+    pbkdf2Salt: z.string().min(1),
+    pbkdf2Iterations: z.number().int().min(10000).default(100000)
+  });
+
+  const VaultMedicalShareSchema = z.object({
+    rideId: z.string().uuid(),
+    groupId: z.string().uuid(),
+    ciphertext: z.string().min(1),
+    iv: z.string().min(1),
+    authTag: z.string().min(1),
+    durationHours: z.number().int().min(1).max(72).default(24)
+  });
+
+  // 18.1 Subir o actualizar documento cifrado en reposo (E2EE)
+  app.post('/v1/vault/documents', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = VaultDocumentSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { docType, ciphertext, iv, authTag, userSalt, title } = parsed.data;
+
+    const res = await db.query(
+      `INSERT INTO vault_items (
+         id, user_id, doc_type, ciphertext, iv, auth_tag, user_salt, title, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), now())
+       ON CONFLICT (user_id, doc_type) DO UPDATE SET
+         ciphertext = EXCLUDED.ciphertext,
+         iv = EXCLUDED.iv,
+         auth_tag = EXCLUDED.auth_tag,
+         user_salt = EXCLUDED.user_salt,
+         title = EXCLUDED.title,
+         updated_at = now()
+       RETURNING id, doc_type, title, updated_at`,
+      [randomUUID(), uid, docType, ciphertext, iv, authTag, userSalt, title ?? null]
+    );
+
+    return reply.code(201).send({
+      success: true,
+      document: {
+        id: res.rows[0].id,
+        docType: res.rows[0].doc_type,
+        title: res.rows[0].title,
+        updatedAt: res.rows[0].updated_at
+      }
+    });
+  });
+
+  // 18.2 Listar metadatos de documentos de la bóveda (sin retornar ciphertext)
+  app.get('/v1/vault/documents', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const res = await db.query(
+      `SELECT id, doc_type AS "docType", title, user_salt AS "userSalt", created_at AS "createdAt", updated_at AS "updatedAt"
+       FROM vault_items
+       WHERE user_id = $1
+       ORDER BY updated_at DESC`,
+      [uid]
+    );
+
+    return reply.code(200).send({
+      documents: res.rows
+    });
+  });
+
+  // 18.3 Descargar blob cifrado completo de un documento (valida ownership)
+  app.get('/v1/vault/documents/:id', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id } = req.params as { id: string };
+
+    const res = await db.query(
+      `SELECT id, user_id, doc_type AS "docType", ciphertext, iv, auth_tag AS "authTag",
+              user_salt AS "userSalt", title, updated_at AS "updatedAt"
+       FROM vault_items
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (res.rows.length === 0) {
+      return reply.code(404).send({ error: 'DOCUMENT_NOT_FOUND' });
+    }
+    const doc = res.rows[0];
+    if (doc.user_id !== uid) {
+      return reply.code(403).send({ error: 'FORBIDDEN', message: 'No tienes permiso para acceder a este documento' });
+    }
+
+    return reply.code(200).send({
+      id: doc.id,
+      docType: doc.docType,
+      ciphertext: doc.ciphertext,
+      iv: doc.iv,
+      authTag: doc.authTag,
+      userSalt: doc.userSalt,
+      title: doc.title,
+      updatedAt: doc.updatedAt
+    });
+  });
+
+  // 18.4 Eliminar documento de la bóveda
+  app.delete('/v1/vault/documents/:id', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id } = req.params as { id: string };
+
+    const res = await db.query(
+      `DELETE FROM vault_items WHERE id = $1 AND user_id = $2 RETURNING id`,
+      [id, uid]
+    );
+    if (res.rows.length === 0) {
+      return reply.code(404).send({ error: 'DOCUMENT_NOT_FOUND' });
+    }
+
+    return reply.code(200).send({ success: true, deletedId: id });
+  });
+
+    // 18.4 Helper: Rate limiting de grado militar para recuperación de Bóveda (RULES.md §15.8)
+  async function checkAndEnforceRecoveryRateLimit(
+    ip: string,
+    uid: string,
+    endpoint: string,
+    reply: FastifyReply
+  ): Promise<boolean> {
+    // 1. Bloqueo 24 horas (86400s) si acumula >= 20 intentos en 24h
+    const res24h = await db.query<{ count: string }>(
+      `SELECT count(*) as count FROM vault_recovery_attempts
+       WHERE user_id = $1 AND created_at > now() - interval '24 hours'`,
+      [uid]
+    );
+    const total24h = parseInt(res24h.rows[0]?.count ?? '0', 10);
+    if (total24h >= 20) {
+      reply.header('Retry-After', '86400').code(429).send({
+        error: 'TOO_MANY_ATTEMPTS',
+        message: 'Has superado el límite de intentos de recuperación (bloqueo preventivo de 24 horas). Espera antes de reintentar.',
+        retryAfter: 86400
+      });
+      return false;
+    }
+
+    // 2. Bloqueo 6 horas (21600s) si acumula >= 10 intentos en 6h
+    const res6h = await db.query<{ count: string }>(
+      `SELECT count(*) as count FROM vault_recovery_attempts
+       WHERE user_id = $1 AND created_at > now() - interval '6 hours'`,
+      [uid]
+    );
+    const total6h = parseInt(res6h.rows[0]?.count ?? '0', 10);
+    if (total6h >= 10) {
+      reply.header('Retry-After', '21600').code(429).send({
+        error: 'TOO_MANY_ATTEMPTS',
+        message: 'Has superado el límite de intentos de recuperación (bloqueo preventivo de 6 horas). Espera antes de reintentar.',
+        retryAfter: 21600
+      });
+      return false;
+    }
+
+    // 3. Bloqueo 1 hora (3600s) si acumula >= 5 intentos en 1h
+    const res1h = await db.query<{ count: string }>(
+      `SELECT count(*) as count FROM vault_recovery_attempts
+       WHERE user_id = $1 AND created_at > now() - interval '1 hour'`,
+      [uid]
+    );
+    const total1h = parseInt(res1h.rows[0]?.count ?? '0', 10);
+    if (total1h >= 5) {
+      reply.header('Retry-After', '3600').code(429).send({
+        error: 'TOO_MANY_ATTEMPTS',
+        message: 'Has superado el límite de 5 intentos por hora. Espera 60 minutos antes de reintentar.',
+        retryAfter: 3600
+      });
+      return false;
+    }
+
+    // Registrar el intento
+    await db.query(
+      `INSERT INTO vault_recovery_attempts (ip, user_id, endpoint, success, created_at)
+       VALUES ($1, $2, $3, false, now())`,
+      [ip, uid, endpoint]
+    );
+
+    return true;
+  }
+
+  // 18.5 Solicitar token efímero de recuperación (TTL 5 min, un solo uso)
+  app.post('/v1/vault/recovery/token', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
+    const allowed = await checkAndEnforceRecoveryRateLimit(clientIp, uid, '/v1/vault/recovery/token', reply);
+    if (!allowed) return;
+
+    const token = randomUUID() + '-' + randomUUID();
+    // Invalidar tokens previos no usados
+    await db.query(
+      `UPDATE vault_recovery_tokens SET used = true WHERE user_id = $1 AND used = false`,
+      [uid]
+    );
+
+    await db.query(
+      `INSERT INTO vault_recovery_tokens (id, user_id, token, expires_at, used)
+       VALUES ($1, $2, $3, now() + interval '5 minutes', false)`,
+      [randomUUID(), uid, token]
+    );
+
+    return reply.code(200).send({
+      recoveryToken: token,
+      expiresInSeconds: 300
+    });
+  });
+
+  // 18.6 Guardar clave maestra de recuperación cifrada con Passphrase (requiere X-Recovery-Token)
+  app.post('/v1/vault/recovery', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
+    const allowed = await checkAndEnforceRecoveryRateLimit(clientIp, uid, '/v1/vault/recovery', reply);
+    if (!allowed) return;
+
+    const recoveryToken = (req.headers['x-recovery-token'] as string | undefined)?.trim();
+    if (!recoveryToken) {
+      return reply.code(403).send({
+        error: 'REAUTH_REQUIRED',
+        message: 'Se requiere token de recuperación de un solo uso en header X-Recovery-Token'
+      });
+    }
+
+    const tokenRes = await db.query(
+      `SELECT id FROM vault_recovery_tokens
+       WHERE user_id = $1 AND token = $2 AND used = false AND expires_at > now()`,
+      [uid, recoveryToken]
+    );
+    if (tokenRes.rows.length === 0) {
+      return reply.code(403).send({
+        error: 'REAUTH_REQUIRED',
+        message: 'Token de recuperación inválido, ya utilizado o expirado'
+      });
+    }
+
+    // Marcar como consumido inmediatamente (single use)
+    await db.query(`UPDATE vault_recovery_tokens SET used = true WHERE id = $1`, [tokenRes.rows[0].id]);
+
+    const parsed = VaultRecoveryKeySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { encryptedMasterKey, iv, authTag, pbkdf2Salt, pbkdf2Iterations } = parsed.data;
+
+    await db.query(
+      `INSERT INTO vault_recovery_keys (
+         user_id, encrypted_master_key, iv, auth_tag, pbkdf2_salt, pbkdf2_iterations, created_at, last_used_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, now(), now())
+       ON CONFLICT (user_id) DO UPDATE SET
+         encrypted_master_key = EXCLUDED.encrypted_master_key,
+         iv = EXCLUDED.iv,
+         auth_tag = EXCLUDED.auth_tag,
+         pbkdf2_salt = EXCLUDED.pbkdf2_salt,
+         pbkdf2_iterations = EXCLUDED.pbkdf2_iterations,
+         created_at = now(),
+         last_used_at = now()`,
+      [uid, encryptedMasterKey, iv, authTag, pbkdf2Salt, pbkdf2Iterations]
+    );
+
+    return reply.code(201).send({
+      success: true,
+      message: 'Clave maestra de recuperación registrada exitosamente'
+    });
+  });
+
+  // 18.7 Obtener clave maestra de recuperación cifrada (requiere X-Recovery-Token)
+  app.get('/v1/vault/recovery', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '127.0.0.1';
+    const allowed = await checkAndEnforceRecoveryRateLimit(clientIp, uid, '/v1/vault/recovery', reply);
+    if (!allowed) return;
+
+    const recoveryToken = (req.headers['x-recovery-token'] as string | undefined)?.trim();
+    if (!recoveryToken) {
+      return reply.code(403).send({
+        error: 'REAUTH_REQUIRED',
+        message: 'Se requiere re-autenticación (X-Recovery-Token) para acceder a la clave de recuperación'
+      });
+    }
+
+    const tokenRes = await db.query(
+      `SELECT id FROM vault_recovery_tokens
+       WHERE user_id = $1 AND token = $2 AND used = false AND expires_at > now()`,
+      [uid, recoveryToken]
+    );
+    if (tokenRes.rows.length === 0) {
+      return reply.code(403).send({
+        error: 'REAUTH_REQUIRED',
+        message: 'Token de recuperación inválido, ya utilizado o expirado'
+      });
+    }
+
+    await db.query(`UPDATE vault_recovery_tokens SET used = true WHERE id = $1`, [tokenRes.rows[0].id]);
+
+    const res = await db.query(
+      `SELECT encrypted_master_key AS "encryptedMasterKey", iv, auth_tag AS "authTag",
+              pbkdf2_salt AS "pbkdf2Salt", pbkdf2_iterations AS "pbkdf2Iterations", created_at AS "createdAt"
+       FROM vault_recovery_keys
+       WHERE user_id = $1`,
+      [uid]
+    );
+
+    if (res.rows.length === 0) {
+      return reply.code(404).send({ error: 'RECOVERY_KEY_NOT_FOUND' });
+    }
+
+    await db.query(`UPDATE vault_recovery_keys SET last_used_at = now() WHERE user_id = $1`, [uid]);
+
+    return reply.code(200).send(res.rows[0]);
+  });
+
+  // 18.8 Compartir Ficha Médica de Emergencia durante una Rodada Activa
+  app.post('/v1/vault/medical/share', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = VaultMedicalShareSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const { rideId, groupId, ciphertext, iv, authTag, durationHours } = parsed.data;
+
+    // Verificar que la rodada exista y esté activa
+    const rideRes = await db.query(`SELECT id, state FROM rides WHERE id = $1`, [rideId]);
+    if (rideRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+    }
+    if (rideRes.rows[0].state !== 'active') {
+      return reply.code(403).send({
+        error: 'RIDE_NOT_ACTIVE',
+        message: 'Solo se puede compartir la ficha médica mientras la rodada esté activa (RULES R6.5)'
+      });
+    }
+
+    const expiresAt = new Date(Date.now() + durationHours * 3600 * 1000).toISOString();
+
+    await db.query(
+      `INSERT INTO shared_medical_sheets (
+         id, user_id, ride_id, group_id, ciphertext, iv, auth_tag, shared_at, expires_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, now(), $8)
+       ON CONFLICT (user_id, ride_id) DO UPDATE SET
+         ciphertext = EXCLUDED.ciphertext,
+         iv = EXCLUDED.iv,
+         auth_tag = EXCLUDED.auth_tag,
+         shared_at = now(),
+         expires_at = EXCLUDED.expires_at`,
+      [randomUUID(), uid, rideId, groupId, ciphertext, iv, authTag, expiresAt]
+    );
+
+    return reply.code(201).send({
+      success: true,
+      rideId,
+      expiresAt,
+      message: 'Ficha médica compartida temporalmente para la rodada'
+    });
+  });
+
+  // 18.8.1 Revocar Anticipadamente Compartición de Ficha Médica (Hito 3 - RULES R6.5)
+  app.delete('/v1/vault/medical/share', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const { rideId } = req.query as { rideId?: string };
+    if (!rideId) {
+      return reply.code(400).send({ error: 'RIDE_ID_REQUIRED', message: 'Se requiere el parámetro query ?rideId=' });
+    }
+
+    const delRes = await db.query(
+      `DELETE FROM shared_medical_sheets WHERE user_id = $1 AND ride_id = $2 RETURNING id`,
+      [uid, rideId]
+    );
+
+    if ((delRes.rowCount ?? 0) === 0) {
+      return reply.code(404).send({
+        error: 'NOT_FOUND',
+        message: 'No existe compartición activa de ficha médica para revocar en esta rodada'
+      });
+    }
+
+    return reply.code(200).send({
+      success: true,
+      rideId,
+      message: 'Acceso a la ficha médica revocado exitosamente'
+    });
+  });
+
+  // 18.9 Obtener Ficha Médica de un Piloto (RBAC Estricto: solo Líder/Sargento y rodada activa)
+  app.get('/v1/vault/medical/:targetUserId', async (req, reply) => {
+    const callerUid = requireUserId(req, reply);
+    if (!callerUid) return;
+    const { targetUserId } = req.params as { targetUserId: string };
+    const { rideId } = req.query as { rideId?: string };
+
+    if (!rideId) {
+      return reply.code(400).send({ error: 'RIDE_ID_REQUIRED', message: 'Se requiere el parámetro query ?rideId=' });
+    }
+
+    // 1. Verificar estado de la rodada
+    const rideRes = await db.query(`SELECT id, state, host_group FROM rides WHERE id = $1`, [rideId]);
+    if (rideRes.rows.length === 0) {
+      return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+    }
+    const ride = rideRes.rows[0];
+    if (ride.state !== 'active') {
+      return reply.code(403).send({
+        error: 'RIDE_NOT_ACTIVE',
+        message: 'La rodada no está activa o ya ha finalizado; el acceso a la ficha médica ha expirado (RULES R6.5)'
+      });
+    }
+
+    // 2. Verificar rol del solicitante (Líder principal, co-líder o Sargento de Armas)
+    const grpRes = await db.query(
+      `SELECT principal_leader FROM groups WHERE id = $1`,
+      [ride.host_group]
+    );
+    const principalLeader = grpRes.rows[0]?.principal_leader;
+
+    let isAuthorized = false;
+    if (principalLeader === callerUid) {
+      isAuthorized = true;
+    } else {
+      const leaderRes = await db.query(
+        `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+        [ride.host_group, callerUid]
+      );
+      if (leaderRes.rows.length > 0) {
+        isAuthorized = true;
+      } else {
+        // Verificar si es Sargento de Armas en memberships o group_leaders
+        const roleRes = await db.query(
+          `SELECT club_role FROM memberships
+           WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'`,
+          [ride.host_group, callerUid]
+        );
+        const role = roleRes.rows[0]?.club_role?.toUpperCase();
+        if (role === 'SERGEANT_AT_ARMS' || role === 'SARGENTO DE ARMAS' || role === 'SARGENTO_ARMAS' || role === 'PRESIDENT' || role === 'PRESIDENTE' || role === 'VICE_PRESIDENT' || role === 'VICE') {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
+      return reply.code(403).send({
+        error: 'MEDICAL_ACCESS_RESTRICTED',
+        message: 'Acceso denegado: solo el Líder o Sargento de Armas del club organizador puede acceder a fichas médicas de emergencia'
+      });
+    }
+
+    // 3. Obtener la ficha médica compartida
+    const sheetRes = await db.query(
+      `SELECT id, user_id AS "userId", ride_id AS "rideId", ciphertext, iv, auth_tag AS "authTag",
+              shared_at AS "sharedAt", expires_at AS "expiresAt"
+       FROM shared_medical_sheets
+       WHERE user_id = $1 AND ride_id = $2 AND expires_at > now()`,
+      [targetUserId, rideId]
+    );
+
+    if (sheetRes.rows.length === 0) {
+      return reply.code(404).send({
+        error: 'MEDICAL_SHEET_NOT_FOUND',
+        message: 'El piloto no ha compartido su ficha médica para esta rodada o el acceso ha expirado'
+      });
+    }
+
+    await appendAudit(db, callerUid, 'MEDICAL_SHEET_ACCESSED', 'user', targetUserId, { rideId });
+
+    return reply.code(200).send(sheetRes.rows[0]);
   });
 
   return app;
@@ -2803,4 +5547,168 @@ async function evaluateVoteOutcome(
     await db.query(`UPDATE leader_votes SET state = 'rejected' WHERE id = $1`, [voteId]);
   }
   return nextState;
+}
+
+function isConsecutiveMonth(prev: string, current: string): boolean {
+  const [py, pm] = prev.split('-').map(Number);
+  const [cy, cm] = current.split('-').map(Number);
+  if (cy === py && cm === pm + 1) return true;
+  if (cy === py + 1 && pm === 12 && cm === 1) return true;
+  return false;
+}
+
+function computeBikerRankInfo(xp: number): {
+  code: string;
+  title: string;
+  minXp: number;
+  nextRankTitle: string | null;
+  nextRankXp: number | null;
+  progressPct: number;
+} {
+  if (xp >= 5000) {
+    return {
+      code: 'leyenda',
+      title: 'Leyenda',
+      minXp: 5000,
+      nextRankTitle: null,
+      nextRankXp: null,
+      progressPct: 100
+    };
+  }
+  if (xp >= 2000) {
+    return {
+      code: 'elite',
+      title: 'Élite',
+      minXp: 2000,
+      nextRankTitle: 'Leyenda',
+      nextRankXp: 5000,
+      progressPct: Math.round(((xp - 2000) / (5000 - 2000)) * 100)
+    };
+  }
+  if (xp >= 500) {
+    return {
+      code: 'veterano',
+      title: 'Veterano',
+      minXp: 500,
+      nextRankTitle: 'Élite',
+      nextRankXp: 2000,
+      progressPct: Math.round(((xp - 500) / (2000 - 500)) * 100)
+    };
+  }
+  if (xp >= 100) {
+    return {
+      code: 'rider',
+      title: 'Rider',
+      minXp: 100,
+      nextRankTitle: 'Veterano',
+      nextRankXp: 500,
+      progressPct: Math.round(((xp - 100) / (500 - 100)) * 100)
+    };
+  }
+  return {
+    code: 'novato',
+    title: 'Novato',
+    minXp: 0,
+    nextRankTitle: 'Rider',
+    nextRankXp: 100,
+    progressPct: Math.round((xp / 100) * 100)
+  };
+}
+
+async function awardMileageAndExperienceBadges(
+  db: DbExecutor,
+  userId: string,
+  totalKm: number,
+  validRides: number,
+  streakMonths: number,
+  ride: {
+    started_at_night?: boolean;
+    rained?: boolean;
+    offline_minutes?: number;
+    elevation_gain_m?: number;
+  }
+): Promise<void> {
+  const mileageMilestones: Array<[number, string]> = [
+    [10, 'km_10_primeros_pasos'],
+    [50, 'km_50_rodador'],
+    [100, 'km_100_caminante'],
+    [500, 'km_500_viajero'],
+    [1000, 'km_1000_explorador'],
+    [5000, 'km_5000_aventurero'],
+    [10000, 'km_10000_trotamundos'],
+    [25000, 'km_25000_cartografo'],
+    [50000, 'km_50000_nomada'],
+    [100000, 'km_100000_legendario']
+  ];
+
+  for (const [km, code] of mileageMilestones) {
+    if (totalKm >= km) {
+      await db.query(
+        `INSERT INTO badges (id, family, code, receiver)
+         VALUES ($1, 'achievement', $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [randomUUID(), code, userId]
+      );
+    }
+  }
+
+  if (validRides >= 1) {
+    await db.query(
+      `INSERT INTO badges (id, family, code, receiver)
+       VALUES ($1, 'achievement', 'exp_primera_rodada', $2)
+       ON CONFLICT DO NOTHING`,
+      [randomUUID(), userId]
+    );
+  }
+
+  const streakMilestones: Array<[number, string]> = [
+    [3, 'streak_3_meses'],
+    [6, 'streak_6_meses'],
+    [12, 'streak_12_meses'],
+    [24, 'streak_24_imparable'],
+    [36, 'streak_36_eterno']
+  ];
+  for (const [months, code] of streakMilestones) {
+    if (streakMonths >= months) {
+      await db.query(
+        `INSERT INTO badges (id, family, code, receiver)
+         VALUES ($1, 'achievement', $2, $3)
+         ON CONFLICT DO NOTHING`,
+        [randomUUID(), code, userId]
+      );
+    }
+  }
+
+  if (ride.started_at_night) {
+    await db.query(
+      `INSERT INTO badges (id, family, code, receiver)
+       VALUES ($1, 'achievement', 'exp_rodada_nocturna', $2)
+       ON CONFLICT DO NOTHING`,
+      [randomUUID(), userId]
+    );
+  }
+  if (ride.rained) {
+    await db.query(
+      `INSERT INTO badges (id, family, code, receiver)
+       VALUES ($1, 'achievement', 'exp_bajo_la_lluvia', $2)
+       ON CONFLICT DO NOTHING`,
+      [randomUUID(), userId]
+    );
+  }
+  if ((ride.offline_minutes ?? 0) >= 30) {
+    await db.query(
+      `INSERT INTO badges (id, family, code, receiver)
+       VALUES ($1, 'achievement', 'exp_sin_cobertura', $2)
+       ON CONFLICT DO NOTHING`,
+      [randomUUID(), userId]
+    );
+  }
+  if ((ride.elevation_gain_m ?? 0) >= 500) {
+    await db.query(
+      `INSERT INTO badges (id, family, code, receiver)
+       VALUES ($1, 'achievement', 'exp_rodada_montana', $2)
+       ON CONFLICT DO NOTHING`,
+      [randomUUID(), userId]
+    );
+  }
 }

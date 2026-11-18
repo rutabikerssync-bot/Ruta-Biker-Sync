@@ -69,8 +69,10 @@ data class LiveMapUiState(
     val lostNodesCount: Int = 0,
     val connectivityState: LiveMapConnectivityState = LiveMapConnectivityState.CONNECTING,
     val cameraMode: CameraMode = CameraMode.FREE,
-    val cameraLatitude: Double = 19.4326,
-    val cameraLongitude: Double = -99.1332,
+    // M2 — Coordenadas iniciales a 0.0 (UI_AUDIT M2): sin pin falso de CDMX.
+    //       Al iniciar GPS real la cámara se centrará en la posición del dispositivo.
+    val cameraLatitude: Double = 0.0,
+    val cameraLongitude: Double = 0.0,
     val cameraZoom: Double = 14.0,
     val followLeaderUntilEpochMs: Long? = null,
     val followLeaderRemainingSeconds: Int = 0,
@@ -111,7 +113,7 @@ class LiveMapController(
     }
     companion object {
         const val DEFAULT_PMTILES_ASSET_URI: String = "asset://tiles/sample_corridor.pmtiles"
-        const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/dark_corridor_style.json"
+        const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/positron_corridor_style.json"
         const val OSM_ATTRIBUTION: String = "© OpenStreetMap contributors"
         const val MAP_UPDATE_CADENCE_MS: Long = 1_000L
         const val FOLLOW_LEADER_DURATION_MS: Long = 10_000L
@@ -179,8 +181,9 @@ class LiveMapController(
 
     private val directory = initialDirectory.associateBy { it.shortId }.toMutableMap()
     private var latestPeersFromMesh: Map<UShort, MeshRelayEngine.PeerTrack> = emptyMap()
-    private var localLat: Double = 19.4326
-    private var localLon: Double = -99.1332
+    // Posición local del dispositivo: inicia en 0,0 hasta recibir GPS real (UI_AUDIT M2)
+    private var localLat: Double = 0.0
+    private var localLon: Double = 0.0
     private var localSpeedKmh: Int = 75
     private var localBearing: Float = 180f
     private var localBattery: Int = 88
@@ -534,7 +537,7 @@ class LiveMapController(
  * ViewModel de Android para la pantalla `C1. Mapa en vivo`.
  */
 class LiveMapViewModel : ViewModel() {
-    val controller = LiveMapController(scope = viewModelScope)
+    val controller = LiveMapController(scope = viewModelScope, initialDirectory = emptyList())
     val uiState: StateFlow<LiveMapUiState> = controller.uiState
 
     init {

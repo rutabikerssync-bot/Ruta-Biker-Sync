@@ -46,6 +46,8 @@ async function createRealPostgresTestDb(): Promise<DbExecutor> {
   await pool.query(`
     TRUNCATE TABLE
       refresh_tokens,
+      rate_limit_events,
+      ephemeral_telemetry,
       imitation_reports,
       play_events,
       ride_mesh_metrics,
@@ -97,7 +99,8 @@ describe('Fase 2 (Bloques 2.1 y 2.2) — Ajustes de Seguridad, P7, Máquina de 6
       db,
       useFakeBilling: true,
       playVerifier,
-      credentialKeyring
+      credentialKeyring,
+      rateLimitAuthMaxPerHour: 50
     });
   });
 

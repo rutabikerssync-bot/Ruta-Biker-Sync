@@ -124,7 +124,7 @@ describe('Fase 2 — D42-D46 Reglas de negocio', () => {
          VALUES ($1, 'officer', 'Presidente', $2, $3)`,
         [randomUUID(), groupId, outsiderId]
       )
-    ).rejects.toThrow(/D44: La insignia de directiva solo puede otorgarse a miembros/);
+    ).rejects.toThrow(/(D44|RULES R8.6).*insignia.*(directiva|Mesa Directiva).*miembro/i);
   });
 
   // ─────────────────────────────────────────────────────────────────

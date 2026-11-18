@@ -60,7 +60,7 @@
     <string name="groups_empty_title">You do not belong to any group</string>
     <string name="groups_empty_desc">Ask a leader to invite you using your ID or QR code.</string>
     <string name="groups_pending_invites">Pending invitations</string>
-    <string name="groups_create_btn">Create group (Leader $15/mo)</string>
+    <string name="groups_create_btn">Register New Club or Brotherhood</string>
     <string name="groups_invite_btn">Invite member</string>
     <string name="groups_leaders_title">Group leaders (max 3)</string>
     <string name="groups_members_title">Club members</string>
@@ -69,12 +69,13 @@
     <string name="sem_green">Active</string>
     <string name="sem_yellow">Expiring soon</string>
     <string name="sem_red">Expired</string>
-    <string name="invite_cost_notice">Membership cost: $2.50 USD/month (billed via Google Play upon acceptance)</string>
+    <string name="invite_cost_notice">Official biker brotherhood invitation · Free ride (No cost)</string>
     <string name="consent_membership">I agree to join this group (required)</string>
+    <string name="consent_ride_participation">I agree to join the ride organized by this club (required)</string>
     <string name="consent_location">I agree to share my location during active rides (required)</string>
     <string name="consent_emergency">I authorize sealed emergency package for leaders (optional)</string>
     <string name="consent_notifications">I agree to receive ride alerts and invitations (optional)</string>
-    <string name="action_accept_invite">Accept &amp; subscribe ($2.50/mo)</string>
+    <string name="action_accept_invite">Accept &amp; Ride</string>
     <string name="action_reject_invite">Decline</string>
     <string name="profile_title">My Biker Profile</string>
     <string name="profile_save">Save profile</string>
@@ -82,4 +83,259 @@
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Developer Panel (Debug Only)</string>
     <string name="dev_load_demo">Load demo data (3 groups, 10 members)</string>
+
+    <!-- Phase 7: Privacy, Consents and Moderation (RULES R13, R14, R15) -->
+    <string name="privacy_title">Privacy and Consents (R15)</string>
+    <string name="privacy_view_consents">View Consents</string>
+    <string name="privacy_export_data">Export My Data</string>
+    <string name="privacy_delete_account">Delete Account and Data (GDPR Right to Be Forgotten)</string>
+    <string name="privacy_location_label">Live Location during Rides</string>
+    <string name="privacy_emergency_label">SOS Medical Emergency Record</string>
+    <string name="privacy_notifications_label">Club Notifications</string>
+    <string name="moderation_report_rider">Report Rider</string>
+    <string name="moderation_mute_local">Mute Locally</string>
+    <string name="moderation_unmute_local">Unmute</string>
+    <string name="moderation_reason_abuse">Insults or abuse</string>
+    <string name="moderation_reason_harassment">Harassment</string>
+    <string name="moderation_reason_dangerous">Dangerous riding</string>
+    <string name="moderation_reason_other">Other reason</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_tab_rides">Rides</string>
+    <string name="nav_tab_club">My Club</string>
+    <string name="nav_tab_vault">Vault</string>
+    <string name="nav_tab_profile">Profile</string>
+
+    <!-- Roles and hierarchy -->
+    <string name="role_president">President</string>
+    <string name="role_vice_president">Vice President</string>
+    <string name="role_road_captain">Road Captain</string>
+    <string name="role_member">Member</string>
+    <string name="status_full">Official Member</string>
+    <string name="status_prospect">Prospect</string>
+    <string name="status_guest">Guest</string>
+
+    <!-- Screen 2: Rides -->
+    <string name="rides_title">RIDES</string>
+    <string name="rides_weather_default">Weather: 28°C · Clear</string>
+    <string name="rides_next_ride">Next Ride</string>
+    <string name="rides_no_scheduled">No rides scheduled</string>
+    <string name="rides_no_scheduled_desc">Create a ride with your club or start a free ride.</string>
+    <string name="rides_btn_create">+ Create Ride</string>
+    <string name="rides_participants_title">Participants</string>
+    <string name="rides_participants_empty">Participants (0)</string>
+    <string name="rides_participants_empty_desc">No active riders in formation.</string>
+    <string name="rides_route_title">Route and Corridor</string>
+    <string name="rides_route_empty">No active route</string>
+    <string name="rides_route_empty_desc">Load a GPX file or offline map to navigate with the convoy.</string>
+    <string name="rides_btn_view_map">View map</string>
+    <string name="rides_btn_start_active_cockpit">Start Ride (Active Cockpit)</string>
+    <string name="rides_btn_start_free_ride">Start Free Ride</string>
+
+    <!-- Screen 6: Active Cockpit -->
+    <string name="cockpit_hud_leader_format">Leader at %1$d m ↗</string>
+    <string name="cockpit_hud_solo">Solo Mode · No leader</string>
+    <string name="cockpit_btn_ptt">Push to\nTalk (PTT)</string>
+    <string name="cockpit_btn_signals">Road\nSignal</string>
+    <string name="cockpit_btn_sos">SOS\nEmergency</string>
+    <string name="cockpit_btn_hold_to_stop">Hold 3 s to stop ride</string>
+    <string name="cockpit_btn_hold_stopping">Release cancels · Stopping in %1$ds...</string>
+    <string name="cockpit_footer_title">Active Ride Cockpit</string>
+    <string name="cockpit_footer_subtitle">Full screen · 3 main actions · Maximum safety</string>
+    <string name="cockpit_convoy_pill">Convoy (%1$d riders)</string>
+    <string name="cockpit_follow_leader_pill">Follow leader</string>
+    <string name="cockpit_sos_test_confirm_title">Test SOS Registered</string>
+    <string name="cockpit_sos_test_confirm_message">SOS alert simulated locally (UX Test). No emergency beacon was emitted.</string>
+
+    <!-- Screen 4: Vault -->
+    <string name="vault_title">VAULT</string>
+    <string name="vault_subtitle">Encrypted documents · Your safety first</string>
+    <string name="vault_docs_title">Motorcycle Documents</string>
+    <string name="vault_doc_license">Driver\'s License</string>
+    <string name="vault_doc_insurance">Insurance Policy</string>
+    <string name="vault_doc_circulation">Registration Card</string>
+    <string name="vault_doc_inspection">Mechanical Inspection</string>
+    <string name="vault_doc_not_loaded">Document not loaded</string>
+    <string name="vault_btn_add_document">Add document</string>
+    <string name="vault_medical_title">Emergency Medical Sheet</string>
+    <string name="vault_medical_sealed_shamir">Shamir Sealed · Local</string>
+    <string name="vault_blood_type">Blood type</string>
+    <string name="vault_blood_type_empty">Unregistered</string>
+    <string name="vault_allergies">Allergies</string>
+    <string name="vault_allergies_empty">None registered</string>
+    <string name="vault_donor">Donor</string>
+    <string name="vault_donor_empty">Unspecified</string>
+    <string name="vault_emergency_contact">SOS Contact</string>
+    <string name="vault_emergency_contact_empty">Unassigned</string>
+    <string name="vault_view_all">View all &gt;</string>
+
+    <!-- Screen 5: Profile -->
+    <string name="profile_empty_name">Rider</string>
+    <string name="profile_rank_novice">Rank: Novice</string>
+    <string name="profile_stat_rides">Rides</string>
+    <string name="profile_stat_km">Kilometers</string>
+    <string name="profile_stat_hours">Hours</string>
+    <string name="profile_badges_empty">Complete your first ride to unlock brotherhood badges.</string>
+
+    <!-- Ride Scheduling -->
+    <string name="rides_btn_schedule_ride">Schedule Ride on Map</string>
+    <string name="rides_schedule_title">Schedule Next Ride</string>
+    <string name="rides_schedule_step_origin">1. Starting Point (Origin)</string>
+    <string name="rides_schedule_step_destination">2. Finish Point (Destination)</string>
+    <string name="rides_schedule_step_return">3. Return and Dispersal Plan</string>
+    <string name="rides_schedule_step_safety">4. Safe Return Home &amp; Convocation</string>
+    <string name="rides_schedule_btn_use_gps">Use my current GPS location</string>
+    <string name="rides_schedule_btn_pick_map">Pick on Map</string>
+    <string name="rides_schedule_btn_save_publish">Save and Call Group</string>
+    <string name="rides_attendance_title">Attendance Confirmation</string>
+    <string name="rides_attendance_btn_confirm">✓ I will attend</string>
+    <string name="rides_attendance_btn_decline">✕ Cannot attend</string>
+    <string name="rides_safe_home_title">Safe Home Arrival</string>
+    <string name="rides_safe_home_subtitle">Individual return monitoring after dispersal</string>
+    <string name="rides_safe_home_btn_checkin">🏠 Arrived Safe at Home</string>
+    <string name="rides_safe_home_confirmed_badge">✓ Safe at Home</string>
+
+    <!-- Settings and Cockpit (F7) -->
+    <string name="settings_cockpit_title">Regional &amp; Cockpit Settings (F7)</string>
+    <string name="settings_cockpit_desc">Regional configuration, units and sound for rides:</string>
+    <string name="settings_language_label">Interface language:</string>
+    <string name="settings_units_label">Unit system:</string>
+    <string name="settings_unit_metric">Metric (km · km/h)</string>
+    <string name="settings_unit_imperial">Imperial (mi · mph)</string>
+    <string name="settings_gloves_mode">Cockpit Gloves Mode</string>
+    <string name="settings_gloves_desc">Giant touch buttons (≥ 72 dp) for glove use</string>
+    <string name="settings_voice_tts">Voice Prompts &amp; Audio (TTS)</string>
+    <string name="settings_voice_desc">Audio alerts \'Rider left mesh\' with music ducking</string>
+    <string name="settings_tts_mute">Mute</string>
+    <string name="settings_tts_normal">Normal</string>
+    <string name="settings_tts_high">High (-18dB Ducking)</string>
+    <string name="settings_battery_saver">Long Ride Battery Saver</string>
+    <string name="settings_battery_desc">Smart BLE radio and GPS beacon modulation</string>
+    <string name="settings_protocol_info">Active BLE/Wi-Fi Direct Mesh Protocol · AES-256-GCM Encryption</string>
+    <string name="settings_btn_save">Save and Close</string>
+    <string name="settings_btn_cancel">Cancel</string>
+    <string name="settings_saved_toast">Settings saved: %1$s | %2$s | TTS: %3$s</string>
+    <string name="vault_attention_banner">Attention: %1$d document(s) require renewal</string>
+    <string name="vault_attention_subtitle">Check dates marked with alerts before riding out.</string>
+
+    <!-- System / Auto Language -->
+    <string name="lang_system_auto">📱 System (Auto)</string>
+
+    <!-- Welcome & Auth -->
+    <string name="auth_slogan">CONNECT · PROTECT · RIDE ON</string>
+    <string name="auth_motto">“More than a route, we are brotherhood.”</string>
+    <string name="auth_btn_member_title">Sign in as member</string>
+    <string name="auth_btn_member_sub">Access your club and rides</string>
+    <string name="auth_btn_leader_title">Activate leader account</string>
+    <string name="auth_btn_leader_sub">Create or manage your club</string>
+    <string name="auth_theme_light">Light Mode</string>
+    <string name="auth_theme_dark">Dark Mode</string>
+    <string name="auth_new_question">New to Ruta Biker Sync?</string>
+    <string name="auth_community_link">Learn more about our community</string>
+
+    <!-- Rides (Screen 2) -->
+    <string name="rides_btn_create_route">Create Route</string>
+    <string name="rides_btn_create_route_desc">Plot and plan a new route on the map</string>
+    <string name="rides_btn_check_route_map">🗺 Check Route on Map</string>
+    <string name="rides_btn_create_route_card">🗺 + Create Route on Map</string>
+    <string name="rides_btn_start_ride_preview">🏍 Start Ride</string>
+    <string name="rides_map_snapshot_title">DESTINATION MAP SNAPSHOT (AUTOMATIC)</string>
+    <string name="rides_destination_label">🏁 Destination: %1$s</string>
+    <string name="rides_status_called">✓ Called</string>
+    <string name="rides_departure_label">Departure: %1$s</string>
+    <string name="rides_arrival_label">Arrival: %1$s</string>
+    <string name="rides_return_label">Return: %1$s</string>
+    <string name="rides_btn_edit_map">🗺️ Edit on Map</string>
+    <string name="rides_btn_view_live">View Live</string>
+    <string name="rides_attendance_header">Attendance Confirmation (%1$d/%2$d)</string>
+    <string name="rides_attendance_counts">%1$d confirmed · %2$d pending</string>
+    <string name="rides_attendance_ready_badge">%1$d Ready</string>
+    <string name="rides_your_attendance_status">Your attendance status (%1$s):</string>
+    <string name="rides_btn_will_attend">✓ I will attend</string>
+    <string name="rides_btn_cannot_attend">✕ Cannot attend</string>
+
+    <!-- Club & Groups (Screen 3) -->
+    <string name="club_tab_my_club">My Club</string>
+    <string name="club_tab_directory">Directory</string>
+    <string name="club_tab_my_groups">My Groups</string>
+    <string name="club_qr_join_title">Join a Club with QR</string>
+    <string name="club_qr_brotherhood_title">Scan Brotherhood / Sponsoring QR</string>
+    <string name="club_qr_join_sub">Access by scanning your club code</string>
+    <string name="club_qr_brotherhood_sub">Brotherhood pact, sponsor, or joint rides</string>
+    <string name="club_qr_instructions_member">Scan the QR code shown by the club President or Vice President to join the group as a member.</string>
+    <string name="club_qr_instructions_has_club">🛡️ You already belong to %1$s. Per biker bylaws, you can only scan codes from other clubs to be their Sponsor, formalize Brotherhood, or accept ride invitations.</string>
+    <string name="club_qr_btn_scan_camera">Scan QR with Camera</string>
+    <string name="club_qr_btn_scan_brotherhood">Scan Brotherhood QR</string>
+    <string name="club_qr_backup_code_label">Club backup code:</string>
+    <string name="club_qr_brotherhood_code_label">Brotherhood or Sponsoring Code:</string>
+    <string name="club_qr_code_placeholder">Enter club code</string>
+    <string name="club_btn_join">Join</string>
+    <string name="club_alliances_title">BROTHERHOOD CLUBS &amp; ALLIANCES (%1$d)</string>
+    <string name="club_alliances_empty_title">No brotherhood clubs registered yet</string>
+    <string name="club_alliances_empty_desc">You can search clubs in the Global Directory to establish brotherhood pacts and joint rides.</string>
+    <string name="club_search_placeholder">Search clubs by name or state...</string>
+
+    <!-- Profile (Screen 5) -->
+    <string name="profile_logged_in_as">Signed in as %1$s</string>
+    <string name="profile_status_mesh_ready">Online · Mesh ready</string>
+    <string name="profile_no_bike_registered">No bike registered</string>
+    <string name="profile_stat_total_km">Total accumulated</string>
+    <string name="profile_stat_monthly_streak">Monthly streak</string>
+    <string name="profile_streak_months_format">%1$d months</string>
+    <string name="profile_achievements_header">Route Milestones &amp; Achievements</string>
+    <string name="profile_view_all">View all &gt;</string>
+    <string name="profile_club_patches_header">Received Badges &amp; Club Patches</string>
+    <string name="profile_medical_sheet_header">Emergency Medical Sheet</string>
+    <string name="profile_shamir_local_badge">Shamir Sealed · Secure local access</string>
+    <string name="profile_allergies_label">Allergies:</string>
+    <string name="profile_allergies_none">None known</string>
+    <string name="profile_sos_contact_label">SOS Contact:</string>
+    <string name="profile_insurance_label">Insurance:</string>
+    <string name="profile_organ_donor_label">Organ donor:</string>
+    <string name="profile_donor_yes">Yes (Volunteer)</string>
+    <string name="profile_donor_no">Not registered</string>
+    <string name="profile_btn_view_edit_medical">View and Edit Medical Sheet</string>
+    <string name="profile_medical_disclaimer">Disclaimer: This record does not replace emergency services or professional medical rescue.</string>
+    <string name="profile_subscription_title">Subscription &amp; Account Status</string>
+    <string name="profile_sub_active_badge">ACTIVE</string>
+    <string name="profile_sub_leader_plan_desc">Club Leader Plan ($15.00 USD/mo · Unlimited ride calls)</string>
+    <string name="profile_sub_member_plan_desc">Club Member Plan ($2.50 USD/mo · Active coverage)</string>
+    <string name="profile_sub_renewal_text">Next automatic renewal: November 15, 2026</string>
+    <string name="profile_btn_manage_play">Manage Subscription on Google Play</string>
+    <string name="profile_btn_edit_profile">Edit Profile (Bike &amp; Pin)</string>
+    <string name="profile_btn_logout">Log Out / Exit to Access Screen</string>
+
+    <!-- Vault (Screen 4) -->
+    <string name="vault_local_aes">🔒 Local AES-256 Encryption</string>
+    <string name="vault_btn_review_urgent">REVIEW</string>
+    <string name="vault_docs_header">Motorcycle Documents</string>
+    <string name="vault_docs_registered_count">%1$d registered · Alarms at 30, 7 and 1 day</string>
+    <string name="vault_btn_add_capital">+ ADD</string>
+
+    <!-- Google Auth & Remember Leader Account / Config Switch -->
+    <string name="auth_btn_google_continue">Continue with Google</string>
+    <string name="auth_btn_google_subtitle">Sign in with Google · Remembers your role</string>
+    <string name="auth_google_dialog_title">Sign in with Google</string>
+    <string name="auth_google_remembered_as_leader">👑 Leader Account (Remembered)</string>
+    <string name="auth_google_remembered_as_member">👤 Member Account (Remembered)</string>
+    <string name="auth_google_btn_continue_as">Continue as %1$s</string>
+    <string name="auth_google_use_another">Use another Google account</string>
+    <string name="auth_google_choose_role_title">Set up role for this Google account:</string>
+    <string name="auth_google_role_leader">👑 Leader Account ($15 USD/mo)</string>
+    <string name="auth_google_role_leader_desc">Create or manage your club, assign officers, and host rides with priority PTT channel.</string>
+    <string name="auth_google_role_member">👤 Member Account ($2.50 USD/mo)</string>
+    <string name="auth_google_role_member_desc">Access your biker group, group rides, and convoy telemetry.</string>
+    <string name="auth_google_remember_note">We will remember this setup automatically for future logins. You can switch it anytime in Settings.</string>
+
+    <string name="settings_account_role_title">Account Type / Platform Role</string>
+    <string name="settings_account_role_leader_active">👑 Active Leader Mode (Google)</string>
+    <string name="settings_account_role_leader_desc">Your Google account is set as Leader. Manage clubs and call official rides.</string>
+    <string name="settings_account_role_member_active">👤 Active Member Mode (Google)</string>
+    <string name="settings_account_role_member_desc">Your Google account is set as Member. Access group rides and mesh network.</string>
+    <string name="settings_btn_switch_to_member">Switch to Member Account</string>
+    <string name="settings_btn_switch_to_leader">Switch to Leader Account</string>
+    <string name="settings_confirm_switch_to_member_title">Switch to Member Account?</string>
+    <string name="settings_confirm_switch_to_member_desc">Your account will switch to Member mode for rides. Club management features will be paused. You can switch back to Leader anytime in Settings.</string>
+    <string name="settings_confirm_switch_to_leader_title">Switch to Leader Account?</string>
+    <string name="settings_confirm_switch_to_leader_desc">Your account will switch to Leader mode ($15 USD/mo). You can found or manage clubs and lead official rides.</string>
 </resources>

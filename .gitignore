@@ -25,6 +25,10 @@ coverage/
 !.env.example
 *.pem
 signing-keys/
+service_account.json
+*service_account*.json
+backend/service_account.json
+android/app/google-services.json
 
 # Sistema
 .DS_Store

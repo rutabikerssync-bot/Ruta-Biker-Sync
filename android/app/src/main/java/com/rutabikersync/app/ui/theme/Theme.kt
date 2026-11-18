@@ -14,32 +14,18 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Tokens oficiales de diseño "Heritage Premium" de Ruta Biker Sync.
- * Estética de hermandad motera: cuero negro, asfalto, latón envejecido, metal cepillado y marfil cálido.
+ * Modos de diseño disponibles en Ruta Biker Sync:
+ * - [HERITAGE_DARK]: Estilo canónico "Dark Elite + Heritage" (Slate-950, Cobre, Oro y Esmeralda).
+ * - [VINTAGE_HERITAGE]: Estilo auténtico biker clásico (fondos arena/crema ahumado, cuero, cobre y latón).
+ * - [BRIGHT_RIDER]: Estilo deportivo diurno de alto contraste.
+ * - [URBAN_FRESH]: Estilo fresco urbano.
  */
-
-// --- Paleta Dark Heritage ---
-val HeritageDarkAsphalt = Color(0xFF101114) // Fondo principal
-val HeritageDarkLeather = Color(0xFF1B1C20) // Superficie / Paneles / Tarjetas
-val HeritageDarkLeatherElevated = Color(0xFF23252A) // Superficie elevada
-val HeritageDarkMetal = Color(0xFF85817A)   // Metal cepillado / Bordes / Secundario
-val HeritageDarkBrass = Color(0xFFC99A45)   // Latón envejecido / Primario / Acentos de honor
-val HeritageDarkIvory = Color(0xFFF3EBDD)   // Marfil cálido / Texto primario
-val HeritageDarkInk = Color(0xFF24231F)
-val HeritageDarkDanger = Color(0xFFD92D35)  // SOS / Peligro
-val HeritageDarkSafe = Color(0xFF18865B)    // Seguro / Al día / Conectado
-val HeritageDarkWarning = Color(0xFFD99B26) // Advertencia / En gracia
-
-// --- Paleta Light Heritage ---
-val HeritageLightIvory = Color(0xFFF3EBDD)   // Fondo principal marfil cálido
-val HeritageLightSurface = Color(0xFFFFFCF5) // Superficie clara
-val HeritageLightSurfaceElevated = Color(0xFFF8F2E4)
-val HeritageLightInk = Color(0xFF24231F)     // Tinta oscura / Texto primario
-val HeritageLightBrass = Color(0xFF93651F)   // Latón oscuro de alto contraste
-val HeritageLightMetal = Color(0xFF716D65)   // Metal secundario
-val HeritageLightDanger = Color(0xFFB91F2B)  // SOS claro
-val HeritageLightSafe = Color(0xFF14704B)    // Seguro claro
-val HeritageLightWarning = Color(0xFFB57D18) // Advertencia clara
+enum class AppThemeMode {
+    HERITAGE_DARK,
+    VINTAGE_HERITAGE,
+    BRIGHT_RIDER,
+    URBAN_FRESH
+}
 
 @Immutable
 data class HeritageColors(
@@ -48,6 +34,7 @@ data class HeritageColors(
     val surfaceElevated: Color,
     val primary: Color,
     val onPrimary: Color,
+    val secondary: Color,
     val textPrimary: Color,
     val textSecondary: Color,
     val textTertiary: Color,
@@ -56,120 +43,184 @@ data class HeritageColors(
     val danger: Color,
     val safe: Color,
     val warning: Color,
-    val isDark: Boolean
+    val isDark: Boolean,
+    val isUrbanFresh: Boolean = false,
+    val isBrightRider: Boolean = false,
+    val honorGold: Color = HeritageBrassGold
 )
 
-val DarkHeritageColors = HeritageColors(
-    background = HeritageDarkAsphalt,
-    surface = HeritageDarkLeather,
-    surfaceElevated = HeritageDarkLeatherElevated,
-    primary = HeritageDarkBrass,
-    onPrimary = HeritageDarkAsphalt,
-    textPrimary = HeritageDarkIvory,
-    textSecondary = HeritageDarkMetal,
-    textTertiary = HeritageDarkMetal.copy(alpha = 0.7f),
-    borderSubtle = HeritageDarkMetal.copy(alpha = 0.22f),
-    borderProminent = HeritageDarkBrass.copy(alpha = 0.45f),
-    danger = HeritageDarkDanger,
-    safe = HeritageDarkSafe,
-    warning = HeritageDarkWarning,
-    isDark = true
-)
-
-val LightHeritageColors = HeritageColors(
-    background = HeritageLightIvory,
-    surface = HeritageLightSurface,
-    surfaceElevated = HeritageLightSurfaceElevated,
-    primary = HeritageLightBrass,
+/**
+ * Paleta canónica Dark Elite + Heritage (Oficial Ruta Biker Sync).
+ */
+val DarkEliteHeritageColors = HeritageColors(
+    background = DarkSlate950,
+    surface = DarkCardBg,
+    surfaceElevated = DarkCardElevated,
+    primary = HeritageCopper,
     onPrimary = Color.White,
-    textPrimary = HeritageLightInk,
-    textSecondary = HeritageLightMetal,
-    textTertiary = HeritageLightMetal.copy(alpha = 0.75f),
-    borderSubtle = HeritageLightMetal.copy(alpha = 0.3f),
-    borderProminent = HeritageLightBrass.copy(alpha = 0.6f),
-    danger = HeritageLightDanger,
-    safe = HeritageLightSafe,
-    warning = HeritageLightWarning,
-    isDark = false
+    secondary = HeritageBrassGold,
+    textPrimary = TextWhite,
+    textSecondary = TextMuted,
+    textTertiary = TextTertiary,
+    borderSubtle = DarkBorderSubtle,
+    borderProminent = HeritageCopper,
+    danger = RescueRed,
+    safe = EmeraldMesh,
+    warning = WarningAmber,
+    isDark = true,
+    isUrbanFresh = false,
+    isBrightRider = false,
+    honorGold = HeritageBrassGold
 )
 
-val LocalHeritageColors = staticCompositionLocalOf { DarkHeritageColors }
+/**
+ * Paleta Vintage opcional (conservada para vistas históricas o modo pergamino).
+ */
+val VintageHeritageColors = HeritageColors(
+    background = Color(0xFFEFE9DF),
+    surface = Color(0xFFFAF7F2),
+    surfaceElevated = Color(0xFFEADBC8),
+    primary = HeritageCopper,
+    onPrimary = Color.White,
+    secondary = HeritageBrassGold,
+    textPrimary = Color(0xFF3E2723),
+    textSecondary = Color(0xFF6D4C41),
+    textTertiary = Color(0xFF8D7B68),
+    borderSubtle = Color(0xFFD7C4B2),
+    borderProminent = HeritageCopper,
+    danger = RescueRed,
+    safe = EmeraldMesh,
+    warning = WarningAmber,
+    isDark = false,
+    isUrbanFresh = false,
+    isBrightRider = false,
+    honorGold = HeritageBrassGold
+)
+
+val DarkHeritageColors = DarkEliteHeritageColors
+
+val LocalHeritageColors = staticCompositionLocalOf { DarkEliteHeritageColors }
+val LocalAppThemeMode = staticCompositionLocalOf { AppThemeMode.HERITAGE_DARK }
 
 object HeritageTheme {
     val colors: HeritageColors
         @Composable
         get() = LocalHeritageColors.current
 
+    val isBrightRider: Boolean
+        @Composable
+        get() = colors.isBrightRider
+
+    val isUrbanFresh: Boolean
+        @Composable
+        get() = colors.isUrbanFresh
+
+    val isDark: Boolean
+        @Composable
+        get() = colors.isDark
+
     val dimens: BikerDimens
         get() = BikerDimens
 }
 
 /**
- * Compatibilidad retroactiva para pantallas existentes que invocan [BikerColors].
- * Se vincula directamente a los tokens Heritage para elevar la calidad visual inmediatamente.
+ * Compatibilidad retroactiva con tokens existentes.
  */
 object BikerColors {
-    val BackgroundDark: Color get() = HeritageDarkAsphalt
-    val SurfaceDark: Color get() = HeritageDarkLeather
-    val SkeletonBaseDark: Color get() = HeritageDarkLeatherElevated
-    val SkeletonHighlightDark: Color get() = Color(0xFF2D3038)
-    val PrimaryAmber: Color get() = HeritageDarkBrass
-    val StatusGreen: Color get() = HeritageDarkSafe
-    val StatusYellow: Color get() = HeritageDarkWarning
-    val StatusRed: Color get() = HeritageDarkDanger
-    val TextPrimary: Color get() = HeritageDarkIvory
-    val TextSecondary: Color get() = HeritageDarkMetal
+    val BackgroundDark: Color get() = DarkSlate950
+    val SurfaceDark: Color get() = DarkCardBg
+    val SkeletonBaseDark: Color get() = DarkCardElevated
+    val SkeletonHighlightDark: Color get() = DarkBorderSubtle
+    val PrimaryAmber: Color get() = HeritageCopper
+    val StatusGreen: Color get() = EmeraldMesh
+    val StatusYellow: Color get() = HeritageBrassGold
+    val StatusRed: Color get() = RescueRed
+    val TextPrimary: Color get() = TextWhite
+    val TextSecondary: Color get() = TextMuted
 }
 
 object BikerDimens {
-    /** Botones en rodada >= 72 dp para modo guantes (DESIGN.md §1). */
     val GlovesMinTouchTarget: Dp = 72.dp
     val GlovesIconSize: Dp = 40.dp
     val NormalIconSize: Dp = 24.dp
     val AvatarListSize: Dp = 48.dp
-    val CardCornerRadius: Dp = 18.dp
-    val ButtonCornerRadius: Dp = 14.dp
+    val CardCornerRadius: Dp = 16.dp
+    val ButtonCornerRadius: Dp = 12.dp
 }
 
-private val MaterialDarkColorScheme: ColorScheme = darkColorScheme(
-    primary = HeritageDarkBrass,
-    onPrimary = HeritageDarkAsphalt,
-    secondary = HeritageDarkIvory,
-    onSecondary = HeritageDarkAsphalt,
-    background = HeritageDarkAsphalt,
-    onBackground = HeritageDarkIvory,
-    surface = HeritageDarkLeather,
-    onSurface = HeritageDarkIvory,
-    error = HeritageDarkDanger,
+private val DarkEliteColorScheme: ColorScheme = darkColorScheme(
+    primary = HeritageCopper,
+    onPrimary = Color.White,
+    primaryContainer = DarkCardElevated,
+    onPrimaryContainer = TextWhite,
+    secondary = HeritageBrassGold,
+    onSecondary = DarkSlate950,
+    secondaryContainer = DarkBorderProminent,
+    onSecondaryContainer = TextWhite,
+    background = DarkSlate950,
+    onBackground = TextWhite,
+    surface = DarkCardBg,
+    onSurface = TextWhite,
+    surfaceVariant = DarkCardElevated,
+    onSurfaceVariant = TextMuted,
+    outline = DarkBorderSubtle,
+    outlineVariant = DarkBorderProminent,
+    error = RescueRed,
     onError = Color.White
 )
 
-private val MaterialLightColorScheme: ColorScheme = lightColorScheme(
-    primary = HeritageLightBrass,
+private val VintageColorScheme: ColorScheme = lightColorScheme(
+    primary = HeritageCopper,
     onPrimary = Color.White,
-    secondary = HeritageLightInk,
-    onSecondary = Color.White,
-    background = HeritageLightIvory,
-    onBackground = HeritageLightInk,
-    surface = HeritageLightSurface,
-    onSurface = HeritageLightInk,
-    error = HeritageLightDanger,
+    secondary = HeritageBrassGold,
+    onSecondary = Color(0xFF3E2723),
+    background = Color(0xFFEFE9DF),
+    onBackground = Color(0xFF3E2723),
+    surface = Color(0xFFFAF7F2),
+    onSurface = Color(0xFF3E2723),
+    surfaceVariant = Color(0xFFEADBC8),
+    onSurfaceVariant = Color(0xFF6D4C41),
+    outline = Color(0xFFD7C4B2),
+    error = RescueRed,
     onError = Color.White
 )
 
 @Composable
-fun RutaBikerSyncTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+fun RutaBikerTheme(
     content: @Composable () -> Unit
 ) {
-    val heritageColors = if (darkTheme) DarkHeritageColors else LightHeritageColors
-    val materialColors = if (darkTheme) MaterialDarkColorScheme else MaterialLightColorScheme
+    RutaBikerSyncTheme(
+        themeMode = AppThemeMode.HERITAGE_DARK,
+        darkTheme = true,
+        content = content
+    )
+}
+
+@Composable
+fun RutaBikerSyncTheme(
+    themeMode: AppThemeMode = AppThemeMode.HERITAGE_DARK,
+    darkTheme: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val effectiveColors = if (themeMode == AppThemeMode.VINTAGE_HERITAGE && !darkTheme) {
+        VintageHeritageColors
+    } else {
+        DarkEliteHeritageColors
+    }
+
+    val materialColors = if (themeMode == AppThemeMode.VINTAGE_HERITAGE && !darkTheme) {
+        VintageColorScheme
+    } else {
+        DarkEliteColorScheme
+    }
 
     CompositionLocalProvider(
-        LocalHeritageColors provides heritageColors
+        LocalHeritageColors provides effectiveColors,
+        LocalAppThemeMode provides themeMode
     ) {
         MaterialTheme(
             colorScheme = materialColors,
+            typography = BikerTypography,
             content = content
         )
     }

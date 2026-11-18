@@ -60,7 +60,7 @@
     <string name="groups_empty_title">Você não pertence a nenhum grupo</string>
     <string name="groups_empty_desc">Peça a um líder para convidá-lo usando seu ID ou código QR.</string>
     <string name="groups_pending_invites">Convites pendentes</string>
-    <string name="groups_create_btn">Criar grupo (Líder $15/mês)</string>
+    <string name="groups_create_btn">Registrar Novo Clube ou Irmandade</string>
     <string name="groups_invite_btn">Convidar membro</string>
     <string name="groups_leaders_title">Líderes do grupo (máx. 3)</string>
     <string name="groups_members_title">Membros do clube</string>
@@ -69,12 +69,13 @@
     <string name="sem_green">Em dia</string>
     <string name="sem_yellow">A vencer</string>
     <string name="sem_red">Vencida</string>
-    <string name="invite_cost_notice">Custo da assinatura: $2.50 USD/mês (cobrado no Google Play ao aceitar)</string>
+    <string name="invite_cost_notice">Convite oficial de irmandade biker · Passeio livre e gratuito (Sem custo)</string>
     <string name="consent_membership">Aceito pertencer a este grupo (obrigatório)</string>
+    <string name="consent_ride_participation">Aceito participar do passeio organizado por este motoclube (obrigatório)</string>
     <string name="consent_location">Aceito compartilhar minha localização em rolês ativos (obrigatório)</string>
     <string name="consent_emergency">Autorizo pacote de emergência selado para líderes (opcional)</string>
     <string name="consent_notifications">Aceito avisos e convocações de rolê (opcional)</string>
-    <string name="action_accept_invite">Aceitar e assinar ($2.50/mês)</string>
+    <string name="action_accept_invite">Aceitar e Rodar</string>
     <string name="action_reject_invite">Recusar</string>
     <string name="profile_title">Meu Perfil Biker</string>
     <string name="profile_save">Salvar perfil</string>
@@ -82,4 +83,259 @@
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Painel do Desenvolvedor (Apenas Debug)</string>
     <string name="dev_load_demo">Carregar dados demo (3 grupos, 10 membros)</string>
+
+    <!-- Fase 7: Privacidade, Consentimentos e Moderação (RULES R13, R14, R15) -->
+    <string name="privacy_title">Privacidade e Consentimentos (R15)</string>
+    <string name="privacy_view_consents">Ver Consentimentos</string>
+    <string name="privacy_export_data">Exportar Meus Dados</string>
+    <string name="privacy_delete_account">Excluir Conta e Dados (Direito ao Esquecimento RGPD/LGPD)</string>
+    <string name="privacy_location_label">Localização ao Vivo nos Passeios</string>
+    <string name="privacy_emergency_label">Ficha Médica de Emergência SOS</string>
+    <string name="privacy_notifications_label">Notificações do Clube</string>
+    <string name="moderation_report_rider">Denunciar Piloto</string>
+    <string name="moderation_mute_local">Silenciar Localmente</string>
+    <string name="moderation_unmute_local">Desativar Silêncio</string>
+    <string name="moderation_reason_abuse">Insultos ou abuso</string>
+    <string name="moderation_reason_harassment">Assédio</string>
+    <string name="moderation_reason_dangerous">Pilotagem perigosa</string>
+    <string name="moderation_reason_other">Outro motivo</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_tab_rides">Rolês</string>
+    <string name="nav_tab_club">Meu Clube</string>
+    <string name="nav_tab_vault">Cofre</string>
+    <string name="nav_tab_profile">Perfil</string>
+
+    <!-- Papéis e hierarquia -->
+    <string name="role_president">Presidente</string>
+    <string name="role_vice_president">Vice-Presidente</string>
+    <string name="role_road_captain">Capitão de Rota</string>
+    <string name="role_member">Membro</string>
+    <string name="status_full">Membro Oficial</string>
+    <string name="status_prospect">Aspirante</string>
+    <string name="status_guest">Convidado</string>
+
+    <!-- Tela 2: Rolês -->
+    <string name="rides_title">ROLÊS</string>
+    <string name="rides_weather_default">Clima: 28°C · Ensolarado</string>
+    <string name="rides_next_ride">Próximo Rolê</string>
+    <string name="rides_no_scheduled">Nenhum rolê agendado</string>
+    <string name="rides_no_scheduled_desc">Crie um rolê com seu clube ou inicie um rolê livre.</string>
+    <string name="rides_btn_create">+ Criar Rolê</string>
+    <string name="rides_participants_title">Participantes</string>
+    <string name="rides_participants_empty">Participantes (0)</string>
+    <string name="rides_participants_empty_desc">Nenhum piloto ativo na formação.</string>
+    <string name="rides_route_title">Rota e Corredor</string>
+    <string name="rides_route_empty">Sem rota ativa</string>
+    <string name="rides_route_empty_desc">Carregue um arquivo GPX ou mapa offline para navegar com o comboio.</string>
+    <string name="rides_btn_view_map">Ver mapa</string>
+    <string name="rides_btn_start_active_cockpit">Iniciar Rolê (Cabine Ativa)</string>
+    <string name="rides_btn_start_free_ride">Iniciar Rolê Livre</string>
+
+    <!-- Tela 6: Cabine de Rolê Ativa -->
+    <string name="cockpit_hud_leader_format">Líder a %1$d m ↗</string>
+    <string name="cockpit_hud_solo">Modo Livre · Sem líder</string>
+    <string name="cockpit_btn_ptt">Falar\n(PTT)</string>
+    <string name="cockpit_btn_signals">Sinal\nde rota</string>
+    <string name="cockpit_btn_sos">SOS\nEmergência</string>
+    <string name="cockpit_btn_hold_to_stop">Segure 3 s para parar</string>
+    <string name="cockpit_btn_hold_stopping">Soltar cancela · Parando em %1$ds...</string>
+    <string name="cockpit_footer_title">Cabine de Rolê Ativa</string>
+    <string name="cockpit_footer_subtitle">Tela cheia · 3 ações principais · Segurança máxima</string>
+    <string name="cockpit_convoy_pill">Comboio (%1$d pilotos)</string>
+    <string name="cockpit_follow_leader_pill">Seguir líder</string>
+    <string name="cockpit_sos_test_confirm_title">SOS de Teste Registrado</string>
+    <string name="cockpit_sos_test_confirm_message">Alerta SOS simulado localmente (Teste UX). Nenhum sinal de emergência foi emitido.</string>
+
+    <!-- Tela 4: Cofre -->
+    <string name="vault_title">COFRE</string>
+    <string name="vault_subtitle">Documentos criptografados · Sua segurança em primeiro lugar</string>
+    <string name="vault_docs_title">Documentos da Moto</string>
+    <string name="vault_doc_license">Carteira de Habilitação</string>
+    <string name="vault_doc_insurance">Apólice de Seguro</string>
+    <string name="vault_doc_circulation">Documento do Veículo (CRLV)</string>
+    <string name="vault_doc_inspection">Revisão Mecânica</string>
+    <string name="vault_doc_not_loaded">Documento não carregado</string>
+    <string name="vault_btn_add_document">Adicionar documento</string>
+    <string name="vault_medical_title">Ficha Médica de Emergência</string>
+    <string name="vault_medical_sealed_shamir">Selado Shamir · Local</string>
+    <string name="vault_blood_type">Tipo sanguíneo</string>
+    <string name="vault_blood_type_empty">Não registrado</string>
+    <string name="vault_allergies">Alergias</string>
+    <string name="vault_allergies_empty">Nenhuma registrada</string>
+    <string name="vault_donor">Doador</string>
+    <string name="vault_donor_empty">Não especificado</string>
+    <string name="vault_emergency_contact">Contato SOS</string>
+    <string name="vault_emergency_contact_empty">Não atribuído</string>
+    <string name="vault_view_all">Ver todos &gt;</string>
+
+    <!-- Tela 5: Perfil -->
+    <string name="profile_empty_name">Piloto</string>
+    <string name="profile_rank_novice">Classificação: Novato</string>
+    <string name="profile_stat_rides">Rolês</string>
+    <string name="profile_stat_km">Quilômetros</string>
+    <string name="profile_stat_hours">Horas</string>
+    <string name="profile_badges_empty">Complete seu primeiro rolê para desbloquear insígnias de irmandade.</string>
+
+    <!-- Agendamento de Rolê -->
+    <string name="rides_btn_schedule_ride">Agendar Rolê no Mapa</string>
+    <string name="rides_schedule_title">Agendar Próximo Rolê</string>
+    <string name="rides_schedule_step_origin">1. Ponto de Partida (Origem)</string>
+    <string name="rides_schedule_step_destination">2. Ponto de Chegada (Destino)</string>
+    <string name="rides_schedule_step_return">3. Plano de Retorno e Dispersão</string>
+    <string name="rides_schedule_step_safety">4. Retorno Seguro para Casa e Convocação</string>
+    <string name="rides_schedule_btn_use_gps">Usar minha localização GPS atual</string>
+    <string name="rides_schedule_btn_pick_map">Selecionar no Mapa</string>
+    <string name="rides_schedule_btn_save_publish">Salvar e Convocar o Grupo</string>
+    <string name="rides_attendance_title">Confirmação de Presença</string>
+    <string name="rides_attendance_btn_confirm">✓ Vou comparecer</string>
+    <string name="rides_attendance_btn_decline">✕ Não poderei ir</string>
+    <string name="rides_safe_home_title">Chegada Segura em Casa</string>
+    <string name="rides_safe_home_subtitle">Monitoramento de retorno individual após dispersão</string>
+    <string name="rides_safe_home_btn_checkin">🏠 Cheguei a Salvo em Casa</string>
+    <string name="rides_safe_home_confirmed_badge">✓ Seguro em Casa</string>
+
+    <!-- Configurações e Cabine (F7) -->
+    <string name="settings_cockpit_title">Configurações Regionais e de Cabine (F7)</string>
+    <string name="settings_cockpit_desc">Configurações regionais, unidades e som para rolês:</string>
+    <string name="settings_language_label">Idioma da interface:</string>
+    <string name="settings_units_label">Sistema de unidades:</string>
+    <string name="settings_unit_metric">Métrico (km · km/h)</string>
+    <string name="settings_unit_imperial">Imperial (mi · mph)</string>
+    <string name="settings_gloves_mode">Modo Luvas na Cabine</string>
+    <string name="settings_gloves_desc">Botões de toque gigantes (≥ 72 dp) para uso com luvas</string>
+    <string name="settings_voice_tts">Avisos de Voz e Locução (TTS)</string>
+    <string name="settings_voice_desc">Avisos sonoros \'Piloto saiu da mesh\' com ducking de música</string>
+    <string name="settings_tts_mute">Silêncio</string>
+    <string name="settings_tts_normal">Normal</string>
+    <string name="settings_tts_high">Alto (-18dB Ducking)</string>
+    <string name="settings_battery_saver">Economia de Bateria em Rolê Longo</string>
+    <string name="settings_battery_desc">Modulação inteligente de rádio BLE e farol GPS</string>
+    <string name="settings_protocol_info">Protocolo Mesh BLE/Wi-Fi Direct Ativo · Criptografia AES-256-GCM</string>
+    <string name="settings_btn_save">Salvar e Fechar</string>
+    <string name="settings_btn_cancel">Cancelar</string>
+    <string name="settings_saved_toast">Configurações salvas: %1$s | %2$s | TTS: %3$s</string>
+    <string name="vault_attention_banner">Atenção: %1$d documento(s) requerem renovação</string>
+    <string name="vault_attention_subtitle">Verifique as datas marcadas com alerta antes de sair para rodar.</string>
+
+    <!-- Idioma do Sistema / Automático -->
+    <string name="lang_system_auto">📱 Sistema (Auto)</string>
+
+    <!-- Welcome & Auth -->
+    <string name="auth_slogan">CONECTE · PROTEJA · AVANCE</string>
+    <string name="auth_motto">“Mais que um rolê, somos irmãos.”</string>
+    <string name="auth_btn_member_title">Entrar como membro</string>
+    <string name="auth_btn_member_sub">Acesse seu grupo e rolês</string>
+    <string name="auth_btn_leader_title">Ativar conta de líder</string>
+    <string name="auth_btn_leader_sub">Crie ou gerencie seu grupo</string>
+    <string name="auth_theme_light">Modo Claro</string>
+    <string name="auth_theme_dark">Modo Escuro</string>
+    <string name="auth_new_question">Novo no Ruta Biker Sync?</string>
+    <string name="auth_community_link">Saiba mais sobre nossa comunidade</string>
+
+    <!-- Rolês (Screen 2) -->
+    <string name="rides_btn_create_route">Criar Rota</string>
+    <string name="rides_btn_create_route_desc">Traçar e planejar uma nova rota no mapa</string>
+    <string name="rides_btn_check_route_map">🗺 Checar Rota no Mapa</string>
+    <string name="rides_btn_create_route_card">🗺 + Criar Rota no Mapa</string>
+    <string name="rides_btn_start_ride_preview">🏍 Iniciar Percurso</string>
+    <string name="rides_map_snapshot_title">SNAPSHOT DO MAPA DE DESTINO (AUTOMÁTICO)</string>
+    <string name="rides_destination_label">🏁 Destino: %1$s</string>
+    <string name="rides_status_called">✓ Convocada</string>
+    <string name="rides_departure_label">Partida: %1$s</string>
+    <string name="rides_arrival_label">Chegada: %1$s</string>
+    <string name="rides_return_label">Retorno: %1$s</string>
+    <string name="rides_btn_edit_map">🗺️ Editar no Mapa</string>
+    <string name="rides_btn_view_live">Ver ao Vivo</string>
+    <string name="rides_attendance_header">Confirmação de Presença (%1$d/%2$d)</string>
+    <string name="rides_attendance_counts">%1$d confirmados · %2$d pendentes</string>
+    <string name="rides_attendance_ready_badge">%1$d Prontos</string>
+    <string name="rides_your_attendance_status">Seu status de presença (%1$s):</string>
+    <string name="rides_btn_will_attend">✓ Vou comparecer</string>
+    <string name="rides_btn_cannot_attend">✕ Não poderei ir</string>
+
+    <!-- Clube e Grupos (Screen 3) -->
+    <string name="club_tab_my_club">Meu Clube</string>
+    <string name="club_tab_directory">Diretório</string>
+    <string name="club_tab_my_groups">Meus Grupos</string>
+    <string name="club_qr_join_title">Entrar em um Clube com QR</string>
+    <string name="club_qr_brotherhood_title">Escanear QR de Irmandade / Apadrinhamento</string>
+    <string name="club_qr_join_sub">Acesse escaneando o código do seu clube</string>
+    <string name="club_qr_brotherhood_sub">Pacto de irmandade, apadrinhar ou rolês conjuntos</string>
+    <string name="club_qr_instructions_member">Escaneie o código QR exibido pelo Presidente ou Vice-Presidente do clube para entrar no grupo como membro.</string>
+    <string name="club_qr_instructions_has_club">🛡️ Você já pertence ao %1$s. Pelos estatutos biker, você só pode escanear códigos de outros clubes para ser Padrinho, formalizar Irmandade ou aceitar convites de rolê.</string>
+    <string name="club_qr_btn_scan_camera">Escanear QR com Câmera</string>
+    <string name="club_qr_btn_scan_brotherhood">Escanear QR de Irmandade</string>
+    <string name="club_qr_backup_code_label">Código de backup do clube:</string>
+    <string name="club_qr_brotherhood_code_label">Código de Irmandade ou Apadrinhamento:</string>
+    <string name="club_qr_code_placeholder">Digite o código do clube</string>
+    <string name="club_btn_join">Entrar</string>
+    <string name="club_alliances_title">CLUBES EM IRMANDADE E ALIANÇAS (%1$d)</string>
+    <string name="club_alliances_empty_title">Nenhum clube em irmandade registrado ainda</string>
+    <string name="club_alliances_empty_desc">Você pode buscar clubes no Diretório Global para estabelecer pactos de irmandade e rolês conjuntos.</string>
+    <string name="club_search_placeholder">Buscar clubes por nome ou estado...</string>
+
+    <!-- Perfil (Screen 5) -->
+    <string name="profile_logged_in_as">Sessão iniciada como %1$s</string>
+    <string name="profile_status_mesh_ready">Online · Mesh pronta</string>
+    <string name="profile_no_bike_registered">Sem moto registrada</string>
+    <string name="profile_stat_total_km">Total acumulado</string>
+    <string name="profile_stat_monthly_streak">Sequência mensal</string>
+    <string name="profile_streak_months_format">%1$d meses</string>
+    <string name="profile_achievements_header">Marcos e Conquistas de Rota</string>
+    <string name="profile_view_all">Ver todos &gt;</string>
+    <string name="profile_club_patches_header">Insígnias Recebidas e Patches do Clube</string>
+    <string name="profile_medical_sheet_header">Ficha Médica de Emergência</string>
+    <string name="profile_shamir_local_badge">Criptografia Shamir · Acesso local seguro</string>
+    <string name="profile_allergies_label">Alergias:</string>
+    <string name="profile_allergies_none">Nenhuma conhecida</string>
+    <string name="profile_sos_contact_label">Contato SOS:</string>
+    <string name="profile_insurance_label">Seguro:</string>
+    <string name="profile_organ_donor_label">Doador de órgãos:</string>
+    <string name="profile_donor_yes">Sim (Voluntário)</string>
+    <string name="profile_donor_no">Não registrado</string>
+    <string name="profile_btn_view_edit_medical">Ver e Editar Ficha Médica</string>
+    <string name="profile_medical_disclaimer">Aviso legal: Esta ficha não substitui serviços de emergência ou resgate médico profissional.</string>
+    <string name="profile_subscription_title">Assinatura e Status da Conta</string>
+    <string name="profile_sub_active_badge">EM DIA</string>
+    <string name="profile_sub_leader_plan_desc">Plano Líder de Clube ($15.00 USD/mês · Convocação ilimitada de rolês)</string>
+    <string name="profile_sub_member_plan_desc">Plano Membro do Clube ($2.50 USD/mês · Cobertura ativa)</string>
+    <string name="profile_sub_renewal_text">Próxima renovação automática: 15 de novembro de 2026</string>
+    <string name="profile_btn_manage_play">Gerenciar Assinatura no Google Play</string>
+    <string name="profile_btn_edit_profile">Editar Perfil (Moto e Pin)</string>
+    <string name="profile_btn_logout">Sair da Conta / Voltar ao Início</string>
+
+    <!-- Cofre (Screen 4) -->
+    <string name="vault_local_aes">🔒 Criptografia Local AES-256</string>
+    <string name="vault_btn_review_urgent">REVISAR</string>
+    <string name="vault_docs_header">Documentos da Moto</string>
+    <string name="vault_docs_registered_count">%1$d registrados · Alarmes a 30, 7 e 1 dia</string>
+    <string name="vault_btn_add_capital">+ ADICIONAR</string>
+
+    <!-- Google Auth & Lembrar Conta Líder / Alternar em Config -->
+    <string name="auth_btn_google_continue">Continuar com o Google</string>
+    <string name="auth_btn_google_subtitle">Acesso com sua conta Google · Lembra o seu papel</string>
+    <string name="auth_google_dialog_title">Entrar com o Google</string>
+    <string name="auth_google_remembered_as_leader">👑 Conta de Líder (Lembrada)</string>
+    <string name="auth_google_remembered_as_member">👤 Conta de Membro (Lembrada)</string>
+    <string name="auth_google_btn_continue_as">Continuar como %1$s</string>
+    <string name="auth_google_use_another">Usar outra conta do Google</string>
+    <string name="auth_google_choose_role_title">Configure o papel para esta conta Google:</string>
+    <string name="auth_google_role_leader">👑 Conta de Líder ($15 USD/mês)</string>
+    <string name="auth_google_role_leader_desc">Crie ou gerencie seu clube, defina a diretoria e convoque passeios com canal PTT prioritário.</string>
+    <string name="auth_google_role_member">👤 Conta de Membro ($2.50 USD/mês)</string>
+    <string name="auth_google_role_member_desc">Acesso ao seu grupo biker, passeios em comboio e telemetria.</string>
+    <string name="auth_google_remember_note">Lembraremos esta configuração automaticamente para seus próximos acessos. Você poderá alterá-la nas Configurações.</string>
+
+    <string name="settings_account_role_title">Tipo de Conta / Papel na Plataforma</string>
+    <string name="settings_account_role_leader_active">👑 Modo Líder Ativo (Google)</string>
+    <string name="settings_account_role_leader_desc">Sua conta Google está configurada como Líder. Gerencie clubes e convoque passeios oficiais.</string>
+    <string name="settings_account_role_member_active">👤 Modo Membro Ativo (Google)</string>
+    <string name="settings_account_role_member_desc">Sua conta Google está configurada como Membro. Acesso a passeios em grupo e rede mesh.</string>
+    <string name="settings_btn_switch_to_member">Mudar para Conta de Membro</string>
+    <string name="settings_btn_switch_to_leader">Mudar para Conta de Líder</string>
+    <string name="settings_confirm_switch_to_member_title">Mudar para Conta de Membro?</string>
+    <string name="settings_confirm_switch_to_member_desc">Sua conta passará para o modo Membro para passeios. As funções de liderança de clube ficarão em pausa. Você poderá voltar a Líder quando quiser nas Configurações.</string>
+    <string name="settings_confirm_switch_to_leader_title">Mudar para Conta de Líder?</string>
+    <string name="settings_confirm_switch_to_leader_desc">Sua conta passará para o modo Líder ($15 USD/mês). Você poderá fundar ou administrar clubes e liderar passeios oficiais.</string>
 </resources>

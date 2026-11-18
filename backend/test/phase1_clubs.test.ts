@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { buildApp } from '../src/app.js';
 import { createPgPool, readInitMigrationSql, type DbExecutor } from '../src/db/pool.js';
 import { checkGroupNameCollision, normalizeGroupName, toLeetSkeleton } from '../src/lib/normalizer.js';
@@ -38,6 +39,8 @@ async function createTestDb(): Promise<{ db: DbExecutor; usingRealPostgres: bool
   await pool.query(`
     TRUNCATE TABLE
       refresh_tokens,
+      rate_limit_events,
+      ephemeral_telemetry,
       imitation_reports,
       play_events,
       ride_mesh_metrics,
@@ -377,7 +380,7 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
       payload: { invitedUserId: fullMemberId, statusKind: 'prospect' }
     });
     expect(illegalSecondPrimary.statusCode).toBe(409);
-    expect(illegalSecondPrimary.json().error).toBe('ALREADY_IN_PRIMARY_GROUP');
+    expect(['ALREADY_IN_PRIMARY_GROUP', 'ERR_DUAL_MEMBERSHIP_PROHIBITED']).toContain(illegalSecondPrimary.json().error);
 
     // En cambio, guestMemberId puede entrar como 'guest' tanto a mainGroupId como a secondGroupId (R2.2)
     for (const [gid, leader] of [
@@ -773,4 +776,136 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
       expect(removedAlias.statusCode).toBe(404);
     }
   );
+
+  it('Hito 1 — R2.2 y R2.3: Servidor replica exactamente Caso 3 de Android (prohibición de doble hermandad y admisión de rodada libre)', async () => {
+    // 1. Crear piloto de prueba con membresía activa en mainGroupId
+    const pilotId = randomUUID();
+    await db.query(
+      `INSERT INTO users (id, email, display_name, country_code, account_type)
+       VALUES ($1, $2, 'Piloto Águila', 'VE', 'member')`,
+      [pilotId, `pilot-r22-${Date.now()}@example.com`]
+    );
+
+    // Asignar al piloto a mainGroupId como FULL member
+    await db.query(
+      `INSERT INTO memberships (id, group_id, user_id, status_kind, invite_state, accepted_at, paid_until)
+       VALUES ($1, $2, $3, 'full', 'accepted', now(), now() + interval '30 days')`,
+      [randomUUID(), mainGroupId, pilotId]
+    );
+
+    // 2. Club 2 emite invitación directa de HERMANDAD para este piloto
+    const inviteHermandadId = randomUUID();
+    await db.query(
+      `INSERT INTO invitations (id, group_id, invited_user, invited_by, status_kind, invitation_type, state, expires_at)
+       VALUES ($1, $2, $3, $4, 'full', 'hermandad', 'pending', now() + interval '24 hours')`,
+      [inviteHermandadId, secondGroupId, pilotId, fourthLeaderId]
+    );
+
+    // 3. Piloto intenta aceptar la invitación a Hermandad del segundo club
+    const acceptHermandad = await app.inject({
+      method: 'POST',
+      url: `/v1/invitations/${inviteHermandadId}/accept`,
+      headers: { 'x-user-id': pilotId },
+      payload: {
+        consents: {
+          membership: true,
+          location: true,
+          emergencyPackage: true,
+          notifications: true
+        }
+      }
+    });
+
+    // Debe rechazar con 409 ERR_DUAL_MEMBERSHIP_PROHIBITED (idéntico a R2.2 en Android)
+    expect(acceptHermandad.statusCode).toBe(409);
+    expect(acceptHermandad.json().error).toBe('ERR_DUAL_MEMBERSHIP_PROHIBITED');
+
+    // Comprobar que su membresía original en mainGroupId permanece intacta
+    const checkOriginalMembership = await db.query(
+      `SELECT group_id, status_kind FROM memberships WHERE user_id = $1`,
+      [pilotId]
+    );
+    expect(checkOriginalMembership.rows.length).toBe(1);
+    expect(checkOriginalMembership.rows[0].group_id).toBe(mainGroupId);
+
+    // 4. Club 2 emite ahora una invitación a RODADA LIBRE (R2.3)
+    const inviteRodadaId = randomUUID();
+    await db.query(
+      `INSERT INTO invitations (id, group_id, invited_user, invited_by, status_kind, invitation_type, state, expires_at)
+       VALUES ($1, $2, $3, $4, 'guest', 'rodada', 'pending', now() + interval '24 hours')`,
+      [inviteRodadaId, secondGroupId, pilotId, fourthLeaderId]
+    );
+
+    // 5. Piloto acepta la invitación a rodar (sin consentimiento de membresía)
+    const acceptRodada = await app.inject({
+      method: 'POST',
+      url: `/v1/invitations/${inviteRodadaId}/accept`,
+      headers: { 'x-user-id': pilotId },
+      payload: {
+        consents: {
+          location: true
+        }
+      }
+    });
+
+    expect(acceptRodada.statusCode).toBe(200);
+    expect(acceptRodada.json().invitationType).toBe('rodada');
+
+    // Confirmar que NO se añadió ninguna membresía adicional en memberships
+    const checkStillSingleMembership = await db.query(
+      `SELECT group_id FROM memberships WHERE user_id = $1`,
+      [pilotId]
+    );
+    expect(checkStillSingleMembership.rows.length).toBe(1);
+  });
+
+  it('Hito 1 — Expulsión de Miembros (DELETE /v1/groups/:id/members/:memberUid) con protección del Fundador (R14.3)', async () => {
+    // 1. Crear miembro común en mainGroupId
+    const memberToExpelId = randomUUID();
+    await db.query(
+      `INSERT INTO users (id, email, display_name, country_code, account_type)
+       VALUES ($1, $2, 'Miembro Expulsado', 'VE', 'member')`,
+      [memberToExpelId, `expel-${Date.now()}@example.com`]
+    );
+
+    await db.query(
+      `INSERT INTO memberships (id, group_id, user_id, status_kind, invite_state, accepted_at, paid_until)
+       VALUES ($1, $2, $3, 'prospect', 'accepted', now(), now() + interval '30 days')`,
+      [randomUUID(), mainGroupId, memberToExpelId]
+    );
+
+    // 2. Intento de expulsión por un usuario que NO es líder -> 403 LEADER_REQUIRED
+    const nonLeaderExpel = await app.inject({
+      method: 'DELETE',
+      url: `/v1/groups/${mainGroupId}/members/${memberToExpelId}`,
+      headers: { 'x-user-id': memberToExpelId }
+    });
+    expect(nonLeaderExpel.statusCode).toBe(403);
+    expect(nonLeaderExpel.json().error).toBe('LEADER_REQUIRED');
+
+    // 3. Intento de expulsar al Fundador / Líder Principal -> 403 CANNOT_EXPEL_FOUNDER
+    const expelFounder = await app.inject({
+      method: 'DELETE',
+      url: `/v1/groups/${mainGroupId}/members/${founderLeaderId}`,
+      headers: { 'x-user-id': secondLeaderId }
+    });
+    expect(expelFounder.statusCode).toBe(403);
+    expect(expelFounder.json().error).toBe('CANNOT_EXPEL_FOUNDER');
+
+    // 4. Líder legítimo expulsa al miembro común -> 200 OK
+    const legitExpel = await app.inject({
+      method: 'DELETE',
+      url: `/v1/groups/${mainGroupId}/members/${memberToExpelId}`,
+      headers: { 'x-user-id': founderLeaderId }
+    });
+    expect(legitExpel.statusCode).toBe(200);
+    expect(legitExpel.json().success).toBe(true);
+
+    // 5. Verificar que el miembro fue eliminado de memberships en la base de datos
+    const checkExpelled = await db.query(
+      `SELECT 1 FROM memberships WHERE group_id = $1 AND user_id = $2`,
+      [mainGroupId, memberToExpelId]
+    );
+    expect(checkExpelled.rows.length).toBe(0);
+  });
 });

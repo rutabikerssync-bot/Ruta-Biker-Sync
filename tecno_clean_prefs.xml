@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="user_email">omartinezpaz@gmail.com</string>
+    <string name="account_type">LEADER</string>
+    <string name="user_role_54ba61a2-1095-4114-8604-974f25babdb0">LEADER</string>
+    <string name="google_role_omartinezpaz@gmail.com">LEADER</string>
+    <string name="user_id">54ba61a2-1095-4114-8604-974f25babdb0</string>
+    <string name="user_map_color">#E5B869</string>
+    <string name="blood_type">O+</string>
+    <string name="current_club_id">7e46adec-80d7-4d44-a893-8890ff943aae</string>
+    <string name="user_bike_model">BMW R1250GS</string>
+    <boolean name="is_authenticated" value="true" />
+    <string name="user_display_name">Capitán Oscar</string>
+    <string name="emergency_contact_phone">04121234567</string>
+    <string name="emergency_contact_name">Laura Martinez</string>
+    <string name="google_role_last">LEADER</string>
+</map>
+

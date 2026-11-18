@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="user_email">halcon.redmi@rbs.dev</string>
+    <string name="account_type">MEMBER</string>
+    <string name="user_role_cdc7355b-4172-40d4-b2c3-43f5ef3c0b97">MEMBER</string>
+    <string name="emergency_contact_name">Carlos Ramirez</string>
+    <string name="google_role_halcon.redmi@rbs.dev">MEMBER</string>
+    <string name="user_id">cdc7355b-4172-40d4-b2c3-43f5ef3c0b97</string>
+    <string name="user_map_color">#E5B869</string>
+    <string name="blood_type">O+</string>
+    <string name="user_bike_model">Yamaha MT-09</string>
+    <boolean name="is_authenticated" value="true" />
+    <string name="user_display_name">Halcón Redmi</string>
+    <string name="emergency_contact_phone">+584141234567</string>
+    <string name="google_role_last">MEMBER</string>
+</map>
