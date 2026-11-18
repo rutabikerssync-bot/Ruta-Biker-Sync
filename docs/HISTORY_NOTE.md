@@ -82,3 +82,10 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - PTT (PTT/voz) no se probó en este ciclo; no se marca B2-4 runtime como cerrado por esa evidencia.
 
 **Limpieza:** arnés temporal `RideStartHarnessTest.kt` y APK de test eliminados; no se commitearon.
+
+### Actualización 2026-11-18 (manufacturer data 0x5242)
+- Cambio en BleAdvTransport.kt: se reemplazó ddServiceData(MESH_SERVICE_UUID, payload) por ddManufacturerData(0x5242, payload) (company ID "RB" = Ruta Biker). Esto evita el problema de compresión/truncamiento del UUID de 128 bits en el límite de 31 bytes de BLE Legacy. Manufacturer data usa solo 2 bytes de company ID, dejando 27 bytes para el payload de 20 bytes.
+- Scan callback actualizado para usar getManufacturerSpecificData(0x5242) en ambos paths (onScanResult y onBatchScanResults).
+- Build firmada con clave de producción e instalada en TECNO (098813734B105395) con éxito.
+- Xiaomi (b2c398bb) bloqueado por MIUI (INSTALL_FAILED_USER_RESTRICTED); requiere habilitar "Instalar vía USB" en Ajustes → Opciones de desarrollador.
+- Commit: 17cfee (fix(ble): usar company ID 0x5242 para manufacturer data).
