@@ -127,3 +127,22 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - Evidencia objetiva: ratios WCAG AA verificados por `TacticalChatContrastTest` (cuerpo 7.10:1 sobre broadcast, 8.93:1 sobre unicast, 14.00:1 entrante). La revision visual final de la captura queda al usuario; no se marca como "verificado visualmente" sin inspeccion humana.
 - `main...origin/main [ahead 2]`: commits `70da790` (fix) y `6674020` (docs) pendientes de push.
 
+### Chat Táctico bidireccional sobre el BLE Mesh activo de RideService (2026-11-18)
+**Commits funcionales**: `834be73` (conectar envío/recepción al `MeshRelayEngine` activo), `ddcd1d4` (etiqueta Unicast acortada), `44167d3` (límite real de manufacturer data 24 B), `ef48fa0` (esperar ráfaga y repetir fragmentos).
+
+**Diagnóstico (causa raíz, sin false green)**:
+1. El envío desde la UI no llegaba al engine activo: `dispatchSendTextMessage` no usaba `getActiveRelayEngine()`.
+2. El engine no tenía cableado `onTextMessageReceived` hacia `TacticalChatStore`, así que los mensajes descifrados nunca aparecían en la bandeja.
+3. `TextMessagePacket` mide 42–161 B y no cabe en `ManufacturerData` legacy. El límite real es **24 B** (31 B PDU − 3 B flags − 1 B length − 1 B AD type − 2 B company ID `0x5242`), no 29 B; con 29 B se producía `ADVERTISE_FAILED_DATA_TOO_LARGE`.
+4. No se modificó crypto (`TextMessageCrypto`) ni flooding (`MeshRelayEngine`); la fragmentación vive en la capa de transporte (`BleFragmentationCodec.kt`, magic `A5 5A`, cabecera 8 B con sesión/índice/total/CRC16, limpieza de sesiones viejas y pass-through transparente de paquetes de 20 B).
+5. En campo, los fragmentos se solapaban: `sendFrame` inicia la ráfaga y retorna enseguida, por lo que con `FRAGMENT_GAP_MS=120` los 4 fragmentos se emitían en ~400 ms y el scanner solo capturaba 2 de 4. Corrección en `ef48fa0`: esperar `BURST_MS + GAP_MS` entre fragmentos y repetir cada mensaje 2 rondas.
+
+**Verificación de campo con build final (TECNO KI5k `098813734B105395` + Redmi Note 13 Pro 5G `b2c398bb`)**:
+- `RideService` en primer plano en ambos: `isForeground=true`, `foregroundId=3201`, `types=0x00000018`, notificación persistente y `RideStarted ... transport=BleAdvTransport(LEGACY_1M)`; mismo build/mode en ambos extremos.
+- **Redmi → TECNO**: `FragmentTx session=1 bytes=48 fragments=3 maxBytes=24` (pid `17993`); la UI de TECNO muestra `VIAJEOK` recibido de `Piloto #12243` con badge `BROADCAST`.
+- **TECNO → Redmi**: dos intentos (`RUTAOK`, `SI`) transmitieron (`FragmentTx session=1 bytes=47` y `session=2 bytes=43`) pero no se entregaron por pérdida RF de fragmentos en ese instante — **no se marcó como éxito**. El reintento `PRUEBADIR` (`FragmentTx session=3 bytes=50 fragments=4`) sí entregó: `RX_RAW len=24 hdr=A5,5A idx=0/4,1/4,2/4`, `RX_FULL len=50`, `TEXT_RX_ENTER size=50 target=65535 local=12243` y `TEXT_RX_DELIVER text=PRUEBADIR target=65535 cb=true`; la UI de Redmi muestra `PRUEBADIR` de `Piloto #12982`.
+- Los logs `RX_RAW` / `RX_FULL` / `TEXT_RX_*` / `FRAG_TX` fueron diagnósticos temporales y **ya están retirados**; `FragmentTx`, `RideStarted` y `HeartbeatTx` son logs permanentes de la build final. La última instalación final (sin diagnósticos) fue verificada por UI en ambas direcciones.
+- Evidencia visual: `docs/evidence/chat_bidir_tecno_2026-11-18.png` y `docs/evidence/chat_bidir_redmi_2026-11-18.png`.
+- Tests dirigidos en verde: `BleFragmentationCodecTest`, `TacticalChatMeshIntegrationTest`, `TacticalChatScreenTest`, `TacticalChatContrastTest` → `BUILD SUCCESSFUL`. La suite completa arrastra 2 fallos preexistentes no relacionados (`LiveMapViewModelTest` y `RouteEnginePhase4Test`), documentados sin ocultarlos.
+- `BleMeshService` **no** fue iniciado en ningún momento: todo el tráfico pasó por el `MeshRelayEngine` de `RideService`. PTT/voz sigue sin prueba de audio en este ciclo.
+
