@@ -1864,7 +1864,7 @@ fun LiveMapScreen(
 
         // 12. Overlay Pantalla Completa: Chat Táctico Off-Grid
         if (showTacticalChat) {
-            val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+            val localShortId = rideServiceState.localShortId
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1885,7 +1885,7 @@ fun LiveMapScreen(
 
         // 13. Overlay Pantalla Completa: Monitor de Malla y Enlaces RF
         if (showMeshMonitor) {
-            val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+            val localShortId = rideServiceState.localShortId
             val relayEngine = remember(
                 rideServiceState.lifecycleState,
                 rideServiceState.rideId,

@@ -762,7 +762,14 @@ private fun RidesReleaseHomeScreen(
         val eligibility = RideService.dispatchStartRide(
             context = context,
             rideId = "ride-live-01",
-            localShortId = 1,
+            localShortId = run {
+                val androidId = android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                ).orEmpty()
+                val uniqueSeed = "${android.os.Build.MODEL}:$androidId"
+                ((uniqueSeed.hashCode() and 0x7FFF) % 65534) + 1
+            },
             forceSimulated = useSimulated
         )
         if (!useSimulated && !eligibility.shouldPromoteToForeground) {
