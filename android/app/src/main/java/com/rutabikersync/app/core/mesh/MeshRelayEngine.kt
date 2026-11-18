@@ -776,19 +776,32 @@ class MeshRelayEngine(
         if (pktFlow != null) {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 pktFlow.collect { pkt ->
-                    onRawPacketReceived(
-                        raw = pkt.bytes,
-                        nowEpochMs = pkt.timestampEpochMs,
-                        rssi = pkt.rssi,
-                        senderAddressSuffix = pkt.senderAddressSuffix,
-                        scanTimestampNanos = pkt.scanTimestampNanos
-                    )
+                    if (pkt.bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+                        onRawPacketReceived(
+                            raw = pkt.bytes,
+                            nowEpochMs = pkt.timestampEpochMs,
+                            rssi = pkt.rssi,
+                            senderAddressSuffix = pkt.senderAddressSuffix,
+                            scanTimestampNanos = pkt.scanTimestampNanos
+                        )
+                    } else {
+                        // Hito 7.0.2: texto/SOS/médico no son heartbeats de 20 B.
+                        // processIncomingPacket descifra y dispara onTextMessageReceived.
+                        processIncomingPacket(
+                            rawBytes = pkt.bytes,
+                            nowMs = pkt.timestampEpochMs
+                        )
+                    }
                 }
             }
         } else {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 transport?.incoming?.collect { raw ->
-                    onRawPacketReceived(raw, System.currentTimeMillis(), null)
+                    if (raw.size == MeshPacket.PACKET_SIZE_BYTES) {
+                        onRawPacketReceived(raw, System.currentTimeMillis(), null)
+                    } else {
+                        processIncomingPacket(rawBytes = raw)
+                    }
                 }
             }
         }
@@ -907,6 +920,65 @@ class MeshRelayEngine(
             )
         }
         transport?.send(packet.toByteArray(), packet.priority)
+        refreshStateFlows()
+        return packet
+    }
+
+    /**
+     * Cifra y emite un mensaje de texto táctico usando la MISMA clave de rodada y el MISMO
+     * transporte activo que los heartbeats/SOS (Hito 7.0.2 · fix funcional).
+     *
+     * No modifica la criptografía (ChaCha20-Poly1305 en [TextMessageCrypto]) ni el flooding:
+     * solo construye el paquete y lo entrega al transporte, igual que [emitLocalPosition].
+     */
+    fun emitTextMessage(targetShortId: UShort, text: String): TextMessagePacket? {
+        val key = customRideSecretKey ?: rideSecretKey
+        if (key.size != TextMessageCrypto.KEY_SIZE_BYTES) {
+            android.util.Log.w(
+                "MeshRelayEngine",
+                "TextMessageTx abortado: clave de ${key.size} B, se requieren ${TextMessageCrypto.KEY_SIZE_BYTES} B"
+            )
+            return null
+        }
+        val transport = this.transport ?: return null
+        val seq = sequenceCounter
+        sequenceCounter = (seq + 1) and MeshPacket.MAX_SEQUENCE_NUMBER
+        val packet = TextMessageCrypto.encrypt(
+            key = key,
+            plaintext = text,
+            header = MeshHeader(
+                clubNetworkId = clubNetworkId,
+                senderShortId = localShortId,
+                packetType = MeshHeader.TYPE_TEXT_MESSAGE,
+                initTtl = 5,
+                currentTtl = 5,
+                sequenceNum = seq.toUShort()
+            ),
+            targetShortId = targetShortId
+        )
+
+        val dedupKey = (localShortId.toLong() shl 16) or seq.toLong()
+        synchronized(this) {
+            seenKeys[dedupKey] = true
+            packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = formatUtc(System.currentTimeMillis()),
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = seq,
+                    ttl = 5,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport.name,
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
+        }
+        val bytes = packet.toByteArray()
+        relayScope?.launch { transport.send(bytes, Transport.Priority.STATUS) }
+            ?: android.util.Log.w("MeshRelayEngine", "TextMessageTx sin relayScope: no se pudo emitir")
         refreshStateFlows()
         return packet
     }

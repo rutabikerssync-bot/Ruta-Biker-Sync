@@ -252,8 +252,25 @@ class RideSessionController(
             localShortId = localShortId,
             transport = selectedTransport,
             rideSecretKey = effectiveRideSecretKey,
-            relayEnabled = relayEnabled
+            relayEnabled = relayEnabled,
+            relayScope = scope
         )
+        // Hito 7.0.2: conectar la recepción de texto al store del chat táctico.
+        engine.onTextMessageReceived = { textPacket, decryptedText ->
+            if (decryptedText != null) {
+                com.rutabikersync.app.core.mesh.text.TacticalChatStore.addMessage(
+                    com.rutabikersync.app.core.mesh.text.TacticalChatMessage(
+                        senderShortId = textPacket.header.senderShortId,
+                        senderName = "Piloto #${textPacket.header.senderShortId}",
+                        senderRole = "PILOTO",
+                        targetShortId = textPacket.targetShortId,
+                        text = decryptedText,
+                        isOutgoing = false,
+                        hopCount = textPacket.hopCount
+                    )
+                )
+            }
+        }
         relayEngine = engine
         val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
         for (peerId in effectiveExpectedPeers) {
@@ -1100,9 +1117,21 @@ class RideService : Service() {
         fun getActiveMeshService(): com.rutabikersync.app.core.mesh.BleMeshService? =
             com.rutabikersync.app.core.mesh.BleMeshService.getActiveInstance()
 
-        /** Despacha un mensaje de texto táctico cifrado a la malla BLE (Hito 5 · Fase 7.0.2). */
+        /**
+         * Despacha un mensaje de texto táctico cifrado por el MeshRelayEngine activo del RideService
+         * (Hito 7.0.2 · fix funcional). BleMeshService NO se usa: nunca se inicia durante la rodada
+         * y por eso los mensajes antes se marcaban "Enviado" pero nunca salían por el aire.
+         */
         fun dispatchSendTextMessage(context: Context, targetShortId: UShort, text: String): Boolean {
-            return getActiveMeshService()?.sendTextMessage(targetShortId, text) ?: false
+            val engine = getActiveRelayEngine() ?: run {
+                android.util.Log.w("RideService", "TextMessageTx abortado: no hay relayEngine activo")
+                return false
+            }
+            val sent = engine.emitTextMessage(targetShortId, text)
+            if (sent == null) {
+                android.util.Log.w("RideService", "TextMessageTx abortado: emitTextMessage devolvió null")
+            }
+            return sent != null
         }
 
         fun exportPacketsCsv(): String {

@@ -22,10 +22,14 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Implementación real de Transport sobre BLE Advertising ("emitir y escuchar").
@@ -84,6 +88,10 @@ class BleAdvTransport(
         )
 
         private const val TAG = "BleAdvTransport"
+
+        /** Ráfaga corta por fragmento y separación suficiente para que el scanner lo capte. */
+        private const val FRAGMENT_BURST_MS = 300
+        private const val FRAGMENT_GAP_MS = 340L
 
         fun describeScanSettings(effectiveMode: String): String {
             val isExtended = effectiveMode == "EXTENDED_1M" || effectiveMode == "EXTENDED_CODED_PHY"
@@ -177,6 +185,11 @@ class BleAdvTransport(
         get() = "BleAdvTransport($effectiveMode)"
 
     private var activeLegacyCallback: AdvertiseCallback? = null
+
+    /** Serializa TODAS las emisiones: un heartbeat no debe cortar una ráfaga de fragmentos. */
+    private val sendMutex = Mutex()
+    private val fragmentSessionCounter = AtomicInteger(0)
+    private val fragmentReassembler = BleFragmentationCodec.Reassembler()
     private var activeAdvertisingSet: AdvertisingSet? = null
     private var activeAdvertisingSetCallback: AdvertisingSetCallback? = null
     private var activeAdvertisingSetMode: String? = null
@@ -459,8 +472,34 @@ class BleAdvTransport(
         }
     }
 
-    @SuppressLint("MissingPermission")
     override suspend fun send(payload: ByteArray, priority: Transport.Priority) {
+        sendMutex.withLock {
+            if (payload.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) {
+                sendFrame(payload, priority, advertisingBurstDurationMs)
+            } else {
+                sendFragmented(payload, priority)
+            }
+        }
+    }
+
+    /** Emite un payload cifrado de texto en fragmentos de <=29 B, uno por ráfaga corta. */
+    @SuppressLint("MissingPermission")
+    private suspend fun sendFragmented(payload: ByteArray, priority: Transport.Priority) {
+        val sessionId = fragmentSessionCounter.incrementAndGet() and 0xFFFF
+        val frames = BleFragmentationCodec.fragment(payload, sessionId)
+        Log.i(
+            TAG,
+            "FragmentTx session=$sessionId bytes=${payload.size} fragments=${frames.size} " +
+                "maxBytes=${BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES}"
+        )
+        frames.forEachIndexed { index, frame ->
+            sendFrame(frame, priority, FRAGMENT_BURST_MS)
+            if (index < frames.size - 1) delay(FRAGMENT_GAP_MS)
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun sendFrame(payload: ByteArray, priority: Transport.Priority, burstMs: Int) {
         if (txRxRole == TxRxRole.RX_ONLY) {
             Log.d(TAG, "send omitido: rol RX_ONLY activo")
             return
@@ -576,8 +615,7 @@ class BleAdvTransport(
                 startLegacyContinuousFallback(adv, advertiseData, priority)
             }
         } else {
-            // MODO RÁFAGA (BURST 1s): Ráfaga acotada en el tiempo (advertisingBurstDurationMs) para ahorro de energía
-            val burstMs = advertisingBurstDurationMs
+            // MODO RÁFAGA: Ráfaga acotada en el tiempo (burstMs) para ahorro de energía
             if (supportsAdvertisingSet) {
                 stopAllActiveExtendedAdvertisingSets()
                 activeLegacyCallback?.let { runCatching { adv.stopAdvertising(it) } }
@@ -657,9 +695,8 @@ class BleAdvTransport(
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val sr = result?.scanRecord
-            val svcData = sr?.manufacturerSpecificData
-            Log.e(TAG, "onScanResult: addr=${result?.device?.address} rssi=${result?.rssi} mfrDataKeys=${svcData?.size()}")
-            val bytes = sr?.getManufacturerSpecificData(0x5242) ?: return
+            val raw = sr?.getManufacturerSpecificData(0x5242) ?: return
+            val bytes = fragmentReassembler.feed(raw) ?: return
             val rssi = result.rssi
             val rawAddr = runCatching { result.device?.address }.getOrNull()
             val addrSuffix = rawAddr?.let {
@@ -679,7 +716,8 @@ class BleAdvTransport(
 
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             results?.forEach { res ->
-                val bytes = res.scanRecord?.getManufacturerSpecificData(0x5242) ?: return@forEach
+                val raw = res.scanRecord?.getManufacturerSpecificData(0x5242) ?: return@forEach
+                val bytes = fragmentReassembler.feed(raw) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
                 val addrSuffix = rawAddr?.let {
