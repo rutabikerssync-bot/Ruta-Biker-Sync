@@ -126,8 +126,6 @@ class BleAdvTransport(
         val recommendedMode: String
             get() = when {
                 !bluetoothSupported -> "UNSUPPORTED"
-                extendedAdvertisingSupported && codedPhySupported -> "EXTENDED_CODED_PHY"
-                extendedAdvertisingSupported -> "EXTENDED_1M"
                 multipleAdvertisementSupported -> "LEGACY_1M"
                 else -> "SCAN_ONLY"
             }
