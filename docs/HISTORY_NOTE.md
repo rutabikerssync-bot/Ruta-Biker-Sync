@@ -89,3 +89,13 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - Build firmada con clave de producción e instalada en TECNO (098813734B105395) con éxito.
 - Xiaomi (b2c398bb) bloqueado por MIUI (INSTALL_FAILED_USER_RESTRICTED); requiere habilitar "Instalar vía USB" en Ajustes → Opciones de desarrollador.
 - Commit: 17cfee (fix(ble): usar company ID 0x5242 para manufacturer data).
+
+### Verificación final de campo (2026-11-18, capturas en TECNO KI5k + Redmi Note 13 Pro 5G)
+**Enlace bidireccional REAL verificado en UI (evidencia reportada por el usuario en 4 capturas):**
+- Build con ManufacturerData(0x5242) + localShortId derivado de Build.MODEL:ANDROID_ID instalada en ambos dispositivos.
+- Ambos equipos se detectan mutuamente en el mapa en tiempo real (Los Teques) y en el Monitor de Malla BLE:
+  - Dispositivo A ve al compañero R#12982 (Convoy: 1 riders), 1 piloto enlazado, En línea, 1 salto, batería 87%, 44/84 paquetes (PLR inicial 47.6% por arranque más tardío del par).
+  - Dispositivo B ve al compañero R#12243, 🟢 MALLA ACTIVA, 1 piloto enlazado, En línea, 1 salto, batería 87%, 95/99 paquetes (PLR 4.0%, entrega RF real ~96%).
+- IDs derivados son distintos entre dispositivos (sin choque de identidad); se descartó el localShortId=1 fijo que causaba el descarte de ecos.
+- Nota: los valores de RSSI en la tarjeta siguen mostrando "No disponible" (campo ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo; B2-4 runtime permanece con ese alcance explícito.
+- Commit funcional: c624b1c (fix(mesh): derivar localShortId de ANDROID_ID para evitar colisiones entre dispositivos).
