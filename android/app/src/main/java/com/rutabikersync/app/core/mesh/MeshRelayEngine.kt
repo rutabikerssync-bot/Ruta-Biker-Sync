@@ -377,6 +377,15 @@ class MeshRelayEngine(
 
         // 1. Filtrado por Red de Club
         if (header.clubNetworkId != clubNetworkId) {
+            if (header.packetType == MeshHeader.TYPE_PTT_VOICE) {
+                try {
+                    android.util.Log.w(
+                        "MeshRelayEngine",
+                        "VoicePacketRx descartado por red: got=${header.clubNetworkId.toInt()} " +
+                            "expected=${clubNetworkId.toInt()} sender=${header.senderShortId}"
+                    )
+                } catch (_: Throwable) {}
+            }
             return RelayDecision.DroppedWrongNetwork
         }
 

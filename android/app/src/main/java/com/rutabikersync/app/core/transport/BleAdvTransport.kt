@@ -105,7 +105,7 @@ class BleAdvTransport(
          * × (1000 + 120) ms × 2 repeticiones ≈ 13 s por trama, incompatible con la
          * latencia objetivo de 1-3 s. No se toca el codec de fragmentación ni el de audio.
          */
-        private const val VOICE_FRAGMENT_BURST_MS = 120
+        private const val VOICE_FRAGMENT_BURST_MS = 300
         private const val VOICE_FRAGMENT_GAP_MS = 20L
         private const val VOICE_FRAGMENT_REPEATS = 2
 
@@ -740,12 +740,37 @@ class BleAdvTransport(
         }
     }
 
+    private var lastFragmentRxDiagMs = 0L
+
+    private fun logFragmentRxDiag(raw: ByteArray, rssi: Int) {
+        val now = System.currentTimeMillis()
+        if (now - lastFragmentRxDiagMs < 250L) return
+        lastFragmentRxDiagMs = now
+        val isFragment = raw.size >= BleFragmentationCodec.HEADER_BYTES &&
+            raw[0] == BleFragmentationCodec.MAGIC_0 && raw[1] == BleFragmentationCodec.MAGIC_1
+        if (!isFragment) {
+            Log.i(TAG, "AdvRx bytes=${raw.size} head=${raw.take(2).joinToString(",")} rssi=$rssi")
+            return
+        }
+        val idx = raw[4].toInt() and 0xFF
+        val total = raw[5].toInt() and 0xFF
+        Log.i(
+            TAG,
+            "FragmentRxRaw session=${((raw[2].toInt() and 0xFF) shl 8) or (raw[3].toInt() and 0xFF)} " +
+                "idx=$idx total=$total bytes=${raw.size} rssi=$rssi"
+        )
+    }
+
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             val sr = result?.scanRecord
             val raw = sr?.getManufacturerSpecificData(0x5242) ?: return
-            val bytes = fragmentReassembler.feed(raw) ?: return
             val rssi = result.rssi
+            logFragmentRxDiag(raw, rssi)
+            val bytes = fragmentReassembler.feed(raw) ?: return
+            if (bytes !== raw) {
+                Log.i(TAG, "FragmentReassembled bytes=${bytes.size} rssi=$rssi")
+            }
             val rawAddr = runCatching { result.device?.address }.getOrNull()
             val addrSuffix = rawAddr?.let {
                 if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)

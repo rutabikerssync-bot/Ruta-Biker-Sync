@@ -164,8 +164,13 @@ fun LiveMapScreen(
     // Fix funcional PTT (Hito 7.0.3): el botón usa el MISMO MeshRelayEngine activo del
     // RideService. PttAudioEngine ya implementa AudioRecord → Opus → ChaCha20 → VoicePacket
     // y la reproducción con JitterBuffer + AudioTrack; aquí solo se cablean ambos extremos.
-    val selfShortId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
     val activeRelayEngine = RideService.getActiveRelayEngine()
+    // El ID del engine activo es la fuente de verdad del nodo en la malla: los markers
+    // pueden no tener aún el flag isSelf al entrar en la pantalla y caeríamos en el #1
+    // en ambos teléfonos (evidencia de campo: VoicePacketRx sender=1 en TECNO y Redmi).
+    val selfShortId = activeRelayEngine?.localShortId
+        ?: state.markers.firstOrNull { it.isSelf }?.shortId
+        ?: 1u
     val pttEngine = remember(selfShortId, activeRelayEngine?.clubNetworkId) {
         PttAudioEngine(
             scope = coroutineScope,

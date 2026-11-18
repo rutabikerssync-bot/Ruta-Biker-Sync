@@ -311,7 +311,9 @@ class PttAudioEngine(
                             break
                         }
                         emptyBufferWaitCount++
-                        if (emptyBufferWaitCount > 35) { // 35 * 10ms = 350ms sin tramas entrantes
+                        // Con fragmentación BLE las tramas de voz llegan separadas ~2 s.
+                        // 350 ms cerraba el AudioTrack entre tramas y borraba el banner de recepción.
+                        if (emptyBufferWaitCount > 250) { // 250 * 10ms = 2,5 s sin tramas entrantes
                             Log.i(TAG, "Fin de ráfaga de voz PTT por inactividad.")
                             break
                         }
