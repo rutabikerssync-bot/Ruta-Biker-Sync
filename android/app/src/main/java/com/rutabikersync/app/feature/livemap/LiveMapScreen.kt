@@ -1883,7 +1883,8 @@ fun LiveMapScreen(
             val relayEngine = remember(
                 rideServiceState.lifecycleState,
                 rideServiceState.rideId,
-                rideServiceState.isUsingSimulatedTransport
+                rideServiceState.isUsingSimulatedTransport,
+                rideServiceState.forcedBleMode
             ) {
                 RideService.getActiveRelayEngine()
             }
@@ -1906,6 +1907,11 @@ fun LiveMapScreen(
                     peers = meshPeers,
                     isLpnToggleEnabled = false,
                     lpnToggleDisabledReason = "No implementado aún",
+                    onBleModeChange = { mode ->
+                        coroutineScope.launch {
+                            RideService.restartWithBleMode(mode)
+                        }
+                    },
                     onOpenChatWithPeer = { _ ->
                         showMeshMonitor = false
                         showTacticalChat = true

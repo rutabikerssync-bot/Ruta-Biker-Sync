@@ -136,6 +136,7 @@ fun MeshConvoyStatusScreen(
     lpnToggleDisabledReason: String? = null,
     onToggleLocalLpn: (Boolean) -> Unit = {},
     onRefreshScan: () -> Unit = {},
+    onBleModeChange: (com.rutabikersync.app.core.transport.BleAdvTransport.TransportModeOverride) -> Unit = {},
     onOpenChatWithPeer: (UShort) -> Unit = {},
     onViewMedicalSheet: (UShort) -> Unit = {},
     onNavigateBack: () -> Unit = {}
@@ -286,6 +287,28 @@ fun MeshConvoyStatusScreen(
                             )
                         }
                     }
+                }
+
+                // Selector de modo BLE (fallback manual para compatibilidad entre dispositivos)
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Modo de radio BLE", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            com.rutabikersync.app.core.transport.BleAdvTransport.TransportModeOverride.LEGACY_1M,
+                            com.rutabikersync.app.core.transport.BleAdvTransport.TransportModeOverride.EXTENDED_1M,
+                            com.rutabikersync.app.core.transport.BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY
+                        ).forEach { mode ->
+                            FilterChip(
+                                selected = false,
+                                onClick = { onBleModeChange(mode) },
+                                label = { Text(mode.displayLabel, fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                    Text(
+                        "Cambia el modo y reinicia la rodada si el convoy no se ve (ej. TECNO + Coded PHY).",
+                        color = TextMuted, fontSize = 10.sp
+                    )
                 }
             }
 

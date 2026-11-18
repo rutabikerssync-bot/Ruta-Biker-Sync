@@ -22,6 +22,12 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.rutabikersync.app.BuildConfig
 import com.rutabikersync.app.MainActivity
+import com.rutabikersync.app.feature.sos.EmergencyLockScreenActivity
+import com.rutabikersync.app.feature.sos.FallDetector
+import com.rutabikersync.app.feature.sos.SosCountdownManager
+import com.rutabikersync.app.feature.sos.SosRepository
+import com.rutabikersync.app.feature.sos.SosTriggerType
+import com.rutabikersync.app.feature.vault.VaultRepository
 import com.rutabikersync.app.core.announcer.UniqueAnnouncer
 import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
@@ -173,12 +179,18 @@ class RideSessionController(
     var heartbeatScheduler: HeartbeatScheduler? = null
         private set
 
+    var meshOdometer: com.rutabikersync.app.core.mesh.odometer.MeshOdometer? = null
+        private set
+
+    var gamificationDao: com.rutabikersync.app.core.gamification.PendingGamificationEventDao? = null
+
     val batteryAwareness: BatteryAwareness = BatteryAwareness()
     val manufacturerBatteryGuide: ManufacturerBatteryGuide = ManufacturerBatteryGuide()
 
     private var activeTransport: Transport? = null
     private var heartbeatJob: Job? = null
     private var peerObserveJob: Job? = null
+    private var autoFallbackJob: Job? = null
     private var metricsObserveJob: Job? = null
     private var stopConfirmTimeoutJob: Job? = null
 
@@ -268,6 +280,13 @@ class RideSessionController(
         )
         scheduler.applyPowerProfile(batteryAwareness.state.value.profile)
         heartbeatScheduler = scheduler
+
+        // Fase 6 · Hito 5 · Etapa 3: Inicializar odómetro de malla
+        val odo = com.rutabikersync.app.core.mesh.odometer.MeshOdometer()
+        odo.peerHeartbeatChecker = { nowMs ->
+            relayEngine?.hasActivePeerWithin(windowMs = 10_000L, nowEpochMs = nowMs) == true
+        }
+        meshOdometer = odo
 
         val initialSnapshot = buildNotificationSnapshot(
             lifecycleState = RideLifecycleState.RUNNING,
@@ -415,6 +434,7 @@ class RideSessionController(
         localSpeedKmh = speedKmh
         localBearingDegrees = bearingDegrees
         localBatteryPercent = batteryPercent
+        meshOdometer?.onLocationUpdate(latitude, longitude)
     }
 
     suspend fun emitHeartbeatNow(nowEpochMs: Long = System.currentTimeMillis()) {
@@ -586,10 +606,31 @@ class RideSessionController(
         batteryAwareness.resetToNormal()
         peerObserveJob?.cancel()
         peerObserveJob = null
+        autoFallbackJob?.cancel()
+        autoFallbackJob = null
+        metricsObserveJob?.cancel()
         metricsObserveJob?.cancel()
         metricsObserveJob = null
         uniqueAnnouncer?.cancelAllAndStop()
         uniqueAnnouncer = null
+
+        // Fase 6 · Hito 5 · Etapa 3: Persistir kilometraje de malla en Room si se acumuló distancia
+        val currentRideId = _state.value.rideId
+        val odo = meshOdometer
+        if (!currentRideId.isNullOrBlank() && odo != null && odo.totalAccumulatedKm > 0.0) {
+            val meters = odo.totalAccumulatedMeters.toLong()
+            val event = com.rutabikersync.app.core.gamification.PendingGamificationEvent(
+                rideId = currentRideId,
+                eventType = com.rutabikersync.app.core.gamification.GamificationEventType.MESH_KM.name,
+                value = meters
+            )
+            gamificationDao?.let { dao ->
+                scope.launch {
+                    runCatching { dao.insert(event) }
+                }
+            }
+        }
+        meshOdometer = null
         val currentCsv = relayEngine?.exportPacketsCsv()
         if (!currentCsv.isNullOrBlank() && currentCsv.lines().count { it.isNotBlank() } > 1) {
             lastPacketsCsv = currentCsv
@@ -758,10 +799,19 @@ class RideService : Service() {
         const val CHANNEL_ID = "rbs_active_ride_mesh_channel"
         const val NOTIFICATION_ID = 3201
 
+        @Volatile
+        var instance: RideService? = null
+            private set
+
+        suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState? {
+            return instance?.restartWithBleMode(mode)
+        }
+
         const val ACTION_START_RIDE = "com.rutabikersync.app.action.START_RIDE"
         const val ACTION_STOP_RIDE = "com.rutabikersync.app.action.STOP_RIDE"
         const val ACTION_FORCE_STOP_RIDE = "com.rutabikersync.app.action.FORCE_STOP_RIDE"
         const val ACTION_TRIGGER_SOS = "com.rutabikersync.app.action.TRIGGER_SOS"
+        const val ACTION_CANCEL_SOS = "com.rutabikersync.app.action.CANCEL_SOS"
         const val ACTION_RIDE_START_ERROR = "com.rutabikersync.app.action.RIDE_START_ERROR"
 
         const val EXTRA_RIDE_ID = "extra_ride_id"
@@ -1019,11 +1069,41 @@ class RideService : Service() {
             }
         }
 
+        fun dispatchTriggerSos(context: Context, active: Boolean? = null) {
+            val current = _sharedState.value
+            val targetActive = active ?: !current.isSosActive
+            if (current.isUsingSimulatedTransport || current.lifecycleState != RideLifecycleState.RUNNING) {
+                inAppSimScope.launch {
+                    inAppSimController.triggerSos(targetActive)
+                    _sharedState.value = inAppSimController.state.value.copy(isSosActive = targetActive)
+                }
+            } else {
+                val sosIntent = Intent(context, RideService::class.java).apply {
+                    action = if (targetActive) ACTION_TRIGGER_SOS else ACTION_CANCEL_SOS
+                }
+                runCatching { context.startService(sosIntent) }
+                _sharedState.value = current.copy(isSosActive = targetActive)
+            }
+        }
+
         @Volatile
         var globalLastPacketsCsv: String? = null
 
         @Volatile
         var activeController: RideSessionController? = null
+
+        fun getActiveRelayEngine(): MeshRelayEngine? {
+            return activeController?.relayEngine ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController.relayEngine else null
+        }
+
+        /** Retorna la instancia activa de [BleMeshService], o null si no está en ejecución. */
+        fun getActiveMeshService(): com.rutabikersync.app.core.mesh.BleMeshService? =
+            com.rutabikersync.app.core.mesh.BleMeshService.getActiveInstance()
+
+        /** Despacha un mensaje de texto táctico cifrado a la malla BLE (Hito 5 · Fase 7.0.2). */
+        fun dispatchSendTextMessage(context: Context, targetShortId: UShort, text: String): Boolean {
+            return getActiveMeshService()?.sendTextMessage(targetShortId, text) ?: false
+        }
 
         fun exportPacketsCsv(): String {
             val live = activeController?.relayEngine?.exportPacketsCsv()
@@ -1100,11 +1180,15 @@ class RideService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var wakeLock: PowerManager.WakeLock? = null
     private var isPromotedToForeground: Boolean = false
+    private var fallDetector: FallDetector? = null
+
+    private var autoFallbackJob: Job? = null
 
     lateinit var controller: RideSessionController
         private set
 
     override fun onCreate() {
+        instance = this
         super.onCreate()
         createNotificationChannelIfNeeded()
         controller = RideSessionController(
@@ -1176,6 +1260,27 @@ class RideService : Service() {
                     Log.i(TAG, "Starting RideService in simulated in-app mode (no Foreground Service)")
                 }
 
+                // Fase 5 (R10.1, R10.2): Inicializar criptografía efímera de rescate médico
+                SosRepository.getInstance(applicationContext).initRideCrypto()
+
+                // Fase 5 (R10.5): Detector inercial de caídas activo durante la rodada
+                try {
+                    fallDetector?.stop()
+                    fallDetector = FallDetector(applicationContext) { triggerType ->
+                        Log.w(TAG, "Caída detectada por sensor inercial en rodada activa ($triggerType)")
+                        serviceScope.launch(Dispatchers.Main) {
+                            SosCountdownManager.getInstance(applicationContext) { confirmedTrigger ->
+                                serviceScope.launch {
+                                    controller.triggerSos(active = true)
+                                    _sharedState.value = controller.state.value
+                                }
+                            }.startCountdown(triggerType)
+                        }
+                    }.also { it.start() }
+                } catch (e: Exception) {
+                    Log.e(TAG, "No se pudo iniciar FallDetector: ${e.message}")
+                }
+
                 controller.recordStartError(null)
                 serviceScope.launch {
                     val state = controller.startRide(
@@ -1194,6 +1299,20 @@ class RideService : Service() {
                     if (isPromotedToForeground) {
                         updateForegroundNotification(state.notification)
                     }
+                    val isExtended = bleModeOverride == null ||
+                        bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_1M ||
+                        bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY
+                    if (isExtended) {
+                        autoFallbackJob?.cancel()
+                        autoFallbackJob = serviceScope.launch {
+                            delay(30_000)
+                            val eng = controller.relayEngine
+                            if (eng != null && eng.peers.value.isEmpty()) {
+                                Log.w("RideService", "Auto-fallback BLE: sin peers en 30s, cambiando a LEGACY_1M")
+                                runCatching { restartWithBleMode(BleAdvTransport.TransportModeOverride.LEGACY_1M) }
+                            }
+                        }
+                    }
                 }
             }
             ACTION_TRIGGER_SOS -> {
@@ -1202,11 +1321,23 @@ class RideService : Service() {
                     _sharedState.value = controller.state.value
                 }
             }
+            ACTION_CANCEL_SOS -> {
+                serviceScope.launch {
+                    controller.triggerSos(active = false)
+                    _sharedState.value = controller.state.value
+                }
+            }
             ACTION_STOP_RIDE -> {
                 serviceScope.launch {
                     val state = controller.onStopActionFromNotification()
                     _sharedState.value = state
                     if (state.lifecycleState == RideLifecycleState.STOPPED) {
+                        fallDetector?.stop()
+                        fallDetector = null
+                        SosRepository.getInstance(applicationContext).clearAllOnRideFinished()
+                        // R12: purga de fichas médicas en RAM al cerrar rodada
+                        com.rutabikersync.app.core.mesh.BleMeshService.getActiveInstance()
+                            ?.medicalSheetStore?.purgeAllOnRideClosed()
                         releaseWakeLockIfHeld()
                         if (isPromotedToForeground) {
                             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -1220,6 +1351,12 @@ class RideService : Service() {
                 serviceScope.launch {
                     val state = controller.stopAll()
                     _sharedState.value = state
+                    fallDetector?.stop()
+                    fallDetector = null
+                    SosRepository.getInstance(applicationContext).clearAllOnRideFinished()
+                    // R12: purga de fichas médicas en RAM al forzar cierre
+                    com.rutabikersync.app.core.mesh.BleMeshService.getActiveInstance()
+                        ?.medicalSheetStore?.purgeAllOnRideClosed()
                     releaseWakeLockIfHeld()
                     if (isPromotedToForeground) {
                         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -1232,7 +1369,37 @@ class RideService : Service() {
         return START_STICKY
     }
 
+    suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState {
+        val current = _sharedState.value
+        if (current.lifecycleState != RideLifecycleState.RUNNING) return current
+        val rideId = current.rideId ?: "ride-live-01"
+        val shortId = current.localShortId
+        val expected = current.expectedPeerShortIds.map { it.toUShort() }.toSet()
+        val isSim = current.isUsingSimulatedTransport
+        val txRx = current.txRxRole
+        val relay = current.relayEnabled
+        controller.stopAll()
+        delay(400)
+        val state = controller.startRide(
+            rideId = rideId,
+            localShortId = shortId.toUShort(),
+            forceSimulatedTransport = isSim,
+            bleModeOverride = mode,
+            expectedPeerShortIds = expected,
+            relayEnabled = relay,
+            txRxRole = txRx
+        )
+        _sharedState.value = state
+        if (isPromotedToForeground) {
+            updateForegroundNotification(state.notification)
+        }
+        return state
+    }
+
     override fun onDestroy() {
+        instance = null
+        autoFallbackJob?.cancel()
+        autoFallbackJob = null
         runCatching {
             val csv = controller.lastPacketsCsv ?: controller.relayEngine?.exportPacketsCsv()
             if (!csv.isNullOrBlank() && csv.lines().count { it.isNotBlank() } > 1) {
@@ -1242,6 +1409,9 @@ class RideService : Service() {
         if (activeController === controller) {
             activeController = null
         }
+        fallDetector?.stop()
+        fallDetector = null
+        SosRepository.getInstance(applicationContext).clearAllOnRideFinished()
         serviceScope.launch {
             controller.stopAll()
             _sharedState.value = controller.state.value
@@ -1332,7 +1502,7 @@ class RideService : Service() {
             Notification.Builder(this)
         }
 
-        return builder
+        builder
             .setSmallIcon(android.R.drawable.stat_sys_data_bluetooth)
             .setContentTitle(snapshot.title)
             .setContentText(snapshot.contentText)
@@ -1353,7 +1523,29 @@ class RideService : Service() {
                     sosPending
                 ).build()
             )
-            .build()
+
+        val showLockAction = runCatching {
+            VaultRepository.getInstance(this).medicalSheetFlow.value.showOnLockScreen
+        }.getOrDefault(false)
+
+        if (showLockAction) {
+            val lockIntent = EmergencyLockScreenActivity.createIntent(this)
+            val lockPending = PendingIntent.getActivity(
+                this,
+                103,
+                lockIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(this, android.R.drawable.ic_menu_myplaces),
+                    "Ficha Médica",
+                    lockPending
+                ).build()
+            )
+        }
+
+        return builder.build()
     }
 
     private fun createNotificationChannelIfNeeded() {
