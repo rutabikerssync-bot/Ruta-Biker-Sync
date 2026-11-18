@@ -241,7 +241,17 @@ class MeshRelayEngine(
     // Métricas y suscriptores de voz PTT (fix funcional: la voz usa la malla activa).
     val voicePacketsEmitted = java.util.concurrent.atomic.AtomicInteger(0)
     val voicePacketsReceived = java.util.concurrent.atomic.AtomicInteger(0)
+    val voicePacketsDroppedBackpressure = java.util.concurrent.atomic.AtomicInteger(0)
+    private val voiceTxPending = java.util.concurrent.atomic.AtomicInteger(0)
     private val voiceReceivedCallbacks = CopyOnWriteArrayList<(VoicePacket) -> Unit>()
+
+    /**
+     * Cada VoicePacket tarda ~1,4 s en fragmentarse (5-6 fragmentos × 140 ms × 2 repeticiones).
+     * El micrófono produce tramas cada 20 ms: sin límite, la cola crece sin control y el
+     * receptor escucha audio con varios segundos de retraso. Con 2 envíos pendientes el
+     * retardo máximo en radio se mantiene en ~3 s, dentro del objetivo de 1-3 s.
+     */
+    private val maxPendingVoiceSends = 2
 
     /**
      * Suscribe un receptor de [VoicePacket] ya reensamblado por el transporte.
@@ -260,6 +270,7 @@ class MeshRelayEngine(
         totalPacketsDroppedLoopback.set(0)
         voicePacketsEmitted.set(0)
         voicePacketsReceived.set(0)
+        voicePacketsDroppedBackpressure.set(0)
         deduplicationTable.clear()
     }
 
@@ -1043,6 +1054,27 @@ class MeshRelayEngine(
             return false
         }
         val bytes = packet.toBinary()
+        val scope = relayScope ?: run {
+            android.util.Log.w("MeshRelayEngine", "VoicePacketTx abortado: sin relayScope")
+            return false
+        }
+
+        // Backpressure: el transporte BLE es mucho más lento que el micrófono. Descartar
+        // tramas viejas mantiene la latencia acotada; el JitterBuffer del receptor aplica PLC.
+        val pending = voiceTxPending.incrementAndGet()
+        if (pending > maxPendingVoiceSends) {
+            voiceTxPending.decrementAndGet()
+            voicePacketsDroppedBackpressure.incrementAndGet()
+            if (voicePacketsDroppedBackpressure.get() % 20 == 1) {
+                android.util.Log.w(
+                    "MeshRelayEngine",
+                    "VoicePacketTx descartado por backpressure pending=$pending frame=${packet.frameIndex} " +
+                        "dropped=${voicePacketsDroppedBackpressure.get()}"
+                )
+            }
+            return false
+        }
+
         synchronized(this) {
             voicePacketsEmitted.incrementAndGet()
             packetsEmitted++
@@ -1061,15 +1093,17 @@ class MeshRelayEngine(
                 )
             )
         }
-        val scope = relayScope ?: run {
-            android.util.Log.w("MeshRelayEngine", "VoicePacketTx abortado: sin relayScope")
-            return false
-        }
         scope.launch {
-            if (activeTransport is BleAdvTransport) {
-                activeTransport.sendVoice(bytes)
-            } else {
-                activeTransport.send(bytes, Transport.Priority.VOICE)
+            try {
+                if (activeTransport is BleAdvTransport) {
+                    activeTransport.sendVoice(bytes)
+                } else {
+                    activeTransport.send(bytes, Transport.Priority.VOICE)
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("MeshRelayEngine", "VoicePacketTx fallo: ${e.message}")
+            } finally {
+                voiceTxPending.decrementAndGet()
             }
         }
         try {

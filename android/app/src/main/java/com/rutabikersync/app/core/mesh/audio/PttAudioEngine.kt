@@ -55,6 +55,27 @@ class PttAudioEngine(
     private val isReceiving = AtomicBoolean(false)
     private val sequenceCounter = AtomicInteger(1)
 
+    /**
+     * La UI de LiveMap es una pantalla muy pesada: publicar el estado PTT en cada trama
+     * (20 ms) bloquea el hilo principal y llega a impedir incluso el tap de "parar".
+     * Se publica como máximo 1 vez por segundo; el audio y el cifrado son independientes.
+     */
+    private var lastUiStatePublishMs = 0L
+    private fun publishTransmittingState(frameIndex: Int, nowMs: Long = System.currentTimeMillis()) {
+        if (nowMs - lastUiStatePublishMs < 1000L) return
+        lastUiStatePublishMs = nowMs
+        _pttState.value = PttState.Transmitting(frameIndex = frameIndex, packetsSent = voicePacketsSent.get())
+    }
+    private fun publishReceivingState(senderId: Int, frameIndex: Int, nowMs: Long = System.currentTimeMillis()) {
+        if (nowMs - lastUiStatePublishMs < 1000L) return
+        lastUiStatePublishMs = nowMs
+        _pttState.value = PttState.Receiving(
+            senderShortId = senderId,
+            frameIndex = frameIndex,
+            packetsReceived = voicePacketsReceived.get()
+        )
+    }
+
     // Métricas de paquetes de voz
     val voicePacketsSent = AtomicInteger(0)
     val voicePacketsReceived = AtomicInteger(0)
@@ -79,6 +100,7 @@ class PttAudioEngine(
             return
         }
         Log.i(TAG, "PTT: Iniciando transmisión de audio...")
+        lastUiStatePublishMs = System.currentTimeMillis()
         _pttState.value = PttState.Transmitting(frameIndex = 0, packetsSent = voicePacketsSent.get())
 
         recordJob = scope.launch(Dispatchers.IO) {
@@ -137,10 +159,7 @@ class PttAudioEngine(
 
                         onSendVoicePacket(packet)
                         voicePacketsSent.incrementAndGet()
-                        _pttState.value = PttState.Transmitting(
-                            frameIndex = frameIdx,
-                            packetsSent = voicePacketsSent.get()
-                        )
+                        publishTransmittingState(frameIdx)
                         frameIdx++
                     }
                 }
@@ -231,11 +250,7 @@ class PttAudioEngine(
                 isLast = packet.isLastFrame
             )
 
-            _pttState.value = PttState.Receiving(
-                senderShortId = senderId,
-                frameIndex = packet.frameIndex,
-                packetsReceived = voicePacketsReceived.get()
-            )
+            publishReceivingState(senderId, packet.frameIndex)
 
             // 3. Iniciar bucle de reproducción si no está activo
             startPlaybackLoopIfNeeded()
