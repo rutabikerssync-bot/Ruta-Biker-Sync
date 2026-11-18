@@ -1907,6 +1907,7 @@ fun LiveMapScreen(
                     peers = meshPeers,
                     isLpnToggleEnabled = false,
                     lpnToggleDisabledReason = "No implementado aún",
+                    modulationLabel = rideServiceState.forcedBleMode ?: "AUTO",
                     onBleModeChange = { mode ->
                         coroutineScope.launch {
                             RideService.restartWithBleMode(mode)

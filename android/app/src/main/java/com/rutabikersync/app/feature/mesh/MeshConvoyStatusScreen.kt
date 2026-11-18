@@ -134,6 +134,7 @@ fun MeshConvoyStatusScreen(
     peers: List<MeshPeerLiveState> = emptyList(),
     isLpnToggleEnabled: Boolean = true,
     lpnToggleDisabledReason: String? = null,
+    modulationLabel: String = "Coded PHY",
     onToggleLocalLpn: (Boolean) -> Unit = {},
     onRefreshScan: () -> Unit = {},
     onBleModeChange: (com.rutabikersync.app.core.transport.BleAdvTransport.TransportModeOverride) -> Unit = {},
@@ -282,7 +283,7 @@ fun MeshConvoyStatusScreen(
                             )
                             MetricColumn(
                                 title = "Modulación",
-                                value = "Coded PHY",
+                                value = modulationLabel,
                                 color = HeritageBrassGold
                             )
                         }
