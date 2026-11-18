@@ -1,0 +1,84 @@
+EVIDENCIA DE AUDIO CONTINUO PTT SOBRE GATT - 2026-11-18
+Dispositivos: TECNO KI5k 098813734B105395 (shortId=12982, GATT CLIENT) y Redmi Note 13 Pro 5G b2c398bb (shortId=12243, GATT SERVER).
+Perfil: GATT Voice 0000b1cf / TX 0000b1d0 / RX 0000b1d1 / CCCD 00002902. MTU negociado 517 B. Opus y ChaCha20-Poly1305 sin cambios.
+Nota: los logs GattVoice Tx/Rx se emiten 1 de cada 25 tramas; el conteo por trama se toma de MeshRelayEngine VoicePacketTx/VoicePacketRx y LiveMapScreen.
+
+=== 1. ESTABLECIMIENTO GATT (captura gatt5) ===
+11-18 18:00:40.763 18336 18336 I GattVoice: GattVoice CLIENT scanning service=0000b1cf-0000-1000-8000-00805f9b34fb
+11-18 18:00:47.204 18336 18336 I GattVoice: GattVoice CLIENT connectGatt address=75:11:1F:0A:3E:FB
+11-18 18:00:47.512 18336 18444 I GattVoice: GattVoice CLIENT connected
+11-18 18:00:48.684 18336 18468 I GattVoice: GattVoice MTU CLIENT=517
+11-18 18:00:48.706 18336 18468 I GattVoice: GattVoice READY role=CLIENT mtu=517 node=12982
+11-18 18:00:47.080  9732  9732 I GattVoice: GattVoice connectable advertise started txPower=-1
+11-18 18:00:47.607  9732 13200 I GattVoice: GattVoice SERVER connected device=7B:47:1D:CF:B4:86
+11-18 18:00:48.671  9732 13200 I GattVoice: GattVoice MTU SERVER=517
+11-18 18:00:48.672  9732 13200 I GattVoice: GattVoice READY role=SERVER mtu=517 node=12243
+
+=== 2. CONTEO POR SESION (captura gatt6) ===
+T1_TECNO->REDMI_18:03:00     TX=660  RX=659  entregadas=659  frames=0..659/0..658 huecosTX=[] huecosRX=[]
+T2_TECNO->REDMI_18:03:17     TX=740  RX=736  entregadas=736  frames=0..739/0..735 huecosTX=[] huecosRX=[]
+T3_TECNO->REDMI_18:12:03     TX=735  RX=733  entregadas=733  frames=0..734/0..732 huecosTX=[] huecosRX=[]
+T4_TECNO->REDMI_18:12:22     TX=737  RX=735  entregadas=735  frames=0..736/0..734 huecosTX=[] huecosRX=[]
+T5_TECNO->REDMI_18:19:09     TX=298  RX=260  entregadas=260  frames=0..297/0..294 huecosTX=[] huecosRX=[78->114]
+T6_TECNO->REDMI_18:22:55     TX=742  RX=739  entregadas=739  frames=0..741/0..738 huecosTX=[] huecosRX=[]
+T7_TECNO->REDMI_18:23:15     TX=738  RX=320  entregadas=320  frames=0..737/0..319 huecosTX=[] huecosRX=[]
+R1_REDMI->TECNO_18:05:10     TX=319  RX=318  entregadas=318  frames=0..318/0..317 huecosTX=[] huecosRX=[]
+
+=== 3. SESION 15 s TECNO -> REDMI (18:22:55.385 - 18:23:10.555) ===
+11-18 18:22:55.385 18336 18336 I GattVoice: GattVoice session START ready=true mtu=517
+11-18 18:22:55.385 18336 18336 I PttAudioEngine: PTT: Iniciando transmisión de audio...
+11-18 18:22:55.718 18336 18868 I MeshRelayEngine: VoicePacketTx frame=0 last=false bytes=70 via=GATT
+11-18 18:22:55.737 18336 18868 I MeshRelayEngine: VoicePacketTx frame=1 last=false bytes=91 via=GATT
+11-18 18:23:10.548 18336 18868 I MeshRelayEngine: VoicePacketTx frame=741 last=false bytes=103 via=GATT
+11-18 18:23:10.554 18336 18336 I PttAudioEngine: PTT: Transmisión finalizada por el usuario.
+11-18 18:23:10.555 18336 18336 I GattVoice: GattVoice session END (enlace GATT se mantiene para la rodada)
+11-18 18:22:55.752  9732 15740 I MeshRelayEngine: VoicePacketRx sender=12982 frame=0 last=false bytes=70
+11-18 18:22:55.797  9732 13290 I MeshRelayEngine: VoicePacketRx sender=12982 frame=1 last=false bytes=91
+11-18 18:23:10.514  9732 13277 I MeshRelayEngine: VoicePacketRx sender=12982 frame=738 last=false bytes=77
+11-18 18:23:10.515  9732 13277 I LiveMapScreen: VoicePacketRx entregado al reproductor PTT frame=738
+
+=== 4. SESION REDMI -> TECNO (18:05:10.180 - 18:05:16.740) ===
+11-18 18:05:10.180  9732  9732 I GattVoice: GattVoice session START ready=true mtu=517
+11-18 18:05:10.180  9732  9732 I PttAudioEngine: PTT: Iniciando transmisión de audio...
+11-18 18:05:10.387  9732 13290 I MeshRelayEngine: VoicePacketTx frame=0 last=false bytes=48 via=GATT
+11-18 18:05:10.409  9732 13290 I MeshRelayEngine: VoicePacketTx frame=1 last=false bytes=47 via=GATT
+11-18 18:05:16.733  9732 13290 I MeshRelayEngine: VoicePacketTx frame=318 last=false bytes=78 via=GATT
+11-18 18:05:16.740  9732  9732 I PttAudioEngine: PTT: Transmisión finalizada por el usuario.
+11-18 18:05:16.740  9732  9732 I GattVoice: GattVoice session END (enlace GATT se mantiene para la rodada)
+11-18 18:05:10.479 18336 18850 I MeshRelayEngine: VoicePacketRx sender=12243 frame=0 last=false bytes=48
+11-18 18:05:10.485 18336 18850 I MeshRelayEngine: VoicePacketRx sender=12243 frame=1 last=false bytes=47
+11-18 18:05:10.494 18336 18467 I AudioTrack: set(): streamType -1, sampleRate 16000, format 0x1, channelMask 0x1, frameCount 1552, flags #0, notificationFrames 0, sessionId 0, transferType 3, uid -1, pid -1
+11-18 18:05:16.738 18336 18850 I MeshRelayEngine: VoicePacketRx sender=12243 frame=317 last=false bytes=89
+11-18 18:05:16.739 18336 18850 I LiveMapScreen: VoicePacketRx entregado al reproductor PTT frame=317
+
+=== 5. NOTIFICACIONES Y BACKPRESSURE ===
+11-18 18:03:00.929 18336 18395 I GattVoice: GattVoice Tx role=CLIENT bytes=72 chunks=1 mtu=517
+11-18 18:03:02.289 18336 18394 I GattVoice: GattVoice Tx role=CLIENT bytes=95 chunks=1 mtu=517
+11-18 18:23:30.390 18336 18868 I GattVoice: GattVoice Tx role=CLIENT bytes=97 chunks=1 mtu=517
+11-18 18:23:30.882 18336 18846 I GattVoice: GattVoice Tx role=CLIENT bytes=92 chunks=1 mtu=517
+11-18 18:05:10.478 18336 18398 I GattVoice: GattVoice Rx dir=SERVER->CLIENT bytes=48 total=1
+11-18 18:05:10.884 18336 18398 I GattVoice: GattVoice Rx dir=SERVER->CLIENT bytes=47 total=26
+11-18 18:05:15.924 18336 18398 I GattVoice: GattVoice Rx dir=SERVER->CLIENT bytes=105 total=276
+11-18 18:05:16.419 18336 18348 I GattVoice: GattVoice Rx dir=SERVER->CLIENT bytes=58 total=301
+11-18 18:05:10.396  9732 13279 I GattVoice: GattVoice Tx role=SERVER bytes=48 chunks=1 mtu=517
+11-18 18:05:10.871  9732 15740 I GattVoice: GattVoice Tx role=SERVER bytes=47 chunks=1 mtu=517
+11-18 18:05:15.866  9732 15740 I GattVoice: GattVoice Tx role=SERVER bytes=105 chunks=1 mtu=517
+11-18 18:05:16.364  9732 13681 I GattVoice: GattVoice Tx role=SERVER bytes=58 chunks=1 mtu=517
+11-18 18:03:00.967  9732 13423 I GattVoice: GattVoice Rx dir=CLIENT->SERVER bytes=72 total=1
+11-18 18:03:02.355  9732 13692 I GattVoice: GattVoice Rx dir=CLIENT->SERVER bytes=95 total=26
+11-18 18:23:21.943  9732 13198 I GattVoice: GattVoice Rx dir=CLIENT->SERVER bytes=87 total=4176
+11-18 18:23:22.439  9732 17145 I GattVoice: GattVoice Rx dir=CLIENT->SERVER bytes=93 total=4201
+11-18 18:19:11.910 18336 18395 W GattVoice: GattVoice TX backpressure pending=17 dropped=1
+11-18 18:19:12.329 18336 18395 W GattVoice: GattVoice TX backpressure pending=17 dropped=21
+11-18 18:19:12.606 18336 18395 W GattVoice: GattVoice TX fallo: Timed out waiting for 1000 ms
+T5 (18:19:09-18:19:16) es la unica sesion con backpressure/timeout reales: 298 TX, 260 RX, hueco 78->114.
+T7 (18:23:15-18:23:30) queda INCONCLUSIVA: el archivo de logcat del receptor termina en 18:23:22.576 mientras el emisor sigue hasta 18:25:12; el corte es de la captura, no evidencia de perdida de audio.
+
+=== 6. UI RECEPTORA Y ADV CONCURRENTE ===
+text="&#128266; Recibiendo voz de Piloto #12982 · 3454 tramas"
+11-18 18:02:29.866 18336 18396 I BleAdvTransport: BleAdvTransport.send burst#=72 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-18 18:02:30.396 18336 18395 I BleAdvTransport: BleAdvTransport.send burst#=73 mode=LEGACY_1M delivery=BURST priority=POSITION
+
+=== 7. GUION Y LIMITES ===
+Guion hablado solicitado: PRUEBA DE AUDIO CONTINUO UNO DOS TRES CUATRO CINCO. El contenido fonetico NO puede ser verificado por este agente.
+La claridad auditiva (se escucha claro, sin cortes) requiere escucha humana; este agente solo certifica continuidad de transporte, conteo de tramas y reproduccion AudioTrack.
