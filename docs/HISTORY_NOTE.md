@@ -65,8 +65,20 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - **Prueba unitaria (PASS):** `MeshConvoyStatusScreenTest` (`:app:testStandardDebugUnitTest --tests "com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreenTest"`) — incluye `testMapeoPeersVacios` y `testMapeoPeerSimuladoConDatosRealesDisponibles` (mapeo con `PeerTrack` simulado y verificación de campos disponibles / "No disponible" para no expuestos). Ejecución local: `BUILD SUCCESSFUL`.
 - **Logcat/notificación en TECNO:** no disponible en este entorno de cambios; pendiente de ejecución del usuario en dispositivo (sin falso verde). Si persiste ausencia de foreground en TECNO, documentar causa concreta observada (permisos denegados, Bluetooth apagado, adapter no habilitado, etc.) sin cambios de backend.
 
-### Archivos principales
-- `android/app/src/main/java/com/rutabikersync/app/ui/navigation/MainAppScaffold.kt`
-- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`
-- `android/app/src/main/java/com/rutabikersync/app/feature/mesh/MeshConvoyStatusScreen.kt`
-- `android/app/src/test/java/com/rutabikersync/app/feature/mesh/MeshConvoyStatusScreenTest.kt`
+### Verificación de campo (2026-11-18, TECNO KI5k + Redmi Note 13 Pro 5G)
+
+**Bug 1 — arranque con foreground (TECNO KI5k, Android 12/HiOS):**
+- Tras pulsar "Iniciar Rodada (Cabina Activa)", `RideService` quedó en foreground (`isForeground=true`, `foregroundId=3201`, `fgsType=0x18`), notificación persistente "Rodada activa · 0 riders conectados", y `HeartbeatTx` incrementando (190+ paquetes).
+- Build de prueba re-firmado con la clave de producción (`C:\rbs-secrets\rbs-release.jks`, SHA-256 `8502ba90bc42e4c321f97f406ea495aaa6c3cc7f81c6b10bdf4585a78c33dd4c`) para instalar sobre la app existente sin perder sesión.
+
+**Bug 2 — monitor (TECNO, estado vacío real):**
+- Monitor mostró `Pilotos Enlazados 0`, `PLR Promedio No disponible`, "Sin compañeros en rango", LPN `No implementado aún`. Coherente con la ausencia de peers reales.
+
+**Enlace dispositivo-dispositivo:**
+- Redmi (nodo 2) recibió heartbeats de TECNO (nodo 1) con modo EXTENDED_CODED_PHY: `valid=14`, `peer=1 hops=1 battery=87`, entrega ~70%.
+- TECNO (nodo 1) en el mismo modo recibió 0 paquetes (valid=0 en 90 s con filtro diagnóstico amplio); la pila Bluetooth de TECNO reportó 0 resultados para la app en `dumpsys bluetooth_manager` (GATT Scanner Map, "Filter 0 results"). Se clasifica como limitación de pila/PHY del dispositivo, no de lógica de negocio.
+- Con modo `LEGACY_1M` en ambos dispositivos, el enlace fue bidireccional y completo: TECNO vio nodo 2 (`valid=21, delivery=95.45%`) y Redmi vio nodo 1 (`valid=17, delivery=77.27%`).
+- Consecuencia operativa: la selección automática `EXTENDED_CODED_PHY` deja el mesh unidireccional en TECNO KI5k. Requiere decisión de producto (fallback a `LEGACY_1M` o negociación de modo), fuera del alcance de Bug 1/2 y sin workaround en backend.
+- PTT (PTT/voz) no se probó en este ciclo; no se marca B2-4 runtime como cerrado por esa evidencia.
+
+**Limpieza:** arnés temporal `RideStartHarnessTest.kt` y APK de test eliminados; no se commitearon.
