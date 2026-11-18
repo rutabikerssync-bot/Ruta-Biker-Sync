@@ -119,3 +119,11 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - Sin cambios en envÃ­o/recepciÃ³n, crypto ni backend. Build firmada e instalada en TECNO y Redmi con Success; force-stop aplicado.
 - Pendiente de verificaciÃ³n visual en campo: captura del chat legible con mensaje enviado/recibido (no disponible en este entorno; no se marca como verificado hasta evidencia real).
 
+
+### Captura de evidencia del chat con contraste corregido (2026-11-18)
+- Captura tomada en TECNO KI5k (098813734B105395) con la build firmada del fix: `docs/evidence/chat_tactico_contraste_2026-11-18.png`.
+- Navegacion real: rodada activa -> boton "Senal de ruta" -> dialogo "Senales Rapidas de Convoy" -> "CHAT TACTICO OFF-GRID".
+- Se envio el preset "â›½ Gasolinera a 2 km". El dump de UI (`uiautomator dump`) confirma la burbuja saliente con cabecera "TÃš", badge "BROADCAST", texto del mensaje, hora 13:41 y estado "Enviado" â€” mismo caso que antes era ilegible.
+- Evidencia objetiva: ratios WCAG AA verificados por `TacticalChatContrastTest` (cuerpo 7.10:1 sobre broadcast, 8.93:1 sobre unicast, 14.00:1 entrante). La revision visual final de la captura queda al usuario; no se marca como "verificado visualmente" sin inspeccion humana.
+- `main...origin/main [ahead 2]`: commits `70da790` (fix) y `6674020` (docs) pendientes de push.
+
