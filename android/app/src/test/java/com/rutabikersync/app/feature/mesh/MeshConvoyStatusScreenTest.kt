@@ -213,4 +213,32 @@ class MeshConvoyStatusScreenTest {
         assertEquals("No disponible", formatConvoyRole(peer.roleInConvoy))
         assertNull(RssiSignalLevel.fromDbmOrNull(peer.rssiDbm))
     }
+
+    @Test
+    fun testMapeoPropagaRssiRealDelStack() {
+        val now = 1_700_000_100_000L
+        val track = com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack(
+            shortId = 9u,
+            lastLatitude = 19.3,
+            lastLongitude = -99.1,
+            lastSpeedKmh = 0,
+            lastBatteryPercent = 87,
+            isSos = false,
+            lastSeenEpochMs = now - 3_000L,
+            firstSequence = 1,
+            lastSequence = 40,
+            expectedBeats = 40,
+            receivedBeats = 38,
+            consecutiveAfterLossBeats = 0,
+            isLost = false,
+            lastHops = 1,
+            lastRssiDbm = -45
+        )
+
+        val peer = mapPeerTrackToMeshPeerLiveState(track, nowEpochMs = now)
+
+        assertEquals(-45, peer.rssiDbm)
+        assertEquals(RssiSignalLevel.EXCELLENT, RssiSignalLevel.fromDbmOrNull(peer.rssiDbm))
+        assertEquals(4, RssiSignalLevel.fromDbm(peer.rssiDbm!!).bars)
+    }
 }

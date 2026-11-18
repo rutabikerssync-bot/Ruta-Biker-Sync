@@ -858,7 +858,7 @@ fun mapPeerTrackToMeshPeerLiveState(
         shortId = track.shortId,
         name = "No disponible",
         roleInConvoy = "No disponible",
-        rssiDbm = null,
+        rssiDbm = track.lastRssiDbm,
         hopCount = track.lastHops.coerceIn(0, 127).toByte(),
         batteryPercent = track.lastBatteryPercent.coerceIn(0, 100),
         isLpn = false,

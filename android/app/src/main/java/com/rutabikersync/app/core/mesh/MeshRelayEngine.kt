@@ -115,7 +115,8 @@ class MeshRelayEngine(
         val receivedBeats: Int,
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
-        val lastHops: Int
+        val lastHops: Int,
+        val lastRssiDbm: Int? = null
     )
 
     data class PacketLogEntry(
@@ -985,7 +986,7 @@ class MeshRelayEngine(
                     eventCycle = cycle
                 )
             } else {
-                updatePeerTrackLocked(packet, nowEpochMs)
+                updatePeerTrackLocked(packet, nowEpochMs, rssi)
             }
 
             val decremented = if (relayEnabled) packet.decrementTtlForRelay() else null
@@ -1145,7 +1146,7 @@ class MeshRelayEngine(
         return json.encodeToString(metrics.value)
     }
 
-    private fun updatePeerTrackLocked(packet: MeshPacket, nowEpochMs: Long) {
+    private fun updatePeerTrackLocked(packet: MeshPacket, nowEpochMs: Long, rssi: Int? = null) {
         val existing = peerMap[packet.shortId]
         val firstSeq = if (existing == null || existing.receivedBeats == 0 || existing.firstSequence < 0) {
             packet.sequenceNumber
@@ -1180,7 +1181,8 @@ class MeshRelayEngine(
             receivedBeats = newReceived,
             consecutiveAfterLossBeats = if (stillLost) consecutiveRecovery else 0,
             isLost = stillLost,
-            lastHops = packet.hopsTaken
+            lastHops = packet.hopsTaken,
+            lastRssiDbm = rssi ?: existing?.lastRssiDbm
         )
     }
 
