@@ -16,10 +16,10 @@ class BleFragmentationCodecTest {
 
     @Test
     fun `payload pequeno genera un solo frame y hace round trip`() {
-        val payload = ByteArray(20) { it.toByte() }
+        val payload = ByteArray(10) { it.toByte() }
         val frames = BleFragmentationCodec.fragment(payload, 1)
         assertEquals(1, frames.size)
-        assertEquals(BleFragmentationCodec.HEADER_BYTES + 20, frames[0].size)
+        assertEquals(BleFragmentationCodec.HEADER_BYTES + 10, frames[0].size)
         val rx = BleFragmentationCodec.Reassembler()
         assertArrayEquals(payload, rx.feed(frames[0]))
     }
@@ -28,13 +28,13 @@ class BleFragmentationCodecTest {
     fun `round trip multi fragmento fuera de orden incluyendo duplicados`() {
         val payload = ByteArray(100) { (it * 7).toByte() }
         val frames = BleFragmentationCodec.fragment(payload, 0x1234)
-        assertEquals(5, frames.size)
+        assertEquals(7, frames.size)
         frames.forEach { assert(it.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) }
 
         val rx = BleFragmentationCodec.Reassembler()
         val reversed = frames.reversed()
-        reversed.take(4).forEach { assertNull("fragmento intermedio", rx.feed(it)) }
-        assertNull("duplicado no debe completar nada", rx.feed(frames[4]))
+        reversed.take(6).forEach { assertNull("fragmento intermedio", rx.feed(it)) }
+        assertNull("duplicado no debe completar nada", rx.feed(frames[6]))
         assertArrayEquals(payload, rx.feed(frames[0]))
     }
 
@@ -63,7 +63,7 @@ class BleFragmentationCodecTest {
     fun `frames exceden el limite legacy solo por el overhead del codec`() {
         val maxText = ByteArray(120) { 0x41 }
         val frames = BleFragmentationCodec.fragment(maxText, 7)
-        assertEquals(6, frames.size)
+        assertEquals(8, frames.size)
         frames.forEach {
             assert(it.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) {
                 "frame de ${it.size} B excede el máximo legacy"

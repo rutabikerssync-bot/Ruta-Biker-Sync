@@ -22,8 +22,13 @@ object BleFragmentationCodec {
     const val MAGIC_0: Byte = 0xA5.toByte()
     const val MAGIC_1: Byte = 0x5A.toByte()
     const val HEADER_BYTES: Int = 8
-    const val MAX_MANUFACTURER_PAYLOAD_BYTES: Int = 29
-    const val MAX_CHUNK_DATA_BYTES: Int = MAX_MANUFACTURER_PAYLOAD_BYTES - HEADER_BYTES // 21
+    /**
+     * Límite real de manufacturer data en advertising legacy: 31 B (PDU) - 3 B (flags AD)
+     * - 1 B (length) - 1 B (AD type 0xFF) - 2 B (company ID 0x5242) = 24 B.
+     * Confirmado en campo: 29 B produce ADVERTISE_FAILED_DATA_TOO_LARGE (errorCode=1).
+     */
+    const val MAX_MANUFACTURER_PAYLOAD_BYTES: Int = 24
+    const val MAX_CHUNK_DATA_BYTES: Int = MAX_MANUFACTURER_PAYLOAD_BYTES - HEADER_BYTES // 16
     const val SESSION_TIMEOUT_MS: Long = 10_000L
 
     data class Fragment(
