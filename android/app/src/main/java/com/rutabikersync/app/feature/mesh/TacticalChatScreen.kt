@@ -179,15 +179,15 @@ fun TacticalChatScreen(
                             },
                             label = { Text("📡 Convoy General (Broadcast)") },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = HeritageCopper,
-                                selectedLabelColor = Color.White,
+                                selectedContainerColor = HeritageCopperDark,
+                                selectedLabelColor = TextWhite,
                                 containerColor = DarkCardBg,
                                 labelColor = TextMuted
                             ),
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = !isUnicastMode,
-                                borderColor = if (!isUnicastMode) HeritageCopper else DarkBorderSubtle
+                                borderColor = if (!isUnicastMode) HeritageCopperGlow else DarkBorderSubtle
                             )
                         )
 
@@ -202,7 +202,7 @@ fun TacticalChatScreen(
                             },
                             label = { Text("👤 Compañero Directo (Unicast)") },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = DarkBorderProminent,
+                                selectedContainerColor = HeritageGreenLight,
                                 selectedLabelColor = TextWhite,
                                 containerColor = DarkCardBg,
                                 labelColor = TextMuted
@@ -210,7 +210,7 @@ fun TacticalChatScreen(
                             border = FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = isUnicastMode,
-                                borderColor = if (isUnicastMode) HeritageBrassGold else DarkBorderSubtle
+                                borderColor = if (isUnicastMode) EmeraldMeshGlow else DarkBorderSubtle
                             )
                         )
                     }
@@ -493,6 +493,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val formattedTime = remember(msg.timestampMs) { timeFormat.format(Date(msg.timestampMs)) }
     val alignment = if (msg.isOutgoing) Alignment.End else Alignment.Start
+    val palette = chatBubblePalette(msg.isOutgoing, msg.isBroadcast)
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -501,7 +502,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
         Row(
             verticalAlignment = Alignment.Bottom,
             horizontalArrangement = if (msg.isOutgoing) Arrangement.End else Arrangement.Start,
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier.fillMaxWidth(0.8f)
         ) {
             // Avatar para mensajes entrantes
             if (!msg.isOutgoing) {
@@ -530,14 +531,14 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                     bottomStart = if (msg.isOutgoing) 14.dp else 2.dp,
                     bottomEnd = if (msg.isOutgoing) 2.dp else 14.dp
                 ),
-                color = if (msg.isOutgoing) Color(0xFF261D1A) else DarkCardElevated,
+                color = palette.background,
                 border = BorderStroke(
                     width = 1.2.dp,
-                    color = if (msg.isOutgoing) Color(0xFFC86D44) else DarkBorderSubtle
+                    color = palette.border
                 ),
                 modifier = Modifier.weight(1f, fill = false)
             ) {
-                Column(modifier = Modifier.padding(10.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                     // Cabecera: Nombre y Rol
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -549,14 +550,14 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                                 text = if (msg.isOutgoing) "TÚ" else msg.senderName,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
-                                color = if (msg.isOutgoing) Color(0xFFE5B869) else HeritageBrassGold
+                                color = palette.headerText
                             )
                             if (!msg.isOutgoing) {
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "· ${msg.senderRole}",
                                     fontSize = 10.sp,
-                                    color = TextMuted,
+                                    color = ChatTextMeta,
                                     fontWeight = FontWeight.Normal
                                 )
                             }
@@ -565,14 +566,14 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                         // Badge de Canal (BROADCAST vs DIRECTO)
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = if (msg.isBroadcast) DarkSlate950 else DarkCardBg,
+                            color = palette.badgeBackground,
                             modifier = Modifier.padding(start = 6.dp)
                         ) {
                             Text(
                                 text = if (msg.isBroadcast) "BROADCAST" else "DIRECTO",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = if (msg.isBroadcast) EmeraldMesh else HeritageCopperGlow,
+                                color = palette.badgeText,
                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                             )
                         }
@@ -584,7 +585,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                     Text(
                         text = msg.text,
                         fontSize = 14.sp,
-                        color = TextWhite,
+                        color = palette.text,
                         lineHeight = 18.sp
                     )
 
@@ -599,14 +600,14 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                         Icon(
                             imageVector = Icons.Default.Lock,
                             contentDescription = "Cifrado ChaCha20",
-                            tint = EmeraldMesh,
+                            tint = palette.metaText,
                             modifier = Modifier.size(10.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = formattedTime,
                             fontSize = 10.sp,
-                            color = TextTertiary
+                            color = palette.metaText
                         )
 
                         if (msg.isOutgoing) {
@@ -616,21 +617,21 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                                     Icon(
                                         imageVector = Icons.Default.DoneAll,
                                         contentDescription = "ACK confirmado",
-                                        tint = EmeraldMesh,
+                                        tint = EmeraldMeshGlow,
                                         modifier = Modifier.size(13.dp)
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
-                                    Text("ACK", fontSize = 9.sp, color = EmeraldMesh, fontWeight = FontWeight.Bold)
+                                    Text("ACK", fontSize = 9.sp, color = EmeraldMeshGlow, fontWeight = FontWeight.Bold)
                                 }
                                 DeliveryStatus.SENT -> {
                                     Icon(
                                         imageVector = Icons.Default.Check,
                                         contentDescription = "Enviado por malla",
-                                        tint = TextTertiary,
+                                        tint = palette.metaText,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(2.dp))
-                                    Text("Enviado", fontSize = 9.sp, color = TextTertiary)
+                                    Text("Enviado", fontSize = 9.sp, color = palette.metaText)
                                 }
                                 DeliveryStatus.FAILED -> {
                                     Icon(
@@ -643,7 +644,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                                     Text("Fallido", fontSize = 9.sp, color = RescueRed, fontWeight = FontWeight.Bold)
                                 }
                                 DeliveryStatus.SENDING -> {
-                                    Text("...", fontSize = 9.sp, color = TextTertiary)
+                                    Text("...", fontSize = 9.sp, color = palette.metaText)
                                 }
                             }
                         } else if (msg.hopCount > 0) {
@@ -651,7 +652,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                             Text(
                                 text = "(${msg.hopCount} saltos)",
                                 fontSize = 9.sp,
-                                color = TextTertiary
+                                color = palette.metaText
                             )
                         }
                     }
