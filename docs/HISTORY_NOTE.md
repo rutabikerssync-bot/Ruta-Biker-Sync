@@ -99,3 +99,9 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - IDs derivados son distintos entre dispositivos (sin choque de identidad); se descartó el localShortId=1 fijo que causaba el descarte de ecos.
 - Nota: los valores de RSSI en la tarjeta siguen mostrando "No disponible" (campo ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo; B2-4 runtime permanece con ese alcance explícito.
 - Commit funcional: c624b1c (fix(mesh): derivar localShortId de ANDROID_ID para evitar colisiones entre dispositivos).
+
+### Mejora RSSI real en tarjeta (2026-11-18, commit 7501ff5)
+- MeshRelayEngine.PeerTrack incorpora lastRssiDbm: Int?, alimentado desde IncomingPacket.rssi (valor real del stack BLE) en onRawPacketReceived → updatePeerTrackLocked, con retención del último valor si un paquete posterior no trae RSSI.
+- mapPeerTrackToMeshPeerLiveState propaga 	rack.lastRssiDbm a MeshPeerLiveState.rssiDbm; la tarjeta del monitor muestra ahora los dBm reales y las barras de señal calculadas por RssiSignalLevel.fromDbm (datos reales, sin inventar).
+- Prueba unitaria nueva 	estMapeoPropagaRssiRealDelStack (PASS): track con lastRssiDbm=-45 → peer.rssiDbm=-45, nivel EXCELLENT, 4 barras. Suite MeshConvoyStatusScreenTest completa en verde.
+- Build firmada e instalada en TECNO (098813734B105395) y Redmi (b2c398bb) con Success; force-stop aplicado en ambos.
