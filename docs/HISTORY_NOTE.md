@@ -49,3 +49,24 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 - **Validación automatizada:** `scripts/verify_backup_rules.ps1` (y `.sh`) — PASS en estado actual; FAIL simulado comprobado (exclusión requerida faltante y exclusión de dominio completo `path="."`).
 - **Permisos (B3-3):** `docs/PERMISSIONS_USAGE_REPORT_T08.md` actualizado con evidencia uso/no uso, clasificación y recomendación por permiso (sin eliminaciones). `docs/PERMISSIONS_MATRIX_T08.md` actualizado con almacén asociado y cobertura backup.
 - **Estado:** `CERRADO_ESTATICO_PENDIENTE_RUNTIME` (no `[x]`): inventario/reglas/validación estáticos completos; pendiente validación runtime de backup/restore y device-transfer en dispositivo, y decisión de producto sobre permisos candidatos a revisar/eliminar.
+
+## 2026-11-17 — Cabina/Malla: arranque de rodada (TECNO) y Monitor de Malla conectado a estado real (diagnóstico y corrección)
+
+### Diagnóstico (aceptado)
+- **Bug 1 (arranque en TECNO / UI sin radio):** en `MainAppScaffold.kt` el botón "Iniciar Rodada (Cabina Activa)" navegaba a la cabina (`onStartLiveMapPreview`) pero solo despachaba `RideService.dispatchStartRide` si `forceSimulated` era `true` o `RideService.isMeshViable(context)` era `true`. Si la malla no era viable en ese chequeo, la UI entraba en cabina sin iniciar sesión de rodada/radio ni mostrar causa clara.
+- **Bug 2 (monitor desconectado):** en `LiveMapScreen.kt` el overlay del monitor invocaba `MeshConvoyStatusScreen` con valores por defecto (peers vacíos), sin leer `RideService.getActiveRelayEngine()?.peers` ni `RideService.sharedState`, por lo que no reflejaba el estado real.
+
+### Correcciones aplicadas
+- **Bug 1:** `startRideServiceNow` ahora captura la `RideServiceEligibility` devuelta por `dispatchStartRide` y, cuando se solicitó inicio no simulado pero no es posible promover a foreground (`!eligibility.shouldPromoteToForeground`), establece un mensaje claro en UI indicando que la malla BLE no es viable (permisos/Bluetooth) y que la rodada se inició en modo simulado dentro de la app sin notificación persistente en primer plano. El botón "Iniciar Rodada (Cabina Activa)" despacha siempre el inicio (`startRideServiceNow(useSimulated = forceSimulated)`), evitando entrar a cabina sin intento de arranque.
+  - **Criterio "foreground + notificación persistente" en TECNO:** depende de que el dispositivo cumpla viabilidad real de malla (`computeEligibility`/permisos y condiciones de BLE). Si en el TECNO faltan permisos o Bluetooth/condiciones BLE, el código ahora lo informa explícitamente y arranca sesión simulada en app; no se fuerza foreground sin tipo/permiso (diseño existente de `RideService`). La causa exacta en dispositivo debe confirmarse con logcat y estado de permisos/Bluetooth al pulsar iniciar (pendiente de evidencia de ejecución en TECNO).
+- **Bug 2:** `MeshConvoyStatusScreen` acepta `isLpnToggleEnabled`/`lpnToggleDisabledReason` y muestra campos RF/identidad no expuestos por el stack como **"No disponible"** (RSSI/PLR/nombre/rol) sin inventar valores. Se añadió mapeo puro `mapPeerTrackToMeshPeerLiveState`/`mapPeerTracksToMeshPeerLiveStates` desde `MeshRelayEngine.PeerTrack` usando solo campos disponibles: `shortId`, `lastHops`, `lastBatteryPercent`, `lastSeenEpochMs`, `expectedBeats`/`receivedBeats` (PLR derivado de expected/received cuando aplica). `LiveMapScreen` pasa `peers` reales desde `getActiveRelayEngine()?.peers`, `localBatteryPercent` real y el switch de modo de radio queda **deshabilitado** con "No implementado aún" (sin efecto real conectado en stack). Estado vacío real: "Sin compañeros en rango" cuando no hay peers; tarjetas con datos reales/mapeados cuando existen.
+
+### Verificación (evidencia disponible en repo/local)
+- **Prueba unitaria (PASS):** `MeshConvoyStatusScreenTest` (`:app:testStandardDebugUnitTest --tests "com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreenTest"`) — incluye `testMapeoPeersVacios` y `testMapeoPeerSimuladoConDatosRealesDisponibles` (mapeo con `PeerTrack` simulado y verificación de campos disponibles / "No disponible" para no expuestos). Ejecución local: `BUILD SUCCESSFUL`.
+- **Logcat/notificación en TECNO:** no disponible en este entorno de cambios; pendiente de ejecución del usuario en dispositivo (sin falso verde). Si persiste ausencia de foreground en TECNO, documentar causa concreta observada (permisos denegados, Bluetooth apagado, adapter no habilitado, etc.) sin cambios de backend.
+
+### Archivos principales
+- `android/app/src/main/java/com/rutabikersync/app/ui/navigation/MainAppScaffold.kt`
+- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`
+- `android/app/src/main/java/com/rutabikersync/app/feature/mesh/MeshConvoyStatusScreen.kt`
+- `android/app/src/test/java/com/rutabikersync/app/feature/mesh/MeshConvoyStatusScreenTest.kt`
