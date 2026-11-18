@@ -486,7 +486,7 @@ class BleAdvTransport(
 
         val mode = caps.resolveEffectiveMode(modeOverride)
         val isExtendedPhy = mode == "EXTENDED_1M" || mode == "EXTENDED_CODED_PHY"
-        val supportsAdvertisingSet = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && caps.extendedAdvertisingSupported
+        val supportsAdvertisingSet = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && caps.extendedAdvertisingSupported && isExtendedPhy
 
         advertisingBurstsStartedCount++
         Log.i(TAG, "BleAdvTransport.send burst#=$advertisingBurstsStartedCount mode=$mode delivery=$advertisingDeliveryMode priority=$priority")
