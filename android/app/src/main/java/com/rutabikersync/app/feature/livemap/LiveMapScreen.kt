@@ -213,6 +213,7 @@ fun LiveMapScreen(
                 recordingSeconds++
                 if (recordingSeconds >= PttAudioEngine.MAX_TALK_SECONDS) {
                     pttEngine.stopTalking()
+                    RideService.endPttVoiceStream()
                     break
                 }
             }
@@ -226,6 +227,7 @@ fun LiveMapScreen(
             if (RideService.getActiveRelayEngine() == null) {
                 actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
             } else {
+                RideService.beginPttVoiceStream()
                 pttEngine.startTalking()
                 com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent("LIVE_MAP", "PTT_TRANSMIT_START", "btn_hablar")
                 actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
@@ -427,6 +429,7 @@ fun LiveMapScreen(
             sosCountdownManager.resetToIdle()
             runCatching { context.unregisterReceiver(receiver) }
             pttEngine.stopTalking()
+            RideService.endPttVoiceStream()
             voicePlayerQueue.discardAll()
         }
     }
@@ -1352,6 +1355,7 @@ fun LiveMapScreen(
                 onTalkPttClick = {
                     if (isRecording) {
                         pttEngine.stopTalking()
+                        RideService.endPttVoiceStream()
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                             "LIVE_MAP",
                             "PTT_TRANSMIT_STOP",
@@ -1369,6 +1373,7 @@ fun LiveMapScreen(
                         ) == PackageManager.PERMISSION_GRANTED
 
                         if (hasMicPermission) {
+                            RideService.beginPttVoiceStream()
                             pttEngine.startTalking()
                             com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                                 "LIVE_MAP",

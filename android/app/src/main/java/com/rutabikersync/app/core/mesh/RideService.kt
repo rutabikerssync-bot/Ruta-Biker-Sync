@@ -33,6 +33,7 @@ import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
 import com.rutabikersync.app.core.power.PowerProfile
 import com.rutabikersync.app.core.transport.BleAdvTransport
+import com.rutabikersync.app.core.transport.GattVoiceTransport
 import java.security.SecureRandom
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.SimulatedBleTransport
@@ -151,6 +152,7 @@ data class RideSessionState(
 class RideSessionController(
     private val scope: CoroutineScope,
     private val bleTransportFactory: (() -> BleAdvTransport?)? = null,
+    private val gattVoiceTransportFactory: ((UShort) -> GattVoiceTransport?)? = null,
     private val simulatedMedium: SimulatedBleMedium = SimulatedBleMedium.defaultMedium,
     private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null,
     private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null
@@ -165,6 +167,10 @@ class RideSessionController(
     val state: StateFlow<RideSessionState> = _state.asStateFlow()
 
     var relayEngine: MeshRelayEngine? = null
+        private set
+
+    /** Stream GATT de voz: convive con el advertising de malla, no lo sustituye. */
+    var gattVoiceTransport: GattVoiceTransport? = null
         private set
 
     var lastPacketsCsv: String? = null
@@ -188,6 +194,8 @@ class RideSessionController(
     val manufacturerBatteryGuide: ManufacturerBatteryGuide = ManufacturerBatteryGuide()
 
     private var activeTransport: Transport? = null
+    private var voiceTransportObserveJob: Job? = null
+    private var advPeerAddressCallback: ((address: String, senderShortId: UShort?) -> Unit)? = null
     private var heartbeatJob: Job? = null
     private var peerObserveJob: Job? = null
     private var autoFallbackJob: Job? = null
@@ -276,6 +284,43 @@ class RideSessionController(
         for (peerId in effectiveExpectedPeers) {
             engine.registerExpectedPeer(shortId = peerId, nowEpochMs = nowEpochMs, initialExpectedBeats = 0)
         }
+
+        // Voz por GATT: canal paralelo al advertising. Se configura ANTES de engine.start()
+        // para que la dirección del primer heartbeat discovered ya pueda abrir el enlace.
+        if (!isSimulated) {
+            val gatt = gattVoiceTransportFactory?.invoke(localShortId)
+            if (gatt != null) {
+                gattVoiceTransport = gatt
+                gatt.setAllowedPeerShortIds(effectiveExpectedPeers)
+                engine.setVoiceStreamTransport(gatt)
+                (selectedTransport as? BleAdvTransport)?.let { adv ->
+                    val addressCallback: (address: String, senderShortId: UShort?) -> Unit = { address, shortId ->
+                        val suffix = if (address.length >= 5 && address.contains(':')) {
+                            address.takeLast(5)
+                        } else {
+                            address.takeLast(4)
+                        }
+                        val peerShortId = shortId ?: engine.resolveShortIdForAddressSuffix(suffix)
+                        if (peerShortId != null) {
+                            gatt.onMeshPeerAddress(address, peerShortId)
+                        }
+                    }
+                    adv.onPeerAddressDiscovered = addressCallback
+                    advPeerAddressCallback = addressCallback
+                }
+                voiceTransportObserveJob = scope.launch {
+                    gatt.incomingPackets?.collect { incoming ->
+                        engine.processIncomingPacket(incoming.bytes, nowMs = incoming.timestampEpochMs)
+                    }
+                }
+                gatt.start()
+            } else {
+                engine.setVoiceStreamTransport(null)
+            }
+        } else {
+            engine.setVoiceStreamTransport(null)
+        }
+
         engine.start(scope)
 
         // Bloque 3.4: Activar UniqueAnnouncer + TtsAnnouncer mientras la rodada está RUNNING
@@ -653,6 +698,14 @@ class RideSessionController(
             lastPacketsCsv = currentCsv
             RideService.globalLastPacketsCsv = currentCsv
         }
+        voiceTransportObserveJob?.cancel()
+        voiceTransportObserveJob = null
+        advPeerAddressCallback?.let { (activeTransport as? BleAdvTransport)?.onPeerAddressDiscovered = null }
+        advPeerAddressCallback = null
+        relayEngine?.setVoiceStreamTransport(null)
+        gattVoiceTransport?.stop()
+        gattVoiceTransport = null
+
         relayEngine?.stop()
         relayEngine = null
         activeTransport?.stop()
@@ -1113,6 +1166,19 @@ class RideService : Service() {
             return activeController?.relayEngine ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController.relayEngine else null
         }
 
+        /** Abre la sesión lógica de voz GATT justo antes de pulsar PTT. */
+        fun beginPttVoiceStream() {
+            activeController?.gattVoiceTransport?.beginVoiceSession()
+        }
+
+        /** Cierra la sesión lógica de voz GATT al soltar PTT (el enlace se mantiene en rodada). */
+        fun endPttVoiceStream() {
+            activeController?.gattVoiceTransport?.endVoiceSession()
+        }
+
+        /** true cuando GATT tiene conexión, MTU negociado y notificaciones activas. */
+        fun isPttVoiceReady(): Boolean = activeController?.gattVoiceTransport?.isVoiceReady == true
+
         /** Retorna la instancia activa de [BleMeshService], o null si no está en ejecución. */
         fun getActiveMeshService(): com.rutabikersync.app.core.mesh.BleMeshService? =
             com.rutabikersync.app.core.mesh.BleMeshService.getActiveInstance()
@@ -1223,6 +1289,9 @@ class RideService : Service() {
         controller = RideSessionController(
             scope = serviceScope,
             bleTransportFactory = { BleAdvTransport(applicationContext) },
+            gattVoiceTransportFactory = { shortId ->
+                GattVoiceTransport(applicationContext, serviceScope, shortId)
+            },
             onNotificationUpdated = { snapshot ->
                 _sharedState.value = controller.state.value
                 if (isPromotedToForeground) {

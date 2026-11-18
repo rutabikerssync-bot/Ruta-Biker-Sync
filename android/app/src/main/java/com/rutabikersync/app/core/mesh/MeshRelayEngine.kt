@@ -13,6 +13,7 @@ import com.rutabikersync.app.core.mesh.text.TextMessageCrypto
 import com.rutabikersync.app.core.mesh.text.TextMessagePacket
 import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.Transport
+import com.rutabikersync.app.core.transport.VoiceStreamTransport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -244,6 +245,26 @@ class MeshRelayEngine(
     val voicePacketsDroppedBackpressure = java.util.concurrent.atomic.AtomicInteger(0)
     private val voiceTxPending = java.util.concurrent.atomic.AtomicInteger(0)
     private val voiceReceivedCallbacks = CopyOnWriteArrayList<(VoicePacket) -> Unit>()
+
+    /**
+     * Canal de voz opcional (GATT). Cuando está listo, los VoicePacket viajan por él;
+     * si no, se mantiene el fallback anterior por advertising para no romper la malla.
+     */
+    @Volatile
+    private var voiceStreamTransport: VoiceStreamTransport? = null
+
+    fun setVoiceStreamTransport(transport: VoiceStreamTransport?) {
+        voiceStreamTransport = transport
+    }
+
+    /**
+     * Resuelve el shortId de malla asociado al sufijo de dirección anunciado por un heartbeat
+     * autenticado. GattVoiceTransport lo usa para conectar SOLO con peers de la rodada y
+     * para elegir rol por shortId (la dirección Bluetooth local de Android es anonimizada).
+     */
+    fun resolveShortIdForAddressSuffix(suffix: String): UShort? = synchronized(this) {
+        peerAddresses.entries.firstOrNull { it.value.contains(suffix) }?.key?.toUShort()
+    }
 
     /**
      * Cada VoicePacket tarda ~1,4 s en fragmentarse (5-6 fragmentos × 140 ms × 2 repeticiones).
@@ -1068,10 +1089,14 @@ class MeshRelayEngine(
             return false
         }
 
-        // Backpressure: el transporte BLE es mucho más lento que el micrófono. Descartar
-        // tramas viejas mantiene la latencia acotada; el JitterBuffer del receptor aplica PLC.
+        // Backpressure: en advertising el radio es mucho más lento que el micrófono (2 tramas
+        // pendientes). Con GATT el enlace admite la cadencia completa de 50 fps, así que se
+        // amplía la cola para no descartar audio innecesariamente. El JitterBuffer sigue
+        // aplicando PLC si aun así falta algún frame.
+        val gattStream = voiceStreamTransport
+        val effectiveMaxPending = if (gattStream?.isVoiceReady == true) 32 else maxPendingVoiceSends
         val pending = voiceTxPending.incrementAndGet()
-        if (pending > maxPendingVoiceSends) {
+        if (pending > effectiveMaxPending) {
             voiceTxPending.decrementAndGet()
             voicePacketsDroppedBackpressure.incrementAndGet()
             if (voicePacketsDroppedBackpressure.get() % 20 == 1) {
@@ -1102,9 +1127,16 @@ class MeshRelayEngine(
                 )
             )
         }
+        val stream = gattStream
+        val viaGatt = stream?.isVoiceReady == true
         scope.launch {
             try {
-                if (activeTransport is BleAdvTransport) {
+                if (stream != null && viaGatt) {
+                    val accepted = stream.sendVoiceFrame(bytes)
+                    if (!accepted) {
+                        voicePacketsDroppedBackpressure.incrementAndGet()
+                    }
+                } else if (activeTransport is BleAdvTransport) {
                     activeTransport.sendVoice(bytes)
                 } else {
                     activeTransport.send(bytes, Transport.Priority.VOICE)
@@ -1118,7 +1150,8 @@ class MeshRelayEngine(
         try {
             android.util.Log.i(
                 "MeshRelayEngine",
-                "VoicePacketTx frame=${packet.frameIndex} last=${packet.isLastFrame} bytes=${bytes.size}"
+                "VoicePacketTx frame=${packet.frameIndex} last=${packet.isLastFrame} bytes=${bytes.size} " +
+                    "via=${if (viaGatt) "GATT" else "ADV"}"
             )
         } catch (_: Throwable) {}
         refreshStateFlows()

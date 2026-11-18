@@ -322,12 +322,14 @@ class BleMeshService : Service() {
             }
             ACTION_PTT_START -> {
                 Log.i(TAG, "ACTION_PTT_START recibido")
+                RideService.beginPttVoiceStream()
                 ensurePttEngineInitialized()
                 pttAudioEngine?.startTalking()
             }
             ACTION_PTT_STOP -> {
                 Log.i(TAG, "ACTION_PTT_STOP recibido")
                 pttAudioEngine?.stopTalking()
+                RideService.endPttVoiceStream()
                 activeAdvertisingSet?.let {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         try {

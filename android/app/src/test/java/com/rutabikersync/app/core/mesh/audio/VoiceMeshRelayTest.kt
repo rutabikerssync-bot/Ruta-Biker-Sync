@@ -4,6 +4,7 @@ import com.rutabikersync.app.core.mesh.MeshHeader
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.transport.BleFragmentationCodec
 import com.rutabikersync.app.core.transport.Transport
+import com.rutabikersync.app.core.transport.VoiceStreamTransport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -29,6 +30,22 @@ class VoiceMeshRelayTest {
         override suspend fun stop() = Unit
         override suspend fun send(payload: ByteArray, priority: Transport.Priority) {
             sent.add(payload.copyOf() to priority)
+        }
+    }
+
+    private class FakeGattVoiceTransport : VoiceStreamTransport {
+        override val name: String = "TEST_GATT_VOICE"
+        override var isVoiceReady: Boolean = true
+        val sent = mutableListOf<ByteArray>()
+        override val incomingPackets = MutableSharedFlow<Transport.IncomingPacket>()
+        private val _incoming = MutableSharedFlow<ByteArray>()
+        override val incoming = _incoming.asSharedFlow()
+        override suspend fun start() = Unit
+        override suspend fun stop() = Unit
+        override suspend fun send(payload: ByteArray, priority: Transport.Priority) = Unit
+        override suspend fun sendVoiceFrame(payload: ByteArray): Boolean {
+            sent.add(payload.copyOf())
+            return true
         }
     }
 
@@ -140,5 +157,24 @@ class VoiceMeshRelayTest {
         other.onVoiceReceived { wrongNetworkDelivered = true }
         other.processIncomingPacket(wire)
         assertFalse(wrongNetworkDelivered)
+    }
+
+    @Test
+    fun `emitVoicePacket prefiere GATT y vuelve a advertising si GATT no esta listo`() = runBlocking {
+        val adv = CapturingTransport()
+        val gatt = FakeGattVoiceTransport()
+        val tx = MeshRelayEngine(localShortId = 100u, transport = adv, relayScope = this)
+        tx.setVoiceStreamTransport(gatt)
+
+        assertTrue(tx.emitVoicePacket(voicePacket(frameIndex = 0)))
+        delay(50)
+        assertEquals(1, gatt.sent.size)
+        assertEquals(0, adv.sent.size)
+
+        gatt.isVoiceReady = false
+        assertTrue(tx.emitVoicePacket(voicePacket(frameIndex = 1)))
+        delay(50)
+        assertEquals(1, gatt.sent.size)
+        assertEquals(1, adv.sent.size)
     }
 }

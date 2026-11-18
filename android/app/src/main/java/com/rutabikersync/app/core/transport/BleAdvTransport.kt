@@ -21,6 +21,8 @@ import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.rutabikersync.app.core.mesh.MeshHeader
+import com.rutabikersync.app.core.protocol.MeshPacket
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -210,6 +212,13 @@ class BleAdvTransport(
     private var activeAdvertisingSetCallback: AdvertisingSetCallback? = null
     private var activeAdvertisingSetMode: String? = null
     private var currentAdvertisingPriority: Transport.Priority? = null
+
+    /**
+     * Notificación de la dirección Bluetooth completa de un peer de malla. La usa
+     * GattVoiceTransport para elegir rol y conectarse SIN iniciar un escaneo adicional,
+     * de modo que el advertising de chat/SOS/heartbeats no se modifica.
+     */
+    var onPeerAddressDiscovered: ((address: String, senderShortId: UShort?) -> Unit)? = null
     private val activeExtendedCallbacks = java.util.concurrent.ConcurrentHashMap.newKeySet<AdvertisingSetCallback>()
 
     @Volatile
@@ -772,6 +781,15 @@ class BleAdvTransport(
                 Log.i(TAG, "FragmentReassembled bytes=${bytes.size} rssi=$rssi")
             }
             val rawAddr = runCatching { result.device?.address }.getOrNull()
+            if (!rawAddr.isNullOrBlank()) {
+                val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+                    runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
+                } else {
+                    runCatching { MeshHeader.fromByteArray(bytes, 0).senderShortId }.getOrNull()
+                }
+                runCatching { onPeerAddressDiscovered?.invoke(rawAddr, shortId) }
+                    .onFailure { Log.w(TAG, "onPeerAddressDiscovered falló: ${it.message}") }
+            }
             val addrSuffix = rawAddr?.let {
                 if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)
             }
@@ -793,6 +811,15 @@ class BleAdvTransport(
                 val bytes = fragmentReassembler.feed(raw) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
+                if (!rawAddr.isNullOrBlank()) {
+                    val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+                    runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
+                } else {
+                    runCatching { MeshHeader.fromByteArray(bytes, 0).senderShortId }.getOrNull()
+                }
+                    runCatching { onPeerAddressDiscovered?.invoke(rawAddr, shortId) }
+                    .onFailure { Log.w(TAG, "onPeerAddressDiscovered falló: ${it.message}") }
+                }
                 val addrSuffix = rawAddr?.let {
                     if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)
                 }
