@@ -1,0 +1,88 @@
+﻿=== PRUEBA PTT/VOZ EN HARDWARE REAL - 2026-11-18 ===
+Dispositivos: TECNO KI5k (098813734B105395) y Redmi Note 13 Pro 5G (b2c398bb)
+Build: app-standard-debug-rbssigned.apk (commit d7c50db), instalada en ambos a las 14:44.
+Comando base: adb -s <serial> logcat -d -b all -v time | Select-String "<patrones>"
+
+--- 1. Estado previo a la prueba ---
+RideService isForeground=true foregroundId=3201 types=0x00000018 en ambos.
+BleMeshService NO activo en ninguno (adb shell dumpsys activity services com.rutabikersync.app).
+RECORD_AUDIO granted=true en ambos.
+STREAM_MUSIC: TECNO streamVolume=12/15 Muted=false; Redmi streamVolume=127/150 Muted=false.
+
+--- 2. Boton "Hablar (PTT)" de la cabina (LiveMapScreen) - TECNO -> Redmi ---
+UI TECNO tras pulsar (uiautomator dump):
+  "Grabando voz PTT (pulsa de nuevo para enviar - max 15 s)"
+  "TRANSMITIENDO PTT AL CONVOY (8s / 15s - Opus)"
+logcat TECNO 15:04:54 - 15:06:55:
+  11-18 15:04:54.749 I/CCodec: Created component [c2.android.opus.encoder]
+  11-18 15:04:54.789 I/AudioRecord( 965): start ... uid:10379 pid:31009
+  11-18 15:06:07.030 D/AudioTrack(18352): wirte set SP_FOREGROUND
+AUSENCIA TOTAL en TECNO y Redmi de estas etiquetas:
+  PttAudioEngine | VoicePacket | VoiceClipMeshRelay | VoiceClipPlayerQueue |
+  JitterBuffer | AudioFocusController | BleMeshService | Error descifrando
+UI Redmi: sin indicador "Recibiendo voz" (solo "Hablar").
+Resultado: el microfono graba y el codificador Opus local se inicializa, pero NO se emite
+ningun VoicePacket ni se entrega audio al otro dispositivo.
+
+--- 3. Direccion inversa Redmi -> TECNO ---
+UI Redmi tras pulsar:
+  "Grabando voz PTT (pulsa de nuevo para enviar - max 15 s)"
+  "TRANSMITIENDO PTT AL CONVOY (7s / 15s - Opus)"
+UI TECNO: sin indicador de recepcion de voz.
+logcat TECNO y Redmi: ningun log de voz de la aplicacion (solo busqueda sin resultados).
+Resultado: no cruza en esta direccion tampoco.
+
+--- 4. Ruta alternativa: tecla fisica VOLUME_DOWN / deep link rbs://ptt ---
+MainActivity envia ACTION_PTT_START a BleMeshService (MainActivity.kt:174-245).
+
+Ejecucion 1 (15:07:05 - 15:07:16), TECNO:
+  11-18 15:07:05.887 I/MainActivity(31009): Hardware Key PTT presionado (keyCode=25) -> ACTION_PTT_START
+  11-18 15:07:05.890 I/am_create_service(848): [0,34047439,.BleMeshService,10379,31009]
+  11-18 15:07:05.898 I/BleMeshService(31009): BleMeshService onCreate
+  11-18 15:07:05.903 I/BleMeshService(31009): PARTIAL_WAKE_LOCK adquirido (RBS:MeshRadioEngineLock)
+  11-18 15:07:05.907 I/BleMeshService(31009): Bluetooth inicializado. ExtendedAdv=true, BLE5.0=true
+  11-18 15:07:05.913 I/BleMeshService(31009): ACTION_PTT_START recibido
+  11-18 15:07:05.914 I/MainActivity(31009): Hardware Key PTT liberado (keyCode=25) -> ACTION_PTT_STOP
+  11-18 15:07:05.920 I/BleMeshService(31009): ACTION_PTT_STOP recibido
+  11-18 15:07:05.965 I/BleMeshService(31009): Advertising started ... (payload=24B)
+  11-18 15:07:15.896 W/ActivityManager(848): Bringing down service while still waiting for start foreground
+  11-18 15:07:15.897 I/BleMeshService(31009): BleMeshService onDestroy
+  11-18 15:07:15.900 I/ActivityManager(848): serviceForegroundCrash to crash app ... 31009
+  11-18 15:07:15.908 E/AndroidRuntime(31009): FATAL EXCEPTION: main
+  11-18 15:07:15.908 E/AndroidRuntime(31009): android.app.ForegroundServiceDidNotStartInTimeException:
+      Context.startForegroundService() did not then call Service.startForeground()
+  11-18 15:07:15.911 I/am_crash(848): [31009,0,com.rutabikersync.app,...]
+  11-18 15:07:16.024 I/TABE.CrashHandler(1643): EType='crash', EClassName='android.app.ForegroundServiceDidNotStartInTimeException'
+
+Reintento 2 (15:08:02), TECNO (no se reprodujo el crash; tampoco hubo recepcion):
+  11-18 15:08:02.369 I/MainActivity(31901): Hardware Key PTT presionado (keyCode=25) -> ACTION_PTT_START
+  11-18 15:08:02.372 I/am_create_service(848): [0,117165584,.BleMeshService,10379,31901]
+  11-18 15:08:02.400 I/BleMeshService(31901): BleMeshService onCreate
+  11-18 15:08:02.408 I/MainActivity(31901): Hardware Key PTT liberado (keyCode=25) -> ACTION_PTT_STOP
+  11-18 15:08:02.415 I/BleMeshService(31901): ACTION_PTT_START recibido
+  11-18 15:08:02.422 I/BleMeshService(31901): ACTION_PTT_STOP recibido
+  11-18 15:08:02.512 I/BleMeshService(31901): Advertising started ... (payload=24B)
+Sin logs de PttAudioEngine ("PTT: Iniciando transmisión de audio...") en ninguna ejecucion:
+el servicio recibe ACTION_PTT_START sin ACTION_START previo, por lo que pttAudioEngine es null
+(BleMeshService.kt:148-149, 257-269) y no se captura audio por esta ruta.
+
+--- 5. Causa raiz (auditoria de codigo, sin cambios) ---
+Existen tres rutas PTT desconectadas:
+  A) PttAudioEngine (AudioRecord -> Opus -> ChaCha20 -> VoicePacket) solo se instancia en
+     BleMeshService.kt:412-421 y envia por transmitBleFrame() de ese servicio. El servicio
+     NO se inicia durante la rodada (RideService.kt:1120-1124).
+  B) El boton visible usa OpusVoiceRecorder + VoiceClipMeshRelay + VoiceClipPlayerQueue
+     (LiveMapScreen.kt:159-171, 1287-1333). VoiceClipMeshRelay._outgoingPackets y
+     processIncomingChunk no tienen colector en src/main: el clip se graba localmente pero
+     no sale por radio. No usa ChaCha20 ni VoicePacket ni MeshRelayEngine.
+  C) MeshRelayEngine/BleAdvTransport (la malla activa de RideService) no expone ninguna API
+     de voz: no hay emitVoicePacket ni onVoiceReceived; solo heartbeats, SOS y texto.
+Ademas, VoicePacket mide 80-100 B (VoicePacket.kt:16, 33-46) y BleMeshService.transmitBleFrame
+no aplica el BleFragmentationCodec de 24 B que si usa la malla activa.
+El componente PttButton.kt (onStartTalking/onStopTalking) no tiene ningun call site.
+
+--- 6. Conclusión ---
+NO se marca [x]. El audio NO cruza en ninguna direccion. No se escucha en el otro dispositivo
+porque el PTT no esta cableado al MeshRelayEngine activo ni al BleAdvTransport, y la ruta
+alternativa por tecla fisica no inicializa PttAudioEngine y puede crashear la app.
+No se modifico codec, criptografia ni flooding.
