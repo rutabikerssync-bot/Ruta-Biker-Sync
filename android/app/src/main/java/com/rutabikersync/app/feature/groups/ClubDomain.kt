@@ -514,7 +514,9 @@ data class ClubGroupModel(
     val traditionType: String = "Tradición MC Tradicional",
     val directivaScope: String = "Mesa Directiva Nacional",
     val directivaRegion: String = "Venezuela",
-    val motto: String = "Hermandad, Respeto y Carretera"
+    val motto: String = "Hermandad, Respeto y Carretera",
+    /** Versión del perfil del club; null hasta la primera sincronización con el backend. */
+    val profileVersion: Int? = null
 ) {
     /**
      * Sistema de 8 Estrellas Biker:

@@ -428,6 +428,22 @@ class ClubRepository(
                             }
                         }
 
+                        // Propagación por versión: el detalle con ?since devuelve 304
+                        // cuando no hay cambios y no debe reescribir la UI local.
+                        val localVersion = _groups.value.firstOrNull { it.id == gId }?.profileVersion
+                        val detailRes = apiClient.getGroupDetail(gId, localVersion).getOrNull()
+                        if (detailRes != null && detailRes.statusCode == 304) {
+                            // Sin cambios: conservar el estado local intacto.
+                        } else if (detailRes != null && detailRes.isSuccess && detailRes.body != null) {
+                            val remoteVersion = detailRes.body["profileVersion"]
+                                ?.jsonPrimitive?.content?.toIntOrNull()
+                            if (remoteVersion != null) {
+                                _groups.value = _groups.value.map {
+                                    if (it.id == gId) it.copy(profileVersion = remoteVersion) else it
+                                }
+                            }
+                        }
+
                         // Sincronizar líderes y miembros del grupo si tenemos acceso
                         val memRes = apiClient.getGroupMembers(gId).getOrNull()
                         if (memRes != null && memRes.isSuccess && memRes.body != null) {

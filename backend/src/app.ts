@@ -1539,12 +1539,19 @@ export async function buildApp({
     const grpRes = await db.query(
       `SELECT id, country_code, name, name_normalized, logo_url, principal_leader, role_permissions, status,
               tier, foundation_date, colors_description, club_siglas, tradition_type,
-              directiva_scope, directiva_region, motto, city
+              directiva_scope, directiva_region, motto, city, profile_version, profile_updated_at
        FROM groups WHERE id = $1 AND status <> 'deleted'`,
       [groupId]
     );
     const g = grpRes.rows[0];
     if (!g) return reply.code(404).send({ error: 'GROUP_NOT_FOUND' });
+
+    // Propagacion barata (L0/L2): ?since=<version> responde 304 sin mover datos.
+    const sinceRaw = (req.query as { since?: string }).since;
+    const since = sinceRaw === undefined ? null : Number.parseInt(sinceRaw, 10);
+    if (since !== null && Number.isFinite(since) && g.profile_version <= since) {
+      return reply.code(304).send();
+    }
 
     const leadersRes = await db.query(
       `SELECT user_id, is_principal FROM group_leaders WHERE group_id = $1`,
@@ -1560,6 +1567,8 @@ export async function buildApp({
       principalLeader: g.principal_leader,
       status: g.status,
       tier: g.tier,
+      profileVersion: g.profile_version,
+      profileUpdatedAt: g.profile_updated_at,
       foundationDate: g.foundation_date,
       colorsDescription: g.colors_description,
       clubSiglas: g.club_siglas,
@@ -1583,11 +1592,12 @@ export async function buildApp({
     const { id: groupId } = req.params as { id: string };
 
     const leaderCheck = await db.query(
-      `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
+      `SELECT 1 FROM group_leaders
+       WHERE group_id = $1 AND user_id = $2 AND is_principal = true`,
       [groupId, uid]
     );
     if (leaderCheck.rows.length === 0) {
-      return reply.code(403).send({ error: 'LEADER_REQUIRED', message: 'Solo un líder del club puede editar su perfil' });
+      return reply.code(403).send({ error: 'LEADER_REQUIRED', message: 'Solo el presidente del club puede editar su perfil' });
     }
 
     const body = (req.body ?? {}) as {
@@ -1601,7 +1611,15 @@ export async function buildApp({
       foundationDate?: string;
       logoUrl?: string;
       tier?: string;
+      profile?: Record<string, unknown>;
     };
+
+    const changed = [
+      body.colorsDescription, body.clubSiglas, body.traditionType,
+      body.directivaScope, body.directivaRegion, body.motto, body.city,
+      body.foundationDate, body.logoUrl, body.tier, body.profile
+    ].some((value) => value !== undefined && value !== null);
+    const profileJson = body.profile != null ? JSON.stringify(body.profile) : null;
 
     const updateRes = await db.query(
       `UPDATE groups
@@ -1614,9 +1632,15 @@ export async function buildApp({
            city = COALESCE($7, city),
            foundation_date = COALESCE($8, foundation_date),
            logo_url = COALESCE($9, logo_url),
-           tier = COALESCE($10, tier)
-       WHERE id = $11
-       RETURNING id, name, tier, colors_description, club_siglas, tradition_type, directiva_scope, directiva_region, motto, city, foundation_date, logo_url`,
+           tier = COALESCE($10, tier),
+           club_profile = CASE WHEN $11::jsonb IS NULL THEN club_profile ELSE $11::jsonb END,
+           profile_version = profile_version + CASE WHEN $12 THEN 1 ELSE 0 END,
+           profile_updated_by = CASE WHEN $12 THEN $13::uuid ELSE profile_updated_by END,
+           profile_updated_at = CASE WHEN $12 THEN now() ELSE profile_updated_at END
+       WHERE id = $14
+       RETURNING id, name, tier, colors_description, club_siglas, tradition_type,
+                 directiva_scope, directiva_region, motto, city, foundation_date,
+                 logo_url, profile_version, profile_updated_at`,
       [
         body.colorsDescription ?? null,
         body.clubSiglas ?? null,
@@ -1628,6 +1652,9 @@ export async function buildApp({
         body.foundationDate ?? null,
         body.logoUrl ?? null,
         body.tier ?? null,
+        profileJson,
+        changed,
+        uid,
         groupId
       ]
     );
@@ -1647,7 +1674,9 @@ export async function buildApp({
         motto: updated.motto,
         city: updated.city,
         foundationDate: updated.foundation_date,
-        logoUrl: updated.logo_url
+        logoUrl: updated.logo_url,
+        profileVersion: updated.profile_version,
+        profileUpdatedAt: updated.profile_updated_at
       }
     });
   });

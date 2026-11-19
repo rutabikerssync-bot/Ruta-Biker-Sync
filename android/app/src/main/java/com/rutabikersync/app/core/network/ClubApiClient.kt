@@ -307,6 +307,18 @@ class ClubApiClient(
         executeRequest("GET", "/v1/groups", null)
     }
 
+    /**
+     * Detalle del club con propagación por versión. Si el servidor no tiene
+     * cambios devuelve 304 y el cliente conserva su estado local.
+     */
+    suspend fun getGroupDetail(
+        groupId: String,
+        sinceVersion: Int? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val suffix = sinceVersion?.let { "?since=$it" }.orEmpty()
+        executeRequest("GET", "/v1/groups/$groupId$suffix", null)
+    }
+
     suspend fun createGroup(
         countryCode: String,
         name: String,
@@ -378,6 +390,20 @@ class ClubApiClient(
         logoUrl: String? = null,
         tier: String? = null
     ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        // Espejo D2: las columnas de la 0016 siguen siendo la fuente de verdad;
+        // el JSON viaja junto a ellas para alimentar club_profile.
+        val profile = buildJsonObject {
+            if (colorsDescription != null) put("colorsDescription", colorsDescription)
+            if (clubSiglas != null) put("clubSiglas", clubSiglas)
+            if (traditionType != null) put("traditionType", traditionType)
+            if (directivaScope != null) put("directivaScope", directivaScope)
+            if (directivaRegion != null) put("directivaRegion", directivaRegion)
+            if (motto != null) put("motto", motto)
+            if (city != null) put("city", city)
+            if (foundationDate != null) put("foundationDate", foundationDate)
+            if (logoUrl != null) put("logoUrl", logoUrl)
+            if (tier != null) put("tier", tier)
+        }
         val payload = buildJsonObject {
             if (colorsDescription != null) put("colorsDescription", colorsDescription)
             if (clubSiglas != null) put("clubSiglas", clubSiglas)
@@ -389,6 +415,7 @@ class ClubApiClient(
             if (foundationDate != null) put("foundationDate", foundationDate)
             if (logoUrl != null) put("logoUrl", logoUrl)
             if (tier != null) put("tier", tier)
+            put("profile", profile)
         }
         executeRequest("PUT", "/v1/groups/$groupId/profile", payload)
     }
