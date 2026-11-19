@@ -125,6 +125,20 @@ object RideScheduleRepository {
     val rideHistory: StateFlow<List<RideHistoryItem>> = _rideHistory.asStateFlow()
 
     /**
+     * Sustituye la ruta activa por una recalculada sobre vías reales, manteniendo
+     * sincronizadas la distancia y la duración que se muestran en la cabina.
+     * Si no hay rodada publicada no se hace nada (no se inventa una ruta).
+     */
+    fun updateSelectedRoute(route: RouteAlternative) {
+        val current = _currentRide.value ?: return
+        _currentRide.value = current.copy(
+            selectedRoute = route,
+            distanceKm = route.distanceKm,
+            estimatedMinutes = route.estimatedMinutes
+        )
+    }
+
+    /**
      * Limpia completamente el historial de rodadas.
      */
     fun clearHistory() {

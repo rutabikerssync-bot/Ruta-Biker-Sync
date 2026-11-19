@@ -223,13 +223,15 @@ fun HudStatusChip(
 
 /**
  * 2. Banner de Desvío Limpio (MD3 High Contrast / Vintage Heritage)
- * Tarjeta pergamino con lomo de cuero cobre de 4dp y botón "Voy a parar".
+ * Tarjeta pergamino con lomo de cuero cobre de 4dp, botón "Recalcular ruta" y "Voy a parar".
  */
 @Composable
 fun OffRouteBanner(
     distanceMeters: Int,
+    onRecalculate: () -> Unit,
     onStop: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isRecalculating: Boolean = false
 ) {
     val distanceFormatted = if (distanceMeters >= 1000) {
         "+%.1f km".format(distanceMeters / 1000f)
@@ -270,20 +272,41 @@ fun OffRouteBanner(
                     color = HeritageLeatherMuted
                 )
             }
-            androidx.compose.material3.OutlinedButton(
-                onClick = onStop,
-                border = BorderStroke(1.dp, HeritageCopper),
-                colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                    contentColor = HeritageCopper
-                ),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Voy a parar",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
-                )
+            Spacer(Modifier.width(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                androidx.compose.material3.Button(
+                    onClick = onRecalculate,
+                    enabled = !isRecalculating,
+                    modifier = Modifier.defaultMinSize(minWidth = 112.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = HeritageCopper,
+                        contentColor = HeritageCard
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = if (isRecalculating) "Calculando…" else "Recalcular ruta",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = onStop,
+                    modifier = Modifier.defaultMinSize(minWidth = 112.dp),
+                    border = BorderStroke(1.dp, HeritageCopper),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = HeritageCopper
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "Voy a parar",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                }
             }
         }
     }

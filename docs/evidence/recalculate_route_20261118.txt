@@ -1,0 +1,70 @@
+BLOQUE C — RECALCULAR RUTA EN BANNER DE DESVÍO — VERIFICACIÓN 2026-11-18
+==========================================================================
+
+Build verificado
+----------------
+- APK: android/app/build/outputs/apk/standard/debug/app-standard-debug-rbssigned.apk
+- Firma verificada: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync,
+  L=Caracas, ST=Distrito Capital, C=VE.
+- Dispositivo: TECNO KI5k 098813734B105395 (nodo 12982), con ruta real creada
+  desde la UI (origen 8XXF+RH4 Los Teques, destino Callejón El Vaquiro 2,
+  1.1 km) y rodada iniciada. La ubicación real guardada del equipo es
+  8XX8+J24 / 10.349246,-67.034904, a ~979 m de esa ruta: el detector dispara
+  la alerta con umbral real de 150 m.
+
+Cambio implementado
+-------------------
+- `OffRouteBanner` muestra ahora "Recalcular ruta" junto a "Voy a parar" y un
+  estado "Calculando…" mientras dura la petición.
+- `RecalculateRouteUseCase` comprueba red, llama a
+  `RoadRoutingEngine.fetchRealRoadRoute(...)`, sustituye la ruta activa en
+  `RideScheduleRepository`, actualiza la polilínea del detector y reevalúa el
+  desvío con la posición real.
+- `MapLibreCorridorSurface` eliminaba antes las polilíneas sólo si la lista
+  estaba vacía; ahora retira la polilínea anterior cuando cambia `route.id`,
+  de modo que la ruta recalculada se redibuja.
+
+Tests JVM (BUILD SUCCESSFUL)
+----------------------------
+- RecalculateRouteUseCaseTest: tests=4 failures=0 errors=0
+  (OFFLINE sin llamar al motor, SUCCESS con ruta real + detector reevaluado,
+  NO_ROUTE con respuesta nula, NO_ROUTE sin posición conocida).
+- ConvoyRouteProjectionTest: tests=7 failures=0 errors=0
+- LiveMapViewModelTest: tests=4 failures=0 errors=0
+
+Resultados observados en hardware (build firmado final)
+-------------------------------------------------------
+1) Banner visible:
+   `recalc_banner_tecno_20261118.xml` / `.png`
+   - "Te has desviado (+979 m)"
+   - "Recalcular ruta" [449,652][600,688]
+   - "Voy a parar" [467,760][581,796]
+
+2) Desenlace online (con internet):
+   `recalc_success_tecno_20261118.xml` / `.png`
+   - Tras pulsar: "✓ Ruta recalculada sobre vías reales".
+   - El banner desaparece y el piloto local vuelve a "✓ En ruta".
+   - La pantalla "RODADAS" pasó a mostrar "⛰️ Ruta sobre Vías: Callejón El
+     Vaquiro 2, Los Teques · En Línea", confirmando que la ruta activa
+     sustituida se propagó al estado de la app.
+
+3) Desenlace offline (WiFi y datos desactivados desde script en el equipo,
+   restaurados automáticamente):
+   `recalc_offline_tecno_20261118.xml` / `.png`
+   - "Sin conexión, usando ruta offline".
+   - El banner sigue visible y la ruta cacheada no se modifica.
+
+4) Desenlace "sin cache" (online sin trazado válido):
+   - Verificado en JVM por `RecalculateRouteUseCaseTest` con `fetchRoadRoute`
+     devolviendo `null`: "No se pudo recalcular. Sigue la ruta actual" se
+     deriva de `NO_ROUTE` y la ruta permanece intacta.
+   - NO verificado en hardware: se intentó simular con `http_proxy=127.0.0.1:1`,
+     pero `HttpURLConnection` no lo usó y la petición a Mapbox terminó en
+     éxito. No se afirma cobertura hardware para este caso.
+
+Restricciones respetadas
+------------------------
+- No se modificaron PeerTrack, malla BLE, GATT ni criptografía.
+- No se inventan origen/destino: si no hay posición conocida o rodada con
+  destino, el resultado es NO_ROUTE y se conserva la ruta actual.
+- Los mensajes requeridos se usan literalmente para OFFLINE y NO_ROUTE.

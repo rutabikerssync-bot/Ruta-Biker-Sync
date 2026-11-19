@@ -265,4 +265,22 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 
 **Nota de montaje**: para el caso "en ruta" se copió la caché de ubicación real de TECNO a Redmi como fixture controlado y luego se restauró; la app no inventa posiciones. El reintento del caso desviado con el build final quedó en `Sin señal` por reconexión BLE y no se usa como evidencia.
 
-**Pendiente**: validación visual humana de la rotación de la insignia y del espaciado real en carretera en movimiento; el contador HUD sigue mostrando `1 riders` (no cubierto por este bloque); Bloque C (`Recalcular ruta`) sigue pendiente.
+**Pendiente**: validación visual humana de la rotación de la insignia y del espaciado real en carretera en movimiento; el contador HUD sigue mostrando `1 riders` (no cubierto por este bloque).
+
+### Bloque C — Recalcular ruta en banner de desvío — 2026-11-18
+**Commit atómico**: `feat(ui): añadir recalcular ruta en banner de desvío` (sin amend).
+
+**Diagnóstico**: `OffRouteBanner` sólo ofrecía "Voy a parar"; `RoadRoutingEngine.fetchRealRoadRoute(...)` ya existía y devuelve `null` al fallar; `RideScheduleRepository` es en memoria y no tenía método para sustituir la ruta activa; el `update` de `AndroidView` sólo añadía la polilínea si `map.polylines.isEmpty()`, por lo que una ruta recalculada no se habría dibujado.
+
+**Cambio**: `OffRouteBanner` gana "Recalcular ruta" + estado "Calculando…". Nuevo `RecalculateRouteUseCase` inyecta la comprobación de red y el motor vial, y devuelve `SUCCESS` / `OFFLINE` / `NO_ROUTE`; en `SUCCESS` actualiza `RideScheduleRepository.updateSelectedRoute(...)`, la polilínea del detector y reevalúa el desvío con la posición real. `LiveMapScreen` muestra literalmente "Sin conexión, usando ruta offline" y "No se pudo recalcular. Sigue la ruta actual". El redibujo compara `activeRoute.id` contra la última ruta dibujada y retira la polilínea anterior. No se tocaron malla BLE, GATT ni criptografía.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Desenlaces JVM | `gradlew :app:testStandardDebugUnitTest --tests '*RecalculateRouteUseCaseTest' --tests '*ConvoyRouteProjectionTest' --tests '*LiveMapViewModelTest'` | BUILD SUCCESSFUL | 4 + 7 + 4 tests, 0 failures/errors | `android/app/src/test/.../RecalculateRouteUseCaseTest.kt` |
+| Compilar, firmar e instalar | `gradlew :app:assembleStandardDebug` + `apksigner sign/verify` + `adb install -r` | APK firmada e instalada | BUILD SUCCESSFUL; `CN=Ruta Biker Sync`; `Success` en TECNO y Redmi | `docs/evidence/recalculate_route_20261118.txt` |
+| Banner de desvío | UI: ruta real con origen a ~979 m + rodada + `uiautomator dump` | Botón visible | `Te has desviado (+979 m)`, `Recalcular ruta`, `Voy a parar` | `recalc_banner_tecno_20261118.png/.xml` |
+| Recalcular online | Pulsar botón con internet + `uiautomator dump` | Ruta recalculada y banner cerrado | `✓ Ruta recalculada sobre vías reales`; piloto `✓ En ruta`; ruta activa renombrada a `⛰️ Ruta sobre Vías: … · En Línea` | `recalc_success_tecno_20261118.png/.xml` |
+| Recalcular offline | WiFi/datos desactivados desde script auto-restorado + pulsar | Mensaje exacto sin cambiar ruta | `Sin conexión, usando ruta offline`; banner permanece | `recalc_offline_tecno_20261118.png/.xml` |
+| Sin trazado válido | JVM con `fetchRoadRoute` devolviendo `null` | Mensaje exacto y ruta intacta | `NO_ROUTE`, ruta original conservada | `RecalculateRouteUseCaseTest.kt` |
+
+**Pendiente**: el desenlace `NO_ROUTE` no se reprodujo en hardware: el proxy HTTP muerto (`http_proxy=127.0.0.1:1`) no fue usado por `HttpURLConnection` y Mapbox respondió correctamente; se considera cubierto sólo en JVM. La comprobación de red distingue conectividad transportada (WiFi/celular/Ethernet), no calidad de internet. El contador HUD `1 riders` y la validación visual humana del trazado recalculado en movimiento siguen fuera de alcance.

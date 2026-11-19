@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import androidx.activity.compose.BackHandler
 import androidx.core.content.ContextCompat
@@ -94,7 +96,10 @@ import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.feature.auth.ProfileRepository
 import com.rutabikersync.app.feature.routes.DeviationStatus
 import com.rutabikersync.app.feature.routes.LatLngPoint
+import com.rutabikersync.app.feature.routes.RecalculateRouteOutcome
+import com.rutabikersync.app.feature.routes.RecalculateRouteUseCase
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
+import com.rutabikersync.app.feature.routes.RoadRoutingEngine
 import com.rutabikersync.app.feature.routes.RouteDeviationDetector
 import com.rutabikersync.app.feature.routes.RoutePolylineMeshRelay
 import com.rutabikersync.app.feature.routes.StopReason
@@ -397,6 +402,28 @@ fun LiveMapScreen(
     val lastReceivedMeshRoute by RoutePolylineMeshRelay.lastReceivedRoute.collectAsState()
     var showStopReasonDialog by remember { mutableStateOf(false) }
     var showOfflineMapsScreen by remember { mutableStateOf(false) }
+    var isRecalculatingRoute by remember { mutableStateOf(false) }
+
+    // Recalcular ruta desde el banner de desvío: la red se consulta al pulsar para no
+    // confiar en un estado cacheado, y el motor vial se inyecta sin tocar malla/GATT.
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+    val isOnline = remember(context) {
+        {
+            val network = connectivityManager?.activeNetwork
+            val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
+            capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true ||
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true ||
+                capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true
+        }
+    }
+    val recalculateRouteUseCase = remember(context) {
+        RecalculateRouteUseCase(
+            isOnline = isOnline,
+            fetchRoadRoute = { origin, destination, destinationName ->
+                RoadRoutingEngine.fetchRealRoadRoute(origin, destination, destinationName)
+            }
+        )
+    }
 
     LaunchedEffect(scheduledRide) {
         scheduledRide?.selectedRoute?.waypoints?.let {
@@ -1267,6 +1294,23 @@ fun LiveMapScreen(
             if (deviationState.isAlertActive) {
                 OffRouteBanner(
                     distanceMeters = deviationState.distanceToRouteMeters,
+                    isRecalculating = isRecalculatingRoute,
+                    onRecalculate = {
+                        if (isRecalculatingRoute) return@OffRouteBanner
+                        isRecalculatingRoute = true
+                        coroutineScope.launch {
+                            val outcome = recalculateRouteUseCase(
+                                currentLocation = deviationState.lastKnownLocation,
+                                destination = scheduledRide?.destination
+                            )
+                            actionFeedback = when (outcome) {
+                                RecalculateRouteOutcome.SUCCESS -> "✓ Ruta recalculada sobre vías reales"
+                                RecalculateRouteOutcome.OFFLINE -> "Sin conexión, usando ruta offline"
+                                RecalculateRouteOutcome.NO_ROUTE -> "No se pudo recalcular. Sigue la ruta actual"
+                            }
+                            isRecalculatingRoute = false
+                        }
+                    },
                     onStop = { showStopReasonDialog = true }
                 )
             } else if (deviationState.status == DeviationStatus.VOLUNTARY_STOP) {
@@ -2129,6 +2173,9 @@ private fun MapLibreCorridorSurface(
         val widthPx = constraints.maxWidth.toFloat().coerceAtLeast(1f)
         val heightPx = constraints.maxHeight.toFloat().coerceAtLeast(1f)
 
+        // Controla el redibujo cuando "Recalcular ruta" sustituye la polilínea activa.
+        val lastDrawnRouteId = remember { mutableStateOf<String?>(null) }
+
         val scheduledRide by RideScheduleRepository.currentRide.collectAsState()
         val activeRoute = scheduledRide?.selectedRoute
 
@@ -2152,7 +2199,7 @@ private fun MapLibreCorridorSurface(
                                         .build()
                                 )
                             )
-                            if (activeRoute != null && activeRoute.waypoints.isNotEmpty()) {
+                            if (activeRoute != null && activeRoute.waypoints.size >= 2) {
                                 val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
                                 map.addPolyline(
                                     PolylineOptions()
@@ -2161,6 +2208,7 @@ private fun MapLibreCorridorSurface(
                                         .width(8.0f)
                                 )
                             }
+                            lastDrawnRouteId.value = activeRoute?.id
                         }
                     }
                 }
@@ -2175,14 +2223,19 @@ private fun MapLibreCorridorSurface(
                                 .build()
                         )
                     )
-                    if (activeRoute != null && map.polylines.isEmpty()) {
-                        val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
-                        map.addPolyline(
-                            PolylineOptions()
-                                .addAll(latLngs)
-                                .color(android.graphics.Color.parseColor("#C05A2A"))
-                                .width(8.0f)
-                        )
+                    val desiredRouteId = activeRoute?.id
+                    if (desiredRouteId != lastDrawnRouteId.value) {
+                        map.polylines.forEach { it.remove() }
+                        if (activeRoute != null && activeRoute.waypoints.size >= 2) {
+                            val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
+                            map.addPolyline(
+                                PolylineOptions()
+                                    .addAll(latLngs)
+                                    .color(android.graphics.Color.parseColor("#C05A2A"))
+                                    .width(8.0f)
+                            )
+                        }
+                        lastDrawnRouteId.value = desiredRouteId
                     }
                 }
             },
