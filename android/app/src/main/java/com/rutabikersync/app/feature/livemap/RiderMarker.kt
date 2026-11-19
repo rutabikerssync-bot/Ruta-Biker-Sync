@@ -1,5 +1,8 @@
 package com.rutabikersync.app.feature.livemap
 
+import android.graphics.BitmapFactory
+import android.util.Base64
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,10 +17,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -83,7 +88,10 @@ data class RiderMarkerUiModel(
     val batteryPercent: Int,
     val distanceToLeaderMeters: Int,
     val lastHops: Int,
-    val isSelf: Boolean = false
+    val isSelf: Boolean = false,
+    val avatarUrl: String? = null,
+    val avatarBase64: String? = null,
+    val roleLabel: String = "Desconocido"
 ) {
     /**
      * Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (ej. "J.M."),
@@ -100,7 +108,7 @@ data class RiderMarkerUiModel(
             RiderRelation.SAME_GROUP, RiderRelation.MUTUAL_FRIEND -> {
                 if (!nickname.isNullOrBlank()) "$fullName ($nickname)" else fullName
             }
-            RiderRelation.ALLIED_STRANGER -> "Rider aliado #${shortId.toInt()}"
+            RiderRelation.ALLIED_STRANGER -> "Piloto #${shortId.toInt()}"
         }
 }
 
@@ -148,6 +156,15 @@ fun RiderMarker(
         RiderRouteStatus.ON_ROUTE -> Color(marker.markerColorHex)
     }
 
+    // Foto real del perfil cacheado (base64). Si no hay foto, se muestran iniciales.
+    val avatarBitmap = remember(marker.avatarBase64) {
+        val raw = marker.avatarBase64 ?: return@remember null
+        runCatching {
+            val bytes = Base64.decode(raw, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }.getOrNull()
+    }
+
     val avatarFill = if (marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST) {
         Color(0xFF2C313A)
     } else {
@@ -162,6 +179,8 @@ fun RiderMarker(
             append(", rol ")
             append(marker.rideRole.badgeLabel)
         }
+        append(", rol en convoy ")
+        append(marker.roleLabel)
         append(", ${marker.speedKmh} km/h")
     }
 
@@ -185,6 +204,12 @@ fun RiderMarker(
                     text = marker.expandedDisplayName,
                     color = BikerColors.TextPrimary,
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Rol: ${marker.roleLabel}",
+                    color = BikerColors.PrimaryAmber,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -240,21 +265,23 @@ fun RiderMarker(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    marker.isSelf -> {
-                        Icon(
-                            imageVector = AppIcons.SelfHeading,
-                            contentDescription = "Mi posición",
-                            tint = BikerColors.PrimaryAmber,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                     else -> {
-                        Text(
-                            text = marker.abbreviatedLabel,
-                            color = BikerColors.TextPrimary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                        if (avatarBitmap != null) {
+                            Image(
+                                bitmap = avatarBitmap,
+                                contentDescription = "Avatar de ${marker.fullName}",
+                                modifier = Modifier
+                                    .size(BikerDimens.AvatarListSize - 6.dp)
+                                    .clip(CircleShape)
+                            )
+                        } else {
+                            Text(
+                                text = marker.abbreviatedLabel,
+                                color = BikerColors.TextPrimary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                 }
             }
@@ -323,10 +350,20 @@ fun RiderMarker(
                 modifier = Modifier.size(12.dp)
             )
             Text(
-                text = "${marker.abbreviatedLabel} · ${marker.routeStatus.symbolAndLabel}",
+                text = buildString {
+                    append(marker.abbreviatedLabel)
+                    if (marker.isSelf) append(" (Yo)")
+                    append(" · ")
+                    append(marker.roleLabel)
+                    append(" · ")
+                    append(marker.routeStatus.symbolAndLabel)
+                    append('\n')
+                    append(marker.fullName)
+                },
                 color = BikerColors.TextPrimary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2
             )
         }
     }

@@ -226,3 +226,24 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 | Descartar backpressure en sesión válida | `Select-String -Pattern 'TX backpressure\|TX fallo\|descartado'` | Sin descartes en T6 | 0 en T1-T4 y T6; T5 inestable y T7 inconclusiva documentados | `docs/evidence/ptt_gatt_audio_continuo_20261118.txt` §5 |
 | Claridad auditiva | escucha humana con el guion `PRUEBA DE AUDIO CONTINUO UNO DOS TRES CUATRO CINCO` | "Se escucha claro, sin cortes" | NO verificable por este agente | Requiere confirmación del usuario |
 | Publicar | `cd D:\Ruta-Biker-Sync; git push -u origin main` (lo ejecuta el usuario) | `main` actualizado en origin | Pendiente: autenticación del usuario | Commits atómicos creados localmente |
+### Bloque B — Peers enriquecidos en el mapa (nombre, avatar, rol) — 2026-11-18
+**Commit atómico**: `feat(ui): enriquecer peers en el mapa con nombre, avatar y rol` (sin amend).
+
+**Diagnóstico**: `GET /v1/rides/:id/participants` no existía (solo POST de alta). `PeerTrack` tiene shortId/lat/lon/batería/SOS pero no identidad. `LiveMapController` se creaba con directorio vacío y usaba el nombre inventado "Juan Martínez" para el peer local y "Rider #X" para los remotos. El backend no conoce `shortId`, por lo que el roster solo puede asociarse al peer local por `userId`.
+
+**Backend**: nuevo `GET /v1/rides/:id/participants` con `displayName`, `avatarUrl`, `roleInConvoy`, `mapColor`, `bikeModel` y `note` aclarando el límite del shortId. Reutiliza `ride_participants.ride_role` (sin columnas nuevas). `roleInConvoy` se deriva de forma determinista; `displayName` vacío -> `Desconocido`. Tests `ride_roster.test.ts` y `ride_roster_endpoint.test.ts` en verde, con 200/403/404.
+
+**Android**: `RiderDirectoryEntry`/`RiderMarkerUiModel` ampliados sin tocar `PeerTrack`. Perfil cacheado (`ProfileRepository`, SharedPreferences) aplicado al peer local con alias, foto base64 y color reales; fallback `Piloto #X` y `Desconocido`. Roster backend aplicado solo al peer local por `userId`. `RiderMarker` muestra avatar circular (foto o iniciales), nombre en segunda línea, rol al expandir, `(Yo)` en el local y estado En ruta/Desviado/Sin señal/SOS.
+
+**Verificación real**: APK firmada e instalada en TECNO `098813734B105395` y Redmi `b2c398bb`. Mapa con 2 motos: local `O. (Yo) · Punta · ✓ En ruta` + nombre real del perfil; remoto `R#12243 · Desconocido · ⚠ Desviado` + `Piloto #12243` (y simétrico `Piloto #12982` en Redmi, con `Rol: Desconocido` al expandir). Sin reverse USB, el mapa sigue con `Piloto #12982` y sin FATAL en logcat.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Diagnosticar fuentes | `grep` en `app.ts`, `MeshRelayEngine.kt`, `LiveMapViewModel.kt` | Sin datos inventados | Roster inexistente; PeerTrack sin identidad; directorio vacío | `docs/evidence/block_b_peers_mapa_20261118.txt` |
+| Ampliar roster backend | `npm test -- test/ride_roster.test.ts test/ride_roster_endpoint.test.ts` | 200 con campos nuevos | 6 tests en verde (200/403/404) | `backend/test/ride_roster_endpoint.test.ts` |
+| Enriquecer UI | `gradlew :app:testStandardDebugUnitTest --tests '*RiderProfileFallbackTest' --tests '*RideRosterUiTest'` | BUILD SUCCESSFUL | BUILD SUCCESSFUL | `android/app/src/test/.../RiderProfileFallbackTest.kt` |
+| Firmar e instalar | `apksigner sign ...` + `adb -s <dev> install -r ...` | `Success` en ambos | `Success` en ambos | `docs/evidence/block_b_peers_mapa_20261118.txt` |
+| Mapa 2 motos | `uiautomator dump` + `screencap` | 2 motos con nombre/rol | 2 marcadores, local real y remoto `Piloto #X` | `block_b_map_two_peers_tecno_20261118.png/.xml`, `block_b_map_two_peers_redmi_20261118.png/.xml` |
+| Offline | `adb reverse --remove tcp:3000` + relanzar app | Fallback sin crash | `Piloto #12982 · Desconocido`, `pidof` activo, sin FATAL | `block_b_offline_fallback_redmi_20261118.png/.xml` |
+
+**Pendiente**: el backend no conoce `shortId`; la rodada de campo usa `rideId = "ride-live-01"` (no UUID) y no consumió el roster backend en hardware; el contador HUD "Convoy 1 riders" no se modificó; no se añadió cargador de imágenes remoto (URLs guardadas, iniciales/foto base64).

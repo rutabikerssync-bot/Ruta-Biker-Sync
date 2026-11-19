@@ -47,7 +47,11 @@ data class RiderDirectoryEntry(
     val nickname: String? = null,
     val relation: RiderRelation = RiderRelation.SAME_GROUP,
     val rideRole: RiderRideRole = RiderRideRole.NONE,
-    val markerColorHex: Long = 0xFF00E676
+    val markerColorHex: Long = 0xFF00E676,
+    val avatarUrl: String? = null,
+    val avatarBase64: String? = null,
+    val roleLabel: String = "Desconocido",
+    val userId: String? = null
 )
 
 data class LeaderPinUiModel(
@@ -111,6 +115,66 @@ class LiveMapController(
         localShortId = if (isLeader) targetLeaderShortId else (if (targetLeaderShortId == 1u.toUShort()) 2u else 1u).toUShort()
         flushMapFrame(System.currentTimeMillis(), force = true)
     }
+
+    /**
+     * Perfil cacheado en SharedPreferences (offline). Nunca inventa datos: si no hay alias,
+     * se usa el fallback honrado "Piloto #X". La foto se guarda como base64 en el perfil local.
+     */
+    fun applyCachedLocalProfile(
+        fullName: String?,
+        avatarBase64: String?,
+        avatarUrl: String?,
+        pinColorHex: String?,
+        userId: String?
+    ) {
+        val current = directory[localShortId]
+        val safeName = fullName?.trim().takeUnless { it.isNullOrBlank() }
+            ?: "Piloto #${localShortId.toInt()}"
+        directory[localShortId] = RiderDirectoryEntry(
+            shortId = localShortId,
+            fullName = safeName,
+            nickname = current?.nickname,
+            relation = RiderRelation.SAME_GROUP,
+            rideRole = current?.rideRole
+                ?: if (localShortId == leaderShortId) RiderRideRole.LEADER else RiderRideRole.NONE,
+            markerColorHex = parseHexColor(pinColorHex)
+                ?: current?.markerColorHex ?: 0xFFFFB300,
+            avatarUrl = avatarUrl ?: current?.avatarUrl,
+            avatarBase64 = avatarBase64?.takeIf { it.isNotBlank() } ?: current?.avatarBase64,
+            roleLabel = current?.roleLabel ?: if (localShortId == leaderShortId) "Punta" else "Desconocido",
+            userId = userId ?: current?.userId
+        )
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
+    /**
+     * Aplica el roster del backend solo al peer local, porque el backend no conoce `shortId`.
+     * Los peers remotos siguen con "Piloto #X" hasta que exista un mapa userId↔shortId real.
+     */
+    fun applyBackendRoster(entries: List<RideRosterUiEntry>, localUserId: String?) {
+        val own = entries.firstOrNull { entry -> entry.userId == localUserId } ?: return
+        val current = directory[localShortId]
+        directory[localShortId] = RiderDirectoryEntry(
+            shortId = localShortId,
+            fullName = own.displayName,
+            nickname = current?.nickname,
+            relation = RiderRelation.SAME_GROUP,
+            rideRole = when {
+                own.roleInConvoy.equals("Punta", ignoreCase = true) -> RiderRideRole.LEADER
+                own.roleInConvoy.equals("Scout", ignoreCase = true) -> RiderRideRole.SCOUT
+                own.roleInConvoy.equals("Sweep", ignoreCase = true) -> RiderRideRole.SWEEP
+                current?.rideRole != null && current.rideRole != RiderRideRole.NONE -> current.rideRole
+                else -> RiderRideRole.NONE
+            },
+            markerColorHex = own.mapColorHex ?: current?.markerColorHex ?: 0xFFFFB300,
+            avatarUrl = own.avatarUrl ?: current?.avatarUrl,
+            avatarBase64 = current?.avatarBase64,
+            roleLabel = own.roleInConvoy,
+            userId = own.userId
+        )
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
     companion object {
         const val DEFAULT_PMTILES_ASSET_URI: String = "asset://tiles/sample_corridor.pmtiles"
         const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/positron_corridor_style.json"
@@ -287,10 +351,11 @@ class LiveMapController(
         // 1. Marcador propio (Yo)
         val selfEntry = directory[localShortId] ?: RiderDirectoryEntry(
             shortId = localShortId,
-            fullName = "Juan Martínez",
+            fullName = "Piloto #${localShortId.toInt()}",
             relation = RiderRelation.SAME_GROUP,
             rideRole = if (localShortId == leaderShortId) RiderRideRole.LEADER else RiderRideRole.NONE,
-            markerColorHex = 0xFFFFB300
+            markerColorHex = 0xFFFFB300,
+            roleLabel = if (localShortId == leaderShortId) "Punta" else "Desconocido"
         )
         val prevSelf = previousByShortId[localShortId]
         val selfStatus = when {
@@ -318,7 +383,10 @@ class LiveMapController(
                 batteryPercent = localBattery,
                 distanceToLeaderMeters = haversineMeters(localLat, localLon, leaderPose.first, leaderPose.second),
                 lastHops = 0,
-                isSelf = true
+                isSelf = true,
+                avatarUrl = selfEntry.avatarUrl,
+                avatarBase64 = selfEntry.avatarBase64,
+                roleLabel = selfEntry.roleLabel
             )
         )
 
@@ -326,10 +394,11 @@ class LiveMapController(
         for ((peerId, track) in latestPeersFromMesh.entries.sortedBy { it.key }) {
             val entry = directory[peerId] ?: RiderDirectoryEntry(
                 shortId = peerId,
-                fullName = "Rider #${peerId.toInt()}",
+                fullName = "Piloto #${peerId.toInt()}",
                 relation = RiderRelation.ALLIED_STRANGER,
                 rideRole = RiderRideRole.NONE,
-                markerColorHex = 0xFF29B6F6
+                markerColorHex = 0xFF29B6F6,
+                roleLabel = "Desconocido"
             )
             val prev = previousByShortId[peerId]
             val routeStatus = when {
@@ -363,7 +432,10 @@ class LiveMapController(
                         leaderPose.second
                     ),
                     lastHops = track.lastHops,
-                    isSelf = false
+                    isSelf = false,
+                    avatarUrl = entry.avatarUrl,
+                    avatarBase64 = entry.avatarBase64,
+                    roleLabel = entry.roleLabel
                 )
             )
         }

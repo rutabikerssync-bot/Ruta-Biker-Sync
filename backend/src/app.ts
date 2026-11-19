@@ -59,6 +59,7 @@ import {
   verifyRideSummarySignature,
   type RideSummaryData
 } from './lib/credentials.js';
+import { mapRideRosterRows } from './lib/rideRoster.js';
 import {
   FakePlayBillingVerifier,
   defaultFakePlayVerifier,
@@ -4338,6 +4339,48 @@ export async function buildApp({
         message: (err as Error).message
       });
     }
+  });
+
+  // Roster enriquecido para el mapa en vivo. NO incluye shortId: el identificador
+  // de malla se deriva en el dispositivo (modelo + ANDROID_ID) y el backend no lo conoce.
+  app.get('/v1/rides/:id/participants', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: rideId } = req.params as { id: string };
+    if (!isUuid(rideId)) {
+      return reply.code(400).send({ error: 'INVALID_RIDE_ID' });
+    }
+
+    const rideRes = await db.query(
+      `SELECT host_leader, cohost_leader FROM rides WHERE id = $1`,
+      [rideId]
+    );
+    const ride = rideRes.rows[0];
+    if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+
+    const partRes = await db.query(
+      `SELECT rp.user_id, rp.group_id, rp.status_kind, rp.ride_role,
+              u.display_name, u.photo_url, u.map_color, u.bike_model
+       FROM ride_participants rp
+       JOIN users u ON u.id = rp.user_id
+       WHERE rp.ride_id = $1
+       ORDER BY rp.joined_at ASC`,
+      [rideId]
+    );
+
+    const isParticipant = partRes.rows.some((r) => String(r.user_id) === uid);
+    const isHostOrCohostLeader =
+      String(ride.host_leader) === uid ||
+      (ride.cohost_leader && String(ride.cohost_leader) === uid);
+    if (!isParticipant && !isHostOrCohostLeader) {
+      return reply.code(403).send({ error: 'NOT_IN_RIDE' });
+    }
+
+    return reply.code(200).send({
+      rideId,
+      participants: mapRideRosterRows(partRes.rows),
+      note: 'El shortId de malla se deriva localmente; el backend no lo conoce.'
+    });
   });
 
   const handleIssueRideManifest = async (req: FastifyRequest, reply: FastifyReply) => {

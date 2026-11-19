@@ -89,6 +89,8 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.annotations.PolylineOptions
+import com.rutabikersync.app.core.network.ClubApiClient
+import com.rutabikersync.app.feature.auth.ProfileRepository
 import com.rutabikersync.app.feature.routes.DeviationStatus
 import com.rutabikersync.app.feature.routes.LatLngPoint
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
@@ -478,6 +480,35 @@ fun LiveMapScreen(
     LaunchedEffect(uxParticipant, uxLeaderId) {
         val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
         liveMapViewModel.controller.updateConvoyIds(localId = localShortId, targetLeaderId = uxLeaderId)
+    }
+
+    // Bloque B: perfil cacheado (offline) y roster backend (cuando hay UUID de rodada).
+    val localProfileRepository = remember { ProfileRepository(context.applicationContext) }
+    val localProfile = remember { localProfileRepository.getUserProfile() }
+    LaunchedEffect(localProfile) {
+        localProfile?.let { profile ->
+            liveMapViewModel.controller.applyCachedLocalProfile(
+                fullName = profile.aliasBiker,
+                avatarBase64 = profile.photoBase64,
+                avatarUrl = profile.photoUrl,
+                pinColorHex = profile.pinColorHex,
+                userId = profile.uid
+            )
+        }
+    }
+    LaunchedEffect(rideServiceState.rideId, localProfile?.uid) {
+        val rideId = rideServiceState.rideId
+        val uuidPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+        // La rodada de prueba usa "ride-live-01": el backend exige UUID, así que se omite
+        // la petición y se conservan los fallbacks locales sin lanzar errores.
+        if (rideId.isNullOrBlank() || !uuidPattern.matches(rideId)) return@LaunchedEffect
+        val api = ClubApiClient.getInstance().apply { initContext(context.applicationContext) }
+        val response = api.fetchRideRoster(rideId).getOrNull() ?: return@LaunchedEffect
+        if (!response.isSuccess) return@LaunchedEffect
+        val entries = response.body?.let { parseRideRosterUi(it) }.orEmpty()
+        if (entries.isNotEmpty()) {
+            liveMapViewModel.controller.applyBackendRoster(entries, localProfile?.uid)
+        }
     }
 
     LaunchedEffect(simulatedAlert) {

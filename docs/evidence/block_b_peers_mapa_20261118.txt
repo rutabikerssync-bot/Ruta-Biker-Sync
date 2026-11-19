@@ -1,0 +1,109 @@
+BLOQUE B — PEERS ENRIQUECIDOS EN EL MAPA — 2026-11-18
+=====================================================
+
+DIAGNÓSTICO (sin inventar datos)
+--------------------------------
+1. Backend: antes de este bloque solo existía `POST /v1/rides/:id/participants`
+   (alta de participantes). No había endpoint de lectura del roster.
+   `ride_participants` ya tenía `ride_role`; `users` ya tenía `display_name`,
+   `photo_url`, `map_color` y `bike_model` (migraciones 0014/0016).
+2. `MeshRelayEngine.PeerTrack` expone `shortId`, `lastLatitude`, `lastLongitude`,
+   `lastSpeedKmh`, `lastBatteryPercent`, `isSos`, `isLost`, `lastHops`, etc.
+   NO tiene `name`, `avatarUrl` ni `roleInConvoy`: la malla transporta telemetría,
+   no identidad. No se modificó PeerTrack (GATT/crypto/malla intactos).
+3. `LiveMapScreen` renderiza `RiderMarkerUiModel` construidos por `LiveMapController`.
+   En producción el controlador se crea con `initialDirectory = emptyList()`:
+   - fallback local era el nombre inventado "Juan Martínez";
+   - fallback remoto era "Rider #X" / "Rider aliado #X".
+   No existía lectura del perfil cacheado ni del roster backend.
+4. El backend NO conoce el `shortId` de malla (se deriva en el dispositivo con
+   `MODEL:ANDROID_ID`). Por eso el roster solo puede asociarse al peer local
+   por `userId`; los peers remotos conservan el fallback "Piloto #X".
+
+BACKEND (Tarea 2)
+-----------------
+- Nuevo `GET /v1/rides/:id/participants` con `requireUserId`, validación UUID,
+  404 `RIDE_NOT_FOUND`, 403 `NOT_IN_RIDE` y 200 con:
+  `userId, groupId, statusKind, rideRole, roleInConvoy, displayName, avatarUrl,
+   mapColor, bikeModel` + `note` aclarando que el backend no conoce `shortId`.
+- `roleInConvoy` se normaliza desde `ride_role`: `capitan_rodada -> Punta`,
+  `scout -> Scout`, `sweep -> Sweep`, resto -> `Rider` (sin inventar rol).
+  `displayName` vacío -> `Desconocido`; `avatarUrl` nulo se conserva nulo.
+- No se añadió columna nueva: `ride_role` ya existía y se reutilizó.
+- Tests:
+  `npm run typecheck` -> OK.
+  `npm test -- test/ride_roster.test.ts test/ride_roster_endpoint.test.ts test/migrations_registry.test.ts test/health.test.ts`
+  -> 4 files, 6 tests, todos en verde.
+  El test de endpoint usa pg-mem con `users/rides/ride_participants` reales
+  y verifica 200 con campos nuevos, 403 outsider y 404 ride inexistente.
+
+ANDROID (Tarea 3)
+-----------------
+- `RiderDirectoryEntry` y `RiderMarkerUiModel`: `avatarUrl`, `avatarBase64`,
+  `roleLabel`, `userId`. `PeerTrack` intacto.
+- `applyCachedLocalProfile(...)`:lee `ProfileRepository` (SharedPreferences
+  `rbs_auth_prefs`) y usa alias real, foto base64 real y color del pin.
+  Si no hay alias -> `Piloto #<shortId>`; si no hay rol -> `Desconocido`.
+- `applyBackendRoster(...)`: aplica el roster solo cuando `userId == uid local`,
+  con `roleInConvoy` y `mapColor` reales. La rodada de prueba usa
+  `rideId = "ride-live-01"` (no UUID), así que en hardware se omitió la petición
+  y se usó el perfil cacheado; el mapeo backend queda cubierto por test JVM.
+- `RiderMarker`: avatar circular con foto cacheada (base64) o iniciales;
+  nombre completo en segunda línea; `Rol: <rol>` al expandir; etiqueta compacta
+  `abreviatura · rol · estado · símbolo`; indicador `En ruta / Desviado / Sin señal / SOS`.
+  El peer local muestra `(Yo)` junto a sus iniciales y su nombre real.
+- `ClubApiClient.fetchRideRoster(rideId)` añadido (solo GET, sin cambios GATT).
+
+VERIFICACIÓN EN HARDWARE (Tarea 4)
+----------------------------------
+Dispositivos: TECNO KI5k `098813734B105395` shortId 12982 · Redmi Note 13 Pro
+`b2c398bb` shortId 12243. Ambos con `adb reverse tcp:3000 tcp:3000`.
+
+Comando: `.\gradlew.bat :app:testStandardDebugUnitTest --tests '*RiderProfileFallbackTest' --tests '*RideRosterUiTest' --tests '*LiveMapViewModelTest' :app:assembleStandardDebug --no-daemon --console=plain`
+Resultado: BUILD SUCCESSFUL.
+
+Comando: `apksigner sign --ks ... --out app-standard-debug-rbssigned.apk app-standard-debug.apk`
+Resultado: APK firmada `CN=Ruta Biker Sync, OU=Release`.
+Nota: el task Gradle dejó `app-standard-debug-rbssigned.apk` desactualizado;
+se re-firmó manualmente `app-standard-debug.apk` y se verificó que el DEX
+contiene las cadenas nuevas (`rol en convoy`, `Piloto #`).
+
+Comando: `adb -s <dev> install -r app-standard-debug-rbssigned.apk`
+Resultado: `Success` en TECNO y Redmi.
+
+TECNO (uiautomator dump):
+  `O. (Yo) · Punta · ✓ En ruta&#10;Omartinezpaz`
+  `R#12243 · Desconocido · ⚠ Desviado&#10;Piloto #12243`
+Redmi (uiautomator dump, marcador remoto expandido):
+  `O. (Yo) · Punta · ✓ En ruta&#10;Ozmartinezpaz`
+  `Piloto #12982` / `Rol: Desconocido`
+  `R#12982 · Desconocido · ⚠ Desviado&#10;Piloto #12982`
+=> 2 motos visibles en cada dispositivo: local con nombre real del perfil
+cacheado y rol Punta; remoto con fallback honesto "Piloto #<shortId>" y rol
+"Desconocido". Estado "Desviado" procede del detector de corredor, no de datos
+inventados.
+
+Offline: se eliminó `adb reverse` en Redmi, se reinició la app y el mapa siguió
+mostrando `Piloto #12982 · Desconocido` sin crash (`pidof` activo, sin
+`FATAL EXCEPTION` en logcat). Se restauró el reverse al final.
+
+EVIDENCIA
+---------
+- `docs/evidence/block_b_map_two_peers_tecno_20261118.png` / `.xml`
+- `docs/evidence/block_b_map_two_peers_redmi_20261118.png` / `.xml`
+- `docs/evidence/block_b_offline_fallback_redmi_20261118.png` / `.xml`
+
+LÍMITES / PENDIENTE
+-------------------
+- El backend no conoce `shortId`: no se puede enriquecer el peer remoto con
+  nombre/avatar del servidor sin un mapa real `userId <-> shortId`.
+- `ride-live-01` no es UUID: el roster backend no se consumió en esta prueba
+  de campo; queda validado por test de integración con pg-mem.
+- No se añadió librería de imágenes; se muestra la foto base64 cacheada cuando
+  existe y iniciales en caso contrario (URLs del roster se guardan pero no se descargan).
+- La suite Android completa arrastra fallos preexistentes no relacionados
+  (`MultiHopFloodingTest`, `RouteEnginePhase4Test`) y `LiveMapViewModelTest`
+  mostró un fallo intermitente en la ejecución completa que no reapareció en
+  la ejecución dirigida; no se atribuye a este bloque.
+- El HUD "Convoy 1 riders" no cambió a 2 aunque se renderizan 2 marcadores;
+  no se modificó ese contador en este bloque.

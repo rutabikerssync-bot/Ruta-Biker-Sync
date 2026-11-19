@@ -72,6 +72,11 @@ class ClubApiClient(
         executeRequest("GET", "/health", null)
     }
 
+    /** Roster enriquecido del mapa en vivo (nombre, avatar y rol reales). */
+    suspend fun fetchRideRoster(rideId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/rides/$rideId/participants", null)
+    }
+
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
     var accessToken: String? = null

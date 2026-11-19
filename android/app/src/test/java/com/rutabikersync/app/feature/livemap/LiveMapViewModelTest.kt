@@ -83,9 +83,9 @@ class LiveMapViewModelTest {
         assertEquals("E.G.", byId.getValue(4u).abbreviatedLabel)
         assertEquals(RiderRideRole.SWEEP, byId.getValue(4u).rideRole)
 
-        // Regla R4.7/R4.8: Rider 5 es ALLIED_STRANGER -> oculta nombre real y muestra "R#5" / "Rider aliado #5"
+        // Regla R4.7/R4.8: Rider 5 es ALLIED_STRANGER -> oculta nombre real y muestra "R#5" / fallback "Piloto #5"
         assertEquals("R#5", byId.getValue(5u).abbreviatedLabel)
-        assertEquals("Rider aliado #5", byId.getValue(5u).expandedDisplayName)
+        assertEquals("Piloto #5", byId.getValue(5u).expandedDisplayName)
 
         engines.values.forEach { it.stop() }
     }
