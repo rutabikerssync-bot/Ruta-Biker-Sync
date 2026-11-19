@@ -70,6 +70,7 @@ describe('GET /v1/rides/:id/participants — roster enriquecido', () => {
     expect(body.participants).toHaveLength(2);
     expect(body.participants[0]).toMatchObject({
       userId: LEADER_ID,
+      groupId: 'g-1',
       displayName: 'Juan Martínez',
       avatarUrl: 'https://example.test/juan.webp',
       rideRole: 'capitan_rodada',

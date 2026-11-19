@@ -43,8 +43,16 @@ class LiveMapViewModelTest {
         val mapController = LiveMapController(
             scope = backgroundScope,
             localShortId = 1u,
-            leaderShortId = 1u
+            leaderShortId = 1u,
+            // FIX privacidad: los riders 1-4 son del mismo club y el 5 de otro;
+            // sin groupId la regla redactaría todos los perfiles por defecto.
+            initialDirectory = LiveMapController.defaultConvoyDirectory().map { entry ->
+                entry.copy(
+                    groupId = if (entry.shortId == 5u.toUShort()) "g-coyotes" else "g-halcones"
+                )
+            }
         )
+        mapController.setLocalGroupId("g-halcones")
         mapController.bindToMeshEngine(engines.getValue(1u), enablePeriodicCadenceLoop = false)
         mapController.updateLocalRiderPose(latitude = 19.4326, longitude = -99.1332, speedKmh = 80)
 
@@ -88,9 +96,11 @@ class LiveMapViewModelTest {
         assertEquals("E.G.", byId.getValue(4u).abbreviatedLabel)
         assertEquals(RiderRideRole.SWEEP, byId.getValue(4u).rideRole)
 
-        // Regla R4.7/R4.8: Rider 5 es ALLIED_STRANGER -> oculta nombre real y muestra "R#5" / fallback "Piloto #5"
-        assertEquals("R#5", byId.getValue(5u).abbreviatedLabel)
+        // Regla R4.7/R4.8 reforzada: Rider 5 es de otro club -> perfil redactado,
+        // avatar genérico y "Piloto #5" tanto en la etiqueta como al expandir.
+        assertEquals("Piloto #5", byId.getValue(5u).abbreviatedLabel)
         assertEquals("Piloto #5", byId.getValue(5u).expandedDisplayName)
+        assertTrue(byId.getValue(5u).profileRedacted)
 
         engines.values.forEach { it.stop() }
     }

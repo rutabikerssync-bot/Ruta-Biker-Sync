@@ -15,6 +15,7 @@ class RideRosterUiTest {
               "participants": [
                 {
                   "userId": "u-1",
+                  "groupId": "grp-halcones",
                   "displayName": "Juan Martínez",
                   "avatarUrl": "https://example.test/juan.webp",
                   "roleInConvoy": "Punta",
@@ -34,6 +35,7 @@ class RideRosterUiTest {
 
         val entries = parseRideRosterUi(json)
         assertEquals(2, entries.size)
+        assertEquals("grp-halcones", entries[0].groupId)
         assertEquals("Juan Martínez", entries[0].displayName)
         assertEquals("https://example.test/juan.webp", entries[0].avatarUrl)
         assertEquals("Punta", entries[0].roleInConvoy)
@@ -41,6 +43,7 @@ class RideRosterUiTest {
         assertEquals("Desconocido", entries[1].displayName)
         assertNull(entries[1].avatarUrl)
         assertEquals("Rider", entries[1].roleInConvoy)
+        assertNull("sin groupId no se inventa club", entries[1].groupId)
     }
 
     @Test

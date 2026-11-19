@@ -93,24 +93,36 @@ data class RiderMarkerUiModel(
     val isSelf: Boolean = false,
     val avatarUrl: String? = null,
     val avatarBase64: String? = null,
-    val roleLabel: String = "Desconocido"
+    val roleLabel: String = "Desconocido",
+    /** groupId real del rider; `null` cuando no se conoce. */
+    val groupId: String? = null,
+    /** true cuando el perfil real se oculta por club distinto o desconocido. */
+    val profileRedacted: Boolean = false
 ) {
     /**
      * Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (ej. "J.M."),
      * respetando R4.7/R4.8 para riders desconocidos en rodadas aliadas ("R#5").
      */
     val abbreviatedLabel: String
-        get() = abbreviateRiderName(fullName = fullName, relation = relation, shortId = shortId)
+        get() = PeerProfilePrivacy.visibleAbbreviation(
+            shortId = shortId,
+            realAbbreviation = abbreviateRiderName(fullName = fullName, relation = relation, shortId = shortId),
+            showRealProfile = !profileRedacted
+        )
 
     /**
      * Nombre completo mostrado al tocar el marcador (expandido), respetando privacidad R4.7/R4.8.
      */
     val expandedDisplayName: String
-        get() = when (relation) {
-            RiderRelation.SAME_GROUP, RiderRelation.MUTUAL_FRIEND -> {
-                if (!nickname.isNullOrBlank()) "$fullName ($nickname)" else fullName
+        get() = if (profileRedacted) {
+            "Piloto #${shortId.toInt()}"
+        } else {
+            when (relation) {
+                RiderRelation.SAME_GROUP, RiderRelation.MUTUAL_FRIEND -> {
+                    if (!nickname.isNullOrBlank()) "$fullName ($nickname)" else fullName
+                }
+                RiderRelation.ALLIED_STRANGER -> "Piloto #${shortId.toInt()}"
             }
-            RiderRelation.ALLIED_STRANGER -> "Piloto #${shortId.toInt()}"
         }
 }
 
@@ -271,6 +283,15 @@ fun RiderMarker(
                         Icon(
                             imageVector = AppIcons.RiderOffMesh,
                             contentDescription = "Fuera de mesh",
+                            tint = BikerColors.TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    // FIX privacidad: club distinto/desconocido -> avatar genérico de moto.
+                    marker.profileRedacted -> {
+                        Icon(
+                            imageVector = AppIcons.Bike,
+                            contentDescription = "Avatar genérico",
                             tint = BikerColors.TextSecondary,
                             modifier = Modifier.size(24.dp)
                         )

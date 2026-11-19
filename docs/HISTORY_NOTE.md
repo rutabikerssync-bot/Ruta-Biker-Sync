@@ -339,3 +339,24 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 | Desconexión | `adb shell am force-stop com.rutabikersync.app` + 22 s + dump | «Convoy 1 rider» | TECNO y Redmi: `Convoy` + `1 rider`; marcador `Sin señal` sigue visible | `convoy_count_1peer_tecno-20261119.png/.xml`, `convoy_count_1peer_redmi-20261119.png/.xml` |
 
 **Pendiente**: validación visual humana de las capturas; la desconexión se simuló con `force-stop` (no apagado físico de Bluetooth); el marcador `Sin señal` y el diálogo «Riders en Convoy (markers.size)» siguen contando marcadores fantasma y quedaron fuera de alcance.
+
+### FIX - Privacidad del perfil en el mapa segun club (groupId) - 2026-11-19
+**Commit atomico**: `fix(ui): mostrar perfil de peer solo si pertenece al mismo club` (sin amend).
+
+**Diagnostico**: el backend `GET /v1/rides/:id/participants` **ya devuelve `groupId`** (`app.ts:4368` selecciona `rp.group_id`; `lib/rideRoster.ts:56` lo proyecta), pero `RideRosterUiEntry`/`parseRideRosterUi` lo ignoraban. `PeerTrack` no tiene groupId ni userId (anadirlo exigiria cambiar la malla). El perfil local si expone clubId (`ProfileRepository.getClubId()` -> `current_club_id`), pero `LiveMapScreen` no lo pasaba al mapa. `RiderDirectoryEntry.relation` era un dato de demostracion, no un groupId real: un peer con shortId 1-5 podia mostrar nombre/avatar/rol ficticios sin verificacion de club.
+
+**Regla**: nuevo `PeerProfilePrivacy` puro. El piloto local siempre ve su perfil; un peer remoto solo muestra nombre/avatar/rol reales si ambos groupId son no vacios e identicos. groupId ausente, vacio o distinto => avatar generico (`AppIcons.Bike`) y `Piloto #XXXX`, sin nombre real, avatar real ni rol. `RideRosterUiEntry`, `RiderDirectoryEntry`, `LiveMapController` (localGroupId) y `RiderMarker` (profileRedacted) incorporan el campo; `flushMapFrame` aplica la redaccion sobre los mismos markers que pinta el mapa. Sin cambios en malla BLE, GATT, PTT ni criptografia.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Diagnosticar | Busqueda de `groupId` en Android/backend y lectura de `PeerTrack`, `RideRosterUi`, `ProfileRepository`, `app.ts` | Datos disponibles y ausencia en malla | Backend ya expone groupId; la app no lo consumia; peer remoto sin groupId | `docs/evidence/peer_privacy_groupid_20261119.txt` |
+| Implementar regla | `PeerProfilePrivacy` + `RideRosterUiEntry.groupId` + `RiderDirectoryEntry.groupId` + `LiveMapController.setLocalGroupId` + redaccion en `RiderMarker` | Mismo club real; distinto/desconocido redactado | Regla aplicada en `flushMapFrame`; self siempre real; sin tocar BLE/GATT/PTT | `PeerProfilePrivacy.kt`, `LiveMapViewModel.kt`, `RiderMarker.kt`, `LiveMapScreen.kt` |
+| Tests JVM | `gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain --tests '*PeerProfilePrivacyTest' ...` (12 filtros) | BUILD SUCCESSFUL | 62 tests, 0 fallos | XML de `test-results/testStandardDebugUnitTest/` |
+| Backend | `npm run typecheck`, `npm test`, `npm run build` | Sin cambios de logica; 119 tests | 20 archivos / 119 tests verdes; typecheck y build OK | `backend/test/ride_roster_endpoint.test.ts` con `groupId: 'g-1'` |
+| Build e instalacion | `assembleStandardDebug` + `apksigner sign/verify` + `adb install -r` | APK firmada en TECNO y Redmi | `CN=Ruta Biker Sync`; `Success` en ambos | `docs/evidence/peer_privacy_groupid_20261119.txt` |
+| Peer desconocido | Rodada en TECNO y Redmi + `uiautomator dump` | Avatar generico + `Piloto #XXXX` | TECNO `Piloto #12243`, Redmi `Piloto #12982`; ambos `Avatar generico`, rol `Desconocido`, `Convoy 2 riders` | `peer_privacy_unknown_peer_tecno-20261119.png/.xml`, `peer_privacy_unknown_peer_redmi-20261119.png/.xml` |
+| Control mismo club (local) | Tap al avatar propio + dump | Nombre/avatar/rol reales | TECNO `Avatar de Omartinezpaz` / `Punta`; Redmi `Avatar de Ozmartinezpaz` / `Punta` | `peer_privacy_same_club_local_tecno-20261119.png/.xml`, `peer_privacy_same_club_local_redmi-20261119.png/.xml` |
+
+**Confirmacion**: el peer de distinto club o desconocido muestra avatar generico y `Piloto #XXXX`, sin nombre/avatar/rol reales. Los tres casos de la regla estan cubiertos por tests JVM.
+
+**Pendiente**: peer remoto del mismo club no reproducible en hardware (sin mapping `shortId<->userId`; añadirlo exigiria tocar la malla, fuera de alcance) pero cubierto por JVM; validacion visual humana de las capturas; el groupId del roster no llega en hardware porque `ride-live-01` no es UUID y no se activo reverse USB (parser validado por tests); suite JVM completa arrastra 2 fallos preexistentes no relacionados (jitter `MultiHopFloodingTest` y GPX `RouteEnginePhase4Test`).

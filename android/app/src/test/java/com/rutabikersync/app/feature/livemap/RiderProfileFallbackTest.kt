@@ -35,8 +35,21 @@ class RiderProfileFallbackTest {
         controller.applyCachedLocalProfile("Oscar Rider", null, null, "#00E676", "u-local")
         controller.applyBackendRoster(
             listOf(
-                RideRosterUiEntry("u-local", "Óscar Real", null, "Scout", 0xFFFFB300L),
-                RideRosterUiEntry("u-remoto", "Otro", null, "Rider", null)
+                RideRosterUiEntry(
+                    userId = "u-local",
+                    groupId = "g-1",
+                    displayName = "Óscar Real",
+                    avatarUrl = null,
+                    roleInConvoy = "Scout",
+                    mapColorHex = 0xFFFFB300L
+                ),
+                RideRosterUiEntry(
+                    userId = "u-remoto",
+                    displayName = "Otro",
+                    avatarUrl = null,
+                    roleInConvoy = "Rider",
+                    mapColorHex = null
+                )
             ),
             localUserId = "u-local"
         )

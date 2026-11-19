@@ -523,6 +523,8 @@ fun LiveMapScreen(
                 userId = profile.uid
             )
         }
+        // FIX privacidad: groupId del perfil local para comparar con el de cada peer.
+        liveMapViewModel.controller.setLocalGroupId(localProfileRepository.getClubId())
     }
     LaunchedEffect(rideServiceState.rideId, localProfile?.uid) {
         val rideId = rideServiceState.rideId

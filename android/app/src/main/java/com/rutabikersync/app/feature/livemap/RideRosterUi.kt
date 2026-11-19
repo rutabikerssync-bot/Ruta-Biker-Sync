@@ -14,6 +14,8 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 data class RideRosterUiEntry(
     val userId: String,
+    /** groupId real del participante; `null` cuando el backend no lo reporta. */
+    val groupId: String? = null,
     val displayName: String,
     val avatarUrl: String?,
     val roleInConvoy: String,
@@ -43,6 +45,7 @@ fun parseRideRosterUi(root: JsonElement): List<RideRosterUiEntry> {
             ?: "Desconocido"
         RideRosterUiEntry(
             userId = userId,
+            groupId = field("groupId")?.takeIf { it.isNotBlank() },
             displayName = name,
             avatarUrl = field("avatarUrl")?.takeIf { it.isNotBlank() },
             roleInConvoy = role,

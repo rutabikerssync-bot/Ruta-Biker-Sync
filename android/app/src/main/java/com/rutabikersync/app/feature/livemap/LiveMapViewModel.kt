@@ -52,7 +52,9 @@ data class RiderDirectoryEntry(
     val avatarUrl: String? = null,
     val avatarBase64: String? = null,
     val roleLabel: String = "Desconocido",
-    val userId: String? = null
+    val userId: String? = null,
+    /** groupId real del rider (roster backend). Nunca se inventa: null = desconocido. */
+    val groupId: String? = null
 )
 
 data class LeaderPinUiModel(
@@ -108,6 +110,14 @@ class LiveMapController(
     private var leaderShortId: UShort = 1u,
     initialDirectory: List<RiderDirectoryEntry> = defaultConvoyDirectory()
 ) {
+    /** groupId del usuario local (perfil/roster). null = privacidad por defecto. */
+    private var localGroupId: String? = null
+
+    fun setLocalGroupId(groupId: String?) {
+        localGroupId = groupId?.trim()?.takeIf { it.isNotBlank() }
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
     fun updateConvoyIds(localId: UShort, targetLeaderId: UShort) {
         this.localShortId = localId
         this.leaderShortId = targetLeaderId
@@ -158,6 +168,8 @@ class LiveMapController(
     fun applyBackendRoster(entries: List<RideRosterUiEntry>, localUserId: String?) {
         val own = entries.firstOrNull { entry -> entry.userId == localUserId } ?: return
         val current = directory[localShortId]
+        // El roster backend es la fuente de verdad del club local cuando lo reporta.
+        if (!own.groupId.isNullOrBlank()) localGroupId = own.groupId
         directory[localShortId] = RiderDirectoryEntry(
             shortId = localShortId,
             fullName = own.displayName,
@@ -174,7 +186,8 @@ class LiveMapController(
             avatarUrl = own.avatarUrl ?: current?.avatarUrl,
             avatarBase64 = current?.avatarBase64,
             roleLabel = own.roleInConvoy,
-            userId = own.userId
+            userId = own.userId,
+            groupId = own.groupId ?: current?.groupId
         )
         flushMapFrame(System.currentTimeMillis(), force = true)
     }
@@ -380,13 +393,19 @@ class LiveMapController(
             localShortId != leaderShortId && isDeviatedFromCorridor(localLat, localLon) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
             else -> RiderRouteStatus.ON_ROUTE
         }
+        // El piloto local siempre ve su propio perfil; no hay tercero al que proteger.
+        val selfCanShowReal = PeerProfilePrivacy.canShowRealProfile(
+            isSelf = true,
+            peerGroupId = selfEntry.groupId,
+            localGroupId = localGroupId
+        )
         updatedMarkers.add(
             RiderMarkerUiModel(
                 shortId = localShortId,
-                fullName = selfEntry.fullName,
-                nickname = selfEntry.nickname,
-                relation = selfEntry.relation,
-                rideRole = selfEntry.rideRole,
+                fullName = PeerProfilePrivacy.visibleName(localShortId, selfEntry.fullName, selfCanShowReal),
+                nickname = if (selfCanShowReal) selfEntry.nickname else null,
+                relation = if (selfCanShowReal) selfEntry.relation else RiderRelation.ALLIED_STRANGER,
+                rideRole = if (selfCanShowReal) selfEntry.rideRole else RiderRideRole.NONE,
                 routeStatus = selfStatus,
                 markerColorHex = selfEntry.markerColorHex,
                 prevLatitude = prevSelf?.displayLatitude ?: localLat,
@@ -405,9 +424,11 @@ class LiveMapController(
                 },
                 lastHops = 0,
                 isSelf = true,
-                avatarUrl = selfEntry.avatarUrl,
-                avatarBase64 = selfEntry.avatarBase64,
-                roleLabel = selfEntry.roleLabel
+                avatarUrl = if (selfCanShowReal) selfEntry.avatarUrl else null,
+                avatarBase64 = if (selfCanShowReal) selfEntry.avatarBase64 else null,
+                roleLabel = if (selfCanShowReal) selfEntry.roleLabel else "Desconocido",
+                groupId = selfEntry.groupId,
+                profileRedacted = !selfCanShowReal
             )
         )
 
@@ -428,13 +449,19 @@ class LiveMapController(
                 isDeviatedFromCorridor(track.lastLatitude, track.lastLongitude) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
                 else -> RiderRouteStatus.ON_ROUTE
             }
+            // FIX privacidad: sin groupId idéntico al local, el peer es desconocido.
+            val canShowReal = PeerProfilePrivacy.canShowRealProfile(
+                isSelf = false,
+                peerGroupId = entry.groupId,
+                localGroupId = localGroupId
+            )
             updatedMarkers.add(
                 RiderMarkerUiModel(
                     shortId = peerId,
-                    fullName = entry.fullName,
-                    nickname = entry.nickname,
-                    relation = entry.relation,
-                    rideRole = entry.rideRole,
+                    fullName = PeerProfilePrivacy.visibleName(peerId, entry.fullName, canShowReal),
+                    nickname = if (canShowReal) entry.nickname else null,
+                    relation = if (canShowReal) entry.relation else RiderRelation.ALLIED_STRANGER,
+                    rideRole = if (canShowReal) entry.rideRole else RiderRideRole.NONE,
                     routeStatus = routeStatus,
                     markerColorHex = entry.markerColorHex,
                     prevLatitude = prev?.displayLatitude ?: track.lastLatitude,
@@ -462,9 +489,11 @@ class LiveMapController(
                     },
                     lastHops = track.lastHops,
                     isSelf = false,
-                    avatarUrl = entry.avatarUrl,
-                    avatarBase64 = entry.avatarBase64,
-                    roleLabel = entry.roleLabel
+                    avatarUrl = if (canShowReal) entry.avatarUrl else null,
+                    avatarBase64 = if (canShowReal) entry.avatarBase64 else null,
+                    roleLabel = if (canShowReal) entry.roleLabel else "Desconocido",
+                    groupId = entry.groupId,
+                    profileRedacted = !canShowReal
                 )
             )
         }
