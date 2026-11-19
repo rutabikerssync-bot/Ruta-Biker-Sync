@@ -1,0 +1,78 @@
+DIAGNOSTICO: RC "Bufalo Beikers" no toma datos al iniciar en TECNO
+Fecha: 2026-11-19
+Dispositivos: TECNO Spark 10C (098813734B105395), Redmi Note 13 Pro (b2c398bb)
+
+=== 1. Estado local de TECNO (adb run-as) ===
+shared_prefs/rbs_auth_prefs.xml:
+  user_email        = omartinezpaz@gmail.com
+  user_id           = 1ec5e592-5b2d-3737-9820-1107fa43bcf8
+  account_type      = LEADER
+  user_display_name = El Búfalo
+  is_authenticated  = true
+files/: solo mbgl-offline.db, PersistedInstallation, generatefid.lock, profileInstalled
+databases/: ningun archivo de clubs
+
+uiautomator dump (pantalla al iniciar):
+  "Mis Grupos y Clubes"
+  "🟢 Fastify online (status: ok) · PostgreSQL 16"
+  "Fundar tu Club Motero" / "Nombre del Club Motero" (formulario vacio)
+  Sin ninguna tarjeta de club/RC.
+
+=== 2. Backend real (sin secretos) ===
+servicio systemd rbs-backend: active, enabled, Restart=always
+health por HTTPS Tailscale: HTTP 200
+DSN resuelto desde backend/.env: 127.0.0.1:5433/rbs
+
+SELECT id, name, tier FROM groups:
+  9b0e1e2a-5aa3-4bdb-bae4-2ab182d76489 | Centauros E2E 1b18d2 | RC
+SELECT ... WHERE name ILIKE '%bufalo%' OR name ILIKE '%biker%': 0 filas
+SELECT ... FROM users WHERE email ILIKE '%ozmartinezpaz%': 0 filas
+
+journalctl -u rbs-backend | grep 'GET /v1/groups':
+  UID 1ec5e592-... (TECNO) y f2850920-... (Redmi) consultan repetidamente
+  el endpoint y el backend devuelve groups=[] porque no hay filas en
+  group_leaders ni memberships para esos UID.
+
+=== 3. Causa raiz ===
+1. El club "Bufalo Beikers" nunca existio en el backend: no hay fila en
+   groups en 127.0.0.1:5433/rbs.
+2. Los usuarios de los moviles no estan registrados en users: el UID
+   determinista 1ec5e592-... (TECNO, LEADER) y f2850920-... (Redmi, MEMBER)
+   no tienen fila, memberships ni group_leaders. Por eso GET /v1/groups
+   devuelve vacio y un POST /v1/groups seria 403 FORBIDDEN.
+3. La app no persiste clubs en el dispositivo: ClubRepository._groups es un
+   MutableStateFlow que nace vacio (ClubRepository.kt:287-289). createGroup
+   guarda en memoria con id grp-xxxxxxxx y hace un despacho optimista; si el
+   backend falla, Phase1ViewModel.kt:164-173 llama removeGroup() y borra el
+   club. Aun en modo fake backend, al reiniciar no queda nada que lo restaure.
+
+Consecuencia: el RC se ve durante la sesion en que se crea, pero al iniciar
+otra vez no aparece. No es un fallo de Tailscale ni de Fastify.
+
+=== 4. Sobre RBS-WSL-Backend ===
+schtasks /query /tn "RBS-WSL-Backend" -> "El sistema no puede encontrar el archivo especificado."
+La tarea nunca se creo (schtasks /create devolvio Acceso denegado por falta de elevacion).
+Mecanismo vigente verificado: servicio systemd rbs-backend (active/enabled) mas
+C:\Users\ozmar\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\rbs-wsl-backend.vbs
+
+=== 5. Plan propuesto (pendiente de confirmacion del nombre exacto) ===
+Opcion 1 (datos, recomendada): insertar en 127.0.0.1:5433/rbs:
+  - users: 1ec5e592-... (omartinezpaz@gmail.com, 'El Bufalo', leader, VE, active)
+            f2850920-... (ozmartinezpaz@gmail.com, 'Ozmartinezpaz', member, VE, active)
+  - groups: id UUID nuevo, country_code VE, name 'Bufalo Beikers',
+            name_normalized 'bufalobeikers', logo_phash decode('0000000000000000','hex'),
+            principal_leader = UID TECNO, tier 'RC', status 'active'
+  - group_leaders: (group_id, UID TECNO, is_principal=true, club_role='presidente')
+  - memberships: (id UUID, group_id, UID TECNO, status_kind='full',
+                  club_role='presidente', invite_state='accepted', accepted_at=now())
+  Opcional: membership 'full' para Redmi si debe pertenecer al RC.
+Opcion 2 (codigo): persistir _groups en DataStore/Room y mostrar error claro
+  en vez de revertir silenciosamente el push fallido.
+Opcion 3 (hibrida): conservar club local con id local y reintentar push al
+  recuperar sesion, respetando la regla de no inventar groupId.
+
+=== 6. Pendiente ===
+- Confirmar nombre exacto del RC ("Bufalo Beikers" vs "bufalo beikers").
+- Confirmar si se autoriza la insercion de datos en la DB de desarrollo.
+- Captura de "Mi Club" en TECNO y Redmi despues de aplicar la solucion.
+- Sin cambios de codigo ni commits de aplicacion durante este diagnostico.
