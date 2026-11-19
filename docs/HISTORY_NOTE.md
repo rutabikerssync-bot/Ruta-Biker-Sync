@@ -383,3 +383,24 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 **Confirmacion**: al iniciar el mapa solo se ven avatares; al tocar un peer aparece su tarjeta con avatar/nombre/rol reales del perfil si es local, o `Piloto #XXXX`/avatar generico/`Desconocido` si es remoto sin groupId. La tarjeta se cierra al volver a tocar o al tocar fuera. El peer redactado sigue sin revelar datos reales.
 
 **Pendiente**: hover real no reproducible con `input mouse move` (`Unknown command: move` en ambos dispositivos; cubierto por JVM); validacion visual humana del fade y del doble trazo con ruta activa (la rodada de prueba no tenia ruta; la configuracion esta cubierta por `RouteStrokeStyleTest`); peer remoto del mismo club sin mapping `shortId↔userId`; 2 fallos JVM preexistentes no relacionados.
+
+### CONFIG - Conexion persistente Tailscale + Fastify sin USB ni misma red - 2026-11-19
+**Commit atomico**: `docs: documentar conexion persistente Tailscale + Fastify` (sin amend, sin push).
+
+**Diagnostico**: Fastify corria dentro de WSL detras de `wslrelay` en `127.0.0.1:3000`, por lo que solo era alcanzable con `adb reverse` o desde la misma maquina. Redmi llevaba offline desde el 17 de noviembre. La app debug tenia `BASE_URL=http://127.0.0.1:3000`.
+
+**Cambio (sin tocar codigo fuente)**: `tailscale serve` ya publicaba el backend en `https://omartinezpaz.tail6f67b0.ts.net`; se reconecto Redmi; se recompilo la APK debug con `RBS_DEBUG_URL=https://omartinezpaz.tail6f67b0.ts.net` (sin cambios en el repo; `build.gradle.kts` ya soporta esa variable); se creo el servicio systemd `rbs-backend.service` en WSL con `Restart=always` y se habilito; se anadio un script oculto en el Inicio de Windows para levantar WSL tras el login ( `schtasks /create` requeria elevacion y dio acceso denegado); se configuraron `always_on_vpn_app`, `always_on_vpn_lockdown=0` y la whitelist de Doze en ambos Android.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Servicio backend | `systemctl enable --now rbs-backend` | activo y habilitado | `enabled` + `active`; PostgreSQL conectada | journal de rbs-backend.service |
+| Resistencia | `pkill -9` del node + `systemctl show -p NRestarts` | systemd reinicia | `NRestarts=1`, health HTTP 200 | journal de rbs-backend.service |
+| Tailnet | `tailscale serve status` + `tailscale status` | HTTPS al backend y 3 nodos online | proxy HTTPS correcto; 3 nodos `active; direct` | `tailscale_nodes_20261119.txt` |
+| Sin USB | `adb reverse --list` en ambos | sin tuneles | vacio en ambos (se quito el `UsbFfs` de TECNO) | `docs/evidence/tailscale_fastify_persistente_20261119.txt` |
+| VPN persistente | `settings put secure always_on_vpn_*` + `dumpsys deviceidle whitelist` | Tailscale siempre activo sin lockdown | ambos con `app=com.tailscale.ipn`, `lockdown=0` y en whitelist | este archivo |
+| App | `RBS_DEBUG_URL=... assembleStandardDebug` + firma + `adb install -r` | BASE_URL del tailnet en ambas APK | BuildConfig correcto; instalacion `Success` en ambos | BuildConfig.java de standard/debug |
+| Health desde la app | abrir app + pestana «Mi Club» | banner verde | TECNO y Redmi: «Fastify online (status: ok) · PostgreSQL 16» | `tailscale_fastify_{tecno,redmi}-20261119.png/.xml` |
+
+**Confirmacion**: los dos equipos estan conectados y Fastify responde por HTTPS sin USB y sin misma red. La app usa esa URL y muestra health ok en ambos. El reinicio del proceso ya se probo (systemd lo levanta). Sin cambios en BLE/GATT/PTT/crypto ni backend.
+
+**Pendiente**: validar un reinicio completo de Windows (el script de Inicio no requiere admin pero no se ejecuto en un login real); un ping Redmi→TECNO por IP Tailscale fallo una vez (moto a moto sigue por BLE, no afecta a Fastify); recompilar sin `RBS_DEBUG_URL` vuelve al modo `adb reverse`.

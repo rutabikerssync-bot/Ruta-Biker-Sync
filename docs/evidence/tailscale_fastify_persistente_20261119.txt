@@ -1,0 +1,78 @@
+CONEXION PERSISTENTE TAILSCALE + FASTIFY SIN USB NI MISMA RED - 2026-11-19
+==========================================================================
+
+ARQUITECTURA
+------------
+WSL Ubuntu (PostgreSQL 16 + Fastify `npm run dev` en 0.0.0.0:3000)
+  -> wslrelay de Windows expone 127.0.0.1:3000
+  -> `tailscale serve` publica `/` como https://omartinezpaz.tail6f67b0.ts.net
+  -> los dos Android resuelven el nombre Tailscale y llegan por HTTPS
+  -> la app debug lleva BASE_URL=https://omartinezpaz.tail6f67b0.ts.net
+
+No hay `adb reverse` activo en ninguno de los dos dispositivos. Los equipos
+estan en LANs distintas (192.168.1.x y 192.168.100.x) y Tailscale los une en
+la tailnet 100.64.0.0/10.
+
+TABLA DE VERIFICACION
+---------------------
+Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia
+------|---------|--------------------|--------------------|----------
+Backend como servicio | systemctl enable --now rbs-backend (WSL root) | Fastify activo y habilitado | `enabled` + `active`; Main PID npm run dev; DB PostgreSQL conectada | journal de rbs-backend.service
+Reinicio automatico | pkill -9 -f 'tsx/dist/[c]li.mjs watch' + sleep 12 | systemd revive el proceso | `NRestarts=1`, `active`, health HTTP 200 despues del crash | journal de rbs-backend.service
+Salud local | curl http://127.0.0.1:3000/health (WSL) | HTTP 200 | HTTP 200 | este archivo
+Tailscale Serve | tailscale serve status | proxy HTTPS al backend | `https://omartinezpaz.tail6f67b0.ts.net` -> `http://127.0.0.1:3000` | tailscale_nodes_20261119.txt
+Salud por tailnet | Invoke-WebRequest https://omartinezpaz.tail6f67b0.ts.net/health (Windows, sin -k) | HTTP 200 y certificado valido | HTTP 200 body={"status":"ok"} | este archivo
+Nodos conectados | tailscale status | Windows + 2 Android conectados | 3 nodos `active; direct`; Redmi 100.98.78.105 y TECNO 100.122.196.106 | tailscale_nodes_20261119.txt
+Redmi reconectado | monkey -p com.tailscale.ipn + UI | pasar de offline a Connected | UI "Connected" / "Stop"; ping a 100.93.17.22 OK | tailscale_nodes_20261119.txt
+Sin USB | adb -s <dev> reverse --list | sin tuneles | TECNO y Redmi: salida vacia (se elimino `UsbFfs tcp:3000 tcp:3000`) | este archivo
+VPN siempre activa | settings put secure always_on_vpn_app com.tailscale.ipn; always_on_vpn_lockdown 0 | Tailscale persista sin bloquear otra red | ambos: app=com.tailscale.ipn, lockdown=0 | este archivo
+Bateria | dumpsys deviceidle whitelist +com.tailscale.ipn | Tailscale excluido de Doze | "Added: com.tailscale.ipn" en ambos | este archivo
+Arranque de WSL | script oculto en Startup de Windows | WSL levantado al iniciar sesion | rbs-wsl-backend.vbs creado; servicio systemd habilitado | este archivo
+App con URL Tailscale | RBS_DEBUG_URL=https://omartinezpaz.tail6f67b0.ts.net + assembleStandardDebug | BuildConfig apunte al tailnet | `BASE_URL = "https://omartinezpaz.tail6f67b0.ts.net"` | BuildConfig.java de standard/debug
+APK firmada | apksigner sign/verify + adb install -r | instalada en ambos | DN CN=Ruta Biker Sync; Success en 098813734B105395 y b2c398bb | este archivo
+Health desde la app | abrir app + pestaña "Mi Club" (Phase1ViewModel.pingBackendServer) | banner verde con status ok | TECNO y Redmi: "Fastify online (status: ok) · PostgreSQL 16" | tailscale_fastify_{tecno,redmi}-20261119.png/.xml
+
+CONFIRMACION
+------------
+Los dos equipos estan conectados a Tailscale y Fastify responde por HTTPS a
+traves de la tailnet sin cable USB y sin estar en la misma red. La app usa esa
+misma URL y muestra el banner verde de health en ambos dispositivos. Si el
+proceso de Fastify muere, systemd lo reinicia solo (probado con NRestarts=1).
+Si Windows se reinicia, el script de Inicio levanta WSL y el servicio systemd
+ya habilitado levanta Fastify; Tailscale y su `serve` quedan en la config del
+daemon y se restauran al iniciar sesion.
+
+EVIDENCIAS (docs/evidence/)
+---------------------------
+tailscale_fastify_tecno-20261119.png / .xml
+tailscale_fastify_redmi-20261119.png / .xml
+tailscale_nodes_20261119.txt
+
+CONFIGURACION FUERA DEL REPOSITORIO (no versionable)
+----------------------------------------------------
+- /etc/systemd/system/rbs-backend.service en WSL (User=ozmar, WorkingDirectory=
+  /mnt/d/Ruta-Biker-Sync/backend, ExecStart=/usr/bin/npm run dev,
+  Restart=always, RestartSec=5). Habilitado con `systemctl enable --now`.
+- %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\rbs-wsl-backend.vbs
+  con `ws.Run "wsl.exe -e true", 0, False`.
+- `tailscale serve --https=443 / http://127.0.0.1:3000` (ya persistido por
+  Tailscale; verificado con `tailscale serve status --json`).
+- Android: always_on_vpn_app=com.tailscale.ipn, always_on_vpn_lockdown=0 y
+  Tailscale en la whitelist de deviceidle.
+
+PENDIENTE
+---------
+- No se pudo crear una tarea programada de Windows con `schtasks /create`
+  porque requiere elevacion (acceso denegado); se uso el script de Inicio del
+  usuario, que no necesita admin. Si el equipo usa autologon o se bloquea la
+  pantalla antes de cargar el Inicio, validar el arranque en ese escenario.
+- No se probe un reinicio completo de Windows (requiere intervencion fisica).
+  La cadena WSL -> servicio systemd -> tailscale serve quedo configurada y
+  cada eslabon se verifico por separado.
+- El ping Redmi -> TECNO por IP Tailscale devolvio 100% de perdida una vez,
+  mientras TECNO -> Redmi y ambos -> Windows funcionaron. La comunicacion
+  moto a moto sigue por BLE; no se investigo mas porque no afecta a Fastify.
+- El build debug se regenero con RBS_DEBUG_URL; si se recompila sin esa variable
+  vuelve a 127.0.0.1:3000 (modo adb reverse). El release sigue con URL
+  .invalid a proposito.
+- No se tocaron GATT, PTT, criptografia ni codigo de backend.
