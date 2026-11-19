@@ -13,7 +13,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import type { Pool } from 'pg';
 import type { DbExecutor } from './db/pool.js';
+import { withUserDb } from './db/withUserDb.js';
+import {
+  canTransition,
+  type RsvpStatus,
+  type RsvpWritableStatus
+} from './lib/rsvpTransitions.js';
 import {
   checkGroupNameCollision,
   normalizeGroupName
@@ -185,6 +192,17 @@ const CreateGroupSchema = z.object({
   logoPhashHex: z
     .string()
     .regex(/^[0-9a-fA-F]{16}$/, 'logo_phash debe ser una huella de 64 bits (16 hex chars)')
+});
+
+const CreateClubRouteSchema = z.object({
+  title: z.string().min(3).max(140),
+  routeRef: z.string().max(200).nullable().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional()
+});
+
+const RsvpBodySchema = z.object({
+  status: z.enum(['confirmed', 'home', 'no_go'])
 });
 
 const AddLeaderSchema = z.object({
@@ -1678,6 +1696,255 @@ export async function buildApp({
         profileVersion: updated.profile_version,
         profileUpdatedAt: updated.profile_updated_at
       }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Fase 3: rutas de club y asistencia (RSVP). La RLS FORCE de la migracion 0017
+  // hace el aislamiento por club; aqui solo se anaden las reglas por rol.
+  // ---------------------------------------------------------------------------
+
+  // El modo degradado de index.ts usa un DbExecutor sin .connect(): responder 503
+  // evita simular un aislamiento que PostgreSQL no esta aplicando.
+  function getRlsPool(): Pool | null {
+    const maybePool = db as unknown as { connect?: unknown };
+    return typeof maybePool.connect === 'function' ? (db as Pool) : null;
+  }
+
+  app.post('/v1/groups/:id/routes', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
+
+    const parsed = CreateClubRouteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    const leaderCheck = await db.query(
+      `SELECT 1 FROM group_leaders
+       WHERE group_id = $1 AND user_id = $2 AND is_principal = true`,
+      [groupId, uid]
+    );
+    if (leaderCheck.rows.length === 0) {
+      return reply.code(403).send({
+        error: 'LEADER_REQUIRED',
+        message: 'Solo el presidente del club puede publicar rutas'
+      });
+    }
+
+    const rls = getRlsPool();
+    if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
+
+    try {
+      const { rows } = await withUserDb(rls, uid, (client) =>
+        client.query(
+          `INSERT INTO club_routes
+             (group_id, created_by, title, route_ref, starts_at, ends_at, status)
+           VALUES ($1, $2, $3, $4, $5, $6, 'published')
+           RETURNING id, group_id, created_by, title, route_ref, starts_at, ends_at,
+                     status, created_at, updated_at`,
+          [
+            groupId,
+            uid,
+            parsed.data.title,
+            parsed.data.routeRef ?? null,
+            parsed.data.startsAt ?? null,
+            parsed.data.endsAt ?? null
+          ]
+        )
+      );
+      return reply.code(201).send({ route: rows[0] });
+    } catch (err) {
+      return reply.code(403).send({
+        error: 'ROUTE_CREATE_DENIED',
+        message: (err as Error).message
+      });
+    }
+  });
+
+  app.get('/v1/groups/:id/routes', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
+
+    const rls = getRlsPool();
+    if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
+
+    const { rows } = await withUserDb(rls, uid, (client) =>
+      client.query(
+        `SELECT id, group_id, created_by, title, route_ref, starts_at, ends_at,
+                status, created_at, updated_at
+         FROM club_routes
+         WHERE group_id = $1
+         ORDER BY starts_at NULLS LAST, created_at DESC`,
+        [groupId]
+      )
+    );
+    // Un externo NO recibe 403 aqui: la RLS devuelve 0 filas y no revela si el club existe.
+    return reply.code(200).send({ groupId, routes: rows });
+  });
+
+  app.post('/v1/routes/:id/rsvp', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: routeId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(routeId).success) {
+      return reply.code(400).send({ error: 'INVALID_ROUTE_ID' });
+    }
+
+    const parsed = RsvpBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const target: RsvpWritableStatus = parsed.data.status;
+
+    const rls = getRlsPool();
+    if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
+
+    const result = await withUserDb(rls, uid, async (client) => {
+      // La RLS de routes_read ya oculta la ruta a quien no es miembro aceptado.
+      const routeRes = await client.query(
+        `SELECT id, group_id FROM club_routes WHERE id = $1`,
+        [routeId]
+      );
+      const route = routeRes.rows[0];
+      if (!route) return { kind: 'not_found' as const };
+
+      const memberRes = await client.query(
+        `SELECT 1 FROM memberships
+         WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'`,
+        [route.group_id, uid]
+      );
+      if (memberRes.rows.length === 0) return { kind: 'forbidden' as const };
+
+      const currentRes = await client.query(
+        `SELECT status FROM club_route_rsvps WHERE route_id = $1 AND user_id = $2`,
+        [routeId, uid]
+      );
+      const current = currentRes.rows[0]?.status as RsvpStatus | undefined;
+      if (current && !canTransition(current, target)) {
+        return { kind: 'invalid_transition' as const, current };
+      }
+
+      // UPSERT idempotente: repetir el mismo estado NO mueve responded_at,
+      // home_at ni updated_at. El outbox de la Fase 5 puede reenviar sin ruido.
+      const upRes = await client.query(
+        `INSERT INTO club_route_rsvps
+           (route_id, user_id, status, responded_at, home_at, updated_at)
+         VALUES ($1, $2, $3::text, now(),
+                 CASE WHEN $3::text = 'home' THEN now() ELSE NULL END, now())
+         ON CONFLICT (route_id, user_id) DO UPDATE
+         SET status = EXCLUDED.status,
+             responded_at = CASE WHEN club_route_rsvps.status = EXCLUDED.status
+                                 THEN club_route_rsvps.responded_at ELSE now() END,
+             home_at = CASE
+               WHEN EXCLUDED.status = 'home' AND club_route_rsvps.status <> 'home'
+                 THEN now()
+               WHEN EXCLUDED.status <> 'home' THEN NULL
+               ELSE club_route_rsvps.home_at END,
+             updated_at = CASE WHEN club_route_rsvps.status = EXCLUDED.status
+                               THEN club_route_rsvps.updated_at ELSE now() END
+         RETURNING route_id, user_id, status, responded_at, home_at, updated_at`,
+        [routeId, uid, target]
+      );
+
+      return {
+        kind: 'ok' as const,
+        rsvp: upRes.rows[0],
+        created: !current,
+        changed: current !== target
+      };
+    });
+
+    if (result.kind === 'not_found') return reply.code(404).send({ error: 'ROUTE_NOT_FOUND' });
+    if (result.kind === 'forbidden') return reply.code(403).send({ error: 'NOT_A_CLUB_MEMBER' });
+    if (result.kind === 'invalid_transition') {
+      return reply.code(409).send({
+        error: 'INVALID_RSVP_TRANSITION',
+        from: result.current,
+        to: target
+      });
+    }
+    return reply.code(result.created ? 201 : 200).send({
+      rsvp: result.rsvp,
+      changed: result.changed
+    });
+  });
+
+  app.get('/v1/routes/:id/rsvps', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: routeId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(routeId).success) {
+      return reply.code(400).send({ error: 'INVALID_ROUTE_ID' });
+    }
+
+    const rls = getRlsPool();
+    if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
+
+    const result = await withUserDb(rls, uid, async (client) => {
+      const routeRes = await client.query(
+        `SELECT id, group_id FROM club_routes WHERE id = $1`,
+        [routeId]
+      );
+      const route = routeRes.rows[0];
+      if (!route) return { kind: 'not_found' as const };
+
+      const principalRes = await client.query(
+        `SELECT 1 FROM group_leaders
+         WHERE group_id = $1 AND user_id = $2 AND is_principal = true`,
+        [route.group_id, uid]
+      );
+      const isPrincipal = principalRes.rows.length > 0;
+
+      const allRes = await client.query(
+        `SELECT user_id, status, responded_at, home_at, updated_at
+         FROM club_route_rsvps WHERE route_id = $1
+         ORDER BY responded_at NULLS LAST, user_id`,
+        [routeId]
+      );
+      const summaryRes = await client.query(
+        `SELECT count(*) FILTER (WHERE status = 'confirmed')::int AS confirmed,
+                count(*) FILTER (WHERE status = 'en_route')::int AS en_route,
+                count(*) FILTER (WHERE status = 'home')::int AS home,
+                count(*) FILTER (WHERE status = 'no_go')::int AS no_go,
+                count(*)::int AS total
+         FROM club_route_rsvps WHERE route_id = $1`,
+        [routeId]
+      );
+
+      return {
+        kind: 'ok' as const,
+        isPrincipal,
+        rows: allRes.rows,
+        summary: summaryRes.rows[0]
+      };
+    });
+
+    if (result.kind === 'not_found') return reply.code(404).send({ error: 'ROUTE_NOT_FOUND' });
+
+    // RLS = aislamiento por club (0017). El filtro de rol es de aplicacion:
+    // el presidente ve filas individuales; el miembro, solo la suya + el resumen.
+    if (result.isPrincipal) {
+      return reply.code(200).send({
+        routeId,
+        scope: 'full',
+        rsvps: result.rows,
+        summary: result.summary
+      });
+    }
+    return reply.code(200).send({
+      routeId,
+      scope: 'member',
+      rsvps: result.rows.filter((r) => String(r.user_id) === uid),
+      summary: result.summary
     });
   });
 

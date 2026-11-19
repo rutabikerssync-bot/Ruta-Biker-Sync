@@ -1,0 +1,63 @@
+=== FASE 3 - RUTAS DE CLUB Y RSVP CON TRANSICIONES IDEMPOTENTES Y RLS ===
+Fecha: 2026-11-19
+Commit objetivo: feat(api): endpoints de rutas y RSVP con transiciones idempotentes y RLS
+HEAD antes: 3778fac
+
+--- CAMBIOS APLICADOS (3 archivos) ---
+backend/src/app.ts                      | 267 +++++++++++++++++++++++++++++++++
+backend/src/lib/rsvpTransitions.ts      |  41 +++ (nuevo, modulo puro)
+backend/test/club_routes_endpoints.test.ts | 211 +++ (nuevo, 7 casos)
+Total: 3 archivos, 519 inserciones, 0 borrados. Sin DDL nuevo (0017 ya provee tablas y policies).
+
+--- VALIDACION BACKEND (log: C:/Users/ozmar/AppData/Local/Temp/opencode/fase3_validation_utf8.txt) ---
+npm run typecheck ........ exit 0
+npm test ................. exit 0 -> 24 archivos / 140 tests (antes: 23/133; +1 archivo, +7 tests)
+npm run build ............ exit 0
+
+Nota: el primer intento de npm test fallo en 1 caso por defecto DEL TEST (consulta directa
+por el pool sin app.user_id bajo FORCE RLS -> 0 filas). Se corrigio el test usando
+withUserDb(pool, memberId, ...) y se reejecuto el bloque completo en verde. El endpoint
+siempre fue correcto (200, changed:false, responded_at identico).
+
+--- VERIFICACION EN VIVO (Tailscale, https://omartinezpaz.tail6f67b0.ts.net) ---
+Servicio: rbs-backend.service active/enabled; restart por kill del arbol systemd
+(Restart=always), nuevo PID 19719, "Base de datos PostgreSQL conectada y migraciones
+aplicadas", cron RGPD iniciado. health=200.
+Grupo: dd579612-9c1a-49ac-873e-40a85fb04a25 (Bufalo Beikers, RC)
+TECNO=1ec5e592-...-1107fa43bcf8 (presidente)  REDMI=f2850920-...-106a245c2365 (miembro)
+EXT=00000000-0000-0000-0000-000000000000 (externo)
+Ruta de prueba: 925c87d2-cb29-4ac2-9dbb-99f961b65b31 (eliminada al final)
+
+ #  Accion                                              Esperado                      Obtenido
+ 1  POST /v1/groups/:id/routes como miembro             403 LEADER_REQUIRED           403 LEADER_REQUIRED  OK
+ 2  POST /v1/groups/:id/routes como presidente          201 status=published          201 status=published OK
+ 3  POST /v1/routes/:id/rsvp confirmed (REDMI)          201 changed=true              201 changed=true     OK
+ 4  Repetir confirmed (REDMI)                          200 changed=false, mismo ts    200 changed=false, responded_at 12:01:42.373 (identico) OK
+ 5  GET /v1/routes/:id/rsvps como presidente            scope=full, 1 fila            scope=full, summary.total=1 OK
+ 6  GET /v1/routes/:id/rsvps como miembro               scope=member, solo su fila    scope=member, 1 fila (suya) OK
+ 7  GET /v1/routes/:id/rsvps como externo               404 ROUTE_NOT_FOUND          404 ROUTE_NOT_FOUND OK
+ 8  POST /v1/routes/:id/rsvp como externo               404 (no revela ruta)          404 ROUTE_NOT_FOUND OK
+ 9  RSVP confirmed del presidente (2ª fila)             201                           201 OK
+10  GET rsvps REDMI con 2 filas en la BD                member=1 fila, summary=2      member=1 fila (REDMI), summary.confirmed=2 OK  <- RLS de rol corroborado
+11  GET rsvps TECNO con 2 filas en la BD                full=2 filas, summary=2      full=2 filas, summary.confirmed=2 OK
+12  REDMI home -> confirmed                             200 luego 409                 200 home/home_at puesto; 409 INVALID_RSVP_TRANSITION (from=home,to=confirmed) OK
+
+ health .............................................. 200                          200 OK
+
+--- RESTAURACION DE BD TRAS TESTS ---
+Los tests truncan rbs via PG_TEST_URL. Se ejecuto rbs_clean_before_restore.sql y
+rbs_restore_bufalo.sql: USERS=2, GROUP=1 (UUID original dd579612-...), LEADERS=1,
+MEMBERS=2. Despues de la verificacion en vivo se elimino la ruta de prueba:
+RUTAS=0, RSVPS=0, USERS=2, GROUP=1. Estado final limpio y persistido.
+
+--- DISENO / DECISIONES ---
+* canTransition(from,to) modulo puro en src/lib/ (convencion del repo; no existe src/domain/).
+  Matriz: pending->todo; confirmed->confirmed/en_route/home/no_go;
+  en_route->en_route/home/no_go; home->home (terminal); no_go->no_go/confirmed/en_route.
+  from===to siempre permitido = idempotencia para el outbox offline de Fase 5.
+* RLS FORCE (0017) = aislamiento por club. El filtro por rol es de aplicacion:
+  el presidente ve scope=full; el miembro, scope=member (solo su fila + resumen).
+  No se anadio migracion 0018 (no requerida para este alcance).
+* getRlsPool() responde 503 si el DbExecutor no expone .connect() (modo degradado de
+  index.ts), evitando simular un aislamiento que PostgreSQL no aplica.
+* Sin cambios en GATT, criptografia, BLE mesh, chat, SOS ni PTT. Android queda para Fase 5.
