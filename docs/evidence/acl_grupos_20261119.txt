@@ -1,0 +1,41 @@
+=== Fase 0 — ACL explicita en GET /v1/groups/:id ===
+Fecha: 2026-11-19
+Objetivo: cerrar hoy la fuga de datos de clubes por UUID, antes de cualquier RLS.
+
+=== Diagnostico ===
+backend/src/app.ts:1519 exigia solo token valido (requireUserId) y devolvia
+cualquier grupo por UUID a cualquier usuario autenticado. No habia verificacion
+de memberships ni de group_leaders.
+
+=== Cambio ===
+backend/src/app.ts, dentro de GET /v1/groups/:id, despues de requireUserId:
+
+  SELECT 1 FROM memberships
+    WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'
+  UNION
+  SELECT 1 FROM group_leaders
+    WHERE group_id = $1 AND user_id = $2
+  LIMIT 1
+
+Si no hay filas: reply.code(403).send({ error: 'FORBIDDEN' }).
+Se usa group_leaders ademas de memberships porque POST /v1/groups crea al
+fundador en group_leaders (is_principal=true) y no inserta una membership.
+
+=== Test de regresion ===
+Archivo: backend/test/group_detail_acl.test.ts
+Comando: npm test -- --run test/group_detail_acl.test.ts
+Resultado:
+  Test Files  1 passed (1)
+  Tests       3 passed (3)
+  - presidente lee su club -> 200
+  - miembro aceptado lee su club -> 200
+  - usuario ajeno -> 403 FORBIDDEN
+
+=== Compatibilidad ===
+Los unicos tests previos que llaman GET /v1/groups/:id usan tokens de lider
+(phase1_clubs.test.ts:618, phase2_subscriptions_credentials.test.ts:653/688),
+por lo que la ACL no los rompe.
+
+=== Commit ===
+fix(api): restringir GET /v1/groups/:id a miembros y lideres del club
+Sin amend, sin push, sin tocar BLE/GATT/crypto.

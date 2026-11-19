@@ -1521,6 +1521,21 @@ export async function buildApp({
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
 
+    // ACL explícita: el perfil de un club sólo lo leen sus miembros aceptados
+    // o sus líderes. No depender de RLS aquí evita filtrar clubes ajenos por UUID.
+    const accessRes = await db.query(
+      `SELECT 1 FROM memberships
+        WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'
+       UNION
+       SELECT 1 FROM group_leaders
+        WHERE group_id = $1 AND user_id = $2
+       LIMIT 1`,
+      [groupId, uid]
+    );
+    if (accessRes.rows.length === 0) {
+      return reply.code(403).send({ error: 'FORBIDDEN' });
+    }
+
     const grpRes = await db.query(
       `SELECT id, country_code, name, name_normalized, logo_url, principal_leader, role_permissions, status,
               tier, foundation_date, colors_description, club_siglas, tradition_type,
