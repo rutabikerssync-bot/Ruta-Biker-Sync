@@ -319,6 +319,29 @@ class ClubApiClient(
         executeRequest("GET", "/v1/groups/$groupId$suffix", null)
     }
 
+    // -----------------------------------------------------------------------
+    // Fase 5: rutas de club y RSVP (backend Fase 3). Las respuestas se consumen
+    // desde ClubRoutesRepository, que aplica la estrategia cache-first.
+    // -----------------------------------------------------------------------
+
+    suspend fun getClubRoutes(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/routes", null)
+    }
+
+    suspend fun getRsvps(routeId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/routes/$routeId/rsvps", null)
+    }
+
+    /**
+     * El backend es idempotente: 201 la primera vez, 200 con `changed=false`
+     * en reintentos. Ambos cuentan como éxito para el outbox.
+     */
+    suspend fun postRsvp(routeId: String, status: String): Result<ApiResponse> =
+        withContext(Dispatchers.IO) {
+            val payload = buildJsonObject { put("status", status) }
+            executeRequest("POST", "/v1/routes/$routeId/rsvp", payload)
+        }
+
     suspend fun createGroup(
         countryCode: String,
         name: String,

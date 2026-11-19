@@ -404,3 +404,26 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 **Confirmacion**: los dos equipos estan conectados y Fastify responde por HTTPS sin USB y sin misma red. La app usa esa URL y muestra health ok en ambos. El reinicio del proceso ya se probo (systemd lo levanta). Sin cambios en BLE/GATT/PTT/crypto ni backend.
 
 **Pendiente**: validar un reinicio completo de Windows (el script de Inicio no requiere admin pero no se ejecuto en un login real); un ping Redmi→TECNO por IP Tailscale fallo una vez (moto a moto sigue por BLE, no afecta a Fastify); recompilar sin `RBS_DEBUG_URL` vuelve al modo `adb reverse`.
+
+### FASE 5 - Outbox Room/DataStore para RSVP offline - 2026-11-19
+**Commit atomico**: `feat(android): outbox Room/DataStore para RSVP offline (Fase 5)` (sin amend, sin push).
+
+**Diagnostico**: el backend Fase 3 ya expone rutas de club y RSVP con transiciones idempotentes (201/200) y RLS FORCE, pero el cliente no tenia caché ni cola: sin red no podia registrar la intención de asistencia. Ademas el `profileVersion` del grupo solo se reflejaba en memoria.
+
+**Cambio (12 archivos)**: entidades Room `ClubRouteEntity`, `RsvpEntity`, `RsvpSummaryEntity` y `RsvpOutboxEntity` (BD v2 -> v3) con DAOs y espejos in-memory para tests JVM; `ClubProfileStore` (DataStore, version por `groupId`); `ClubRoutesRepository` cache-first que respeta el `scope: member|full` del backend; `RsvpOutboxSyncEngine` + `RsvpOutboxWorker` (WorkManager, `NetworkType.CONNECTED`, backoff exponencial) donde un RSVP es un ESTADO (PK compuesta `routeId+userId`, ultima intencion gana), 409 terminal se descarta sin bucle; `ClubApiClient` con `getClubRoutes`/`getRsvps`/`postRsvp`; integraciones minimas en `AppDatabase`, `ClubRepository` y `Phase1ViewModel` (`rsvpPendingCount`). Sin cambios en BLE/GATT/PTT/crypto ni backend.
+
+El patch original tenia CRLF+BOM y el repo mezcla LF/CRLF (`core.autocrlf=true`), por lo que `git apply --check` fallaba; se regenero dentro del repo principal con la salida cruda de `git diff` y se aplico limpio (exit 0). Los 12 archivos son identicos en contenido al worktree validado.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Aplicar patch | `git apply --check` + `git apply` de `fase5_regenerated.patch` | 12 archivos | 4 modificados + 8 nuevos, exit 0 | `docs/evidence/fase5_outbox_20261119.txt` |
+| Compilar | `gradlew :app:compileStandardDebugKotlin` | BUILD SUCCESSFUL | `BUILD SUCCESSFUL in 57s` | `fase5_compile_log.txt` |
+| Tests outbox | `gradlew :app:testStandardDebugUnitTest --tests "*RsvpOutboxFase5Test"` | 6/6 | `tests="6" failures="0" errors="0"` | `fase5_outbox_test_log.txt` |
+| Regresion | `--tests "*LiveMapViewModelTest" --tests "*ConvoyRouteProjectionTest" --tests "*RideServicePhase3Test"` | sin regresiones | 29/29 (15+7+7), 0 fallos | `fase5_regression_log.txt` |
+| Build APK | `RBS_DEBUG_URL=https://omartinezpaz.tail6f67b0.ts.net gradlew :app:packageStandardDebug` | APK firmada | `BUILD SUCCESSFUL in 47s` | `app-standard-debug.apk` 92,1 MB |
+| Instalacion hardware | `adb install -r` en TECNO y Redmi | Success en ambos | **FALLO** `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (firma RBS instalada vs firma debug del APK fresco); sin keystore RBS | misma evidencia |
+| RSVP offline en campo | rodada + modo avion + banner + restaurar red | sincronizacion automatica | **NO VERIFICADO**: sin keystore y sin UI/deep link que dispare RSVP ni pinte `rsvpPendingCount` | misma evidencia |
+
+**Confirmacion**: la capa de datos del outbox funciona y esta cubierta por 6/6 tests JVM (coalescencia, idempotencia 201/200, reintento ante error de red, descarte de 409 terminal, NoOp y contador del banner). La compilacion del cliente real es correcta y la regresion de malla/convoy/rodada queda en 29/29. **El RSVP offline NO queda confirmado en hardware**: no se inventa resultado de campo.
+
+**Pendiente**: keystore RBS (4 variables) o autorizacion explicita para desinstalar con perdida de claves AndroidKeyStore; UI minima de rutas/RSVP y cableado del banner; repetir la prueba con red/avion/red y capturas en ambos equipos; humo Fase 2 del `motto` (BD intacta, `profileVersion=1`).

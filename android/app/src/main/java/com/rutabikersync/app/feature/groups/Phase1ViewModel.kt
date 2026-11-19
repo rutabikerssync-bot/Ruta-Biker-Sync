@@ -47,6 +47,9 @@ class Phase1ViewModel(
     private val _statusBanner = MutableStateFlow<String?>(null)
     val statusBanner: StateFlow<String?> = _statusBanner.asStateFlow()
 
+    /** Fase 5: >0 significa que hay RSVPs esperando conectividad (banner de la UI). */
+    val rsvpPendingCount: StateFlow<Int> get() = repository.rsvpPendingCount
+
     private val _isAcceptingInvite = MutableStateFlow(false)
     val isAcceptingInvite: StateFlow<Boolean> = _isAcceptingInvite.asStateFlow()
 
@@ -62,6 +65,9 @@ class Phase1ViewModel(
                 try {
                     repository.syncClubsAndInvitations()
                 } catch (_: Exception) {}
+                try {
+                    repository.refreshRsvpPendingCount()
+                } catch (_: Exception) {} // sin Context/init aún: no rompe el ciclo de sincronización
                 kotlinx.coroutines.delay(1500L)
             }
         }

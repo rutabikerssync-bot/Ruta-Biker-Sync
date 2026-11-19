@@ -1,0 +1,133 @@
+FASE 5 ANDROID · OUTBOX ROOM/DATASTORE PARA RSVP OFFLINE
+Fecha: 2026-11-19
+HEAD base: 1984afc977de495b0f9580d7e89e9684b1ae481f (main, limpio y pusheado)
+Patch aplicado: fase5_regenerated.patch (regenerado dentro del repo principal;
+  el patch original fase5_utf8.patch tenia CRLF+BOM y el repo mezcla LF/CRLF,
+  por lo que git apply --check fallaba en AppDatabase.kt y ClubRepository.kt).
+  Origen logico de los 12 cambios: fase5_diff/fase5_utf8.patch (validado en
+  worktree aislado: compilacion + 6/6 tests).
+
+=====================================================================
+TAREA 1 · APLICAR EL PATCH
+=====================================================================
+Comandos:
+  Test-Path "...\fase5_diff\fase5_utf8.patch"            -> True
+  git apply --check "...\fase5_regenerated.patch"        -> exit 0 (sin salida)
+  git apply "...\fase5_regenerated.patch"                -> exit 0 (sin salida)
+  git status --short
+Resultado:
+   M android/.../core/gamification/AppDatabase.kt
+   M android/.../core/network/ClubApiClient.kt
+   M android/.../feature/groups/ClubRepository.kt
+   M android/.../feature/groups/Phase1ViewModel.kt
+  ?? android/.../core/clubroutes/                         (8 archivos nuevos)
+  ?? android/.../test/.../core/clubroutes/                (incluido en los 8)
+  Resumen: 4 modificados + 8 nuevos = 12 archivos.
+  Integridad logica: 12/12 archivos identicos (hash tras normalizar CRLF->LF)
+  al worktree validado. Las diferencias de bytes son solo core.autocrlf=true.
+
+=====================================================================
+TAREA 2 · COMPILAR Y TESTEAR
+=====================================================================
+2.1 Compilacion
+  Comando: cd android && .\gradlew.bat :app:compileStandardDebugKotlin
+  Salida (tail):
+    > Task :app:kspStandardDebugKotlin
+    > Task :app:compileStandardDebugKotlin
+    w: ... MainActivity.kt:69:20 'var statusBarColor: Int' is deprecated.
+    w: ... MainActivity.kt:70:20 'var navigationBarColor: Int' is deprecated.
+    BUILD SUCCESSFUL in 57s
+    17 actionable tasks: 3 executed, 14 up-to-date
+  exit=0. Log completo: fase5_compile_log.txt
+
+2.2 Tests del outbox
+  Comando: .\gradlew.bat :app:testStandardDebugUnitTest --tests "*RsvpOutboxFase5Test"
+  Salida (tail):
+    > Task :app:kspStandardDebugUnitTestKotlin
+    > Task :app:compileStandardDebugUnitTestKotlin
+    > Task :app:testStandardDebugUnitTest
+    BUILD SUCCESSFUL in 13s
+    27 actionable tasks: 8 executed, 19 up-to-date
+  XML: tests="6" skipped="0" failures="0" errors="0"
+  Casos: coalescencia de estado; 201 y 200 como exito idempotente;
+  error de red conserva fila/attempts y reintenta; 409 terminal se descarta;
+  segundo flush NoOp; contador del banner sigue a la cola.
+  Log completo: fase5_outbox_test_log.txt
+
+2.3 Regresion (malla BLE / convoy / rodada)
+  Comando: .\gradlew.bat :app:testStandardDebugUnitTest --tests "*LiveMapViewModelTest"
+             --tests "*ConvoyRouteProjectionTest" --tests "*RideServicePhase3Test"
+  Salida (tail):
+    > Task :app:testStandardDebugUnitTest
+    BUILD SUCCESSFUL in 4s
+    27 actionable tasks: 1 executed, 26 up-to-date
+  XML por clase:
+    RideServicePhase3Test:      tests="15" failures="0" errors="0"
+    ConvoyRouteProjectionTest:  tests="7" failures="0" errors="0"
+    LiveMapViewModelTest:       tests="7" failures="0" errors="0"
+  Total regresion: 29 tests, 0 fallos. Log: fase5_regression_log.txt
+  Sin cambios en GATT, criptografia, malla, chat, SOS ni PTT.
+
+=====================================================================
+TAREA 3 · VERIFICACION EN HARDWARE — BLOQUEADA (causa exacta)
+=====================================================================
+Dispositivos detectados por adb:
+  098813734B105395  device  product:KI5k-GL    model:TECNO_KI5k      (USB)
+  b2c398bb          device  product:garnet_global model:2312DRA50G     (USB)
+  100.98.78.105:5555 device product:garnet_global model:2312DRA50G     (Tailscale)
+Conectividad al backend (ambos, 0% packet loss):
+  PING omartinezpaz.tail6f67b0.ts.net (100.93.17.22)
+  TECNO: 32.7 ms / 156 ms ; Redmi: 7.25 ms / 33.8 ms
+  health HTTP 200 {"status":"ok"}
+
+Build:
+  Comando: RBS_DEBUG_URL=https://omartinezpaz.tail6f67b0.ts.net .\gradlew.bat :app:packageStandardDebug
+  Salida: BUILD SUCCESSFUL in 47s ; package_exit=0
+  APK fresco: app/build/outputs/apk/standard/debug/app-standard-debug.apk
+              (92,1 MB, 19/11/2026 15:30:18)
+  Certificado del APK fresco (apksigner verify --print-certs):
+    CN=Android Debug, O=Android, C=US ; SHA-256 9b531c0f...
+  No se uso el APK rbssigned.apk: es artefacto stale de las 06:00
+    (CN=Ruta Biker Sync; SHA-256 8502ba90...), anterior a este cambio.
+
+Instalacion — FALLO por firma (no por codigo):
+  adb -s 098813734B105395 install -r app-standard-debug.apk
+    Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Package
+    com.rutabikersync.app signatures do not match previously installed
+    version; ignoring!]
+  adb -s b2c398bb install -r app-standard-debug.apk
+    Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: Existing package
+    com.rutabikersync.app signatures do not match newer version; ignoring!]
+  Causa: los equipos tienen instalada la APK firmada con el certificado RBS.
+  No existe el keystore RBS en Windows ni en WSL (unico hallazgo:
+  C:\Users\ozmar\.android\debug.keystore) y build.gradle.kts prohibe
+  explicitamente el fallback a debug signing para release (B5-4).
+  No se desinstalo la app: eso borraria las claves AndroidKeyStore de la
+  boveda E2EE y de la identidad de malla, rompiendo funcionalidad ya cerrada.
+
+Alcance funcional adicional: el diff de Fase 5 es SOLO capa de datos.
+  No hay composable ni deep link que llame a ClubRoutesRepository.requestRsvp,
+  ni pantalla de rutas de club, ni ningun consumidor de rsvpPendingCount
+  (Phase1Screens.kt pinta solo statusBanner). Por tanto, aun con la APK
+  instalada, no existe un gesto en UI para provocar un RSVP offline ni para
+  mostrar el banner "Pendiente de sincronizar".
+
+CONFIRMACION: el RSVP offline NO queda verificado en hardware.
+  La logica del outbox SI queda verificada en JVM (6/6 tests) y la
+  compilacion del cliente real (BUILD SUCCESSFUL). No se inventa ningun
+  resultado de campo.
+
+=====================================================================
+PENDIENTE
+=====================================================================
+1. Proveer el keystore RBS (RBS_KEYSTORE_PATH / PASSWORD / KEY_ALIAS /
+   KEY_PASSWORD) para re-firmar el APK fresco con el certificado ya
+   instalado; o autorizar explicitamente desinstalar (con advertencia de
+   perdida de claves AndroidKeyStore) e instalar la firma debug.
+2. Anadir la UI minima de rutas/RSVP y cablear rsvpPendingCount al banner
+   para que el flujo offline sea ejecutable en hardware.
+3. Repetir: RSVP con red -> modo avion -> banner -> restaurar red ->
+   sincronizacion automatica, con capturas en TECNO y Redmi.
+4. Humo Fase 2 (cambio de motto TECNO -> Redmi sin reiniciar) sigue pendiente:
+   no se emitio ningun PUT, motto sigue "Hermandad, Respeto y Carretera",
+   profileVersion=1 (BD intacta).

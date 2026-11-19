@@ -1,5 +1,8 @@
 package com.rutabikersync.app.feature.groups
 
+import com.rutabikersync.app.core.clubroutes.ClubProfileStore
+import com.rutabikersync.app.core.clubroutes.ClubRoutesRepository
+import com.rutabikersync.app.core.gamification.AppDatabase
 import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.ui.components.skeleton.ErrorKind
 import com.rutabikersync.app.ui.components.skeleton.UiState
@@ -39,8 +42,27 @@ data class DevPanelOverrides(
  * Hace cumplir todas las reglas de RULES.md (R1–R5, R8.2, R13.6, R14, R15.1).
  */
 class ClubRepository(
-    val apiClient: ClubApiClient = ClubApiClient.getInstance()
+    val apiClient: ClubApiClient = ClubApiClient.getInstance(),
+    private val profileStore: ClubProfileStore? = null
 ) {
+
+    /** Fase 5: fachada cache-first. Se construye bajo demanda para no exigir Context en tests JVM. */
+    val clubRoutes: ClubRoutesRepository by lazy {
+        val ctx = requireNotNull(apiClient.appContext) {
+            "ClubRoutesRepository requiere ClubApiClient.initContext(context)"
+        }
+        val db = AppDatabase.getInstance(ctx)
+        ClubRoutesRepository(apiClient, db.clubRouteDao(), db.rsvpOutboxDao(), ctx)
+    }
+
+    private val _rsvpPendingCount = MutableStateFlow(0)
+    /** Nº de RSVP pendientes; el ViewModel lo publica como banner «Pendiente de sincronizar». */
+    val rsvpPendingCount: StateFlow<Int> = _rsvpPendingCount.asStateFlow()
+
+    suspend fun refreshRsvpPendingCount() {
+        clubRoutes.refreshPendingCount()
+        _rsvpPendingCount.value = clubRoutes.pendingCount.value
+    }
 
     private val _devOverrides = MutableStateFlow(DevPanelOverrides())
     val devOverrides: StateFlow<DevPanelOverrides> = _devOverrides.asStateFlow()
@@ -441,6 +463,8 @@ class ClubRepository(
                                 _groups.value = _groups.value.map {
                                     if (it.id == gId) it.copy(profileVersion = remoteVersion) else it
                                 }
+                                // Lectura inmediata en el próximo arranque, sin esperar a la red.
+                                profileStore?.save(gId, remoteVersion, gObj.toString())
                             }
                         }
 
