@@ -71,8 +71,45 @@ Opcion 2 (codigo): persistir _groups en DataStore/Room y mostrar error claro
 Opcion 3 (hibrida): conservar club local con id local y reintentar push al
   recuperar sesion, respetando la regla de no inventar groupId.
 
-=== 6. Pendiente ===
-- Confirmar nombre exacto del RC ("Bufalo Beikers" vs "bufalo beikers").
-- Confirmar si se autoriza la insercion de datos en la DB de desarrollo.
-- Captura de "Mi Club" en TECNO y Redmi despues de aplicar la solucion.
-- Sin cambios de codigo ni commits de aplicacion durante este diagnostico.
+=== 6. Resolucion ejecutada (autorizada por el usuario, nombre exacto "Bufalo Beikers") ===
+Transaccion SQL ejecutada en 127.0.0.1:5433/rbs (ON_ERROR_STOP, COMMIT):
+  - users: 1ec5e592-... (omartinezpaz@gmail.com, 'El Bufalo', leader, VE)
+           f2850920-... (ozmartinezpaz@gmail.com, 'Ozmartinezpaz', member, VE)
+  - groups: id dd579612-9c1a-49ac-873e-40a85fb04a25, VE, 'Bufalo Beikers',
+            name_normalized 'bufalobeikers', logo_phash 0000000000000000,
+            principal_leader = UID TECNO, tier RC, status active, siglas RC
+  - group_leaders: (group_id, UID TECNO, is_principal=true, club_role='presidente')
+  - memberships: TECNO full/presidente/accepted y Redmi full/accepted
+Verificacion SQL posterior: 2 users, 1 group, 1 leader, 2 members. El id del
+grupo lo genero gen_random_uuid() del backend; no se invento ningun groupId.
+
+=== 7. Verificacion en dispositivos ===
+Se hizo force-stop + relanzamiento en TECNO y Redmi sin adb reverse.
+Primera pantalla de TECNO mostro transitoriamente "Configura tu Ficha de Piloto";
+un segundo arranque entro directo a RODADAS (perfil ya persistido en rbs_auth_prefs).
+Al tocar la pestaña "Mi Club" en ambos dispositivos, uiautomator dump reporto:
+  "Mis Grupos y Clubes"
+  "🟢 Fastify online (status: ok) · PostgreSQL 16"
+  "MI CLUB · Racing Club"
+  "BUFALO BEIKERS"
+  "🇻🇪 Venezuela · Fundado 15/05/2018 (8 años)"
+  "🛡️ Apto Mesa Directiva Nacional y Regional"
+  "PRESIDENTE / El Búfalo / 1/6 Oficiales"
+  En Redmi ademas: "👥 Miembros (2)", "⚖️ Mesa Directiva / El Búfalo / Presidente · Fundador"
+Evidencia grafica:
+  docs/evidence/tecno_bufalo_miclub_20261119.png
+  docs/evidence/redmi_bufalo_miclub_20261119.png
+Backend tras el cambio: 0 errores 401/403 en journalctl (ultimos 15 min),
+GET /v1/groups sigue consultando ambos UIDs y health HTTPS = HTTP 200.
+
+=== 8. Resultado ===
+El RC aparece al iniciar en ambos moviles sin crear nada ni rellenar el perfil.
+La causa del error 403 era la ausencia del usuario en users; con el registro
+en BD, el despacho de futuras creaciones de un LIDER activo ya no sera rechazado
+por FORBIDDEN. No se modifico codigo de la app ni del backend en esta resolucion.
+
+=== 9. Pendiente (mejora futura, no bloqueante) ===
+- Persistir _groups en DataStore/Room para supervivencia offline del estado local.
+- Mostrar un error claro en la UI en vez de revertir silenciosamente el club
+  cuando falle el push al backend.
+- HEAD: 391d58f -> commit de evidencia de resolucion; sin amend ni push.
