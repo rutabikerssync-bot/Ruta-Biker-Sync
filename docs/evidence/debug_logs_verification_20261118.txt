@@ -1,0 +1,46 @@
+VERIFICACION BLOQUE D - EXPORTACION DE LOGS DE APP Y BACKEND - 2026-11-18
+========================================================================
+
+Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia
+------|---------|--------------------|--------------------|----------
+Tests JVM Android | gradlew :app:testStandardDebugUnitTest --tests '*AppLogExporterTest' --tests '*LeaderDistanceFormatterTest' --tests '*LiveMapViewModelTest' --tests '*ConvoyRouteProjectionTest' --tests '*RideServicePhase3Test' --tests '*MeshOdometerSyncTest' --tests '*ReleaseSecurityBuildConfigTest' | BUILD SUCCESSFUL | 49 tests (3+4+5+7+15+12+3), 0 fallos/errores | android/app/build/test-results/testStandardDebugUnitTest/TEST-*.xml
+Tests backend | npm test -- --run test/debug_logs_endpoint.test.ts test/health.test.ts ; npm run typecheck | 7 tests verdes, typecheck limpio | 7/7 tests dirigidos; suite completa 20 archivos / 119 tests; tsc --noEmit y npm run build OK | backend/test/debug_logs_endpoint.test.ts
+Compilar/firmar/instalar | assembleStandardDebug + apksigner sign/verify + adb install -r | APK firmada en TECNO y Redmi | BUILD SUCCESSFUL; CN=Ruta Biker Sync; Success en ambos | ver seccion firma mas abajo
+Boton exportar | FAB DEV + uiautomator dump | Boton visible en panel DEV | TECNO [239,366][482,402]; Redmi [431,701][790,755] | debug_logs_button_tecno_20261118.png/.xml ; debug_logs_button_redmi_20261118.png/.xml
+ZIP y compartir | pulsar boton + chooser + run-as ... ls -l cache/exports | ZIP generado y compartido | 2 ZIP con logs/app_logcat.txt y manifest.txt; chooser abierto | debug_logs_zip_tecno_20261118.png ; debug_logs_zip_redmi_20261118.png ; debug_logs_share_*.xml
+Logs Fastify | tail -f / Get-Content -Tail 200 -Wait | Captura documentada y sin PII | extracto sanitizado de 18 lineas | fastify_wsl_capture_20261118.txt
+Endpoint debug | curl con/sin x-admin-key + Vitest produccion | 200 / 401 / 404 | 200 con clave, 401 sin clave, 404 en produccion; 0 PII | debug_logs_endpoint_20261118.txt
+
+CONFIRMACION DE ZIP GENERADO Y COMPARTIDO
+-----------------------------------------
+TECNO 098813734B105395: rbs_logs_20261118_224038.zip, 3932 bytes, 252 lineas de log.
+  Entradas: logs/app_logcat.txt (40150 B), manifest.txt (265 B).
+  Chooser: cuenta Google del dispositivo, Bluetooth, Gmail, WhatsApp, WhatsApp Business.
+  PII sin redactar detectada por regex: 0.
+Redmi b2c398bb: rbs_logs_20261118_224257.zip, 7118 bytes, 292 lineas de log.
+  Entradas: logs/app_logcat.txt (60264 B), manifest.txt (265 B).
+  Chooser: cuenta Google del dispositivo, entrada ZIP visible en la lista.
+  PII sin redactar detectada por regex: 0.
+Ambos ZIP se extrajeron con 'adb shell run-as com.rutabikersync.app base64 <ruta>' y se verifico su contenido localmente.
+
+CAPTURAS
+--------
+docs/evidence/debug_logs_button_tecno_20261118.png y .xml
+docs/evidence/debug_logs_zip_tecno_20261118.png
+docs/evidence/debug_logs_share_tecno_20261118.xml
+docs/evidence/debug_logs_button_redmi_20261118.png y .xml
+docs/evidence/debug_logs_zip_redmi_20261118.png
+docs/evidence/debug_logs_share_redmi_20261118.xml
+
+COMANDOS PARA CAPTURAR FASTIFY
+-----------------------------
+WSL2:
+  cd /mnt/d/Ruta-Biker-Sync
+  tail -f backend/logs/fastify_dev_20261118.log
+  tail -n 200 backend/logs/fastify_dev_20261118.log
+Windows (PowerShell):
+  cd D:\Ruta-Biker-Sync
+  type backend\logs\fastify_dev_20261118.log
+  Get-Content backend\logs\fastify_dev_20261118.log -Tail 200 -Wait
+El archivo completo no se versiona (backend/.gitignore -> logs/) porque contiene UUIDs,
+nombres de club y blobs base64; solo se registra un extracto redactado.

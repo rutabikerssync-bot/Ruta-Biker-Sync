@@ -51,7 +51,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
+import com.rutabikersync.app.core.debug.AppLogExporter
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -4137,6 +4140,9 @@ fun DevPanelDialog(
 ) {
     val overrides by viewModel.repository.devOverrides.collectAsState()
     val forceSkeleton by viewModel.forceSkeletonPreview.collectAsState()
+    val context = LocalContext.current
+    val exportScope = rememberCoroutineScope()
+    var exportStatus by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -4163,6 +4169,39 @@ fun DevPanelDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(id = R.string.dev_load_demo), fontWeight = FontWeight.Bold)
+                }
+
+                // Bloque D: exportar logs sin adb. Doble guardia: el panel ya está detrás
+                // de BuildConfig.DEV_PANEL_ENABLED y aquí se vuelve a comprobar.
+                Button(
+                    onClick = {
+                        if (!com.rutabikersync.app.BuildConfig.DEV_PANEL_ENABLED) return@Button
+                        exportScope.launch {
+                            val result = runCatching { AppLogExporter.export(context) }
+                            exportStatus = result.fold(
+                                onSuccess = {
+                                    "ZIP listo (${it.lineCount} líneas, ${it.droppedLineCount} descartadas): ${it.file.name}"
+                                },
+                                onFailure = { "No se pudo exportar: ${it.message}" }
+                            )
+                            android.widget.Toast.makeText(
+                                context,
+                                exportStatus,
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                            if (result.isSuccess) AppLogExporter.share(context, result.getOrThrow().file)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BikerColors.PrimaryAmber,
+                        contentColor = BikerColors.BackgroundDark
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(id = R.string.dev_export_logs), fontWeight = FontWeight.Bold)
+                }
+                if (exportStatus.isNotBlank()) {
+                    Text(exportStatus, fontSize = 11.sp, color = BikerColors.TextSecondary)
                 }
 
                 DevSwitchRow(

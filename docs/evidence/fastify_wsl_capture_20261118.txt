@@ -1,0 +1,29 @@
+CAPTURA DE LOGS FASTIFY DESDE WSL2 - 2026-11-18
+================================================
+Comando documentado (en vivo):
+  cd /mnt/d/Ruta-Biker-Sync
+  tail -f backend/logs/fastify_dev_20261118.log
+
+Extracto sanitizado obtenido con:
+  tail -n 400 backend/logs/fastify_dev_20261118.log | grep -v base64 | grep -v "name:" | sed -E "s/<UUID>/[uuid-redacted]/g" | head -n 18
+
+Nota: el archivo completo contiene blobs base64 y UUIDs de piloto/club; NO se incluye en
+el repositorio (backend/.gitignore -> logs/). Aqui solo se registra un recorte redactado.
+  directiva_region: 'Venezuela (Caracas, mp. Libertador)',
+  motto: 'Hermandad, Respeto y Carretera',
+  city: null,
+  status_kind: 'full',
+  club_role: 'presidente',
+  paid_until: null
+}
+GET /v1/groups called for UID: [uuid-redacted]
+memberRes rows count: 0 first row: undefined
+GET /v1/groups called for UID: [uuid-redacted]
+memberRes rows count: 1 first row: {
+  id: '[uuid-redacted]',
+  country_code: 'VE',
+  principal_leader: '[uuid-redacted]',
+  status: 'active',
+  tier: 'RC',
+  foundation_date: 2018-05-15T04:00:00.000Z,
+  colors_description: 'Negro y Blanco',

@@ -83,6 +83,7 @@
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Painel do Desenvolvedor (Apenas Debug)</string>
     <string name="dev_load_demo">Carregar dados demo (3 grupos, 10 membros)</string>
+    <string name="dev_export_logs">Exportar logs (ZIP)</string>
 
     <!-- Fase 7: Privacidade, Consentimentos e Moderação (RULES R13, R14, R15) -->
     <string name="privacy_title">Privacidade e Consentimentos (R15)</string>

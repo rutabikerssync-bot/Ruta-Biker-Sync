@@ -97,7 +97,8 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
   - Dispositivo A ve al compañero R#12982 (Convoy: 1 riders), 1 piloto enlazado, En línea, 1 salto, batería 87%, 44/84 paquetes (PLR inicial 47.6% por arranque más tardío del par).
   - Dispositivo B ve al compañero R#12243, 🟢 MALLA ACTIVA, 1 piloto enlazado, En línea, 1 salto, batería 87%, 95/99 paquetes (PLR 4.0%, entrega RF real ~96%).
 - IDs derivados son distintos entre dispositivos (sin choque de identidad); se descartó el localShortId=1 fijo que causaba el descarte de ecos.
-- Nota: los valores de RSSI en la tarjeta siguen mostrando "No disponible" (campo ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo; B2-4 runtime permanece con ese alcance explícito.
+- Nota: los valores de RSSI en la tarjeta siguen mostrando "No disponible" (campo
+ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo; B2-4 runtime permanece con ese alcance explícito.
 - Commit funcional: c624b1c (fix(mesh): derivar localShortId de ANDROID_ID para evitar colisiones entre dispositivos).
 
 ### Mejora RSSI real en tarjeta (2026-11-18, commit 7501ff5)
@@ -301,3 +302,23 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 | Tarjeta del peer | Rodada con 2 peers + toque al marcador + `uiautomator dump`/`screencap` | Distancia coherente | TECNO `Líder a 3 m`; Redmi `Líder a 3 m`; 0 coincidencias de `3586952` | `leader_distance_tecno_card_20261118.png/.xml`, `leader_distance_redmi_card_20261118.png/.xml` |
 
 **Pendiente**: validación visual humana en movimiento y del caso sin GPS en hardware (cubierto en JVM). Los caminos SOS que usan coordenadas de cámara/alerta como posición propia quedan fuera de este commit.
+
+### Bloque D — Exportación de logs de app y backend — 2026-11-18
+**Commit atómico**: `feat(debug): exportación de logs de app y backend` (sin amend, sin push).
+
+**Diagnóstico**: el proyecto ya declaraba un `FileProvider` para el flujo RGPD, pero nunca se usaba (`getUriForFile`, `FLAG_GRANT_READ_URI_PERMISSION` y `EXTRA_STREAM` no aparecían en el código). El panel DEV ya estaba protegido por `BuildConfig.DEV_PANEL_ENABLED`, así que el botón se añadió ahí con una segunda guardia en el propio exportador. El log de Fastify se genera por redirección manual de la salida del servidor (`backend/logs/`, ignorado por git) y contiene UUIDs, nombres de club y blobs base64: era obligatorio redactar antes de exponerlo por HTTP. Desde API 16 una app normal sólo puede leer los mensajes de su propio proceso, por lo que el ZIP no sustituye a `adb logcat -b all`.
+
+**Cambio**: nuevos `AppLogRedactor` y `AppLogExporter` capturan `logcat -d -t N -v threadtime`, filtran por los seis tags del alcance, redactan PII y escriben un ZIP en `cacheDir/exports/` compartido vía el `FileProvider` existente (`${applicationId}.fileprovider`, sin authority hardcodeada). `DevPanelDialog` gana **Exportar logs (ZIP)** con strings ES/EN/PT. En el backend, `debugLogs.ts` valida la fecha `YYYYMMDD` con allowlist, fija el nombre `fastify_dev_<fecha>.log`, limita las líneas y redacta correos, UUIDs, coordenadas, JWT, `Bearer`, asignaciones sensibles (incluidos nombres) y blobs base64; `/v1/debug/logs` está detrás de `requireAdminAuth` y devuelve 404 salvo `NODE_ENV != production` y `ENABLE_DEBUG_LOGS=true` con `ADMIN_API_KEY` configurado. No se modificaron malla BLE, GATT, PTT, firma/HMAC ni criptografía.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Implementación app | Revisión de `AppLogExporter`, `AppLogRedactor`, `DevPanelDialog` y `file_paths.xml` | Botón sólo debug, ZIP en `cache/exports`, FileProvider válido | Doble guardia `DEV_PANEL_ENABLED`; authority dinámica; entradas `logs/app_logcat.txt` y `manifest.txt` | `android/app/src/main/java/com/rutabikersync/app/core/debug/AppLogExporter.kt`, `AppLogRedactor.kt`, `AppLogExporterTest.kt` |
+| Tests JVM Android | `gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain --tests '*AppLogExporterTest' --tests '*LeaderDistanceFormatterTest' --tests '*LiveMapViewModelTest' --tests '*ConvoyRouteProjectionTest' --tests '*RideServicePhase3Test' --tests '*MeshOdometerSyncTest' --tests '*ReleaseSecurityBuildConfigTest'` | BUILD SUCCESSFUL | 49 tests (3+4+5+7+15+12+3), 0 fallos/errores | XML de `android/app/build/test-results/testStandardDebugUnitTest/` |
+| Tests y tipos backend | `npm test -- --run test/debug_logs_endpoint.test.ts test/health.test.ts` y `npm run typecheck` | 7 tests verdes y `tsc --noEmit` limpio | 7/7 tests dirigidos; suite completa 20 archivos / 119 tests; typecheck y build OK | `backend/test/debug_logs_endpoint.test.ts`, `backend/src/lib/debugLogs.ts` |
+| Compilar, firmar e instalar | `assembleStandardDebug` + `apksigner sign/verify` + `adb -s <device> install -r` | APK firmada en ambos dispositivos | BUILD SUCCESSFUL; certificado `CN=Ruta Biker Sync`; `Success` en TECNO y Redmi | `docs/evidence/debug_logs_verification_20261118.txt` |
+| Botón en panel DEV | FAB **DEV** + `uiautomator dump` en ambos equipos | «Exportar logs (ZIP)» visible | TECNO `[239,366][482,402]`; Redmi `[431,701][790,755]` | `debug_logs_button_tecno_20261118.png/.xml`, `debug_logs_button_redmi_20261118.png/.xml` |
+| ZIP y compartir | Pulsar botón + chooser + `run-as ... ls -l cache/exports` + extracción base64 | ZIP con log y manifiesto; chooser abierto | TECNO `rbs_logs_20261118_224038.zip` 3932 B / 252 líneas; Redmi `rbs_logs_20261118_224257.zip` 7118 B / 292 líneas; 0 PII sin redactar | `debug_logs_zip_tecno_20261118.png`, `debug_logs_zip_redmi_20261118.png`, `debug_logs_share_*.xml` |
+| Logs Fastify | `tail -n 400 ... | grep -v base64 | sed ...` desde WSL2 y `Get-Content -Tail` en Windows | Captura sin secretos | 18 líneas sanitizadas; el log completo permanece fuera de git | `fastify_wsl_capture_20261118.txt` |
+| Endpoint debug | `curl -H "x-admin-key: ..." .../v1/debug/logs?date=20261118&lines=8` y Vitest con `NODE_ENV=production` | 200 con clave, 401 sin clave, 404 en producción | 200 / 401 / 404; 0 UUID, 0 emails, 0 coordenadas y 0 nombres de club en la respuesta | `debug_logs_endpoint_20261118.txt`, `backend/test/debug_logs_endpoint.test.ts` |
+
+**Limitaciones**: el ZIP no incluye logs del sistema ni de otras apps (restricción de Android desde API 16); `backend/logs/` sigue ignorado por git y no se versiona ningún log real; el endpoint no está activo en el servidor de desarrollo habitual (requiere opt-in explícito) y en producción responde 404. La validación visual humana de las capturas y el análisis en carretera siguen pendientes, como en bloques anteriores.

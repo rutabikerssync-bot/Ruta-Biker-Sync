@@ -1,0 +1,13 @@
+ENDPOINT /v1/debug/logs - VERIFICACION EN VIVO 2026-11-18
+========================================================
+Servidor: PORT=3012 NODE_ENV=development ENABLE_DEBUG_LOGS=true ADMIN_API_KEY configurado
+  curl -H "x-admin-key: <key>" "http://127.0.0.1:3012/v1/debug/logs?date=20261118&lines=60" -> HTTP 200
+  curl sin clave                                                                           -> HTTP 401
+  NODE_ENV=production con opt-in (Vitest)                                                  -> HTTP 404
+
+Cuerpo devuelto (60 lineas): 0 UUID, 0 emails, 0 coordenadas, 0 nombres de club y 0 blobs base64.
+Ejemplos de redaccion observados en la respuesta:
+  GET /v1/groups called for UID=[redacted]
+  id: '[uuid-redacted]'
+  name=[redacted]
+  logo_url: '[base64-redacted]'

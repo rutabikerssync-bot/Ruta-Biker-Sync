@@ -100,6 +100,12 @@ import {
   ensureCanonicalPmtilesFiles,
   getMapFilePath
 } from './lib/offlineMaps.js';
+import {
+  DEFAULT_DEBUG_LOG_LINES,
+  MAX_DEBUG_LOG_LINES,
+  readRedactedLogTail,
+  resolveDebugLogPath
+} from './lib/debugLogs.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
@@ -4897,6 +4903,35 @@ export async function buildApp({
       return;
     }
   };
+
+  // 17.0 Logs de desarrollo (Bloque D): nunca en producción y sólo con opt-in
+  // explícito. Se devuelven como text/plain y con PII redactada.
+  app.get('/v1/debug/logs', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const enabledByEnv =
+      env.NODE_ENV !== 'production' &&
+      env.ENABLE_DEBUG_LOGS === 'true' &&
+      Boolean(env.ADMIN_API_KEY); // rechaza la clave por defecto de desarrollo
+    if (!enabledByEnv) {
+      return reply.code(404).send({ error: 'NOT_FOUND' });
+    }
+
+    const q = req.query as { lines?: string; date?: string };
+    const requestedLines = Number(q.lines ?? DEFAULT_DEBUG_LOG_LINES);
+    const lines = Number.isFinite(requestedLines)
+      ? Math.min(MAX_DEBUG_LOG_LINES, Math.max(1, Math.trunc(requestedLines)))
+      : DEFAULT_DEBUG_LOG_LINES;
+    const date = q.date ?? new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const logsDir = path.resolve(__appDirname, '..', 'logs');
+    const logPath = resolveDebugLogPath(logsDir, date);
+    if (!logPath || !fs.existsSync(logPath)) {
+      return reply.code(404).send({ error: 'LOG_FILE_NOT_FOUND' });
+    }
+
+    reply.header('Cache-Control', 'no-store');
+    return reply
+      .type('text/plain; charset=utf-8')
+      .send(readRedactedLogTail(logPath, lines));
+  });
 
   // 17.1 Analítica y Visión General de la Plataforma
   app.get('/v1/admin/analytics/overview', { preHandler: requireAdminAuth }, async () => {

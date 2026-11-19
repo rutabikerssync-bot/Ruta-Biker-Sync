@@ -83,6 +83,7 @@
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Panel de Desarrollador (Solo Debug)</string>
     <string name="dev_load_demo">Cargar datos demo (3 grupos, 10 miembros)</string>
+    <string name="dev_export_logs">Exportar logs (ZIP)</string>
 
     <!-- Pestañas Heritage (SCREENS Mockup) -->
     <string name="nav_tab_rides">Rodadas</string>
