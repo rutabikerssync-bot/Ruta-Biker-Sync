@@ -118,7 +118,24 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
     val selectedInvitationId by viewModel.selectedInvitationId.collectAsState()
     val selectedMemberUserId by viewModel.selectedMemberUserId.collectAsState()
     val banner by viewModel.statusBanner.collectAsState()
+    val rsvpPendingCount by viewModel.rsvpPendingCount.collectAsState()
+    val showClubRoutes by viewModel.showClubRoutes.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    // Fase 5 · Hito 3: sustituye la pestaña mientras se consultan/firmas rutas.
+    if (showClubRoutes) {
+        val routes by viewModel.clubRoutes.collectAsState()
+        val rsvpByRoute by viewModel.clubRsvpByRoute.collectAsState()
+        ClubRoutesScreen(
+            groupName = groups.firstOrNull { it.id == selectedGroupId }?.name ?: "Mi Club",
+            routes = routes,
+            rsvpByRoute = rsvpByRoute,
+            pendingCount = rsvpPendingCount,
+            onRsvp = { routeId, status -> viewModel.requestRsvp(routeId, status) },
+            onBack = { viewModel.closeClubRoutes() }
+        )
+        return
+    }
 
     val uiState = viewModel.buildGroupsUiState(
         groups = groups,
@@ -146,9 +163,10 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
             fontWeight = FontWeight.Bold
         )
 
-        val currentBanner = banner
+        val currentBanner = ClubRsvpUi.bannerMessage(banner, rsvpPendingCount)
         if (currentBanner != null) {
-            val isAlertOrWarning = currentBanner.startsWith("🛡️") || currentBanner.startsWith("Error") || currentBanner.contains("Estatuto") || currentBanner.contains("Rechazado")
+            val isPending = ClubRsvpUi.isPendingBanner(currentBanner)
+            val isAlertOrWarning = isPending || currentBanner.startsWith("🛡️") || currentBanner.startsWith("Error") || currentBanner.contains("Estatuto") || currentBanner.contains("Rechazado")
             val bannerTextColor = if (isAlertOrWarning) Color(0xFFF5D061) else BikerColors.StatusGreen
             val bannerBorderColor = if (isAlertOrWarning) Color(0xFFD4AF37) else Color.Transparent
 
@@ -168,14 +186,17 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
                     fontWeight = if (isAlertOrWarning) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.weight(1f)
                 )
-                Icon(
-                    imageVector = AppIcons.Close,
-                    contentDescription = null,
-                    tint = BikerColors.TextSecondary,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clickable { viewModel.clearBanner() }
-                )
+                // El aviso de pendientes no se puede cerrar: se retira solo al sincronizar.
+                if (!isPending) {
+                    Icon(
+                        imageVector = AppIcons.Close,
+                        contentDescription = null,
+                        tint = BikerColors.TextSecondary,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .clickable { viewModel.clearBanner() }
+                    )
+                }
             }
         }
 
@@ -297,6 +318,7 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
                             onPickClubLogo = { uri ->
                                 viewModel.updateClubLogoFromUri(context, activeGroup.id, uri)
                             },
+                            onOpenRoutes = { viewModel.openClubRoutes(activeGroup.id) },
                             onAssignOfficer = { role, memberUserId ->
                                 viewModel.updateDirectivaOfficer(activeGroup.id, role, memberUserId)
                             },
@@ -1228,6 +1250,7 @@ private fun GroupDetailScreenD3(
     onUpdateClubProfile: (colors: String, siglas: String, tradition: String, scope: String, region: String, motto: String, city: String?, foundationDate: String) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onPickClubLogo: (Uri) -> Unit = {},
     onAssignOfficer: (role: ClubRole, memberUserId: String) -> Unit = { _, _ -> },
+    onOpenRoutes: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1367,21 +1390,35 @@ private fun GroupDetailScreenD3(
                 )
             }
 
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF241C15))
-                    .border(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                    .clickable { onBack() },
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Visibility,
-                    contentDescription = "Ver otros clubes",
-                    tint = Color(0xFFD4AF37),
-                    modifier = Modifier.size(18.dp)
-                )
+                OutlinedButton(
+                    onClick = onOpenRoutes,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFD4AF37)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFF5D061)),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text("Ver Rutas", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF241C15))
+                        .border(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .clickable { onBack() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "Ver otros clubes",
+                        tint = Color(0xFFD4AF37),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
 

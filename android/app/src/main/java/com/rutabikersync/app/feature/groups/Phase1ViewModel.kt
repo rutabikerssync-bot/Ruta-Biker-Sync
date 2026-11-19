@@ -3,6 +3,7 @@ package com.rutabikersync.app.feature.groups
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
 import com.rutabikersync.app.ui.components.skeleton.UiState
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +50,55 @@ class Phase1ViewModel(
 
     /** Fase 5: >0 significa que hay RSVPs esperando conectividad (banner de la UI). */
     val rsvpPendingCount: StateFlow<Int> get() = repository.rsvpPendingCount
+
+    // Fase 5 · Hito 3: UI mínima de rutas/RSVP (cache-first, sin tocar malla BLE).
+    private val _showClubRoutes = MutableStateFlow(false)
+    val showClubRoutes: StateFlow<Boolean> = _showClubRoutes.asStateFlow()
+
+    private val _clubRoutes = MutableStateFlow<List<ClubRouteEntity>>(emptyList())
+    val clubRoutes: StateFlow<List<ClubRouteEntity>> = _clubRoutes.asStateFlow()
+
+    /** Última intención local por ruta; el outbox es la fuente de verdad. */
+    private val _clubRsvpByRoute = MutableStateFlow<Map<String, String>>(emptyMap())
+    val clubRsvpByRoute: StateFlow<Map<String, String>> = _clubRsvpByRoute.asStateFlow()
+
+    fun openClubRoutes(groupId: String) {
+        _showClubRoutes.value = true
+        loadClubRoutes(groupId)
+    }
+
+    fun closeClubRoutes() {
+        _showClubRoutes.value = false
+    }
+
+    fun loadClubRoutes(groupId: String) {
+        viewModelScope.launch {
+            try {
+                val routes = repository.clubRoutes.loadRoutes(groupId)
+                _clubRoutes.value = routes
+                val userId = repository.currentUser.value.id
+                _clubRsvpByRoute.value = routes.mapNotNull { route ->
+                    val mine = repository.clubRoutes.loadRsvps(route.id)
+                        .rsvps.firstOrNull { it.userId == userId }
+                    mine?.status?.let { route.id to it }
+                }.toMap()
+            } catch (_: Exception) {
+                // Sin Context inicializado (tests JVM) o sin red: se conserva la caché ya pintada.
+            }
+        }
+    }
+
+    fun requestRsvp(routeId: String, status: String) {
+        viewModelScope.launch {
+            try {
+                repository.clubRoutes.requestRsvp(routeId, repository.currentUser.value.id, status)
+                _clubRsvpByRoute.value = _clubRsvpByRoute.value + (routeId to status)
+                repository.refreshRsvpPendingCount()
+            } catch (_: Exception) {
+                // El outbox ya registró la intención antes de cualquier error de red.
+            }
+        }
+    }
 
     private val _isAcceptingInvite = MutableStateFlow(false)
     val isAcceptingInvite: StateFlow<Boolean> = _isAcceptingInvite.asStateFlow()
