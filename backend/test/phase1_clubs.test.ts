@@ -602,6 +602,15 @@ describe('Fase 1 — Clubes, Cuentas, Grupos, Líderes, Cargos, Invitaciones y R
       expect(authPolicy.hashAlgorithm).toBe('scrypt-N131072-r8-p1-k64');
       expect(authPolicy.accessTokenTtlSeconds).toBe(1800);
 
+      // La ACL de GET /v1/groups/:id exige pertenencia: este usuario se añade
+      // como miembro aceptado para que el token rotado siga siendo el sujeto probado.
+      await db.query(
+        `INSERT INTO memberships (id, group_id, user_id, status_kind, invite_state, accepted_at)
+         VALUES ($1, $2, $3, 'full', 'accepted', now())
+         ON CONFLICT (group_id, user_id) DO NOTHING`,
+        [randomUUID(), mainGroupId, reg.json().user.id as string]
+      );
+
       // 2. Rotación de refresh token en /v1/auth/refresh y bloqueo de reuso del refresh token anterior
       const rot = await app.inject({
         method: 'POST',
