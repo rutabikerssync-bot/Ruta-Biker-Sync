@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -147,7 +148,8 @@ fun RiderMarker(
     marker: RiderMarkerUiModel,
     isSelected: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    headingDegrees: Float? = null
 ) {
     val ringColor = when (marker.routeStatus) {
         RiderRouteStatus.SOS_ACTIVE -> BikerColors.StatusRed
@@ -324,6 +326,29 @@ fun RiderMarker(
                         )
                         RiderRideRole.NONE -> Unit
                     }
+                }
+            }
+
+            // Indicador de dirección: rumbo real del peer o, si no lo reporta,
+            // rumbo del tramo de polilínea sobre el que se ha proyectado.
+            headingDegrees?.let { heading ->
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(BikerColors.BackgroundDark)
+                        .border(1.dp, ringColor, CircleShape)
+                ) {
+                    Icon(
+                        imageVector = AppIcons.SelfHeading,
+                        contentDescription = "Dirección de avance",
+                        tint = ringColor,
+                        modifier = Modifier
+                            .size(12.dp)
+                            .graphicsLayer(rotationZ = heading)
+                    )
                 }
             }
         }

@@ -1,0 +1,58 @@
+CONVOY SOBRE LA VÍA — VERIFICACIÓN 2026-11-18
+================================================
+
+Build verificado
+----------------
+- APK: android/app/build/outputs/apk/standard/debug/app-standard-debug-rbssigned.apk
+- Firma: apksigner verify --print-certs -> CN=Ruta Biker Sync, OU=Release,
+  O=Ruta Biker Sync, L=Caracas, ST=Distrito Capital, C=VE
+- Dispositivos: TECNO KI5k 098813734B105395 (nodo 12982) y
+  Redmi Note 13 Pro 5G b2c398bb (nodo 12243).
+
+Tests JVM (BUILD SUCCESSFUL)
+----------------------------
+- ConvoyRouteProjectionTest: tests=7 failures=0 errors=0
+- LiveMapViewModelTest: tests=4 failures=0 errors=0
+
+Montaje de prueba (importante)
+------------------------------
+Los dos teléfonos estaban en el mismo entorno pero tenían cachés de ubicación
+reales distintas: TECNO 10.349246,-67.034904 y Redmi 10.351508,-67.036590
+(~280 m). Para verificar el caso "sobre la vía" se copió la caché real de
+TECNO a Redmi como fixture de prueba controlado; es solo montaje de banco,
+la lógica de la app NO inventa posiciones. Después se restauró la caché
+original de Redmi. La ruta usada fue real, creada desde la UI del planificador
+(8XX8+J24 Los Teques -> Avenida Pedro Russo Ferrer, 2.3 km), con polilínea
+calculada online y guardada offline.
+
+Resultados observados
+---------------------
+1) Convoy proyectado (build final):
+   - `convoy_final_tecno_20261118.xml` / `.png`
+     * peer R#12243 con "✓ En ruta" y "Dirección de avance" en el árbol de
+       accesibilidad.
+     * avatar local [379,741][463,803]; nodo del peer [297,803][675,1003]:
+       el peer quedó alineado a la ruta y desplazado visualmente para no
+       solapar el marcador propio.
+   - `convoy_final_redmi_20261118.xml` / `.png`
+     * peer R#12982 con "✓ En ruta".
+
+2) Peer fuera del umbral (build intermedio, misma lógica de umbral):
+   - `convoy_tecno_projected_2peers_20261118.xml` / `.png`
+     * con las cachés reales distintas (~280 m), el peer se mostró
+       "⚠ Desviado" y conservó su posición exacta (no se proyectó).
+
+3) Nota honesta: el reintento del caso desviado con el build final mostró
+   "Sin señal" por reconexión BLE tras reiniciar Redmi; ese intento no se
+   usa como evidencia del comportamiento de proyección.
+
+Restricciones respetadas
+------------------------
+- No se modificaron PeerTrack, GATT ni criptografía.
+- Sin ruta activa, ConvoyRouteProjection.layout devuelve vacío y se dibuja
+  la posición exacta de cada peer.
+- >50 m: posición exacta y estado Desviado; <=50 m: proyección sobre la
+  polilínea real, espaciado objetivo 18 m y mínimo 10 m.
+- El único ajuste artificial es visual: separación mínima en píxeles del
+  overlay Compose y separación geodésica documentada en
+  `visualOffsetAppliedMeters`.

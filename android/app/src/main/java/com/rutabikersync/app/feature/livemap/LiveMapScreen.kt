@@ -73,6 +73,7 @@ import com.rutabikersync.app.feature.mesh.TacticalChatScreen
 import com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreen
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -532,6 +533,16 @@ fun LiveMapScreen(
             bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
             batteryPercent = realBatteryLevel
         )
+        // La malla necesita la misma posición real para que los peers se dibujen
+        // sobre la vía. Antes los heartbeats emitían (0,0) y el remoto se veía
+        // desviado a miles de km. No se inventa nada: viene del GPS/caché real.
+        RideService.updateActiveLocalTelemetry(
+            latitude = loc.latitude,
+            longitude = loc.longitude,
+            speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
+            bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
+            batteryPercent = realBatteryLevel
+        )
         RouteDeviationDetector.updateRiderLocation(
             location = LatLngPoint(loc.latitude, loc.longitude),
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6f) else 0f
@@ -569,6 +580,13 @@ fun LiveMapScreen(
             val cachedLon = geoPrefs.getFloat("last_known_lon", 0f).toDouble()
             if (cachedLat != 0.0 && cachedLon != 0.0) {
                 liveMapViewModel.controller.updateLocalRiderPose(
+                    latitude = cachedLat,
+                    longitude = cachedLon,
+                    speedKmh = 0,
+                    bearingDegrees = 180f,
+                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+                )
+                RideService.updateActiveLocalTelemetry(
                     latitude = cachedLat,
                     longitude = cachedLon,
                     speedKmh = 0,
@@ -640,6 +658,7 @@ fun LiveMapScreen(
 
         MapLibreCorridorSurface(
             state = state,
+            selfShortId = selfShortId,
             onSelectRider = { shortId -> liveMapViewModel.controller.selectRiderMarker(shortId) },
             modifier = Modifier.fillMaxSize()
         )
@@ -2068,6 +2087,7 @@ private fun FloatingHudCapsule(
 @Composable
 private fun MapLibreCorridorSurface(
     state: LiveMapUiState,
+    selfShortId: UShort,
     onSelectRider: (UShort) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -2169,21 +2189,53 @@ private fun MapLibreCorridorSurface(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Posicionar cada RiderMarker interpolado sobre el lienzo del corredor
-        state.markers.forEachIndexed { index, marker ->
-            val latDelta = (marker.displayLatitude - state.cameraLatitude)
-            val lonDelta = (marker.displayLongitude - state.cameraLongitude)
-            val normalizedX = (0.45f + (lonDelta * 120f).toFloat()).coerceIn(0.12f, 0.72f)
-            val normalizedY = (0.48f - (latDelta * 120f).toFloat() + index * 0.04f).coerceIn(0.18f, 0.74f)
+        // Convoy sobre la vía: se proyectan los peers reales sobre la polilínea activa.
+        // Sin ruta, ConvoyRouteProjection devuelve vacío y se usa la posición exacta.
+        val convoyPlacements = remember(state.markers, activeRoute?.waypoints) {
+            ConvoyRouteProjection.layout(state.markers, activeRoute?.waypoints.orEmpty(), selfShortId)
+        }
+        val orderedConvoyMarkers = remember(state.markers, convoyPlacements) {
+            state.markers.sortedWith(
+                compareByDescending<RiderMarkerUiModel> { it.shortId == selfShortId }
+                    .thenBy { convoyPlacements[it.shortId]?.cumulativeMeters ?: Int.MAX_VALUE }
+            )
+        }
 
-            val xOffsetPx = (normalizedX * widthPx).roundToInt() - 48
-            val yOffsetPx = (normalizedY * heightPx).roundToInt() - 48
+        // Posicionar cada RiderMarker sobre el corredor (proyectado si hay ruta).
+        // El overlay Compose usa una escala propia distinta del zoom de MapLibre: cuando
+        // dos peers reales quedan a pocos metros, sus marcadores se solapan. Se aplica
+        // un desplazamiento visual en pantalla (nunca en lat/lon) para separarlos.
+        var lastScreenOffset: IntOffset? = null
+        orderedConvoyMarkers.forEach { marker ->
+            val placement = convoyPlacements[marker.shortId]
+            val displayLat = placement?.latitude ?: marker.displayLatitude
+            val displayLon = placement?.longitude ?: marker.displayLongitude
+            val latDelta = (displayLat - state.cameraLatitude)
+            val lonDelta = (displayLon - state.cameraLongitude)
+            val normalizedX = (0.45f + (lonDelta * 120f).toFloat()).coerceIn(0.12f, 0.72f)
+            val normalizedY = (0.48f - (latDelta * 120f).toFloat()).coerceIn(0.18f, 0.74f)
+
+            var xOffsetPx = (normalizedX * widthPx).roundToInt() - 48
+            var yOffsetPx = (normalizedY * heightPx).roundToInt() - 48
+            val previous = lastScreenOffset
+            if (previous != null &&
+                kotlin.math.abs(xOffsetPx - previous.x) < 56 &&
+                kotlin.math.abs(yOffsetPx - previous.y) < 56
+            ) {
+                val headingRad = Math.toRadians((placement?.headingDegrees ?: marker.bearingDegrees).toDouble())
+                xOffsetPx += (kotlin.math.sin(headingRad) * 44.0).roundToInt()
+                yOffsetPx -= (kotlin.math.cos(headingRad) * 44.0).roundToInt()
+            }
+            lastScreenOffset = IntOffset(xOffsetPx, yOffsetPx)
 
             RiderMarker(
                 marker = marker,
                 isSelected = state.selectedRiderShortId == marker.shortId,
                 onClick = { onSelectRider(marker.shortId) },
-                modifier = Modifier.offset { IntOffset(xOffsetPx, yOffsetPx) }
+                modifier = Modifier
+                    .offset { IntOffset(xOffsetPx, yOffsetPx) }
+                    .zIndex(if (marker.shortId == selfShortId) 2f else 1f),
+                headingDegrees = placement?.headingDegrees ?: marker.bearingDegrees
             )
         }
     }

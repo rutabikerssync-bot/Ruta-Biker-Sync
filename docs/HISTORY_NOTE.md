@@ -247,3 +247,22 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 | Offline | `adb reverse --remove tcp:3000` + relanzar app | Fallback sin crash | `Piloto #12982 · Desconocido`, `pidof` activo, sin FATAL | `block_b_offline_fallback_redmi_20261118.png/.xml` |
 
 **Pendiente**: el backend no conoce `shortId`; la rodada de campo usa `rideId = "ride-live-01"` (no UUID) y no consumió el roster backend en hardware; el contador HUD "Convoy 1 riders" no se modificó; no se añadió cargador de imágenes remoto (URLs guardadas, iniciales/foto base64).
+
+### Bloque C visual — Convoy proyectado sobre la polilínea — 2026-11-18
+**Commit atómico**: `feat(ui): proyectar peers sobre la polilínea y espaciar como convoy` (sin amend).
+
+**Cambio**: nuevo `ConvoyRouteProjection.kt` calcula el punto más cercano de la polilínea activa, distancia acumulada y rumbo del tramo. A ≤50 m el peer se proyecta sobre la vía real con espaciado objetivo 18 m y mínimo 10 m (`visualOffsetAppliedMeters` documenta el ajuste); a >50 m conserva su posición exacta y se marca Desviado. Sin ruta, devuelve vacío y la UI dibuja la posición exacta. `LiveMapScreen` elimina el escalonado artificial por índice, ordena con el peer local primero (zIndex superior) y aplica una separación visual mínima en píxeles porque el overlay Compose no comparte la escala del zoom de MapLibre. `RiderMarker` añade una insignia de dirección rotada con el rumbo real o del tramo. `RideService.updateActiveLocalTelemetry` publica la ubicación real (GPS/caché) en el controlador de malla activo: antes los heartbeats salían con el valor por defecto 19.4326,-99.1332 y el remoto aparecía a miles de km.
+
+**Restricciones**: no se tocaron `PeerTrack`, GATT ni criptografía. El escalonado artificial previo (`index * 0.04f`) se eliminó. La separación en píxeles es solo visual; no altera lat/lon ni la telemetría emitida.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Proyección y espaciado | `gradlew :app:testStandardDebugUnitTest --tests '*ConvoyRouteProjectionTest' --tests '*LiveMapViewModelTest'` | BUILD SUCCESSFUL | 7 + 4 tests, 0 failures/errors | `android/app/src/test/.../ConvoyRouteProjectionTest.kt` |
+| Compilar y firmar | `gradlew :app:assembleStandardDebug` + `apksigner sign/verify` | APK firmada | BUILD SUCCESSFUL; `CN=Ruta Biker Sync` | `docs/evidence/convoy_projection_20261118.txt` |
+| Instalar en hardware | `adb -s <dev> install -r app-standard-debug-rbssigned.apk` | Success en ambos | Success en TECNO y Redmi | `docs/evidence/convoy_projection_20261118.txt` |
+| Convoy en ruta | UI: ruta real 2.3 km + rodada en ambos + `uiautomator dump`/`screencap` | Peer proyectado y separado | TECNO: R#12243 `✓ En ruta` con dirección; Redmi: R#12982 `✓ En ruta` | `convoy_final_tecno_20261118.png/.xml`, `convoy_final_redmi_20261118.png/.xml` |
+| Peer >50 m | `uiautomator dump`/`screencap` con cachés reales distintas (~280 m) | Posición exacta y Desviado | R#12243 `⚠ Desviado` (build intermedio, misma lógica de umbral) | `convoy_tecno_projected_2peers_20261118.png/.xml` |
+
+**Nota de montaje**: para el caso "en ruta" se copió la caché de ubicación real de TECNO a Redmi como fixture controlado y luego se restauró; la app no inventa posiciones. El reintento del caso desviado con el build final quedó en `Sin señal` por reconexión BLE y no se usa como evidencia.
+
+**Pendiente**: validación visual humana de la rotación de la insignia y del espaciado real en carretera en movimiento; el contador HUD sigue mostrando `1 riders` (no cubierto por este bloque); Bloque C (`Recalcular ruta`) sigue pendiente.

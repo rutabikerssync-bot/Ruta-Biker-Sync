@@ -1166,6 +1166,28 @@ class RideService : Service() {
             return activeController?.relayEngine ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController.relayEngine else null
         }
 
+        /**
+         * Publica la posición real del usuario en el controlador de malla activo para
+         * que los heartbeats lleven coordenadas válidas. No modifica GATT ni crypto.
+         */
+        fun updateActiveLocalTelemetry(
+            latitude: Double,
+            longitude: Double,
+            speedKmh: Int,
+            bearingDegrees: Float = 0f,
+            batteryPercent: Int = 85
+        ) {
+            val controller = activeController
+                ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController else null
+            controller?.updateLocalTelemetry(
+                latitude = latitude,
+                longitude = longitude,
+                speedKmh = speedKmh,
+                bearingDegrees = bearingDegrees,
+                batteryPercent = batteryPercent
+            )
+        }
+
         /** Abre la sesión lógica de voz GATT justo antes de pulsar PTT. */
         fun beginPttVoiceStream() {
             activeController?.gattVoiceTransport?.beginVoiceSession()

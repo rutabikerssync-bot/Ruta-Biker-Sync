@@ -75,6 +75,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [x] Ruta compartida llega íntegra (hash verificado) *(implementado en `RoutePolylineMeshRelay.kt`: fragmentación en paquetes ≤512B y verificación estricta de hash SHA-256 antes de reensamblar y adoptar la ruta · Verificado en JVM y hardware)*
 - [x] Alerta de desvío sin molestar a quien para a propósito *(implementado en `RouteDeviationDetector.kt`: distancia ortogonal mínima con umbral 150m, silenciamiento en modo "Voy a parar" `VOLUNTARY_STOP` y auto-reanudación automática al rodar >18 km/h · Verificado en JVM y hardware)*
 - [x] Atribución de OpenStreetMap visible *(verificada en `LiveMapScreen.kt` y `LiveMapViewModelTest`: `"© OpenStreetMap contributors"` siempre visible)*
+- [x] Convoy proyectado sobre la polilínea activa *(implementado en `ConvoyRouteProjection.kt` + `LiveMapScreen.kt` + `RiderMarker.kt`: ≤50 m se proyecta sobre la vía real con espaciado objetivo 18 m/mínimo 10 m y rumbo; >50 m conserva posición exacta; sin ruta usa posición exacta; peer local primero. Verificado en JVM y hardware TECNO/Redmi con ruta real de 2.3 km; evidencia `docs/evidence/convoy_projection_20261118.txt`. Pendiente: validación visual humana en movimiento.)*
 
 ## G. Voz
 - [x] Clip máximo 15 s, Opus, llega en 1 a 3 s por salto *(OpusVoiceRecorder con auto-stop 15s y fragmentación en 512B por VoiceClipMeshRelay con max 2 saltos · Verificado en hardware y JVM)*
