@@ -1,0 +1,70 @@
+=== FASE 2 - PERFIL VERSIONADO DE CLUB Y SOPORTE 304 (2026-11-19) ===
+
+Decisiones aprobadas por el usuario ("APROBADO TAL CUAL"):
+  1. PUT restringido a is_principal = true: correccion de seguridad que alinea el
+     codigo con la regla de negocio "el presidente actualiza el perfil".
+  2. Primer sync en 200 (calentamiento): no se anade profile_version a GET /v1/groups.
+  3. changed = true desde el cliente: aceptado; el PUT solo se invoca al editar manualmente.
+
+=== 1. APLICACION DEL DIFF ===
+Parche: C:\Users\ozmar\AppData\Local\Temp\opencode\fase2_diff\fase2_utf8.patch
+  git apply --check  -> exit 0
+  git apply          -> exit 0
+Archivos tocados: 5 (3 Android, 1 backend, 1 test nuevo).
+Los .pmtiles borrados preexistentes NO fueron escenificados ni tocados.
+
+=== 2. VALIDACION BACKEND (cwd: backend) ===
+Comando: npm run typecheck && npm test && npm run build
+
+  npm run typecheck_exit=0   (tsc --noEmit, sin errores)
+  npm test_exit=0
+    Test Files  23 passed (23)   [antes: 22 -> +1 archivo]
+    Tests       133 passed (133) [antes: 129 -> +4 tests nuevos]
+    Duration    35.97s
+    test/group_profile_version.test.ts (4 tests) -> OK
+    test/group_detail_acl.test.ts (3 tests)      -> OK (Fase 0 intacta)
+    test/club_routes_rls.test.ts (7 tests)       -> OK (Fase 1 intacta)
+    test/migrations_registry.test.ts (1 test)    -> OK
+  npm run build_exit=0       (tsc -p tsconfig.json)
+
+Log completo de la corrida:
+  C:\Users\ozmar\AppData\Local\Temp\opencode\fase2_validation_utf8.txt
+
+=== 3. VERIFICACION EN VIVO (Tailscale + servicio rbs-backend) ===
+Igual que en Fase 0, tsx watch no detecta cambios sobre /mnt/d (DrvFs). Se reinicio
+el proceso sin sudo (Restart=always lo respawneo): PID 18819 -> 19111, active.
+
+Comando: bash .../rbs_live_profile_version_check.sh
+BASE=https://omartinezpaz.tail6f67b0.ts.net
+GID=dd579612-9c1a-49ac-873e-40a85fb04a25
+
+  GET detalle (tecno)     HTTP 200  profileVersion=1
+  GET ?since=1 (tecno)    HTTP 304  body=
+  GET ?since=0 (tecno)    HTTP 200  "profileVersion":1
+  GET ?since=1 (redmi)    HTTP 304
+  GET ?since=1 (externo)  HTTP 403  {"error":"FORBIDDEN"}
+  health                  HTTP 200
+
+Interpretacion: el 304 solo llega a miembros del club. El externo recibe 403 de la
+ACL de Fase 0 ANTES de evaluar since, por lo que no se filtra la existencia del club.
+
+=== 4. RESTAURACION DE LA BD DE DESARROLLO ===
+Los tests truncan la BD real (PG_TEST_URL -> 127.0.0.1:5433/rbs). Tras la corrida
+quedaron ademas datos residuales del ultimo test ("ACL Club"), por lo que se limpio
+con TRUNCATE ... RESTART IDENTITY CASCADE y se re-ejecuto rbs_restore_bufalo.sql,
+usando el UUID original (no se invento uno nuevo):
+
+  USERS 2
+  GROUP 1 -> dd579612-9c1a-49ac-873e-40a85fb04a25 / Bufalo Beikers / RC
+  LEADERS 1
+  MEMBERS 2
+
+=== 5. COMMIT ===
+ee62c24 feat(api): extender PUT/GET de club con versionado de perfil y soporte 304
+Sin amend, sin push a origin/main, sin tocar BLE/GATT/crypto ni PeerProfilePrivacy.
+
+=== PENDIENTE DE ESTA FASE ===
+- Prueba de humo fisica en los dos dispositivos (editar el motto en TECNO y verlo
+  en Redmi sin reiniciar): requiere interaccion manual. La cobertura equivalente
+  del lado servidor quedo demostrada por los 4 tests nuevos y por el 304 en vivo.
+- Fase 3: endpoints de rutas y RSVP con transiciones idempotentes.
