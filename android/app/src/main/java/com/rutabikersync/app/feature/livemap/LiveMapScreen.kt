@@ -91,7 +91,15 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
-import org.maplibre.android.annotations.PolylineOptions
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
 import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.feature.auth.ProfileRepository
 import com.rutabikersync.app.feature.routes.DeviationStatus
@@ -2138,11 +2146,58 @@ private fun FloatingHudCapsule(
     }
 }
 
+/**
+ * Doble trazo 100% local (sin llamadas a API): halo oscuro semitransparente y
+ * línea brillante sobre la misma geometría. `round` en cap/join evita picos en
+ * las curvas y extremos. No modifica el JSON de estilo base.
+ */
+private fun ensureRouteLayers(style: Style) {
+    if (style.getLayer(RouteStrokeStyle.LINE_LAYER_ID) != null) return
+    if (style.getSource(RouteStrokeStyle.SOURCE_ID) == null) {
+        style.addSource(
+            GeoJsonSource(
+                RouteStrokeStyle.SOURCE_ID,
+                FeatureCollection.fromFeatures(emptyList<Feature>())
+            )
+        )
+    }
+    val halo = LineLayer(RouteStrokeStyle.HALO_LAYER_ID, RouteStrokeStyle.SOURCE_ID).withProperties(
+        PropertyFactory.lineCap(RouteStrokeStyle.CAP_AND_JOIN),
+        PropertyFactory.lineJoin(RouteStrokeStyle.CAP_AND_JOIN),
+        PropertyFactory.lineColor(RouteStrokeStyle.HALO_COLOR),
+        PropertyFactory.lineOpacity(RouteStrokeStyle.HALO_OPACITY),
+        PropertyFactory.lineWidth(RouteStrokeStyle.HALO_WIDTH)
+    )
+    val line = LineLayer(RouteStrokeStyle.LINE_LAYER_ID, RouteStrokeStyle.SOURCE_ID).withProperties(
+        PropertyFactory.lineCap(RouteStrokeStyle.CAP_AND_JOIN),
+        PropertyFactory.lineJoin(RouteStrokeStyle.CAP_AND_JOIN),
+        PropertyFactory.lineColor(RouteStrokeStyle.LINE_COLOR),
+        PropertyFactory.lineOpacity(RouteStrokeStyle.LINE_OPACITY),
+        PropertyFactory.lineWidth(RouteStrokeStyle.LINE_WIDTH)
+    )
+    style.addLayer(halo)
+    style.addLayer(line)
+}
+
+/** Actualiza (o limpia) la geometría de la ruta en las dos capas locales. */
+private fun drawRouteOnMap(map: MapLibreMap, waypoints: List<LatLngPoint>) {
+    val style = map.style ?: return
+    ensureRouteLayers(style)
+    val source = style.getSourceAs<GeoJsonSource>(RouteStrokeStyle.SOURCE_ID) ?: return
+    if (waypoints.size < 2) {
+        source.setGeoJson(FeatureCollection.fromFeatures(emptyList<Feature>()))
+        return
+    }
+    val coordinates = waypoints.map { Point.fromLngLat(it.longitude, it.latitude) }
+    val feature = Feature.fromGeometry(LineString.fromLngLats(coordinates))
+    source.setGeoJson(FeatureCollection.fromFeatures(listOf(feature)))
+}
+
 @Composable
 private fun MapLibreCorridorSurface(
     state: LiveMapUiState,
     selfShortId: UShort,
-    onSelectRider: (UShort) -> Unit,
+    onSelectRider: (UShort?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2194,6 +2249,8 @@ private fun MapLibreCorridorSurface(
             factory = {
                 mapView.apply {
                     getMapAsync { map ->
+                        // Tocar el mapa vacío cierra el detalle; los markers consumen su propio toque.
+                        map.addOnMapClickListener { onSelectRider(null); true }
                         map.setStyle(state.styleAssetUri) {
                             map.uiSettings.isAttributionEnabled = false
                             map.uiSettings.isLogoEnabled = false
@@ -2209,15 +2266,7 @@ private fun MapLibreCorridorSurface(
                                         .build()
                                 )
                             )
-                            if (activeRoute != null && activeRoute.waypoints.size >= 2) {
-                                val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
-                                map.addPolyline(
-                                    PolylineOptions()
-                                        .addAll(latLngs)
-                                        .color(android.graphics.Color.parseColor("#C05A2A"))
-                                        .width(8.0f)
-                                )
-                            }
+                            drawRouteOnMap(map, activeRoute?.waypoints.orEmpty())
                             lastDrawnRouteId.value = activeRoute?.id
                         }
                     }
@@ -2235,16 +2284,7 @@ private fun MapLibreCorridorSurface(
                     )
                     val desiredRouteId = activeRoute?.id
                     if (desiredRouteId != lastDrawnRouteId.value) {
-                        map.polylines.forEach { it.remove() }
-                        if (activeRoute != null && activeRoute.waypoints.size >= 2) {
-                            val latLngs = activeRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
-                            map.addPolyline(
-                                PolylineOptions()
-                                    .addAll(latLngs)
-                                    .color(android.graphics.Color.parseColor("#C05A2A"))
-                                    .width(8.0f)
-                            )
-                        }
+                        drawRouteOnMap(map, activeRoute?.waypoints.orEmpty())
                         lastDrawnRouteId.value = desiredRouteId
                     }
                 }
@@ -2278,16 +2318,16 @@ private fun MapLibreCorridorSurface(
             val normalizedX = (0.45f + (lonDelta * 120f).toFloat()).coerceIn(0.12f, 0.72f)
             val normalizedY = (0.48f - (latDelta * 120f).toFloat()).coerceIn(0.18f, 0.74f)
 
-            var xOffsetPx = (normalizedX * widthPx).roundToInt() - 48
-            var yOffsetPx = (normalizedY * heightPx).roundToInt() - 48
+            var xOffsetPx = (normalizedX * widthPx).roundToInt() - 36
+            var yOffsetPx = (normalizedY * heightPx).roundToInt() - 36
             val previous = lastScreenOffset
             if (previous != null &&
-                kotlin.math.abs(xOffsetPx - previous.x) < 56 &&
-                kotlin.math.abs(yOffsetPx - previous.y) < 56
+                kotlin.math.abs(xOffsetPx - previous.x) < 44 &&
+                kotlin.math.abs(yOffsetPx - previous.y) < 44
             ) {
                 val headingRad = Math.toRadians((placement?.headingDegrees ?: marker.bearingDegrees).toDouble())
-                xOffsetPx += (kotlin.math.sin(headingRad) * 44.0).roundToInt()
-                yOffsetPx -= (kotlin.math.cos(headingRad) * 44.0).roundToInt()
+                xOffsetPx += (kotlin.math.sin(headingRad) * 32.0).roundToInt()
+                yOffsetPx -= (kotlin.math.cos(headingRad) * 32.0).roundToInt()
             }
             lastScreenOffset = IntOffset(xOffsetPx, yOffsetPx)
 

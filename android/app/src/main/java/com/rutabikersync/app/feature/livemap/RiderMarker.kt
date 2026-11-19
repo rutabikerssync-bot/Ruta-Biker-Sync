@@ -2,6 +2,10 @@ package com.rutabikersync.app.feature.livemap
 
 import android.graphics.BitmapFactory
 import android.util.Base64
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,13 +21,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -182,6 +191,10 @@ fun RiderMarker(
         }.getOrNull()
     }
 
+    // Detalle bajo demanda: selección (toque) u hover (ratón). Por defecto sólo el avatar.
+    var hovered by remember { mutableStateOf(false) }
+    val showDetail = RiderDetailVisibility.shouldShow(isSelected = isSelected, isHovered = hovered)
+
     val avatarFill = if (marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST) {
         Color(0xFF2C313A)
     } else {
@@ -189,15 +202,17 @@ fun RiderMarker(
     }
 
     val a11yDescription = buildString {
-        append(marker.abbreviatedLabel)
+        append(if (marker.profileRedacted) "Avatar genérico" else "Avatar de ${marker.fullName}")
         append(", ")
         append(marker.routeStatus.symbolAndLabel)
-        if (marker.rideRole != RiderRideRole.NONE) {
-            append(", rol ")
-            append(marker.rideRole.badgeLabel)
+        if (showDetail) {
+            if (marker.rideRole != RiderRideRole.NONE) {
+                append(", rol ")
+                append(marker.rideRole.badgeLabel)
+            }
+            append(", rol en convoy ")
+            append(marker.roleLabel)
         }
-        append(", rol en convoy ")
-        append(marker.roleLabel)
         append(", ${marker.speedKmh} km/h")
     }
 
@@ -208,8 +223,12 @@ fun RiderMarker(
             .semantics { contentDescription = a11yDescription }
             .clickable(onClick = onClick)
     ) {
-        // Si está seleccionado (al tocar), muestra tarjeta con nombre completo, velocidad y distancia al líder
-        if (isSelected) {
+        // Detalle bajo demanda: al tocar el avatar o al pasar el ratón, con fade in/out.
+        AnimatedVisibility(
+            visible = showDetail,
+            enter = fadeIn(animationSpec = tween(180)),
+            exit = fadeOut(animationSpec = tween(150))
+        ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -217,21 +236,55 @@ fun RiderMarker(
                     .border(1.dp, ringColor, RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                Text(
-                    text = marker.expandedDisplayName,
-                    color = BikerColors.TextPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Rol: ${marker.roleLabel}",
-                    color = BikerColors.PrimaryAmber,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    when {
+                        marker.profileRedacted -> Icon(
+                            imageVector = AppIcons.Bike,
+                            contentDescription = "Avatar genérico",
+                            tint = BikerColors.TextSecondary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        avatarBitmap != null -> Image(
+                            bitmap = avatarBitmap,
+                            contentDescription = "Avatar de ${marker.fullName}",
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                        )
+                        else -> Text(
+                            text = marker.abbreviatedLabel,
+                            color = BikerColors.TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = marker.expandedDisplayName,
+                            color = BikerColors.TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = buildString {
+                                append("Rol: ").append(marker.roleLabel)
+                                if (marker.rideRole != RiderRideRole.NONE) {
+                                    append(" · ").append(marker.rideRole.badgeLabel)
+                                }
+                            },
+                            color = BikerColors.PrimaryAmber,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
                 Text(
                     text = buildString {
-                        append("${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
+                        append(marker.routeStatus.symbolAndLabel)
+                        append(" · ${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
                         if (!leaderDistanceText.isNullOrBlank()) {
                             append(" · Líder a ").append(leaderDistanceText)
                         }
@@ -261,6 +314,17 @@ fun RiderMarker(
                     .clip(CircleShape)
                     .background(avatarFill)
                     .border(3.dp, ringColor, CircleShape)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                when (awaitPointerEvent().type) {
+                                    PointerEventType.Enter -> hovered = true
+                                    PointerEventType.Exit -> hovered = false
+                                    else -> Unit
+                                }
+                            }
+                        }
+                    }
             ) {
                 when {
                     marker.routeStatus == RiderRouteStatus.SOS_ACTIVE -> {
@@ -317,46 +381,7 @@ fun RiderMarker(
                 }
             }
 
-            // Insignia superior derecha para el rol de rodada (Líder, Capitán, Scout, Sweep)
-            if (marker.rideRole != RiderRideRole.NONE) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(BikerColors.BackgroundDark)
-                        .border(1.dp, BikerColors.PrimaryAmber, CircleShape)
-                ) {
-                    when (marker.rideRole) {
-                        RiderRideRole.LEADER -> Icon(
-                            painter = painterResource(id = AppIcons.LeaderCrownShieldRes),
-                            contentDescription = "Líder",
-                            tint = BikerColors.PrimaryAmber,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        RiderRideRole.CAPTAIN -> Icon(
-                            imageVector = AppIcons.RoleCaptain,
-                            contentDescription = "Capitán",
-                            tint = BikerColors.PrimaryAmber,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        RiderRideRole.SCOUT -> Icon(
-                            imageVector = AppIcons.RoleScout,
-                            contentDescription = "Scout",
-                            tint = BikerColors.PrimaryAmber,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        RiderRideRole.SWEEP -> Icon(
-                            imageVector = AppIcons.RoleSweep,
-                            contentDescription = "Sweep",
-                            tint = BikerColors.PrimaryAmber,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        RiderRideRole.NONE -> Unit
-                    }
-                }
-            }
+            // El rol operativo se muestra únicamente dentro de la tarjeta de detalle.
 
             // Indicador de dirección: rumbo real del peer o, si no lo reporta,
             // rumbo del tramo de polilínea sobre el que se ha proyectado.
@@ -382,43 +407,5 @@ fun RiderMarker(
             }
         }
 
-        // Etiqueta inferior siempre visible: Nombre abreviado (C) + símbolo/texto de estado (ICONS.md §1 Regla 2)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .background(BikerColors.BackgroundDark.copy(alpha = 0.90f), RoundedCornerShape(6.dp))
-                .border(1.dp, ringColor.copy(alpha = 0.7f), RoundedCornerShape(6.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            val statusIcon = when (marker.routeStatus) {
-                RiderRouteStatus.ON_ROUTE -> AppIcons.PaymentGreen
-                RiderRouteStatus.OFF_ROUTE_DEVIATED -> AppIcons.PaymentYellow
-                RiderRouteStatus.OFF_MESH_LOST -> AppIcons.RiderOffMesh
-                RiderRouteStatus.SOS_ACTIVE -> AppIcons.SosAlert
-            }
-            Icon(
-                imageVector = statusIcon,
-                contentDescription = null,
-                tint = ringColor,
-                modifier = Modifier.size(12.dp)
-            )
-            Text(
-                text = buildString {
-                    append(marker.abbreviatedLabel)
-                    if (marker.isSelf) append(" (Yo)")
-                    append(" · ")
-                    append(marker.roleLabel)
-                    append(" · ")
-                    append(marker.routeStatus.symbolAndLabel)
-                    append('\n')
-                    append(marker.fullName)
-                },
-                color = BikerColors.TextPrimary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2
-            )
-        }
     }
 }

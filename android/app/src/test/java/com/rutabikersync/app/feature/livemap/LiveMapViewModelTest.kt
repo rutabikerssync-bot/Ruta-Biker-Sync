@@ -325,4 +325,32 @@ class LiveMapViewModelTest {
 
         engines.values.forEach { it.stop() }
     }
+
+    @Test
+    fun `seleccion de marcador conmuta y sobrevive a flushMapFrame`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
+
+        assertNull(controller.uiState.value.selectedRiderShortId)
+
+        val selected = controller.selectRiderMarker(1u)
+        assertEquals(1u.toUShort(), selected.selectedRiderShortId)
+
+        // La selección debe preservarse entre frames mientras el marker siga en pantalla.
+        val frame = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+        assertEquals(1, frame.markers.size)
+        assertEquals(1u.toUShort(), controller.uiState.value.selectedRiderShortId)
+
+        // Un segundo toque sobre el mismo avatar cierra el detalle.
+        assertNull(controller.selectRiderMarker(1u).selectedRiderShortId)
+
+        // Tocar el mapa vacío también cierra el detalle (onSelectRider(null)).
+        controller.selectRiderMarker(1u)
+        assertNull(controller.selectRiderMarker(null).selectedRiderShortId)
+    }
 }

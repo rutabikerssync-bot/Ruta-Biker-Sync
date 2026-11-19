@@ -1,0 +1,91 @@
+VERIFICACION DETALLE DE PEER SOLO AL TOCAR/HOVER + TRAZADO DE RUTA - 2026-11-19
+================================================================================
+
+CAMBIO IMPLEMENTADO
+-------------------
+1. RiderMarker.kt:
+   - Se elimino la etiqueta inferior permanente (abreviatura, "(Yo)", rol,
+     estado y nombre completo) y la insignia superior de rol. Por defecto el
+     marcador muestra SOLO el avatar, liberando el corredor de la ruta.
+   - Nuevo estado `hovered` con `pointerInput` + `PointerEventType.Enter/Exit`
+     sobre el avatar. `showDetail = RiderDetailVisibility.shouldShow(isSelected,
+     hovered)` (decision pura en `RiderDetailVisibility.kt`).
+   - Tarjeta en `AnimatedVisibility` con `fadeIn(tween(180))` /
+     `fadeOut(tween(150))`. Incluye avatar completo (real o generico), nombre
+     expandido, rol de convoy + rol operativo, estado, velocidad, bateria y
+     distancia al lider. Mantiene `PeerProfilePrivacy`: peer sin groupId sigue
+     siendo `Piloto #XXXX` + avatar generico + rol Desconocido.
+   - `contentDescription` (a11y) revela rol y nombre solo cuando showDetail.
+2. LiveMapScreen.kt:
+   - `onSelectRider: (UShort?) -> Unit` y `map.addOnMapClickListener {
+     onSelectRider(null); true }` para cerrar al tocar mapa vacio.
+   - Separacion de marcadores reducida de 44 px a 32 px y offsets de -48 a -36
+     al projectarlos sobre la ruta.
+   - RouteStrokeStyle.kt + capas locales MapLibre `LineLayer`: halo
+     `#3A1E14` 13f opacidad 0.5f y linea `#F08A45` 6f opacidad 1.0f, ambos con
+     `line-cap` y `line-join` redondos. No se modifica el JSON de estilo base.
+3. Sin cambios en malla BLE, GATT, PTT, criptografia ni backend.
+
+TABLA DE VERIFICACION
+---------------------
+Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia
+------|---------|--------------------|--------------------|----------
+Diseno de visibilidad | RiderDetailVisibility.kt + RiderDetailVisibilityTest.kt | detalle solo con seleccion u hover | 4 tests JVM en verde: falso/falso, toque, hover, simultaneo | RiderDetailVisibilityTest.kt
+Tests JVM dirigidos | gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain --tests '*RiderDetailVisibilityTest' --tests '*RouteStrokeStyleTest' --tests '*LiveMapViewModelTest' (+11 filtros de regresion) | BUILD SUCCESSFUL | 69 tests, 0 fallos/errores | XML de android/app/build/test-results/testStandardDebugUnitTest/
+Suite JVM completa | gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain (sin filtros) | sin regresiones nuevas | 382 tests, 2 fallos PREEXISTENTES no relacionados: MultiHopFloodingTest (jitter 10-35 ms) y RouteEnginePhase4Test (track points GPX) | reporte HTML de test-results; archivos no tocados por este fix
+Backend (sin cambios) | npm run typecheck; npm test; npm run build | sin regresiones | typecheck OK; 20 archivos / 119 tests verdes; build OK | salida de backend
+Compilar, firmar e instalar | assembleStandardDebug + apksigner sign/verify + adb -s <dev> install -r | APK firmada en TECNO y Redmi | BUILD SUCCESSFUL; DN CN=Ruta Biker Sync; Success en 098813734B105395 y b2c398bb | seccion FIRMA
+Solo avatar por defecto | force-stop + monkey launch + uiautomator dump tras relanzar | sin texto permanente de nombre/rol en el mapa | TECNO y Redmi: `content-desc="Avatar ..."` presente; `Rol:` y `Piloto #` AUSENTES | peer_detail_tap_*.xml (estado inicial del smoke final)
+Detalle al tocar peer | uiautomator dump tras `input tap` en el avatar remoto | tarjeta con avatar, nombre, rol y metricas | TECNO `Piloto #12243`, `Rol: Desconocido`, `✓ En ruta · 0 km/h · Bat 100% · Líder a 3 m`; Redmi `Piloto #12982`, mismo rol y metricas | peer_detail_tap_tecno-20261119.png/.xml , peer_detail_tap_redmi-20261119.png/.xml
+Perfil real del local | tap en zona exclusiva superior del avatar propio + dump | nombre y rol reales del perfil local | TECNO `Omartinezpaz`, `Rol: Punta · Líder`; Redmi `Ozmartinezpaz`, `Rol: Punta · Líder` | peer_detail_local_profile_tecno-20261119.png/.xml , peer_detail_local_profile_redmi-20261119.png/.xml
+Cerrar con segundo toque | tap de nuevo en el mismo avatar + dump | tarjeta oculta | TECNO y Redmi: `Rol:` y `Piloto #` AUSENTES | peer_detail_close_tap_tecno-20261119.xml , peer_detail_close_tap_redmi-20261119.xml
+Cerrar tocando mapa vacio | abrir tarjeta + `input tap 120,300` (TECNO) / `200,600` (Redmi) + dump | tarjeta oculta | TECNO y Redmi: `Rol:` y `Piloto #` AUSENTES | peer_detail_close_map_tecno-20261119.xml , peer_detail_close_map_redmi-20261119.xml
+Trazado reforzado | RouteStrokeStyleTest.kt + lectura de LiveMapScreen.kt | halo #3A1E14 13f/0.5f, linea #F08A45 6f/1.0f, cap/join round | 2 tests JVM en verde; capas LineLayer anadidas sin tocar el JSON base | RouteStrokeStyleTest.kt , RouteStrokeStyle.kt
+Sin crashes | adb logcat -d -t 800 tras el smoke final | 0 FATAL/ANR | 0 FATAL EXCEPTION y 0 ANR en ambos | este archivo
+
+CONFIRMACION DEL PEER REDACTADO
+-------------------------------
+SI. El peer remoto sigue sin groupId en la malla (PeerTrack no lo transporta):
+al tocar su avatar se muestra `Piloto #12243` en TECNO y `Piloto #12982` en
+Redmi, ambos con avatar generico (icono de moto) y `Rol: Desconocido`. No se
+muestran nombre real, avatar real ni rol real del peer. El marcador local si
+muestra su perfil real. La redaccion de `PeerProfilePrivacy` no se debilito:
+el detalle bajo demanda solo cambia CUANDO se muestra, no QUE datos se muestran.
+
+CAPTURAS (docs/evidence/)
+-------------------------
+peer_detail_tap_tecno-20261119.png / .xml
+peer_detail_tap_redmi-20261119.png / .xml
+peer_detail_local_profile_tecno-20261119.png / .xml
+peer_detail_local_profile_redmi-20261119.png / .xml
+peer_detail_close_tap_tecno-20261119.xml
+peer_detail_close_tap_redmi-20261119.xml
+peer_detail_close_map_tecno-20261119.xml
+peer_detail_close_map_redmi-20261119.xml
+
+FIRMA
+-----
+apksigner verify --print-certs app/build/outputs/apk/standard/debug/app-standard-debug-rbssigned.apk
+  Signer #1 certificate DN: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync,
+                            L=Caracas, ST=Distrito Capital, C=VE
+  adb install -r -> Success en 098813734B105395 y b2c398bb.
+
+PENDIENTE
+---------
+- Hover real con raton/emulador: `adb shell input mouse move` responde
+  `Unknown command: move` en TECNO y Redmi. La decision de entrada/salida esta
+  cubierta por `RiderDetailVisibilityTest`; falta reproducir el gesto con
+  dispositivo que exponga evento de raton o en emulador.
+- Validacion visual humana de la animacion fade in/out (tween 180/150 ms): el
+  codigo y los estados finales estan verificados, pero la suavidad de la
+  animacion no es medible desde uiautomator.
+- La rodada usada para la verificacion no tenia ruta activa, por lo que no se
+  pudo capturar el doble trazo en pantalla. La configuracion del halo/linea
+  queda cubierta por `RouteStrokeStyleTest`; falta confirmacion visual con una
+  ruta activa en movimiento.
+- Case «peer remoto del mismo club» sigue sin reproducirse en hardware (sin
+  mapping shortId<->userId sin tocar BLE); cubierto por JVM.
+- No se probo apagado fisico de Bluetooth; malla BLE, GATT y criptografia
+  quedan intactos.
+- Los .pmtiles sin seguimiento de verificaciones anteriores siguen intactos y
+  fuera del commit.

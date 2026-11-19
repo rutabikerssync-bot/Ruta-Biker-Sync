@@ -360,3 +360,26 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 **Confirmacion**: el peer de distinto club o desconocido muestra avatar generico y `Piloto #XXXX`, sin nombre/avatar/rol reales. Los tres casos de la regla estan cubiertos por tests JVM.
 
 **Pendiente**: peer remoto del mismo club no reproducible en hardware (sin mapping `shortId<->userId`; añadirlo exigiria tocar la malla, fuera de alcance) pero cubierto por JVM; validacion visual humana de las capturas; el groupId del roster no llega en hardware porque `ride-live-01` no es UUID y no se activo reverse USB (parser validado por tests); suite JVM completa arrastra 2 fallos preexistentes no relacionados (jitter `MultiHopFloodingTest` y GPX `RouteEnginePhase4Test`).
+
+### FIX - Detalle de peer solo al tocar/hover y trazado reforzado de ruta - 2026-11-19
+**Commit atomico**: `fix(ui): mostrar detalle del peer solo al tocar o hacer hover` (sin amend, sin push).
+
+**Diagnostico**: `RiderMarker.kt` dibujaba una etiqueta inferior permanente con abreviatura, `(Yo)`, rol, estado y nombre completo, ademas de una insignia de rol siempre visible. Eso tapaba el corredor de la ruta y revelaba informacion sin interaccion. `LiveMapScreen.kt` dibujaba la ruta con una unica `PolylineOptions` `#C05A2A`/8f, sin halo ni extremos redondos, y no cerraba la tarjeta al tocar mapa vacio.
+
+**Cambio**: etiqueta e insignia permanentes eliminadas. Nuevo estado `hovered` (`PointerEventType.Enter/Exit`) y decision pura `RiderDetailVisibility.shouldShow(isSelected, isHovered)`. Tarjeta `AnimatedVisibility` con `fadeIn(180)`/`fadeOut(150)` que muestra avatar, nombre, roles, estado, bateria, velocidad y distancia al lider, respetando `PeerProfilePrivacy`. `LiveMapScreen` cierra con `addOnMapClickListener { onSelectRider(null); true }`, reduce el offset de marcadores (44→32 px, -48→-36) y usa `RouteStrokeStyle` + dos `LineLayer` locales (halo `#3A1E14` 13f/0.5f, linea `#F08A45` 6f/1.0f, `line-cap`/`line-join` redondos) sin tocar el JSON de estilo base. Sin cambios en BLE/GATT/PTT/crypto ni backend.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Visibilidad bajo demanda | `RiderDetailVisibility.kt` + `RiderDetailVisibilityTest.kt` | detalle solo con toque u hover | 4 tests JVM en verde | `RiderDetailVisibilityTest.kt` |
+| Tests JVM dirigidos | `gradlew :app:testStandardDebugUnitTest --tests '*RiderDetailVisibilityTest' --tests '*RouteStrokeStyleTest' ...` | BUILD SUCCESSFUL | 69 tests, 0 fallos | XML de `test-results/testStandardDebugUnitTest/` |
+| Suite JVM completa | `gradlew :app:testStandardDebugUnitTest` sin filtros | sin regresiones nuevas | 382 tests, 2 fallos PREEXISTENTES (jitter `MultiHopFloodingTest`, GPX `RouteEnginePhase4Test`) | reporte HTML de test-results |
+| Backend (sin cambios) | `npm run typecheck`, `npm test`, `npm run build` | sin regresiones | typecheck OK; 119 tests verdes; build OK | salida de backend |
+| Build e instalacion | `assembleStandardDebug` + `apksigner sign/verify` + `adb install -r` | APK firmada en TECNO y Redmi | `CN=Ruta Biker Sync`; `Success` en ambos | `docs/evidence/peer_detail_on_tap_20261119.txt` |
+| Solo avatar por defecto | relanzar app + `uiautomator dump` | sin texto permanente | TECNO y Redmi: avatares presentes, `Rol:`/`Piloto #` ausentes | `peer_detail_tap_*.xml` (smoke final) |
+| Detalle al tocar peer | `input tap` en avatar remoto + dump | avatar, nombre, rol y metricas | TECNO `Piloto #12243`/`Rol: Desconocido`; Redmi `Piloto #12982`/`Rol: Desconocido` | `peer_detail_tap_tecno-20261119.png/.xml`, `peer_detail_tap_redmi-20261119.png/.xml` |
+| Perfil local | tap en avatar propio + dump | nombre y rol reales | TECNO `Omartinezpaz`/`Rol: Punta · Líder`; Redmi `Ozmartinezpaz`/`Rol: Punta · Líder` | `peer_detail_local_profile_*_20261119.png/.xml` |
+| Cierre | segundo toque y toque en mapa vacio + dump | tarjeta oculta | ambos dispositivos: `Rol:`/`Piloto #` ausentes | `peer_detail_close_tap_*`, `peer_detail_close_map_*_20261119.xml` |
+
+**Confirmacion**: al iniciar el mapa solo se ven avatares; al tocar un peer aparece su tarjeta con avatar/nombre/rol reales del perfil si es local, o `Piloto #XXXX`/avatar generico/`Desconocido` si es remoto sin groupId. La tarjeta se cierra al volver a tocar o al tocar fuera. El peer redactado sigue sin revelar datos reales.
+
+**Pendiente**: hover real no reproducible con `input mouse move` (`Unknown command: move` en ambos dispositivos; cubierto por JVM); validacion visual humana del fade y del doble trazo con ruta activa (la rodada de prueba no tenia ruta; la configuracion esta cubierta por `RouteStrokeStyleTest`); peer remoto del mismo club sin mapping `shortId↔userId`; 2 fallos JVM preexistentes no relacionados.
