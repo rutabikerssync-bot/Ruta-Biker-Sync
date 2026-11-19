@@ -36,6 +36,18 @@ Los unicos tests previos que llaman GET /v1/groups/:id usan tokens de lider
 (phase1_clubs.test.ts:618, phase2_subscriptions_credentials.test.ts:653/688),
 por lo que la ACL no los rompe.
 
+=== Verificacion en vivo (servicio rbs-backend, Tailscale) ===
+El servicio corre `npm run dev` (tsx watch) sobre /mnt/d; el watcher no detecto
+el cambio por DrvFs, por lo que se reinicio el proceso (Restart=always lo
+respawneo: MainPID 17168 -> 18819). No se uso sudo (requeria password).
+
+BASE=https://omartinezpaz.tail6f67b0.ts.net
+GID=dd579612-9c1a-49ac-873e-40a85fb04a25
+  tecno    (1ec5e592-...) HTTP 200  Bufalo Beikers
+  redmi    (f2850920-...) HTTP 200  Bufalo Beikers
+  externo  (0000...0000) HTTP 403  {"error":"FORBIDDEN"}
+  health                 HTTP 200
+
 === Commit ===
 fix(api): restringir GET /v1/groups/:id a miembros y lideres del club
 Sin amend, sin push, sin tocar BLE/GATT/crypto.
