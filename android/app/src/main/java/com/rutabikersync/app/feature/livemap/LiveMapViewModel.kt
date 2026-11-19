@@ -72,6 +72,8 @@ data class LiveMapUiState(
     val gpsFixed: Boolean = false,
     val localBatteryPercent: Int = 88,
     val connectedNodesCount: Int = 0,
+    // FIX contador HUD: riders activos renderizados (local + peers con señal).
+    val ridersCount: Int = 1,
     val lostNodesCount: Int = 0,
     val connectivityState: LiveMapConnectivityState = LiveMapConnectivityState.CONNECTING,
     val cameraMode: CameraMode = CameraMode.FREE,
@@ -471,6 +473,14 @@ class LiveMapController(
         val lostPeers = latestPeersFromMesh.values.count { it.isLost }
         val totalPeers = latestPeersFromMesh.size
 
+        // FIX contador HUD: se deriva de los mismos marcadores que pinta el mapa, no de
+        // `connectedPeers` (que excluye al piloto local). El marcador "Sin señal" sigue
+        // visible para diagnóstico pero no cuenta como rider activo, así al desconectarse
+        // un peer el HUD baja a 1 (solo local). Sin marcadores, fallback honesto a 1.
+        val ridersCount = updatedMarkers.count {
+            it.routeStatus != RiderRouteStatus.OFF_MESH_LOST
+        }.coerceAtLeast(1)
+
         val connectivityState = when {
             totalPeers == 0 -> LiveMapConnectivityState.ALONE
             lostPeers > 0 && lostPeers * 2 >= totalPeers -> LiveMapConnectivityState.MESH_PARTIAL_ISLANDS
@@ -505,6 +515,7 @@ class LiveMapController(
         _uiState.value = current.copy(
             localBatteryPercent = localBattery,
             connectedNodesCount = connectedPeers,
+            ridersCount = ridersCount,
             lostNodesCount = lostPeers,
             connectivityState = connectivityState,
             cameraMode = effectiveCameraMode,

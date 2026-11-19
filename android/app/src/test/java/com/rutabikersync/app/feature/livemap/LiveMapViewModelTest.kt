@@ -51,6 +51,7 @@ class LiveMapViewModelTest {
         // Frame inicial en t = 1_000 ms (solo nodo propio antes de que hablen los demás)
         val initialFrame = mapController.flushMapFrame(nowEpochMs = 1_000L, force = true)
         assertEquals(1, initialFrame.markers.size)
+        assertEquals(1, initialFrame.ridersCount)
         assertEquals(LiveMapConnectivityState.ALONE, initialFrame.connectivityState)
 
         // Los otros 4 riders del convoy emiten posición hacia el líder
@@ -67,6 +68,8 @@ class LiveMapViewModelTest {
         val frameAt1s = mapController.flushMapFrame(nowEpochMs = 2_000L, force = false)
         assertEquals(5, frameAt1s.markers.size)
         assertEquals(4, frameAt1s.connectedNodesCount)
+        // FIX contador HUD: 4 peers remotos + 1 local = 5 riders.
+        assertEquals(5, frameAt1s.ridersCount)
         assertEquals(LiveMapConnectivityState.MESH_CONNECTED, frameAt1s.connectivityState)
 
         val byId = frameAt1s.markers.associateBy { it.shortId }
@@ -144,6 +147,8 @@ class LiveMapViewModelTest {
         val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
         assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
         assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
+        // FIX contador HUD: los peers sin señal no cuentan; queda solo el local.
+        assertEquals(1, afterTimeoutFrame.ridersCount)
 
         // Rider 2 activa SOS -> actualización inmediata sin esperar al tick de 1 s
         engines.getValue(2u).emitLocalPosition(19.4410, -99.1332, 0, 180f, 88, isSos = true, ttl = 4)
@@ -265,5 +270,49 @@ class LiveMapViewModelTest {
         val afterSentinel = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
         assertFalse(afterSentinel.gpsFixed)
         assertTrue(afterSentinel.markers.all { it.distanceToLeaderMeters == null })
+    }
+
+    @Test
+    fun `contador de convoy sigue a los marcadores activos incluido el local`() = runTest(UnconfinedTestDispatcher()) {
+        val medium = SimulatedBleMedium()
+        val nodeIds = listOf<UShort>(1u, 2u)
+        medium.connectChain(nodeIds)
+        val engines = nodeIds.associateWith { id ->
+            MeshRelayEngine(
+                localShortId = id,
+                transport = medium.createNodeTransport(id),
+                rideSecretKey = secretKey
+            ).also { it.start(backgroundScope) }
+        }
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u
+        )
+        controller.bindToMeshEngine(engines.getValue(1u), enablePeriodicCadenceLoop = false)
+        controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
+
+        // Sin peers: 1 marcador local, fallback singular.
+        val alone = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+        assertEquals(1, alone.markers.size)
+        assertEquals(1, alone.ridersCount)
+        assertEquals("1 rider", ConvoyRiderCountFormatter.format(alone.ridersCount))
+
+        // Un peer remoto enlazado: 2 marcadores, HUD en plural.
+        engines.getValue(2u).emitLocalPosition(10.349300, -67.034904, 20, 180f, 80, ttl = 4)
+        val twoPeers = controller.flushMapFrame(nowEpochMs = 2_000L, force = false)
+        assertEquals(2, twoPeers.markers.size)
+        assertEquals(2, twoPeers.ridersCount)
+        assertEquals("2 riders", ConvoyRiderCountFormatter.format(twoPeers.ridersCount))
+
+        // El peer se pierde: su marcador fantasma sigue visible, pero el HUD baja a 1.
+        val nowMs = System.currentTimeMillis()
+        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + 20_000L)
+        val lostPeer = controller.flushMapFrame(nowEpochMs = nowMs + 20_000L, force = true)
+        assertEquals(2, lostPeer.markers.size)
+        assertEquals(1, lostPeer.ridersCount)
+        assertEquals("1 rider", ConvoyRiderCountFormatter.format(lostPeer.ridersCount))
+
+        engines.values.forEach { it.stop() }
     }
 }

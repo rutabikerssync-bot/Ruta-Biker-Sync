@@ -1,0 +1,63 @@
+VERIFICACION FIX CONTADOR HUD DE CONVOY - 2026-11-19
+======================================================
+
+DIAGNOSTICO
+-----------
+Antes del fix, LiveMapScreen.kt:911 mostraba:
+  "${state.connectedNodesCount.coerceAtLeast(1)} riders"
+LiveMapViewModel.kt calculaba connectedNodesCount como:
+  latestPeersFromMesh.values.count { !it.isLost }
+Ese valor cuenta SOLO peers remotos; el marcador local se construye aparte y nunca se suma.
+Con self + 1 peer enlazado: markers.size = 2, connectedNodesCount = 1 -> HUD "1 riders".
+coerceAtLeast(1) es un suelo (no suma al local) y el plural estaba hardcodeado.
+La fuente es engine.peers.collect -> latestPeersFromMesh -> flushMapFrame (cadencia 1 s).
+No es un contador de heartbeats ni el roster backend: applyBackendRoster solo enriquece
+el perfil local. RideService.connectedRidersCount (receivedBeats > 0 && !isLost,
+totalParticipantsCount = connectedRiders + 1) se usa solo en la notificacion, no en el HUD.
+
+FIX
+---
+- Nuevo ConvoyRiderCountFormatter.format: "1 rider" / "N riders", minimo 1.
+- LiveMapUiState.ridersCount derivado de los mismos markers que renderiza el mapa:
+  markers con routeStatus != OFF_MESH_LOST, con fallback a 1 (solo local).
+- El HUD usa el formatter. Un peer perdido conserva su marcador "Sin senal" para
+  diagnostico, pero deja de contar: el HUD baja a "1 rider".
+
+TABLA DE VERIFICACION
+---------------------
+Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia
+------|---------|--------------------|--------------------|----------
+Diagnosticar fuente | busqueda de connectedNodesCount en LiveMapScreen.kt / LiveMapViewModel.kt / RideService.kt | causa exacta | off-by-one: contador remoto sin el local + plural fijo | este archivo, seccion DIAGNOSTICO
+Tests JVM | gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain --tests '*ConvoyRiderCountFormatterTest' --tests '*LiveMapViewModelTest' --tests '*LeaderDistanceFormatterTest' --tests '*ConvoyRouteProjectionTest' --tests '*RideServicePhase3Test' --tests '*MeshOdometerSyncTest' --tests '*AppLogExporterTest' --tests '*ReleaseSecurityBuildConfigTest' | BUILD SUCCESSFUL | 53 tests (3+6+4+7+15+12+3+3), 0 fallos/errores | XML de android/app/build/test-results/testStandardDebugUnitTest/
+Compilar firmar instalar | assembleStandardDebug + apksigner sign/verify + adb -s <dev> install -r | APK firmada en TECNO y Redmi | BUILD SUCCESSFUL; CN=Ruta Biker Sync; Success en ambos | este archivo, seccion FIRMA
+2 peers enlazados | iniciar rodada en TECNO y Redmi + uiautomator dump | Convoy 2 riders en ambos | TECNO "Convoy" + "2 riders"; Redmi "Convoy" + "2 riders"; 2 marcadores con nombre/avatar/rol | convoy_count_2peers_tecno-20261119.png/.xml ; convoy_count_2peers_redmi-20261119.png/.xml
+Desconectar peer | adb -s b2c398bb shell am force-stop com.rutabikersync.app + esperar 22 s + dump en TECNO | Convoy 1 rider | TECNO "Convoy" + "1 rider"; marcador remoto "Sin senal" sigue visible | convoy_count_1peer_tecno-20261119.png/.xml
+Caso inverso | relanzar Redmi, iniciar rodada, force-stop TECNO + esperar 22 s + dump en Redmi | 2 riders y luego 1 rider | Redmi "Convoy" + "2 riders" al relanzar; "Convoy" + "1 rider" tras perder TECNO | convoy_count_2peers_redmi-20261119.png/.xml ; convoy_count_1peer_redmi-20261119.png/.xml
+
+CONFIRMACION
+------------
+El contador coincide con los peers activos renderizados incluido el local: 2 marcadores
+activos -> "Convoy 2 riders"; 1 marcador activo (local) -> "Convoy 1 rider".
+No se inventaron datos: el conteo sale de los marcadores del mapa.
+
+CAPTURAS
+--------
+docs/evidence/convoy_count_2peers_tecno-20261119.png y .xml
+docs/evidence/convoy_count_2peers_redmi-20261119.png y .xml
+docs/evidence/convoy_count_1peer_tecno-20261119.png y .xml
+docs/evidence/convoy_count_1peer_redmi-20261119.png y .xml
+
+FIRMA
+-----
+apksigner verify --print-certs app/build/outputs/apk/standard/debug/app-standard-debug-rbssigned.apk
+  Signer #1 certificate DN: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync,
+                            L=Caracas, ST=Distrito Capital, C=VE
+  adb install -r -> Success en 098813734B105395 y b2c398bb.
+
+PENDIENTE
+---------
+- Validacion visual humana de las capturas (las capturas y los XML quedan registrados).
+- La desconexion se simulo con force-stop de la app; no se apago el Bluetooth fisico.
+- El marcador "Sin senal" permanece visible tras la perdida (diseno previo de diagnostico)
+  y no cuenta como rider. El dialogo "Riders en Convoy (markers.size)" tampoco se cambio:
+  sigue contando marcadores, incluido el fantasma; queda fuera de este fix.

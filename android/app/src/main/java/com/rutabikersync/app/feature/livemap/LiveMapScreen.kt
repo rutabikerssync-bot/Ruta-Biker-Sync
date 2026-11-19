@@ -908,7 +908,7 @@ fun LiveMapScreen(
                             lineHeight = 12.sp
                         )
                         Text(
-                            text = "${state.connectedNodesCount.coerceAtLeast(1)} riders",
+                            text = ConvoyRiderCountFormatter.format(state.ridersCount),
                             color = HeritageLeatherMuted,
                             fontWeight = FontWeight.Medium,
                             fontSize = 10.sp,

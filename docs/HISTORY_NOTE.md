@@ -322,3 +322,20 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 | Endpoint debug | `curl -H "x-admin-key: ..." .../v1/debug/logs?date=20261118&lines=8` y Vitest con `NODE_ENV=production` | 200 con clave, 401 sin clave, 404 en producción | 200 / 401 / 404; 0 UUID, 0 emails, 0 coordenadas y 0 nombres de club en la respuesta | `debug_logs_endpoint_20261118.txt`, `backend/test/debug_logs_endpoint.test.ts` |
 
 **Limitaciones**: el ZIP no incluye logs del sistema ni de otras apps (restricción de Android desde API 16); `backend/logs/` sigue ignorado por git y no se versiona ningún log real; el endpoint no está activo en el servidor de desarrollo habitual (requiere opt-in explícito) y en producción responde 404. La validación visual humana de las capturas y el análisis en carretera siguen pendientes, como en bloques anteriores.
+
+### FIX — Contador HUD «Convoy N riders» desincronizado — 2026-11-19
+**Commit atómico**: `fix(ui): sincronizar contador de convoy con peers renderizados` (sin amend).
+
+**Diagnóstico**: `LiveMapScreen.kt:911` mostraba `${state.connectedNodesCount.coerceAtLeast(1)} riders`. `connectedNodesCount` se calculaba en `LiveMapViewModel.kt` como `latestPeersFromMesh.values.count { !it.isLost }`, es decir **sólo peers remotos**: con el marcador local y un peer enlazado (`markers.size = 2`) valía 1, de ahí «1 riders». `coerceAtLeast(1)` era un suelo y no sumaba al local, y el plural estaba hardcodeado. El valor viene de `engine.peers.collect` volcado por el bucle de cadencia de 1 s, no de heartbeats ni del roster (que sólo enriquece el perfil local); `RideService.connectedRidersCount` es otro contador usado sólo en la notificación.
+
+**Cambio**: nuevo `ConvoyRiderCountFormatter` (`1 rider` / `N riders`, mínimo 1) y nuevo `LiveMapUiState.ridersCount`, derivado de los mismos `markers` que pinta el mapa (self + peers con señal). El HUD consume ese campo. Un peer perdido conserva su marcador `✕ Sin señal` para diagnóstico pero deja de contar, así el HUD baja a `1 rider`. No se tocaron malla BLE, GATT, PTT ni criptografía; `connectedNodesCount` se conserva para compatibilidad.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Diagnosticar | Búsqueda de `connectedNodesCount` en `LiveMapScreen`, `LiveMapViewModel`, `RideService` | Causa exacta | Off-by-one (local excluido) + plural fijo | `docs/evidence/convoy_counter_fix_20261119.txt` |
+| Formato y StateFlow | `gradlew :app:testStandardDebugUnitTest --no-daemon --console=plain --tests '*ConvoyRiderCountFormatterTest' --tests '*LiveMapViewModelTest' --tests '*LeaderDistanceFormatterTest' --tests '*ConvoyRouteProjectionTest' --tests '*RideServicePhase3Test' --tests '*MeshOdometerSyncTest' --tests '*AppLogExporterTest' --tests '*ReleaseSecurityBuildConfigTest'` | BUILD SUCCESSFUL | 53 tests (3+6+4+7+15+12+3+3), 0 fallos/errores | XML de `test-results/testStandardDebugUnitTest/` |
+| Compilar, firmar e instalar | `assembleStandardDebug` + `apksigner sign/verify` + `adb install -r` | APK firmada en TECNO y Redmi | `CN=Ruta Biker Sync`; `Success` en ambos | `docs/evidence/convoy_counter_fix_20261119.txt` |
+| 2 peers enlazados | Rodada en TECNO y Redmi + `uiautomator dump` | «Convoy 2 riders» en ambos | TECNO y Redmi: `Convoy` + `2 riders`, 2 marcadores | `convoy_count_2peers_tecno-20261119.png/.xml`, `convoy_count_2peers_redmi-20261119.png/.xml` |
+| Desconexión | `adb shell am force-stop com.rutabikersync.app` + 22 s + dump | «Convoy 1 rider» | TECNO y Redmi: `Convoy` + `1 rider`; marcador `Sin señal` sigue visible | `convoy_count_1peer_tecno-20261119.png/.xml`, `convoy_count_1peer_redmi-20261119.png/.xml` |
+
+**Pendiente**: validación visual humana de las capturas; la desconexión se simuló con `force-stop` (no apagado físico de Bluetooth); el marcador `Sin señal` y el diálogo «Riders en Convoy (markers.size)» siguen contando marcadores fantasma y quedaron fuera de alcance.
