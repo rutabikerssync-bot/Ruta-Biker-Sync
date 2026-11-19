@@ -705,12 +705,16 @@ fun LiveMapScreen(
         ) {
             // Cápsula 1: Líder con rol inteligente y distancia real
 
-            val leaderDistMeters = selfMarker?.distanceToLeaderMeters ?: 0
-            val leaderDistText = when {
-                leaderDistMeters < 1000 -> "$leaderDistMeters m"
-                else -> "%.1f km".format(leaderDistMeters / 1000f)
+            val leaderDistText = LeaderDistanceFormatter.format(
+                meters = selfMarker?.distanceToLeaderMeters,
+                isLeader = isLeader,
+                hasGpsFix = state.gpsFixed
+            )
+            val leaderCapsuleText = when {
+                isLeader -> "👑 Eres Líder"
+                leaderDistText == null -> "Sin líder en rango"
+                else -> "Líder a $leaderDistText ↗"
             }
-            val leaderCapsuleText = if (isLeader) "👑 Eres Líder" else "Líder a $leaderDistText ↗"
 
             HudStatusChip(
                 icon = Icons.Default.Shield,
@@ -724,7 +728,11 @@ fun LiveMapScreen(
                             nowEpochMs = System.currentTimeMillis(),
                             scheduleAutoRevert = true
                         )
-                        actionFeedback = "Siguiendo posición del líder ($leaderDistText)"
+                        actionFeedback = if (leaderDistText == null) {
+                            "Siguiendo posición del líder"
+                        } else {
+                            "Siguiendo posición del líder ($leaderDistText)"
+                        }
                     }
                 }
             )
@@ -2281,6 +2289,12 @@ private fun MapLibreCorridorSurface(
             }
             lastScreenOffset = IntOffset(xOffsetPx, yOffsetPx)
 
+            val markerLeaderText = LeaderDistanceFormatter.format(
+                meters = marker.distanceToLeaderMeters,
+                isLeader = marker.rideRole == com.rutabikersync.app.feature.livemap.RiderRideRole.LEADER ||
+                    marker.shortId == state.leaderPin?.leaderShortId,
+                hasGpsFix = state.gpsFixed
+            )
             RiderMarker(
                 marker = marker,
                 isSelected = state.selectedRiderShortId == marker.shortId,
@@ -2288,7 +2302,8 @@ private fun MapLibreCorridorSurface(
                 modifier = Modifier
                     .offset { IntOffset(xOffsetPx, yOffsetPx) }
                     .zIndex(if (marker.shortId == selfShortId) 2f else 1f),
-                headingDegrees = placement?.headingDegrees ?: marker.bearingDegrees
+                headingDegrees = placement?.headingDegrees ?: marker.bearingDegrees,
+                leaderDistanceText = markerLeaderText
             )
         }
     }

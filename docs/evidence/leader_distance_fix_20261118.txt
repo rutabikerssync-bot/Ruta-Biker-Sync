@@ -1,0 +1,68 @@
+FIX DISTANCIA AL LÍDER INCORRECTA (3.586.952 m) — VERIFICACIÓN 2026-11-18
+==========================================================================
+
+Causa exacta
+------------
+No era un error de metros↔km. `LiveMapController.haversineMeters` (LiveMapViewModel.kt:235-243)
+está en metros y es correcto. El valor nacía de un punto de referencia falso:
+
+1. `RideSessionController` arrancaba con localLatitude/localLongitude = 19.4326,-99.1332
+   (RideService.kt:208-211) y el primer heartbeat se emitía antes de tener GPS/caché
+   (RideService.kt:424-430, 502-517).
+2. El receptor copiaba esas coordenadas a `PeerTrack.lastLatitude/lastLongitude` sin
+   validación (MeshRelayEngine.kt:1419-1420).
+3. `flushMapFrame` calculaba `haversineMeters(peer, leaderPose)` (LiveMapViewModel.kt:428-433).
+4. `RiderMarker.kt:218` pintaba el entero sin formato: "Líder a 3586952 m".
+
+Comprobación numérica con la fórmula del proyecto (R = 6.371.000 m):
+  (19.4326, -99.1332) ↔ caché real TECNO (10.349246, -67.034904) = 3.586.957 m
+  con la coordenada GPS instantánea (~10.34937, -67.034904) = 3.586.952 m exactos.
+La diferencia de 5 m se debe a que la caché se guarda como Float y el fix del momento
+estaba unos metros desplazado. Magnitud y mecanismo confirmados.
+
+Corrección aplicada
+-------------------
+- `core/mesh/MeshTelemetry.kt` (nuevo): valida coordenadas finitas, dentro de rango y
+  distintas del centinela (0,0).
+- `RideService.kt`: `requireValidPositionForHeartbeat = true` en producción; siembra la
+  telemetry desde la caché real `rbs_geo_cache` ANTES de `startRide`; sin caché no emite
+  posición falsa. No se tocaron MeshPacket, firma/HMAC, GATT ni criptografía.
+- `LiveMapViewModel.kt`: `gpsFixed` arranca en `false`; posiciones centinela no actualizan
+  la pose local; `leaderPose` es `null` si el líder no tiene posición válida (ya no cae a
+  la posición local); `distanceToLeaderMeters` pasa a `Int?` y es `null` sin dato fiable.
+- `LeaderDistanceFormatter.kt` (nuevo): <1000 m → "320 m"; >=1000 m → "3.5 km" con
+  Locale.US; sin dato, sin GPS, líder local o valor absurdo → `null` (ocultar campo).
+- `RiderMarker.kt` y `LiveMapScreen.kt`: usan el formateador; la tarjeta omite el segmento
+  "Líder a …" cuando no hay dato y el HUD muestra "Sin líder en rango".
+
+Tests JVM (BUILD SUCCESSFUL)
+----------------------------
+- LeaderDistanceFormatterTest: tests=4 failures=0 errors=0
+- LiveMapViewModelTest: tests=5 failures=0 errors=0
+- ConvoyRouteProjectionTest: tests=7 failures=0 errors=0
+- RideServicePhase3Test: tests=15 failures=0 errors=0
+- MeshOdometerSyncTest: tests=12 failures=0 errors=0
+
+Verificación en hardware
+------------------------
+- APK firmada: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync, L=Caracas,
+  ST=Distrito Capital, C=VE. `adb install -r` → Success en TECNO 098813734B105395
+  (nodo 12982) y Redmi b2c398bb (nodo 12243).
+- Rodada activa en ambos con malla conectada (peer `✓ En ruta`).
+- TECNO, tarjeta de R#12243: `leader_distance_tecno_card_20261118.xml/.png`
+  → "0 km/h · Bat 93% · Líder a 3 m".
+- Redmi, tarjeta de R#12982: `leader_distance_redmi_card_20261118.xml/.png`
+  → "0 km/h · Bat 100% · Líder a 3 m".
+- El valor 3.586.952 no aparece en ningún dump (0 coincidencias en ambos XML).
+
+Nota: 3 m es coherente porque ambos dispositivos comparten la misma caché GPS real de
+banco (~280 m entre cachés originales, reducida por el montaje de convoy previo). La
+distancia se calcula siempre desde coordenadas reales recibidas por BLE; no se inventa.
+
+Pendiente
+---------
+- Validación visual humana de la tarjeta en movimiento y del caso "sin GPS" en hardware
+  (cubierto en JVM con `gpsFixed=false` y centinela (0,0)).
+- Los caminos SOS que pasan `cameraLatitude/Longitude` o coordenadas de una alerta ajena
+  como posición propia siguen sin corregir; se dejan fuera de este commit para no mezclar
+  alcances.

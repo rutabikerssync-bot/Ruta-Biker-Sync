@@ -155,7 +155,13 @@ class RideSessionController(
     private val gattVoiceTransportFactory: ((UShort) -> GattVoiceTransport?)? = null,
     private val simulatedMedium: SimulatedBleMedium = SimulatedBleMedium.defaultMedium,
     private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null,
-    private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null
+    private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null,
+    /**
+     * En producción (RideService) se activa para no publicar jamás la coordenada por
+     * defecto 19.4326,-99.1332 antes de tener GPS/caché real. Los tests JVM conservan
+     * el valor por defecto `false` para no alterar sus fixtures de telemetry.
+     */
+    private val requireValidPositionForHeartbeat: Boolean = false
 ) {
     companion object {
         const val STOP_CONFIRM_WINDOW_MS: Long = 3_000L
@@ -209,6 +215,8 @@ class RideSessionController(
     private var localLatitude: Double = 19.4326
     @Volatile
     private var localLongitude: Double = -99.1332
+    @Volatile
+    private var hasValidLocalPosition: Boolean = false
     @Volatile
     private var localSpeedKmh: Int = 45
     @Volatile
@@ -491,8 +499,15 @@ class RideSessionController(
         bearingDegrees: Float = 0f,
         batteryPercent: Int = 85
     ) {
+        // Nunca aceptar un centinela como posición propia: se publicaría por BLE y el
+        // receptor calcularía distancias de miles de km contra una coordenada falsa.
+        if (!MeshTelemetry.isValidPosition(latitude, longitude)) {
+            hasValidLocalPosition = false
+            return
+        }
         localLatitude = latitude
         localLongitude = longitude
+        hasValidLocalPosition = true
         localSpeedKmh = speedKmh
         localBearingDegrees = bearingDegrees
         localBatteryPercent = batteryPercent
@@ -505,6 +520,13 @@ class RideSessionController(
         if (current.lifecycleState != RideLifecycleState.RUNNING &&
             current.lifecycleState != RideLifecycleState.CONFIRMING_STOP
         ) {
+            return
+        }
+        if (requireValidPositionForHeartbeat && !hasValidLocalPosition) {
+            // Sin GPS real ni caché: no fabricar telemetry. La malla sigue viva para
+            // salud/timeout; en cuanto llegue una posición real se emite con normalidad.
+            peerHealthMonitor?.evaluateHealth(nowEpochMs) ?: engine.evaluatePeerTimeouts(nowEpochMs)
+            updateRealtimePeerCounts(engine.peers.value)
             return
         }
         engine.emitLocalPosition(
@@ -1320,9 +1342,34 @@ class RideService : Service() {
                     updateForegroundNotification(snapshot)
                 }
             },
-            bluetoothDevicesProvider = { queryConnectedBluetoothDevices(applicationContext) }
+            bluetoothDevicesProvider = { queryConnectedBluetoothDevices(applicationContext) },
+            requireValidPositionForHeartbeat = true
         )
         activeController = controller
+    }
+
+    /**
+     * Siembra la telemetry con la última posición real guardada por la app antes del
+     * primer heartbeat. Es la misma caché `rbs_geo_cache` que usa la cabina; no se
+     * inventa ninguna coordenada. Si no hay caché, el controlador se abstiene de emitir
+     * posición hasta que llegue un fix GPS real.
+     */
+    private fun seedLocalTelemetryFromCache() {
+        val prefs = getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE)
+        val latitude = prefs.getFloat("last_known_lat", 0f).toDouble()
+        val longitude = prefs.getFloat("last_known_lon", 0f).toDouble()
+        if (MeshTelemetry.isValidPosition(latitude, longitude)) {
+            controller.updateLocalTelemetry(
+                latitude = latitude,
+                longitude = longitude,
+                speedKmh = 0,
+                bearingDegrees = 180f,
+                batteryPercent = 85
+            )
+            Log.i(TAG, "Telemetry sembrada desde caché real al iniciar rodada")
+        } else {
+            Log.w(TAG, "Sin caché GPS real: no se emite telemetry con coordenadas por defecto")
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -1402,6 +1449,8 @@ class RideService : Service() {
                 }
 
                 controller.recordStartError(null)
+                // FIX distancia al líder: sembrar posición real ANTES del primer heartbeat.
+                seedLocalTelemetryFromCache()
                 serviceScope.launch {
                     val state = controller.startRide(
                         rideId = rideId,

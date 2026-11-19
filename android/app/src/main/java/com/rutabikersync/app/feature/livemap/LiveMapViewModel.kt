@@ -3,6 +3,7 @@ package com.rutabikersync.app.feature.livemap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.MeshTelemetry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -67,7 +68,8 @@ data class LiveMapUiState(
     val osmAttribution: String = LiveMapController.OSM_ATTRIBUTION,
     val isDarkTheme: Boolean = true,
     val glovesMode: Boolean = true,
-    val gpsFixed: Boolean = true,
+    // FIX distancia al líder: sin fix GPS confirmado no se muestra ninguna distancia.
+    val gpsFixed: Boolean = false,
     val localBatteryPercent: Int = 88,
     val connectedNodesCount: Int = 0,
     val lostNodesCount: Int = 0,
@@ -300,12 +302,19 @@ class LiveMapController(
         batteryPercent: Int = 88,
         isSos: Boolean = false
     ) {
+        // (0,0) y NaN son centinelas, nunca una posición: marcar "sin fix" y conservar
+        // la última coordenada real conocida en lugar de contaminar los cálculos.
+        if (!MeshTelemetry.isValidPosition(latitude, longitude)) {
+            setGpsFixed(false)
+            return
+        }
         localLat = latitude
         localLon = longitude
         localSpeedKmh = speedKmh
         localBearing = bearingDegrees
         localBattery = batteryPercent
         localSos = isSos
+        setGpsFixed(true)
     }
 
     /**
@@ -324,27 +333,33 @@ class LiveMapController(
 
         val previousByShortId = current.markers.associateBy { it.shortId }
 
-        // Ubicación del líder para calcular distancias y fijar el pin del líder (Decisión 3.3 B)
-        val leaderPose: Pair<Double, Double> = if (leaderShortId == localShortId) {
-            localLat to localLon
+        // FIX distancia al líder: si no hay posición válida del líder NO se inventa un
+        // punto de referencia (antes se caía a la posición local y se mostraba "0 m").
+        val localPositionValid = _uiState.value.gpsFixed && MeshTelemetry.isValidPosition(localLat, localLon)
+        val leaderPose: Pair<Double, Double>? = if (leaderShortId == localShortId) {
+            if (localPositionValid) localLat to localLon else null
         } else {
             val leaderTrack = latestPeersFromMesh[leaderShortId]
-            if (leaderTrack != null) {
+            if (leaderTrack != null && !leaderTrack.isLost &&
+                MeshTelemetry.isValidPosition(leaderTrack.lastLatitude, leaderTrack.lastLongitude)
+            ) {
                 leaderTrack.lastLatitude to leaderTrack.lastLongitude
             } else {
-                localLat to localLon
+                null
             }
         }
 
         val leaderEntry = directory[leaderShortId]
-        val leaderPin = LeaderPinUiModel(
-            leaderShortId = leaderShortId,
-            abbreviatedLabel = leaderEntry?.let {
-                abbreviateRiderName(it.fullName, it.relation, it.shortId)
-            } ?: "Líder",
-            latitude = leaderPose.first,
-            longitude = leaderPose.second
-        )
+        val leaderPin = leaderPose?.let { pose ->
+            LeaderPinUiModel(
+                leaderShortId = leaderShortId,
+                abbreviatedLabel = leaderEntry?.let {
+                    abbreviateRiderName(it.fullName, it.relation, it.shortId)
+                } ?: "Líder",
+                latitude = pose.first,
+                longitude = pose.second
+            )
+        }
 
         val updatedMarkers = mutableListOf<RiderMarkerUiModel>()
 
@@ -381,7 +396,11 @@ class LiveMapController(
                 speedKmh = localSpeedKmh,
                 bearingDegrees = localBearing,
                 batteryPercent = localBattery,
-                distanceToLeaderMeters = haversineMeters(localLat, localLon, leaderPose.first, leaderPose.second),
+                distanceToLeaderMeters = if (leaderPose != null && localPositionValid) {
+                    haversineMeters(localLat, localLon, leaderPose.first, leaderPose.second)
+                } else {
+                    null
+                },
                 lastHops = 0,
                 isSelf = true,
                 avatarUrl = selfEntry.avatarUrl,
@@ -425,12 +444,20 @@ class LiveMapController(
                     speedKmh = track.lastSpeedKmh,
                     bearingDegrees = 180f,
                     batteryPercent = track.lastBatteryPercent,
-                    distanceToLeaderMeters = haversineMeters(
-                        track.lastLatitude,
-                        track.lastLongitude,
-                        leaderPose.first,
-                        leaderPose.second
-                    ),
+                    distanceToLeaderMeters = if (
+                        leaderPose != null &&
+                        !track.isLost &&
+                        MeshTelemetry.isValidPosition(track.lastLatitude, track.lastLongitude)
+                    ) {
+                        haversineMeters(
+                            track.lastLatitude,
+                            track.lastLongitude,
+                            leaderPose.first,
+                            leaderPose.second
+                        )
+                    } else {
+                        null
+                    },
                     lastHops = track.lastHops,
                     isSelf = false,
                     avatarUrl = entry.avatarUrl,
@@ -469,7 +496,8 @@ class LiveMapController(
         }
 
         val (camLat, camLon) = when (effectiveCameraMode) {
-            CameraMode.FOLLOWING_LEADER -> leaderPin.latitude to leaderPin.longitude
+            CameraMode.FOLLOWING_LEADER ->
+                (leaderPin?.latitude ?: localLat) to (leaderPin?.longitude ?: localLon)
             CameraMode.CENTERED_ON_SELF -> localLat to localLon
             CameraMode.FREE -> current.cameraLatitude to current.cameraLongitude
         }

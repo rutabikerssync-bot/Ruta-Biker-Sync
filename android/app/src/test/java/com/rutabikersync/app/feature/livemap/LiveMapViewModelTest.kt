@@ -6,7 +6,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -189,6 +191,16 @@ class LiveMapViewModelTest {
         val sampleTileFile = File("src/main/assets/tiles/sample_corridor.pmtiles")
         assertTrue("Debe existir sample_corridor.pmtiles en assets/tiles", sampleTileFile.exists())
 
+        // FIX distancia al líder: se mide desde la posición real del líder, no desde un
+        // destino ni desde un default. (19.41 -> 19.45) son ~4.4 km.
+        val memberMarker = frame.markers.first { it.shortId == 2u.toUShort() }
+        val leaderMarker = frame.markers.first { it.shortId == 1u.toUShort() }
+        assertTrue(
+            "Distancia al líder coherente: $memberMarker.distanceToLeaderMeters",
+            memberMarker.distanceToLeaderMeters in 4_400..4_500
+        )
+        assertEquals(0, leaderMarker.distanceToLeaderMeters)
+
         // Decisión 3.3 (B): El pin del líder está fijo en (19.4500, -99.1332) aunque el miembro esté en modo FREE
         assertEquals(CameraMode.FREE, frame.cameraMode)
         assertNotNull(frame.leaderPin)
@@ -233,5 +245,25 @@ class LiveMapViewModelTest {
         assertTrue(actions.contains(GlovesPrimaryAction.TALK_PTT))
         assertTrue(actions.contains(GlovesPrimaryAction.SOS))
         assertTrue(actions.contains(GlovesPrimaryAction.QUICK_SIGNALS))
+    }
+
+    @Test
+    fun `sin fix GPS o con coordenada centinela no se calcula distancia al lider`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 2u,
+            leaderShortId = 1u
+        )
+
+        val beforeFix = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+        assertFalse(beforeFix.gpsFixed)
+        assertNull(beforeFix.leaderPin)
+        assertTrue(beforeFix.markers.all { it.distanceToLeaderMeters == null })
+
+        // (0,0) es un centinela: no debe convertirse en una posición propia válida.
+        controller.updateLocalRiderPose(latitude = 0.0, longitude = 0.0, speedKmh = 0)
+        val afterSentinel = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
+        assertFalse(afterSentinel.gpsFixed)
+        assertTrue(afterSentinel.markers.all { it.distanceToLeaderMeters == null })
     }
 }

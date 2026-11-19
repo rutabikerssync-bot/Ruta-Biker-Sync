@@ -284,3 +284,20 @@ Los siguientes commits mezclaron (en **archivos que ya estaban siendo modificado
 | Sin trazado válido | JVM con `fetchRoadRoute` devolviendo `null` | Mensaje exacto y ruta intacta | `NO_ROUTE`, ruta original conservada | `RecalculateRouteUseCaseTest.kt` |
 
 **Pendiente**: el desenlace `NO_ROUTE` no se reprodujo en hardware: el proxy HTTP muerto (`http_proxy=127.0.0.1:1`) no fue usado por `HttpURLConnection` y Mapbox respondió correctamente; se considera cubierto sólo en JVM. La comprobación de red distingue conectividad transportada (WiFi/celular/Ethernet), no calidad de internet. El contador HUD `1 riders` y la validación visual humana del trazado recalculado en movimiento siguen fuera de alcance.
+
+### FIX — Distancia al líder incorrecta (3.586.952 m) — 2026-11-18
+**Commit atómico**: `fix(ui): corregir cálculo de distancia al líder en tarjeta de peer` (sin amend).
+
+**Diagnóstico**: no era metros↔km. `haversineMeters` (`LiveMapViewModel.kt:235-243`) es correcto; el fallo era el punto de referencia. `RideSessionController` arrancaba en `19.4326,-99.1332` (`RideService.kt:208-211`) y el primer heartbeat salía antes de tener GPS (`424-430`, `502-517`); el receptor lo aceptaba sin validar (`MeshRelayEngine.kt:1419-1420`) y `flushMapFrame` lo usaba como `leaderPose` (`LiveMapViewModel.kt:328-337, 428-433`). `RiderMarker.kt:218` pintaba el entero sin convertir. Numéricamente, `(19.4326,-99.1332)` ↔ caché real TECNO `(10.349246,-67.034904)` da **3.586.957 m** con la fórmula del proyecto; con el fix instantáneo (~`10.34937`) da **3.586.952 m** exactos. La diferencia de 5 m viene del `Float` de la caché.
+
+**Cambio**: nuevo `MeshTelemetry` valida coordenadas; `RideService` siembra la telemetry desde la caché real `rbs_geo_cache` antes de `startRide` y, sin posición válida, se abstiene de emitir (producción); `LiveMapViewModel` arranca `gpsFixed=false`, rechaza centinelas, usa `leaderPose=null` si el líder no tiene posición válida y hace `distanceToLeaderMeters` nullable; nuevo `LeaderDistanceFormatter` muestra `320 m` / `3.5 km` y devuelve `null` para ocultar el campo sin dato, sin GPS, líder local o valor absurdo; tarjeta y HUD lo consumen. No se modificaron `MeshPacket`, GATT ni criptografía.
+
+| Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Diagnosticar | Revisión de `RideService`, `MeshRelayEngine`, `LiveMapViewModel`, `RiderMarker` + cálculo Haversine | Causa exacta | Default CDMX emitido como telemetry real; 3.586.957 m vs 3.586.952 m reportados | `docs/evidence/leader_distance_fix_20261118.txt` |
+| Formato y ocultado | `gradlew :app:testStandardDebugUnitTest --tests '*LeaderDistanceFormatterTest' --tests '*LiveMapViewModelTest'` | BUILD SUCCESSFUL | 4 + 5 tests, 0 failures/errors | `LeaderDistanceFormatterTest.kt`, `LiveMapViewModelTest.kt` |
+| No regresión malla | `--tests '*RideServicePhase3Test' --tests '*MeshOdometerSyncTest' --tests '*ConvoyRouteProjectionTest'` | BUILD SUCCESSFUL | 15 + 12 + 7 tests, 0 failures/errors | XML de `test-results` |
+| Compilar, firmar e instalar | `assembleStandardDebug` + `apksigner sign/verify` + `adb install -r` | APK firmada en ambos | `CN=Ruta Biker Sync`; `Success` en TECNO y Redmi | `docs/evidence/leader_distance_fix_20261118.txt` |
+| Tarjeta del peer | Rodada con 2 peers + toque al marcador + `uiautomator dump`/`screencap` | Distancia coherente | TECNO `Líder a 3 m`; Redmi `Líder a 3 m`; 0 coincidencias de `3586952` | `leader_distance_tecno_card_20261118.png/.xml`, `leader_distance_redmi_card_20261118.png/.xml` |
+
+**Pendiente**: validación visual humana en movimiento y del caso sin GPS en hardware (cubierto en JVM). Los caminos SOS que usan coordenadas de cámara/alerta como posición propia quedan fuera de este commit.

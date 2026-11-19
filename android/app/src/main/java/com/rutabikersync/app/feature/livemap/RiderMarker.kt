@@ -87,7 +87,8 @@ data class RiderMarkerUiModel(
     val speedKmh: Int,
     val bearingDegrees: Float,
     val batteryPercent: Int,
-    val distanceToLeaderMeters: Int,
+    /** `null` cuando no hay líder válido o no hay posión fiable: la UI oculta el campo. */
+    val distanceToLeaderMeters: Int?,
     val lastHops: Int,
     val isSelf: Boolean = false,
     val avatarUrl: String? = null,
@@ -149,7 +150,9 @@ fun RiderMarker(
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    headingDegrees: Float? = null
+    headingDegrees: Float? = null,
+    /** Texto ya validado por [LeaderDistanceFormatter]; `null` oculta el campo. */
+    leaderDistanceText: String? = null
 ) {
     val ringColor = when (marker.routeStatus) {
         RiderRouteStatus.SOS_ACTIVE -> BikerColors.StatusRed
@@ -215,7 +218,12 @@ fun RiderMarker(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${marker.speedKmh} km/h · Bat ${marker.batteryPercent}% · Líder a ${marker.distanceToLeaderMeters} m",
+                    text = buildString {
+                        append("${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
+                        if (!leaderDistanceText.isNullOrBlank()) {
+                            append(" · Líder a ").append(leaderDistanceText)
+                        }
+                    },
                     color = BikerColors.TextSecondary,
                     fontSize = 11.sp
                 )
