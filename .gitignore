@@ -44,3 +44,6 @@ fieldtest_*/
 .vite/
 android/.kotlin/
 _tmp_log_inventory.txt
+
+# Mapas offline generados en pruebas
+public/maps/*.pmtiles
