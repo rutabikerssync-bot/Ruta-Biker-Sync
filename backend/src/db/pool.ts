@@ -60,7 +60,8 @@ export function readInitMigrationSql(): string {
     '0013_sos_mesh_bridge.sql',
     '0014_profile_enrichment.sql',
     '0015_add_mf_tier.sql',
-    '0016_club_profile.sql'
+    '0016_club_profile.sql',
+    '0017_club_routes_and_profile_version.sql'
   ];
   return migrationFiles
     .map((file) => path.join(__dirname, 'migrations', file))

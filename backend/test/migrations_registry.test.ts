@@ -12,12 +12,13 @@ function migrationSql(file: string): string {
 }
 
 describe('Registro de migraciones de arranque', () => {
-  it('incluye 0015 y 0016 después de 0014', () => {
+  it('incluye 0015, 0016 y 0017 después de 0014', () => {
     const sql = readInitMigrationSql();
     const markers = [
       migrationSql('0014_profile_enrichment.sql'),
       migrationSql('0015_add_mf_tier.sql'),
-      migrationSql('0016_club_profile.sql')
+      migrationSql('0016_club_profile.sql'),
+      migrationSql('0017_club_routes_and_profile_version.sql')
     ];
 
     for (const marker of markers) {
@@ -28,5 +29,6 @@ describe('Registro de migraciones de arranque', () => {
     expect(positions[0]).toBeGreaterThanOrEqual(0);
     expect(positions[0]).toBeLessThan(positions[1]);
     expect(positions[1]).toBeLessThan(positions[2]);
+    expect(positions[2]).toBeLessThan(positions[3]);
   });
 });

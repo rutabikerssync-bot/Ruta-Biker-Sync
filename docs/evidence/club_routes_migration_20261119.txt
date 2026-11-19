@@ -1,0 +1,76 @@
+=== Fase 1 — Migracion 0017, perfil versionado y RLS de rutas ===
+Fecha: 2026-11-19
+Decisiones aplicadas: D1=Escenario A, D2=espejo temporal, D4=published directo.
+
+=== D1: privilegios del rol (sin secretos) ===
+conexion: user=rbs host=127.0.0.1:5433/rbs
+current_user = rbs | session_user = rbs
+ rolname | rolsuper | rolbypassrls | rolcreaterole | rolcreatedb | rolcanlogin
+ rbs     | f        | f            | f             | f           | t
+owners de users/groups/memberships/group_leaders = rbs
+SHOW row_security = on
+=> No hace falta rbs_app. Como rbs es owner, ENABLE no basta: se usa FORCE.
+
+=== Correccion al SQL propuesto ===
+El borrador incluia un bloque BEGIN ... ROLLBACK de verificacion dentro del
+archivo de migracion. node-pg-migrate envuelve cada migracion en transaccion:
+un ROLLBACK interno revertiria todo el DDL. Se elimino ese bloque del archivo
+y se ejecuta como script de evidencia separado, con ROLLBACK propio.
+
+=== Archivos ===
+- backend/src/db/migrations/0017_club_routes_and_profile_version.sql (nuevo)
+  * groups: club_profile JSONB, profile_version, profile_updated_by/at
+  * club_routes, club_route_rsvps + indices
+  * auth.uid() = current_setting('app.user_id', true)::uuid
+  * ENABLE + FORCE ROW LEVEL SECURITY en ambas tablas
+  * policies: routes_read, routes_write, rsvps_read, rsvps_self_write
+  * columnas reales: invite_state='accepted', group_leaders.is_principal
+  * DROP POLICY IF EXISTS antes de CREATE (idempotencia)
+- backend/src/db/pool.ts: registro de 0017 en readInitMigrationSql()
+- backend/src/db/withUserDb.ts (nuevo): set_config(..., true) LOCAL por
+  transaccion; la conexion vuelve al pool sin identidad residual
+- backend/test/migrations_registry.test.ts: comprueba orden 0014<0015<0016<0017
+- backend/test/club_routes_rls.test.ts (nuevo): 7 casos cross-tenant
+
+=== Aplicacion en BD real ===
+Comando: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f 0017_...sql
+Resultado: ALTER TABLE, 2 CREATE TABLE, indices, CREATE FUNCTION,
+4 ALTER TABLE (RLS/FORCE), 4 DROP POLICY, 4 CREATE POLICY.
+Segunda ejecucion: solo NOTICEs "already exists, skipping" => idempotente.
+
+=== Verificacion RLS (script separado, transaccion revertida) ===
+ tablename        | rowsecurity | forcerowsecurity
+ club_route_rsvps | t           | t
+ club_routes      | t           | t
+ policies: routes_read, routes_write, rsvps_read, rsvps_self_write
+
+ who              | rutas
+ tecno_presidente | 1
+ redmi_miembro    | 1
+ externo          | 0
+ rutas_visibles_sin_uid | 0
+
+=== Tests ===
+npm run typecheck -> OK
+npm run build     -> OK
+npm test          -> 22 archivos, 129 tests, 0 fallos
+  (incluye 3 ACL + 7 RLS + 1 registro de migraciones)
+
+=== Regresion detectada y corregida ===
+GET /v1/groups/:id con ACL nueva rompio phase1_clubs.test.ts:621: el fixture
+usaba un usuario recien registrado, ajeno al club, y esperaba 200. Se anadio
+una membership accepted para ese usuario antes del GET; el test sigue probando
+que el accessToken rotado funciona. Sin cambiar la ACL.
+
+=== Recuperacion de la siembra (importante) ===
+Los tests usan PG_TEST_URL apuntando a la BD de desarrollo y truncan users,
+groups, memberships, etc. La corrida completo borro la siembra de Bufalo
+Beikers. Se restauro al final con su UUID original:
+  group id = dd579612-9c1a-49ac-873e-40a85fb04a25
+  users 2, groups 1, leaders 1, members 2
+No se genero un groupId nuevo: se reinserto el que ya habia generado el backend.
+
+=== Commits ===
+test: adaptar fixture de token rotado a la ACL del club
+feat(db): migracion 0017 rutas club con RLS FORCE y perfil versionado
+Sin amend, sin push, sin tocar BLE/GATT/crypto.
