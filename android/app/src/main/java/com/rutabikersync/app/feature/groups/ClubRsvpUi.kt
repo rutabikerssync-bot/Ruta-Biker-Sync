@@ -1,5 +1,13 @@
 package com.rutabikersync.app.feature.groups
 
+import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.Locale
+
 /**
  * Lógica pura de la UI de RSVP de rutas de club (Fase 5 · Hito 3).
  *
@@ -49,5 +57,55 @@ object ClubRsvpUi {
         startsAt?.takeIf { it.isNotBlank() }?.let { parts += "Inicio: $it" }
         if (isAnswered(status)) parts += statusLabel(status!!)
         return parts.joinToString(" · ").ifEmpty { "Sin respuesta" }
+    }
+
+    fun parseRouteInstant(startsAt: String?): Instant? {
+        if (startsAt.isNullOrBlank()) return null
+        return try {
+            Instant.parse(startsAt)
+        } catch (_: DateTimeParseException) {
+            try {
+                OffsetDateTime.parse(startsAt).toInstant()
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
+    /**
+     * Próxima rodada publicada y futura (D4): publicada, con startsAt parseable
+     * y posterior a [now], ordenada por startsAt ascendente.
+     */
+    fun nextRoute(
+        routes: List<ClubRouteEntity>,
+        now: Instant = Instant.now()
+    ): ClubRouteEntity? = routes
+        .asSequence()
+        .filter { it.status == "published" }
+        .mapNotNull { route ->
+            val start = parseRouteInstant(route.startsAt) ?: return@mapNotNull null
+            if (start.isAfter(now)) route to start else null
+        }
+        .minByOrNull { it.second }
+        ?.first
+
+    fun formatRouteDateTime(
+        startsAt: String?,
+        full: Boolean = true,
+        locale: Locale = Locale.getDefault(),
+        zoneId: ZoneId = ZoneId.systemDefault()
+    ): String {
+        val instant = parseRouteInstant(startsAt) ?: return startsAt?.takeIf { it.isNotBlank() } ?: "Sin hora"
+        val pattern = if (full) "EEE dd MMM yyyy, HH:mm" else "dd MMM, HH:mm"
+        return try {
+            DateTimeFormatter.ofPattern(pattern, locale).withZone(zoneId).format(instant)
+        } catch (_: Exception) {
+            startsAt ?: "Sin hora"
+        }
+    }
+
+    fun descriptionSnippet(description: String?, maxChars: Int = 90): String? {
+        val text = description?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return if (text.length <= maxChars) text else text.take(maxChars).trimEnd() + "…"
     }
 }

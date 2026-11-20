@@ -125,10 +125,12 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
     // Fase 5 · Hito 3: sustituye la pestaña mientras se consultan/firmas rutas.
     if (showClubRoutes) {
         val routes by viewModel.clubRoutes.collectAsState()
+        val nextRoute by viewModel.nextClubRoute.collectAsState()
         val rsvpByRoute by viewModel.clubRsvpByRoute.collectAsState()
         ClubRoutesScreen(
             groupName = groups.firstOrNull { it.id == selectedGroupId }?.name ?: "Mi Club",
             routes = routes,
+            nextRoute = nextRoute,
             rsvpByRoute = rsvpByRoute,
             pendingCount = rsvpPendingCount,
             onRsvp = { routeId, status -> viewModel.requestRsvp(routeId, status) },

@@ -2,6 +2,7 @@ package com.rutabikersync.app.feature.groups
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,12 +42,23 @@ import com.rutabikersync.app.ui.theme.BikerColors
 fun ClubRoutesScreen(
     groupName: String,
     routes: List<ClubRouteEntity>,
+    nextRoute: ClubRouteEntity?,
     rsvpByRoute: Map<String, String>,
     pendingCount: Int,
     onRsvp: (routeId: String, status: String) -> Unit,
     onBack: () -> Unit
 ) {
     val pendingBanner = ClubRsvpUi.bannerMessage(null, pendingCount)
+    var selectedRouteId by remember { mutableStateOf<String?>(null) }
+    val selectedRoute = selectedRouteId?.let { id -> routes.firstOrNull { it.id == id } ?: if (nextRoute?.id == id) nextRoute else null }
+
+    if (selectedRoute != null) {
+        RouteDetailBottomSheet(
+            route = selectedRoute,
+            rsvpStatus = rsvpByRoute[selectedRoute.id],
+            onDismiss = { selectedRouteId = null }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -82,14 +98,26 @@ fun ClubRoutesScreen(
             )
         }
 
-        if (routes.isEmpty()) {
-            Text(
-                text = "No hay rutas publicadas en este club.",
-                color = BikerColors.TextSecondary,
-                fontSize = 13.sp
-            )
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (nextRoute != null) {
+                item(key = "next_${nextRoute.id}") {
+                    NextRideCard(
+                        route = nextRoute,
+                        rsvpStatus = rsvpByRoute[nextRoute.id],
+                        onClick = { selectedRouteId = nextRoute.id }
+                    )
+                }
+            }
+
+            if (routes.isEmpty()) {
+                item {
+                    Text(
+                        text = "No hay rutas publicadas en este club.",
+                        color = BikerColors.TextSecondary,
+                        fontSize = 13.sp
+                    )
+                }
+            } else {
                 items(routes, key = { it.id }) { route ->
                     val status = ClubRsvpUi.resolveRouteStatus(null, rsvpByRoute[route.id])
                     Column(
@@ -99,17 +127,23 @@ fun ClubRoutesScreen(
                             .border(1.dp, Color(0xFF8B6B3D), RoundedCornerShape(12.dp))
                             .padding(12.dp)
                     ) {
-                        Text(
-                            text = route.title,
-                            color = Color(0xFFF5E6C8),
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = ClubRsvpUi.routeSubtitle(route.startsAt, status),
-                            color = BikerColors.TextSecondary,
-                            fontSize = 12.sp
-                        )
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { selectedRouteId = route.id }
+                        ) {
+                            Text(
+                                text = route.title,
+                                color = Color(0xFFF5E6C8),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = ClubRsvpUi.routeSubtitle(route.startsAt, status),
+                                color = BikerColors.TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             ClubRsvpUi.rsvpStatuses.forEach { candidate ->

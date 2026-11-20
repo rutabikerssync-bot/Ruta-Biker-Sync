@@ -58,6 +58,9 @@ class Phase1ViewModel(
     private val _clubRoutes = MutableStateFlow<List<ClubRouteEntity>>(emptyList())
     val clubRoutes: StateFlow<List<ClubRouteEntity>> = _clubRoutes.asStateFlow()
 
+    private val _nextClubRoute = MutableStateFlow<ClubRouteEntity?>(null)
+    val nextClubRoute: StateFlow<ClubRouteEntity?> = _nextClubRoute.asStateFlow()
+
     /** Última intención local por ruta; el outbox es la fuente de verdad. */
     private val _clubRsvpByRoute = MutableStateFlow<Map<String, String>>(emptyMap())
     val clubRsvpByRoute: StateFlow<Map<String, String>> = _clubRsvpByRoute.asStateFlow()
@@ -76,6 +79,7 @@ class Phase1ViewModel(
             try {
                 val routes = repository.clubRoutes.loadRoutes(groupId)
                 _clubRoutes.value = routes
+                _nextClubRoute.value = ClubRsvpUi.nextRoute(routes)
                 val userId = repository.currentUser.value.id
                 _clubRsvpByRoute.value = routes.mapNotNull { route ->
                     val mine = repository.clubRoutes.loadRsvps(route.id)

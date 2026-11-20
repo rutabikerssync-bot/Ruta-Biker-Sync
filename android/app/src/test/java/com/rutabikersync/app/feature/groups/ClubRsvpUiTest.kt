@@ -1,5 +1,9 @@
 package com.rutabikersync.app.feature.groups
 
+import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
+import java.time.Instant
+import java.time.ZoneId
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -88,5 +92,108 @@ class ClubRsvpUiTest {
         // 3. Vuelve la red: el worker vacía la cola y el health reaparece.
         pendingCount = 0
         assertEquals(health, ClubRsvpUi.bannerMessage(health, pendingCount))
+    }
+
+    @Test
+    fun `nextRoute selecciona la publicada futura mas cercana y omite pasadas o no parseables`() {
+        val now = Instant.parse("2026-11-20T12:00:00Z")
+        val routes = listOf(
+            ClubRouteEntity(
+                id = "past",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Pasada",
+                startsAt = "2026-11-19T10:00:00Z",
+                status = "published"
+            ),
+            ClubRouteEntity(
+                id = "draft-future",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Borrador",
+                startsAt = "2026-11-21T10:00:00Z",
+                status = "draft"
+            ),
+            ClubRouteEntity(
+                id = "far",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Lejana",
+                startsAt = "2026-11-25T10:00:00Z",
+                status = "published"
+            ),
+            ClubRouteEntity(
+                id = "next",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Proxima",
+                startsAt = "2026-11-21T09:00:00Z",
+                status = "published"
+            ),
+            ClubRouteEntity(
+                id = "bad-date",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Sin fecha valida",
+                startsAt = "fecha-rara",
+                status = "published"
+            )
+        )
+
+        val next = ClubRsvpUi.nextRoute(routes, now)
+        assertEquals("next", next?.id)
+    }
+
+    @Test
+    fun `nextRoute devuelve null cuando no hay rutas publicadas futuras`() {
+        val now = Instant.parse("2026-11-20T12:00:00Z")
+        val routes = listOf(
+            ClubRouteEntity(
+                id = "past",
+                groupId = "g1",
+                createdBy = "u1",
+                title = "Pasada",
+                startsAt = "2026-11-19T10:00:00Z",
+                status = "published"
+            )
+        )
+        assertNull(ClubRsvpUi.nextRoute(routes, now))
+        assertNull(ClubRsvpUi.nextRoute(emptyList(), now))
+    }
+
+    @Test
+    fun `formatRouteDateTime formatea ISO en zona indicada y maneja valores invalidos`() {
+        val utc = ZoneId.of("UTC")
+        val locale = Locale.US
+        val formatted = ClubRsvpUi.formatRouteDateTime(
+            startsAt = "2026-11-21T09:30:00Z",
+            full = true,
+            locale = locale,
+            zoneId = utc
+        )
+        assertTrue(formatted.contains("2026"))
+        assertTrue(formatted.contains("09:30"))
+
+        val short = ClubRsvpUi.formatRouteDateTime(
+            startsAt = "2026-11-21T09:30:00Z",
+            full = false,
+            locale = locale,
+            zoneId = utc
+        )
+        assertTrue(short.contains("09:30"))
+
+        assertEquals("Sin hora", ClubRsvpUi.formatRouteDateTime(null, zoneId = utc))
+        assertEquals("fecha-rara", ClubRsvpUi.formatRouteDateTime("fecha-rara", zoneId = utc))
+    }
+
+    @Test
+    fun `descriptionSnippet recorta y devuelve null si no hay descripcion`() {
+        assertNull(ClubRsvpUi.descriptionSnippet(null))
+        assertNull(ClubRsvpUi.descriptionSnippet("   "))
+        assertEquals("Hola", ClubRsvpUi.descriptionSnippet("Hola"))
+        val long = "A".repeat(120)
+        val snippet = ClubRsvpUi.descriptionSnippet(long, maxChars = 20)
+        assertEquals(21, snippet?.length) // 20 chars + ellipsis
+        assertTrue(snippet!!.endsWith("…"))
     }
 }
