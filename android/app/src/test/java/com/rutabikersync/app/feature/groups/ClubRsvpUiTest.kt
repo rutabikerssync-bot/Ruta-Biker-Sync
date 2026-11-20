@@ -196,4 +196,47 @@ class ClubRsvpUiTest {
         assertEquals(21, snippet?.length) // 20 chars + ellipsis
         assertTrue(snippet!!.endsWith("…"))
     }
+
+    @Test
+    fun `acciones RSVP iniciales permiten confirmar o no ir`() {
+        assertEquals(
+            listOf(RsvpAction.CONFIRM, RsvpAction.NO_GO),
+            ClubRsvpUi.getAvailableRsvpActions(null, "2026-11-21T10:00:00Z", Instant.parse("2026-11-20T10:00:00Z"))
+        )
+        assertEquals(
+            listOf(RsvpAction.CONFIRM, RsvpAction.NO_GO),
+            ClubRsvpUi.getAvailableRsvpActions("pending", "2026-11-21T10:00:00Z", Instant.parse("2026-11-20T10:00:00Z"))
+        )
+    }
+
+    @Test
+    fun `confirmado lejos de la salida no muestra acciones y cerca o pasado muestra en ruta`() {
+        val startsAt = "2026-11-21T10:00:00Z"
+        val tomorrowFar = Instant.parse("2026-11-20T08:00:00Z") // >1h antes
+        assertEquals(emptyList<RsvpAction>(), ClubRsvpUi.getAvailableRsvpActions("confirmed", startsAt, tomorrowFar))
+
+        val withinHour = Instant.parse("2026-11-21T09:30:00Z") // 30 min antes
+        assertEquals(listOf(RsvpAction.EN_ROUTE), ClubRsvpUi.getAvailableRsvpActions("confirmed", startsAt, withinHour))
+
+        val afterStart = Instant.parse("2026-11-21T10:30:00Z")
+        assertEquals(listOf(RsvpAction.EN_ROUTE), ClubRsvpUi.getAvailableRsvpActions("confirmed", startsAt, afterStart))
+    }
+
+    @Test
+    fun `en ruta permite marcar llegada y en casa no ofrece acciones`() {
+        val now = Instant.parse("2026-11-21T11:00:00Z")
+        assertEquals(
+            listOf(RsvpAction.HOME),
+            ClubRsvpUi.getAvailableRsvpActions("en_route", "2026-11-21T10:00:00Z", now)
+        )
+        assertEquals(
+            emptyList<RsvpAction>(),
+            ClubRsvpUi.getAvailableRsvpActions("home", "2026-11-21T10:00:00Z", now)
+        )
+    }
+
+    @Test
+    fun `statusLabel reconoce en_route`() {
+        assertEquals("En ruta", ClubRsvpUi.statusLabel("en_route"))
+    }
 }

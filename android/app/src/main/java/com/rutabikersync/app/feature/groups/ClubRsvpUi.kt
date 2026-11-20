@@ -14,11 +14,20 @@ import java.util.Locale
  * Sin dependencias de Compose ni de Android: así el cableado del banner y las
  * reglas de estado se verifican con tests JVM, igual que el outbox.
  */
+enum class RsvpAction(val statusPayload: String, val label: String) {
+    CONFIRM("confirmed", "Asistiré"),
+    NO_GO("no_go", "No iré"),
+    EN_ROUTE("en_route", "En ruta"),
+    HOME("home", "Llegué a destino")
+}
+
 object ClubRsvpUi {
 
     const val STATUS_CONFIRMED = "confirmed"
     const val STATUS_HOME = "home"
     const val STATUS_NO_GO = "no_go"
+    const val STATUS_EN_ROUTE = "en_route"
+    const val STATUS_PENDING = "pending"
 
     /** Los tres estados que el backend acepta en POST /v1/routes/:id/rsvp. */
     val rsvpStatuses: List<String> = listOf(STATUS_CONFIRMED, STATUS_HOME, STATUS_NO_GO)
@@ -27,6 +36,7 @@ object ClubRsvpUi {
         STATUS_CONFIRMED -> "Asistiré"
         STATUS_HOME -> "En casa"
         STATUS_NO_GO -> "No iré"
+        STATUS_EN_ROUTE -> "En ruta"
         else -> status.replace('_', ' ').trim().ifEmpty { "Sin responder" }
     }
 
@@ -107,5 +117,30 @@ object ClubRsvpUi {
     fun descriptionSnippet(description: String?, maxChars: Int = 90): String? {
         val text = description?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         return if (text.length <= maxChars) text else text.take(maxChars).trimEnd() + "…"
+    }
+
+    /**
+     * Acciones RSVP disponibles según estado actual y hora de salida.
+     * Umbral lean: "En ruta" se habilita desde 1 hora antes de [startsAt]
+     * (o inmediatamente si no hay hora parseable), para permitir marcarse
+     * en preparación sin esperar la hora exacta.
+     */
+    fun getAvailableRsvpActions(
+        currentStatus: String?,
+        startsAt: String?,
+        now: Instant = Instant.now()
+    ): List<RsvpAction> {
+        val normalized = currentStatus?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }
+        val startInstant = parseRouteInstant(startsAt)
+        return when (normalized) {
+            null, STATUS_PENDING -> listOf(RsvpAction.CONFIRM, RsvpAction.NO_GO)
+            STATUS_CONFIRMED -> {
+                val threshold = startInstant?.minusSeconds(3600) ?: now
+                if (!now.isBefore(threshold)) listOf(RsvpAction.EN_ROUTE) else emptyList()
+            }
+            STATUS_EN_ROUTE -> listOf(RsvpAction.HOME)
+            STATUS_HOME -> emptyList()
+            else -> emptyList()
+        }
     }
 }

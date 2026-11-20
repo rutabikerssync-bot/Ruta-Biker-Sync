@@ -56,7 +56,8 @@ fun ClubRoutesScreen(
         RouteDetailBottomSheet(
             route = selectedRoute,
             rsvpStatus = rsvpByRoute[selectedRoute.id],
-            onDismiss = { selectedRouteId = null }
+            onDismiss = { selectedRouteId = null },
+            onActionClick = { action -> onRsvp(selectedRoute.id, action.statusPayload) }
         )
     }
 
