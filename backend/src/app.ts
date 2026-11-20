@@ -1837,7 +1837,11 @@ export async function buildApp({
 
       const memberRes = await client.query(
         `SELECT 1 FROM memberships
-         WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'`,
+         WHERE group_id = $1 AND user_id = $2 AND invite_state = 'accepted'
+         UNION
+         SELECT 1 FROM group_leaders
+         WHERE group_id = $1 AND user_id = $2
+         LIMIT 1`,
         [route.group_id, uid]
       );
       if (memberRes.rows.length === 0) return { kind: 'forbidden' as const };

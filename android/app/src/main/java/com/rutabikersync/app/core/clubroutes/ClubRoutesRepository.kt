@@ -12,6 +12,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonNull
 
 /** Vista ya resuelta para la UI: filas visibles + resumen + ámbito. */
 data class RsvpView(
@@ -26,6 +27,11 @@ private fun JsonElement?.asText(): String? =
 
 private fun JsonElement?.asInt(): Int =
     (this as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
+
+private fun JsonElement?.asNullableText(): String? {
+    if (this == null || this is JsonNull) return null
+    return (this as? JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+}
 
 /**
  * Repositorio cache-first de rutas y RSVP (Fase 5 · Hito 2).
@@ -148,6 +154,79 @@ class ClubRoutesRepository(
         routeDao.upsertSummary(summary)
         return RsvpView(routeDao.getRsvps(routeId), summary)
     }
+
+    /** Roster real completo: directiva + miembros aceptados, con presencia y fase. */
+    suspend fun loadRideRoster(routeId: String): RideRoster? {
+        val res = api.getRideRoster(routeId).getOrNull() ?: return null
+        if (!res.isSuccess || res.body == null) return null
+        val route = res.body["route"] as? JsonObject ?: return null
+        val participants = (res.body["participants"] as? JsonArray)?.mapNotNull { element ->
+            val o = element as? JsonObject ?: return@mapNotNull null
+            val userId = o["userId"].asNullableText() ?: return@mapNotNull null
+            RideRosterParticipant(
+                userId = userId,
+                displayName = o["displayName"].asNullableText() ?: "Piloto",
+                clubRole = o["clubRole"].asNullableText(),
+                isLeader = o["isLeader"].asNullableText() == "true",
+                status = o["status"].asNullableText() ?: "pending",
+                onSiteAt = o["onSiteAt"].asNullableText(),
+                homeAt = o["homeAt"].asNullableText(),
+                respondedAt = o["respondedAt"].asNullableText()
+            )
+        } ?: emptyList()
+
+        // Misma caché usada por el outbox: estados recientes disponibles sin red.
+        routeDao.insertRsvps(
+            participants.map { participant ->
+                RsvpEntity(
+                    routeId = routeId,
+                    userId = participant.userId,
+                    status = participant.status,
+                    respondedAt = participant.respondedAt,
+                    homeAt = participant.homeAt,
+                    onSiteAt = participant.onSiteAt
+                )
+            }
+        )
+        return RideRoster(
+            routeId = routeId,
+            startsAt = route["starts_at"].asNullableText(),
+            outboundStartedAt = route["outbound_started_at"].asNullableText(),
+            destinationReachedAt = route["destination_reached_at"].asNullableText(),
+            returnStartedAt = route["return_started_at"].asNullableText(),
+            completedAt = route["completed_at"].asNullableText(),
+            participants = participants
+        )
+    }
+
+    /** Marca llegada offline; el worker enviará confirmed antes de /arrive. */
+    suspend fun requestOnSite(routeId: String, userId: String) {
+        val onSiteAt = Instant.now().toString()
+        outboxDao.enqueue(
+            RsvpOutboxEntity(
+                routeId = routeId,
+                userId = userId,
+                targetStatus = "confirmed",
+                operation = RsvpOutboxEntity.OPERATION_ARRIVE
+            )
+        )
+        routeDao.insertRsvps(
+            listOf(
+                RsvpEntity(
+                    routeId = routeId,
+                    userId = userId,
+                    status = "confirmed",
+                    onSiteAt = onSiteAt
+                )
+            )
+        )
+        refreshPendingCount()
+        context?.let { RsvpOutboxWorker.schedule(it) }
+    }
+
+    /** Inicio global online: solo se abre la cabina si el backend responde 2xx. */
+    suspend fun startRoute(routeId: String): Result<ClubApiClient.ApiResponse> =
+        api.startClubRoute(routeId)
 
     /**
      * Escribe la intención en el outbox y refleja el estado en caché al instante.

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.text.SimpleDateFormat
+import java.time.Instant
 import java.util.Date
 import java.util.Locale
 
@@ -81,7 +82,9 @@ object RideScheduleRepository {
         departureTime: String,
         dateSchedule: String,
         distanceKm: Double,
-        estimatedMinutes: Int
+        estimatedMinutes: Int,
+        description: String? = null,
+        startsAt: Instant? = null
     ) {
         val newRide = ScheduledRide(
             id = "ride-custom-${System.currentTimeMillis()}",
@@ -115,9 +118,18 @@ object RideScheduleRepository {
             distanceKm = distanceKm,
             estimatedMinutes = estimatedMinutes,
             confirmations = emptyList(),
-            isPublished = true
+            isPublished = true,
+            description = description,
+            startsAt = startsAt
         )
         _currentRide.value = newRide
+    }
+
+    /** Vincula la ruta local guardada con el UUID publicado en club_routes. */
+    fun attachClubRoute(routeId: String) {
+        val current = _currentRide.value ?: return
+        if (routeId.isBlank()) return
+        _currentRide.value = current.copy(clubRouteId = routeId)
     }
 
     // Historial oficial de rodadas completadas (inicia en cero para registros reales)

@@ -31,6 +31,11 @@ class RsvpOutboxFase5Test {
             sent += routeId to status
             return if (results.isEmpty()) RsvpSendResult.Accepted else results.removeAt(0)
         }
+
+        override suspend fun sendArrival(routeId: String, userId: String): RsvpSendResult {
+            sent += routeId to "arrive"
+            return if (results.isEmpty()) RsvpSendResult.Accepted else results.removeAt(0)
+        }
     }
 
     @Test
@@ -110,6 +115,46 @@ class RsvpOutboxFase5Test {
 
         assertTrue(second is RsvpOutboxSyncEngine.SyncResult.NoOp)
         assertFalse(dao.getUnsynced().isNotEmpty())
+    }
+
+    @Test
+    fun `arrive sincroniza confirmed antes de la presencia y purga una sola fila`() = runTest {
+        val dao = InMemoryRsvpOutboxDao()
+        dao.enqueue(
+            RsvpOutboxEntity(
+                routeId = "r1",
+                userId = "u1",
+                targetStatus = "confirmed",
+                operation = RsvpOutboxEntity.OPERATION_ARRIVE
+            )
+        )
+        val transport = FakeTransport(mutableListOf())
+
+        val result = RsvpOutboxSyncEngine(dao, transport).flush()
+
+        assertTrue(result is RsvpOutboxSyncEngine.SyncResult.Success)
+        assertEquals(listOf("r1" to "confirmed", "r1" to "arrive"), transport.sent)
+        assertEquals(0, dao.pendingCount())
+    }
+
+    @Test
+    fun `arrive no se envia si la confirmacion fue rechazada`() = runTest {
+        val dao = InMemoryRsvpOutboxDao()
+        dao.enqueue(
+            RsvpOutboxEntity(
+                routeId = "r1",
+                userId = "u1",
+                targetStatus = "confirmed",
+                operation = RsvpOutboxEntity.OPERATION_ARRIVE
+            )
+        )
+        val transport = FakeTransport(mutableListOf(RsvpSendResult.Rejected("RSVP_LOCKED")))
+
+        val result = RsvpOutboxSyncEngine(dao, transport).flush()
+
+        assertTrue(result is RsvpOutboxSyncEngine.SyncResult.Success)
+        assertEquals(listOf("r1" to "confirmed"), transport.sent)
+        assertEquals(0, dao.pendingCount())
     }
 
     @Test

@@ -4,13 +4,19 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
+import com.rutabikersync.app.core.clubroutes.RideRoster
+import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.ui.components.skeleton.UiState
 import java.io.File
+import java.time.Instant
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 data class GroupsScreenData(
     val groups: List<ClubGroupModel>,
@@ -65,6 +71,15 @@ class Phase1ViewModel(
     private val _clubRsvpByRoute = MutableStateFlow<Map<String, String>>(emptyMap())
     val clubRsvpByRoute: StateFlow<Map<String, String>> = _clubRsvpByRoute.asStateFlow()
 
+    private val _rideRoster = MutableStateFlow<RideRoster?>(null)
+    val rideRoster: StateFlow<RideRoster?> = _rideRoster.asStateFlow()
+
+    private val _rideRosterError = MutableStateFlow<String?>(null)
+    val rideRosterError: StateFlow<String?> = _rideRosterError.asStateFlow()
+
+    private val _isStartingRide = MutableStateFlow(false)
+    val isStartingRide: StateFlow<Boolean> = _isStartingRide.asStateFlow()
+
     fun openClubRoutes(groupId: String) {
         _showClubRoutes.value = true
         loadClubRoutes(groupId)
@@ -93,15 +108,142 @@ class Phase1ViewModel(
     }
 
     fun requestRsvp(routeId: String, status: String) {
+        val userId = repository.currentUser.value.id
         viewModelScope.launch {
             try {
-                repository.clubRoutes.requestRsvp(routeId, repository.currentUser.value.id, status)
+                repository.clubRoutes.requestRsvp(routeId, userId, status)
                 _clubRsvpByRoute.value = _clubRsvpByRoute.value + (routeId to status)
+                updateRosterParticipant(userId) { participant ->
+                    participant.copy(
+                        status = status,
+                        onSiteAt = if (status == "confirmed") participant.onSiteAt else null
+                    )
+                }
                 repository.refreshRsvpPendingCount()
             } catch (_: Exception) {
                 // El outbox ya registró la intención antes de cualquier error de red.
             }
         }
+    }
+
+    fun loadUpcomingRideRoster(groupId: String) {
+        viewModelScope.launch {
+            try {
+                val routes = repository.clubRoutes.loadRoutes(groupId)
+                val next = ClubRsvpUi.nextRoute(routes) ?: return@launch
+                loadRideRoster(next.id)
+            } catch (_: Exception) {
+                // Conservar el roster ya cargado/cach├® durante una ca├¡da de red.
+            }
+        }
+    }
+
+    fun loadRideRoster(routeId: String) {
+        viewModelScope.launch {
+            try {
+                val fresh = repository.clubRoutes.loadRideRoster(routeId)
+                if (fresh != null) {
+                    _rideRoster.value = fresh
+                    _rideRosterError.value = null
+                } else if (_rideRoster.value?.routeId != routeId) {
+                    _rideRosterError.value = "No se pudo cargar la lista real de participantes."
+                }
+            } catch (_: Exception) {
+                if (_rideRoster.value?.routeId != routeId) {
+                    _rideRosterError.value = "Sin conexi├│n: reintenta cargar los participantes."
+                }
+            }
+        }
+    }
+
+    fun requestOnSite(routeId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                repository.clubRoutes.requestOnSite(routeId, userId)
+                updateRosterParticipant(userId) { participant ->
+                    participant.copy(
+                        status = "confirmed",
+                        onSiteAt = participant.onSiteAt ?: Instant.now().toString()
+                    )
+                }
+                _rideRosterError.value = null
+                repository.refreshRsvpPendingCount()
+            } catch (_: Exception) {
+                _rideRosterError.value = "La llegada qued├│ pendiente de sincronizar."
+            }
+        }
+    }
+
+    fun startRide(routeId: String, onStarted: () -> Unit) {
+        if (_isStartingRide.value) return
+        _isStartingRide.value = true
+        _rideRosterError.value = null
+        viewModelScope.launch {
+            try {
+                val result = repository.clubRoutes.startRoute(routeId)
+                result.fold(
+                    onSuccess = { response ->
+                        if (response.isSuccess) {
+                            loadRideRoster(routeId)
+                            onStarted()
+                        } else {
+                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
+                                ?: "No se pudo iniciar la ruta (${response.statusCode})."
+                        }
+                    },
+                    onFailure = {
+                        _rideRosterError.value = "Sin conexi├│n: no se pudo iniciar la ruta."
+                    }
+                )
+            } finally {
+                _isStartingRide.value = false
+            }
+        }
+    }
+
+    /** Vincula el mapa guardado con la ruta real publicada por el l├¡der. */
+    fun publishClubRoute(
+        groupId: String,
+        title: String,
+        startsAt: String,
+        description: String?
+    ) {
+        viewModelScope.launch {
+            try {
+                val result = repository.apiClient.createClubRoute(groupId, title, startsAt, description)
+                result.fold(
+                    onSuccess = { response ->
+                        val route = response.body?.get("route") as? JsonObject
+                        val serverRouteId = route?.get("id")?.jsonPrimitive?.contentOrNull
+                        if (response.isSuccess && !serverRouteId.isNullOrBlank()) {
+                            RideScheduleRepository.attachClubRoute(serverRouteId)
+                            loadRideRoster(serverRouteId)
+                        } else {
+                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
+                                ?: "El mapa qued├│ guardado, pero la rodada no se public├│ (${response.statusCode})."
+                        }
+                    },
+                    onFailure = {
+                        _rideRosterError.value = "Mapa guardado localmente; publicaci├│n del club pendiente por conexi├│n."
+                    }
+                )
+            } catch (_: Exception) {
+                _rideRosterError.value = "Mapa guardado localmente; no se pudo publicar la rodada."
+            }
+        }
+    }
+
+    private fun updateRosterParticipant(
+        userId: String,
+        transform: (com.rutabikersync.app.core.clubroutes.RideRosterParticipant) ->
+            com.rutabikersync.app.core.clubroutes.RideRosterParticipant
+    ) {
+        val current = _rideRoster.value ?: return
+        _rideRoster.value = current.copy(
+            participants = current.participants.map { participant ->
+                if (participant.userId == userId) transform(participant) else participant
+            }
+        )
     }
 
     private val _isAcceptingInvite = MutableStateFlow(false)

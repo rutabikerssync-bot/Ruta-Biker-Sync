@@ -18,6 +18,9 @@ import androidx.core.content.ContextCompat
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import org.json.JSONArray
 import androidx.compose.foundation.BorderStroke
@@ -132,7 +135,8 @@ data class SearchPlaceResult(
 @Composable
 fun ScheduleRideMapScreen(
     onDismiss: () -> Unit,
-    onRideSaved: () -> Unit
+    onRideSaved: () -> Unit,
+    onPublishClubRoute: ((title: String, startsAt: String, description: String?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -226,10 +230,34 @@ fun ScheduleRideMapScreen(
     var rideTitle by remember(originName, destinationName) {
         mutableStateOf(if (destinationName.isNotBlank()) "Rodada Oficial: $originName ➔ $destinationName" else "Nueva Rodada")
     }
-    var meetingTime by remember { mutableStateOf("07:00 AM (Briefing)") }
-    var departureTime by remember { mutableStateOf("07:30 AM (Motores)") }
-    var dateSchedule by remember { mutableStateOf("Sábado próximo") }
+    var rideDescription by remember { mutableStateOf("") }
+    var rideStartsAt by remember {
+        mutableStateOf(LocalDateTime.now().plusDays(1).withSecond(0).withNano(0))
+    }
+    var rideMetadataError by remember { mutableStateOf<String?>(null) }
+    val rideZoneId = remember { ZoneId.systemDefault() }
+    val dateSchedule = rideStartsAt.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    val meetingTime = rideStartsAt.format(DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()))
+    val departureTime = meetingTime
     var safeArrivalCheckInEnabled by remember { mutableStateOf(true) }
+
+    fun validatedRideMetadata(): RideMetadataInput? {
+        return RideMetadataRules.validate(
+            title = rideTitle,
+            description = rideDescription,
+            localDateTime = rideStartsAt,
+            zoneId = rideZoneId
+        ).fold(
+            onSuccess = {
+                rideMetadataError = null
+                it
+            },
+            onFailure = {
+                rideMetadataError = it.message ?: "Revisa los datos de la rodada"
+                null
+            }
+        )
+    }
 
     val currentSelectedRoute = availableRoutes.find { it.id == selectedRouteId }
         ?: availableRoutes.firstOrNull()
@@ -1537,6 +1565,18 @@ fun ScheduleRideMapScreen(
                             }
                         }
 
+                        // Metadatos de la misma rodada, dentro del resumen del mapa existente.
+                        RideMetadataEditor(
+                            title = rideTitle,
+                            onTitleChange = { rideTitle = it },
+                            startsAt = rideStartsAt,
+                            onStartsAtChange = { rideStartsAt = it },
+                            description = rideDescription,
+                            onDescriptionChange = { rideDescription = it },
+                            errorMessage = rideMetadataError,
+                            onClearError = { rideMetadataError = null }
+                        )
+
                         // Botón Secundario: Descarga explícita de mapa offline (PMTiles)
                         OutlinedButton(
                             onClick = {
@@ -1567,6 +1607,7 @@ fun ScheduleRideMapScreen(
                         Button(
                             onClick = {
                                 val finalRoute = currentSelectedRoute ?: return@Button
+                                val metadata = validatedRideMetadata() ?: return@Button
 
                                 // 1. Registrar y preparar paquete offline dinámico para el creador
                                 val customRegion = CorridorOfflineManager.registerCustomRoute(
@@ -1586,7 +1627,7 @@ fun ScheduleRideMapScreen(
 
                                 // 3. Guardar en repositorio offline
                                 RideScheduleRepository.scheduleNewRide(
-                                    title = rideTitle,
+                                    title = metadata.title,
                                     originName = originName,
                                     originLat = originLat,
                                     originLon = originLon,
@@ -1603,10 +1644,15 @@ fun ScheduleRideMapScreen(
                                     departureTime = departureTime,
                                     dateSchedule = dateSchedule,
                                     distanceKm = finalRoute.distanceKm,
-                                    estimatedMinutes = finalRoute.estimatedMinutes
+                                    estimatedMinutes = finalRoute.estimatedMinutes,
+                                    description = metadata.description,
+                                    startsAt = metadata.startsAt
                                 )
 
-                                // 4. Compartir con el club vía Intent nativo
+                                // 4. Publicar con UUID real solo cuando hay un club/líder asociado.
+                                onPublishClubRoute?.invoke(metadata.title, metadata.startsAt.toString(), metadata.description)
+
+                                // 5. Compartir con el club vía Intent nativo
                                 shareRouteSummary(finalRoute)
 
                                 Toast.makeText(
@@ -1659,11 +1705,12 @@ fun ScheduleRideMapScreen(
                             Button(
                                 onClick = {
                                     val finalRoute = currentSelectedRoute ?: return@Button
+                                    val metadata = validatedRideMetadata() ?: return@Button
                                     RouteDeviationDetector.setActiveRoutePolyline(finalRoute.waypoints)
                                     val chunks = RoutePolylineMeshRelay.fragmentRouteForMesh(finalRoute)
                                     chunks.forEach { RoutePolylineMeshRelay.processIncomingChunk(it) }
                                     RideScheduleRepository.scheduleNewRide(
-                                        title = rideTitle,
+                                        title = metadata.title,
                                         originName = originName,
                                         originLat = originLat,
                                         originLon = originLon,
@@ -1680,8 +1727,11 @@ fun ScheduleRideMapScreen(
                                         departureTime = departureTime,
                                         dateSchedule = dateSchedule,
                                         distanceKm = finalRoute.distanceKm,
-                                        estimatedMinutes = finalRoute.estimatedMinutes
+                                        estimatedMinutes = finalRoute.estimatedMinutes,
+                                        description = metadata.description,
+                                        startsAt = metadata.startsAt
                                     )
+                                    onPublishClubRoute?.invoke(metadata.title, metadata.startsAt.toString(), metadata.description)
                                     shareRouteSummary(finalRoute)
                                     Toast.makeText(context, "✓ Ruta guardada offline y compartida.", Toast.LENGTH_SHORT).show()
                                     onRideSaved()

@@ -364,6 +364,18 @@ class ClubApiClient(
         executeRequest("GET", "/v1/routes/$routeId/rsvps", null)
     }
 
+    suspend fun getRideRoster(routeId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/routes/$routeId/roster", null)
+    }
+
+    suspend fun postRouteArrival(routeId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("POST", "/v1/routes/$routeId/arrive", buildJsonObject {})
+    }
+
+    suspend fun startClubRoute(routeId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("POST", "/v1/routes/$routeId/start", buildJsonObject {})
+    }
+
     /**
      * El backend es idempotente: 201 la primera vez, 200 con `changed=false`
      * en reintentos. Ambos cuentan como éxito para el outbox.

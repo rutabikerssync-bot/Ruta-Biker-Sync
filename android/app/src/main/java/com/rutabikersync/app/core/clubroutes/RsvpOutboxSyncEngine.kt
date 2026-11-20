@@ -14,6 +14,9 @@ sealed class RsvpSendResult {
 /** Transporte inyectable: `ClubApiClient` en producción, fake en tests. */
 interface RsvpTransport {
     suspend fun sendRsvp(routeId: String, userId: String, status: String): RsvpSendResult
+
+    suspend fun sendArrival(routeId: String, userId: String): RsvpSendResult =
+        sendRsvp(routeId, userId, RsvpOutboxEntity.OPERATION_ARRIVE)
 }
 
 /**
@@ -40,11 +43,7 @@ class RsvpOutboxSyncEngine(
         var dropped = 0
 
         for (item in pending) {
-            val result = try {
-                transport.sendRsvp(item.routeId, item.userId, item.targetStatus)
-            } catch (e: Exception) {
-                RsvpSendResult.Error(e.message ?: "excepción de transporte")
-            }
+            val result = sendOperation(item)
 
             when (result) {
                 is RsvpSendResult.Accepted -> {
@@ -66,5 +65,21 @@ class RsvpOutboxSyncEngine(
 
         dao.deleteSynced()
         return SyncResult.Success(synced, dropped)
+    }
+
+    /** Una llegada nunca puede adelantarse a su confirmación offline. */
+    private suspend fun sendOperation(item: RsvpOutboxEntity): RsvpSendResult {
+        if (item.operation != RsvpOutboxEntity.OPERATION_ARRIVE) {
+            return safely { transport.sendRsvp(item.routeId, item.userId, item.targetStatus) }
+        }
+        val confirmed = safely { transport.sendRsvp(item.routeId, item.userId, "confirmed") }
+        if (confirmed !is RsvpSendResult.Accepted) return confirmed
+        return safely { transport.sendArrival(item.routeId, item.userId) }
+    }
+
+    private suspend fun safely(block: suspend () -> RsvpSendResult): RsvpSendResult = try {
+        block()
+    } catch (e: Exception) {
+        RsvpSendResult.Error(e.message ?: "excepción de transporte")
     }
 }

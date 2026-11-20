@@ -43,6 +43,19 @@ class RsvpOutboxWorker(
                     else -> RsvpSendResult.Error("HTTP_${res.statusCode}")
                 }
             }
+
+            override suspend fun sendArrival(routeId: String, userId: String): RsvpSendResult {
+                val res = api.postRouteArrival(routeId).getOrElse {
+                    return RsvpSendResult.Error(it.message ?: "fallo de red")
+                }
+                return when (res.statusCode) {
+                    in 200..299 -> RsvpSendResult.Accepted
+                    409 -> RsvpSendResult.Rejected("RSVP_NOT_CONFIRMED")
+                    401, 429 -> RsvpSendResult.Error("AUTH_OR_RATE_LIMIT_${res.statusCode}")
+                    in 400..499 -> RsvpSendResult.Rejected("HTTP_${res.statusCode}")
+                    else -> RsvpSendResult.Error("HTTP_${res.statusCode}")
+                }
+            }
         }
 
         return when (val result = RsvpOutboxSyncEngine(dao, transport).flush()) {

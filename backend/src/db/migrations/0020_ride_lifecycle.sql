@@ -31,3 +31,22 @@ USING (
       AND gl.user_id = auth.uid()
   )
 );
+
+-- Igualmente, la directiva puede leer el resumen/respuestas de su propia ruta.
+DROP POLICY IF EXISTS rsvps_read ON club_route_rsvps;
+CREATE POLICY rsvps_read ON club_route_rsvps FOR SELECT
+USING (
+  EXISTS (
+    SELECT 1 FROM club_routes r
+    JOIN memberships m ON m.group_id = r.group_id
+    WHERE r.id = club_route_rsvps.route_id
+      AND m.user_id = auth.uid()
+      AND m.invite_state = 'accepted'
+  )
+  OR EXISTS (
+    SELECT 1 FROM club_routes r
+    JOIN group_leaders gl ON gl.group_id = r.group_id
+    WHERE r.id = club_route_rsvps.route_id
+      AND gl.user_id = auth.uid()
+  )
+);

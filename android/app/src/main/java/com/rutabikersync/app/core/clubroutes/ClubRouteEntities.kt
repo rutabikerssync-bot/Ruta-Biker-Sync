@@ -34,7 +34,8 @@ data class RsvpEntity(
     val status: String,
     val respondedAt: String? = null,
     val homeAt: String? = null,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val onSiteAt: String? = null
 )
 
 /**
@@ -70,7 +71,13 @@ data class RsvpOutboxEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val synced: Boolean = false,
     val attempts: Int = 0,
-    val lastError: String? = null
+    val lastError: String? = null,
+    val operation: String = OPERATION_RSVP
 ) {
     val key: String get() = "$routeId:$userId"
+
+    companion object {
+        const val OPERATION_RSVP = "rsvp"
+        const val OPERATION_ARRIVE = "arrive"
+    }
 }

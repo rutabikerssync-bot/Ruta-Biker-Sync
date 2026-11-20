@@ -1,6 +1,7 @@
 package com.rutabikersync.app.feature.routes
 
 import com.rutabikersync.app.feature.groups.ClubRole
+import java.time.Instant
 
 /**
  * Coordenada geográfica serializable e independiente de frameworks externos.
@@ -212,7 +213,11 @@ data class ScheduledRide(
     val distanceKm: Double,
     val estimatedMinutes: Int,
     val confirmations: List<ParticipantConfirmation>,
-    val isPublished: Boolean = true
+    val isPublished: Boolean = true,
+    val description: String? = null,
+    val startsAt: Instant? = null,
+    /** UUID real en club_routes; null para una ruta libre solo local. */
+    val clubRouteId: String? = null
 )
 
 /**

@@ -106,6 +106,7 @@ import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.feature.routes.ScheduledRide
 import com.rutabikersync.app.feature.routes.AttendanceStatus
+import com.rutabikersync.app.feature.rides.RideParticipantsScreen
 import com.rutabikersync.app.feature.routes.ScheduleRideMapScreen
 import com.rutabikersync.app.feature.routes.RideHistoryScreen
 import com.rutabikersync.app.feature.routes.CorridorOfflineManager
@@ -114,6 +115,8 @@ import com.rutabikersync.app.feature.vault.VaultScreen
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import com.rutabikersync.app.core.uxtest.UxTestTracker
 import com.rutabikersync.app.core.uxtest.ModeratorControlDialog
 
@@ -210,6 +213,7 @@ fun MainAppScaffold(
             } else {
                 when (selectedTab) {
                     0 -> RidesReleaseHomeScreen(
+                        phase1ViewModel = phase1ViewModel,
                         onStartLiveMapPreview = { showLiveMapPreview = true },
                         initialOpenRideHistory = initialStartRideHistory
                     )
@@ -682,6 +686,7 @@ private fun VaultDocBevelCard(
 
 @Composable
 private fun RidesReleaseHomeScreen(
+    phase1ViewModel: Phase1ViewModel,
     onStartLiveMapPreview: () -> Unit,
     initialOpenRideHistory: Boolean = false
 ) {
@@ -689,6 +694,37 @@ private fun RidesReleaseHomeScreen(
     val activity = context as? Activity
     val rideState by RideService.sharedState.collectAsState()
     val currentRide by RideScheduleRepository.currentRide.collectAsState()
+    val groups by phase1ViewModel.repository.groups.collectAsState()
+    val currentUser by phase1ViewModel.repository.currentUser.collectAsState()
+    val rideRoster by phase1ViewModel.rideRoster.collectAsState()
+    val rideRosterError by phase1ViewModel.rideRosterError.collectAsState()
+    val isStartingRide by phase1ViewModel.isStartingRide.collectAsState()
+    val rsvpPendingCount by phase1ViewModel.rsvpPendingCount.collectAsState()
+
+    val primaryGroup = groups.firstOrNull { group ->
+        group.principalLeaderId == currentUser.id ||
+            group.leaderIds.contains(currentUser.id) ||
+            group.members.any { it.userId == currentUser.id }
+    }
+    val canPublishClubRoute = primaryGroup?.let { group ->
+        group.principalLeaderId == currentUser.id || group.leaderIds.contains(currentUser.id)
+    } == true
+
+    LaunchedEffect(currentRide?.clubRouteId, primaryGroup?.id) {
+        val publishedRouteId = currentRide?.clubRouteId
+        if (publishedRouteId != null) {
+            phase1ViewModel.loadRideRoster(publishedRouteId)
+        } else if (primaryGroup != null) {
+            phase1ViewModel.loadUpcomingRideRoster(primaryGroup.id)
+        }
+    }
+    LaunchedEffect(rideRoster?.routeId) {
+        val routeId = rideRoster?.routeId ?: return@LaunchedEffect
+        while (isActive) {
+            delay(3000L)
+            phase1ViewModel.loadRideRoster(routeId)
+        }
+    }
 
     val activityIntent = (context as? Activity)?.intent
     val startValenciaRoute = activityIntent?.getBooleanExtra("START_VALENCIA_ROUTE", false) ?: false
@@ -704,7 +740,14 @@ private fun RidesReleaseHomeScreen(
     if (showScheduleMapPlanner) {
         ScheduleRideMapScreen(
             onDismiss = { showScheduleMapPlanner = false },
-            onRideSaved = { showScheduleMapPlanner = false }
+            onRideSaved = { showScheduleMapPlanner = false },
+            onPublishClubRoute = if (canPublishClubRoute) {
+                { title, startsAt, description ->
+                    phase1ViewModel.publishClubRoute(primaryGroup.id, title, startsAt, description)
+                }
+            } else {
+                null
+            }
         )
         return
     }
@@ -912,6 +955,14 @@ private fun RidesReleaseHomeScreen(
                             fontSize = 15.sp
                         )
                         Text(
+                            text = ride.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                        Text(
                             text = "${ride.dateSchedule} · ${ride.departureTime}",
                             color = Color(0xFFE5B869),
                             fontWeight = FontWeight.SemiBold,
@@ -928,6 +979,15 @@ private fun RidesReleaseHomeScreen(
                             color = Color(0xFF9CA3AF),
                             fontSize = 12.sp
                         )
+                        if (!ride.description.isNullOrBlank()) {
+                            Text(
+                                text = ride.description,
+                                color = Color(0xFF9CA3AF),
+                                fontSize = 11.sp,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
                     }
 
                     Box(
@@ -998,7 +1058,7 @@ private fun RidesReleaseHomeScreen(
         }
 
         // Tarjeta: Participantes Convocados (Biselada) - Solo si hay rodada convocada
-        if (currentRide != null) {
+        if (currentRide != null && rideRoster == null) {
             HeritageBevelCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(14.dp)
@@ -1041,6 +1101,31 @@ private fun RidesReleaseHomeScreen(
                         )
                     }
                 }
+            }
+        }
+
+        // Participantes reales de la rodada publicada, también para miembros sin copia local del mapa.
+        rideRoster?.let { roster ->
+            HeritageBevelCard(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                RideParticipantsScreen(
+                    roster = roster,
+                    currentUserId = currentUser.id,
+                    currentUserIsLeader = roster.participants.firstOrNull { it.userId == currentUser.id }?.isLeader == true,
+                    pendingCount = rsvpPendingCount,
+                    isStarting = isStartingRide,
+                    errorMessage = rideRosterError,
+                    onRsvp = { routeId, _, status -> phase1ViewModel.requestRsvp(routeId, status) },
+                    onArrive = { routeId, userId -> phase1ViewModel.requestOnSite(routeId, userId) },
+                    onStart = { routeId ->
+                        phase1ViewModel.startRide(routeId) {
+                            onStartLiveMapPreview()
+                            startRideServiceNow(useSimulated = forceSimulated)
+                        }
+                    }
+                )
             }
         }
 
@@ -1242,16 +1327,18 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Botón Placa de Latón: "Iniciar Rodada (Cabina Activa)"
-        HeritageBrassButton(
-            text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-            onClick = {
-                UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
-                onStartLiveMapPreview()
-                startRideServiceNow(useSimulated = forceSimulated)
-            },
-            icon = Icons.Default.PlayArrow
-        )
+        // La puerta real de inicio vive en el roster; evita saltársela desde otro CTA.
+        if (rideRoster == null) {
+            HeritageBrassButton(
+                text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                onClick = {
+                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
+                    onStartLiveMapPreview()
+                    startRideServiceNow(useSimulated = forceSimulated)
+                },
+                icon = Icons.Default.PlayArrow
+            )
+        }
 
         Spacer(modifier = Modifier.height(10.dp))
 

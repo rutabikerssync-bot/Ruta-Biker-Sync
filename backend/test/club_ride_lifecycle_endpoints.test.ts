@@ -70,7 +70,8 @@ describe('Ciclo de rodada: presencia, fases y ventana RSVP con reloj servidor', 
        VALUES ($1, $2, true), ($1, $3, false)`,
       [groupId, presidentId, coLeaderId]
     );
-    for (const uid of [presidentId, coLeaderId, memberId, member2Id]) {
+    // coLeader queda fuera de memberships a propósito: su acceso depende de group_leaders.
+    for (const uid of [presidentId, memberId, member2Id]) {
       await db.query(
         `INSERT INTO memberships (id, group_id, user_id, status_kind, invite_state, accepted_at)
          VALUES ($1, $2, $3, 'full', 'accepted', now())`,
@@ -356,5 +357,42 @@ describe('Ciclo de rodada: presencia, fases y ventana RSVP con reloj servidor', 
       await reloaded.close();
     }
   });
-  // Caso 16: suites existentes reales BLE/chat/SOS/PTT ejecutadas como regresión separada.
+  it('lider sin memberships puede confirmar y marcar presencia mediante group_leaders', async () => {
+    const confirmed = await rsvp('confirmed', coLeaderId);
+    expect(confirmed.statusCode).toBe(201);
+    expect(confirmed.json().rsvp.status).toBe('confirmed');
+    expect((await arrive(coLeaderId)).statusCode).toBe(201);
+    const { rows } = await withUserDb(pool, coLeaderId, (client) =>
+      client.query(
+        'SELECT status, on_site_at FROM club_route_rsvps WHERE route_id = $1 AND user_id = $2',
+        [routeId, coLeaderId]
+      )
+    );
+    expect(rows[0].status).toBe('confirmed');
+    expect(rows[0].on_site_at).not.toBeNull();
+  });
+
+  it('roster real reúne directiva y miembros con sus RSVP sin duplicados', async () => {
+    await seedRsvp(memberId, 'confirmed');
+    await arrive(memberId);
+    const res = await app.inject({
+      method: 'GET', url: `/v1/routes/${routeId}/roster`, headers: { 'x-user-id': member2Id }
+    });
+    expect(res.statusCode).toBe(200);
+    const participants = res.json().participants;
+    const ids = participants.map((p: any) => p.userId);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toHaveLength(4);
+    expect(ids).not.toContain(outsiderId);
+    expect(participants.find((p: any) => p.userId === presidentId).isLeader).toBe(true);
+    expect(participants.find((p: any) => p.userId === member2Id).status).toBe('pending');
+    expect(participants.find((p: any) => p.userId === memberId).status).toBe('confirmed');
+    expect(participants.find((p: any) => p.userId === memberId).onSiteAt).not.toBeNull();
+
+    const outsider = await app.inject({
+      method: 'GET', url: `/v1/routes/${routeId}/roster`, headers: { 'x-user-id': outsiderId }
+    });
+    expect(outsider.statusCode).toBe(404);
+  });
+  // Caso de comunicaciones: suites reales BLE/chat/SOS/PTT ejecutadas como regresión separada.
 });
