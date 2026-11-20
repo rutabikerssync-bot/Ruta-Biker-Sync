@@ -1,0 +1,116 @@
+CIERRE FASE 5 · RELEASE v2 FIRMADO, INSTALACION Y HUMOS (2026-11-19)
+HEAD previo: 15990cc feat(android): UI minima de rutas/RSVP y banner de pendientes (Fase 5)
+Contexto: Fase 5 aplicada y verificada en JVM (42/42: outbox 6, UI 7, regresion 29). Quedaba
+pendiente re-firmar con keystore RBS, instalar sin desinstalar (firma coincidente) y ejecutar
+humo Fase 5 (RSVP offline) y Fase 2 (motto).
+
+=====================================================================
+TAREA 1 · RE-FIRMAR APK CON KEYSTORE DE PRODUCCION
+=====================================================================
+Keystore nuevo (generado por el usuario, no versionado): C:\rbs-secrets\rbs-release-v2.jks
+  alias=rbs-release, RSA 4096, CN=Ruta Biker Sync (Caracas, VE), validez 10000 dias.
+  SHA-256 keystore (keytool -list): E9:9C:0E:7D:D3:56:91:D2:6D:15:B5:1F:F0:E9:D1:E0:D3:AC:BB:A8:C2:57:9D:DB:50:5C:C1:33:46:E8:54:6B
+
+Primer intento de build (FAIL esperado por gate B1-4):
+  Comando: .\gradlew.bat :app:assembleStandardRelease -Prbs.keystore.path=... -Prbs.keystore.password=... -Prbs.key.alias=rbs-release -Prbs.key.password=...
+  Resultado: BUILD FAILED (exit 1), :app:verifyReleaseSecurityScript FAILED.
+  Causa exacta: "FAIL_PLACEHOLDER: BASE_URL release es placeholder, falta URL_PROD real.
+  Actual=https://rbs-pending.invalid" (scripts/verify_release_security.ps1:100).
+  Sin artefacto APK.
+
+Build release definitivo:
+  Comando: .\gradlew.bat :app:assembleStandardRelease -Prbs.prod.url=https://omartinezpaz.tail6f67b0.ts.net -Prbs.keystore.path=C:\rbs-secrets\rbs-release-v2.jks -Prbs.keystore.password=<set> -Prbs.key.alias=rbs-release -Prbs.key.password=<set>
+  Resultado: BUILD SUCCESSFUL in 3m 9s (exit 0), 56 tasks (23 executed, 33 up-to-date).
+  APK: android/app/build/outputs/apk/standard/release/app-standard-release.apk (68,24 MB, 19/11/2026 17:05:45)
+  Log: C:\Users\ozmar\AppData\Local\Temp\opencode\fase5_release_build_log.txt
+
+Verificacion de firma (apksigner verify --print-certs):
+  Signer #1 DN: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync, L=Caracas, ST=Distrito Capital, C=VE
+  SHA-256: e99c0e7dd35691d26d15b51ff0e9d1e0d3acbba8c2579ddb505cc13346e8546b  (coincide con v2)
+  SHA-1:   095acb49ae463c5d73e47a42572f72d0a80cca97
+  => NO es Android Debug. Correcto.
+
+BASE_URL en BuildConfig standard/release:
+  public static final String BASE_URL = "https://omartinezpaz.tail6f67b0.ts.net";
+
+Variables persistidas a nivel de usuario (registro User) por solicitud explicita:
+  RBS_KEYSTORE_PATH, RBS_KEYSTORE_PASSWORD, RBS_KEY_ALIAS, RBS_KEY_PASSWORD = SET.
+  Nota: la contraseña fue compartida en la conversacion; se recomienda rotacion fuera de este cierre.
+
+Firma instalada ANTES de la operacion (base.apk extraida y verificada):
+  TECNO 098813734B105395: SHA-256 8502ba90bc42e4c321f97f406ea495aaa6c3cc7f81c6b10bdf4585a78c33dd4c
+  Redmi b2c398bb:          SHA-256 8502ba90bc42e4c321f97f406ea495aaa6c3cc7f81c6b10bdf4585a78c33dd4c
+  => La firma nueva (e99c0e7d) NO coincide con la instalada (8502ba90): la desinstalacion es
+  inevitable para instalar el release v2. El usuario confirmo "boveda y shortId a salvo" y
+  autorizo la desinstalacion (con perdida de claves AndroidKeyStore de boveda/identidad malla).
+
+Instalacion en dispositivos:
+  TECNO 098813734B105395 (USB, activo):
+    - uninstall com.rutabikersync.app + install app-standard-release.apk: completado antes del
+      reinicio del servidor (tool interrumpido), verificado post-reinicio.
+    - pm path -> /data/app/.../base.apk presente.
+    - apksigner verify del base.apk instalado: SHA-256 e99c0e7d...8546b (firma v2). OK.
+    - dumpsys activity: mResumedActivity com.rutabikersync.app/.MainActivity (t21384).
+    - screencap/uiautomator: fase5_tecno_state_20261119.png / .xml (UI dump capturo la capa del
+      launcher en ese instante; app en MainActivity segun dumpsys).
+    - ping desde TECNO a omartinezpaz.tail6f67b0.ts.net: 2 paquetes, 0 recibidos, 100% packet loss
+      (al momento de la captura).
+  Redmi b2c398bb (USB) / 100.98.78.105:5555 (Tailscale):
+    - adb: "device 'b2c398bb' not found" y "cannot connect to 100.98.78.105:5555: ... (10013)".
+    - pm path: no accesible. Instalacion NO realizada en este cierre.
+
+=====================================================================
+TAREA 2 · UI MINIMA DE RUTAS/RSVP
+=====================================================================
+Commit atomico previo en este cierre: 15990cc "feat(android): UI minima de rutas/RSVP y banner
+de pendientes (Fase 5)". 5 archivos, 391 inserciones, 24 eliminaciones.
+  - Boton "Ver Rutas" en GroupDetailScreenD3.
+  - ClubRoutesScreen: lista rutas (GET /v1/groups/:id/routes via ClubRoutesRepository cache-first)
+    y permite RSVP (POST /v1/routes/:id/rsvp) con confirmed/home/no_go.
+  - rsvpPendingCount cableado al banner "Pendiente de sincronizar" en Phase1Screens.kt
+    (prioridad sobre health, no cerrable, desaparece al sincronizar); poll 1,5 s ya existente.
+Validacion: compileStandardDebugKotlin BUILD SUCCESSFUL; ClubRsvpUiTest 7/7; regresion
+42/42 (outbox 6 + UI 7 + malla/convoy/rodada 29), 0 fallos.
+
+=====================================================================
+TAREA 3 · PRUEBA DE HUMO FISICA (FASE 5) — NO COMPLETADA
+=====================================================================
+Objetivo: red -> RSVP sincronizado; modo avion -> banner "Pendiente de sincronizar"; red -> sincroniza solo; capturas.
+
+Resultado: NO EJECUTADA en TECNO y NO EJECUTADA en Redmi.
+Causas exactas:
+  1. Redmi inaccesible por adb (USB y Tailscale TCP) en el momento de la prueba.
+  2. TECNO reinstalado con firma v2 (estado limpio, claves AndroidKeyStore borradas): la app
+     requiere onboarding/login y pertenencia a un grupo con rutas publicadas para abrir
+     "Ver Rutas" y disparar requestRsvp. Sin sesion restaurada ni ruta de club disponible en
+     el dispositivo, no es posible provocar un RSVP ni el banner sin inventar datos/credenciales.
+  3. Ping desde TECNO al backend tailnet fallo (100% packet loss) en la captura tomada.
+Por tanto no existe captura real del banner "Pendiente de sincronizar" en hardware.
+
+=====================================================================
+TAREA 4 · PRUEBA DE HUMO FASE 2 (MOTTO) — NO COMPLETADA
+=====================================================================
+Objetivo: cambiar motto desde TECNO, observar propagacion en Redmi >1,5 s sin reiniciar.
+Resultado: NO EJECUTADA. Causa exacta: requiere ambos dispositivos operativos, con sesion y
+mismo club; Redmi inaccesible y TECNO en estado limpio tras reinstalacion. BD backend intacta
+(no se emitio ningun PUT de motto en este cierre).
+
+=====================================================================
+CONFIRMACION RSVP OFFLINE EN HARDWARE
+=====================================================================
+NO confirmado. La logica del outbox y el cableado del banner estan verificados en JVM (42/42).
+No se inventa ningun resultado de campo.
+
+PENDIENTE
+=====================================================================
+- Reconectar Redmi (USB/Tailscale), desinstalar (autorizado, claves ya respaldadas segun usuario)
+  e instalar app-standard-release.apk firmado v2; confirmar SHA-256 e99c0e7d en base.apk.
+- Restaurar sesion/login y club en TECNO y Redmi (estado limpio por reinstalacion), con ruta de
+  club publicada disponible.
+- Ejecutar TAREA 3 completa: RSVP con red, modo avion + captura del banner "Pendiente de
+  sincronizar", restaurar red y verificar sincronizacion automatica, con capturas en ambos.
+- Ejecutar TAREA 4: humo Fase 2 del motto TECNO -> Redmi sin reiniciar, con captura.
+- Validar reinicio completo de Windows para el arranque persistente de WSL/Fastify (pendiente previo).
+- Rotar la contraseña del keystore v2 expuesta en la conversacion y revisar su persistencia en registro.
+- Ping TECNO -> tailnet dio 100% packet loss en la captura: verificar conectividad Tailscale del equipo.
+- No hacer push. No desinstalar nada mas sin respaldo. No tocar BLE/GATT/PTT/crypto/backend.

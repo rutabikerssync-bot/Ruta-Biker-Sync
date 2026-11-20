@@ -406,24 +406,30 @@ ssiDbm=null en el mapeo); no se inventaron dBm. PTT/voz NO probado en este ciclo
 **Pendiente**: validar un reinicio completo de Windows (el script de Inicio no requiere admin pero no se ejecuto en un login real); un ping Redmi→TECNO por IP Tailscale fallo una vez (moto a moto sigue por BLE, no afecta a Fastify); recompilar sin `RBS_DEBUG_URL` vuelve al modo `adb reverse`.
 
 ### FASE 5 - Outbox Room/DataStore para RSVP offline - 2026-11-19
-**Commit atomico**: `feat(android): outbox Room/DataStore para RSVP offline (Fase 5)` (sin amend, sin push).
+**Commits atomicos**: `358c725` `feat(android): outbox Room/DataStore para RSVP offline (Fase 5)` y `15990cc` `feat(android): UI minima de rutas/RSVP y banner de pendientes (Fase 5)` (sin amend, sin push).
 
 **Diagnostico**: el backend Fase 3 ya expone rutas de club y RSVP con transiciones idempotentes (201/200) y RLS FORCE, pero el cliente no tenia caché ni cola: sin red no podia registrar la intención de asistencia. Ademas el `profileVersion` del grupo solo se reflejaba en memoria.
 
-**Cambio (12 archivos)**: entidades Room `ClubRouteEntity`, `RsvpEntity`, `RsvpSummaryEntity` y `RsvpOutboxEntity` (BD v2 -> v3) con DAOs y espejos in-memory para tests JVM; `ClubProfileStore` (DataStore, version por `groupId`); `ClubRoutesRepository` cache-first que respeta el `scope: member|full` del backend; `RsvpOutboxSyncEngine` + `RsvpOutboxWorker` (WorkManager, `NetworkType.CONNECTED`, backoff exponencial) donde un RSVP es un ESTADO (PK compuesta `routeId+userId`, ultima intencion gana), 409 terminal se descarta sin bucle; `ClubApiClient` con `getClubRoutes`/`getRsvps`/`postRsvp`; integraciones minimas en `AppDatabase`, `ClubRepository` y `Phase1ViewModel` (`rsvpPendingCount`). Sin cambios en BLE/GATT/PTT/crypto ni backend.
+**Cambio (12 archivos, outbox)**: entidades Room `ClubRouteEntity`, `RsvpEntity`, `RsvpSummaryEntity` y `RsvpOutboxEntity` (BD v2 -> v3) con DAOs y espejos in-memory para tests JVM; `ClubProfileStore` (DataStore, version por `groupId`); `ClubRoutesRepository` cache-first que respeta el `scope: member|full` del backend; `RsvpOutboxSyncEngine` + `RsvpOutboxWorker` (WorkManager, `NetworkType.CONNECTED`, backoff exponencial) donde un RSVP es un ESTADO (PK compuesta `routeId+userId`, ultima intencion gana), 409 terminal se descarta sin bucle; `ClubApiClient` con `getClubRoutes`/`getRsvps`/`postRsvp`; integraciones minimas en `AppDatabase`, `ClubRepository` y `Phase1ViewModel` (`rsvpPendingCount`). Sin cambios en BLE/GATT/PTT/crypto ni backend.
 
-El patch original tenia CRLF+BOM y el repo mezcla LF/CRLF (`core.autocrlf=true`), por lo que `git apply --check` fallaba; se regenero dentro del repo principal con la salida cruda de `git diff` y se aplico limpio (exit 0). Los 12 archivos son identicos en contenido al worktree validado.
+**Cambio (5 archivos, UI)**: `ClubRsvpUi.kt` (logica pura del banner y 3 estados `confirmed`/`home`/`no_go`), `ClubRoutesScreen.kt` (lista rutas cacheadas y permite RSVP), boton "Ver Rutas" en `GroupDetailScreenD3`, `rsvpPendingCount` cableado al banner "Pendiente de sincronizar" en `Phase1Screens.kt` (prioridad sobre health, no cerrable, se retira al sincronizar; poll 1,5 s existente) y carga/accion en `Phase1ViewModel`.
+
+El patch original del outbox tenia CRLF+BOM y el repo mezcla LF/CRLF (`core.autocrlf=true`), por lo que `git apply --check` fallaba; se regenero dentro del repo principal con la salida cruda de `git diff` y se aplico limpio (exit 0).
 
 | Tarea | Comando | Resultado esperado | Resultado obtenido | Evidencia |
 | --- | --- | --- | --- | --- |
-| Aplicar patch | `git apply --check` + `git apply` de `fase5_regenerated.patch` | 12 archivos | 4 modificados + 8 nuevos, exit 0 | `docs/evidence/fase5_outbox_20261119.txt` |
+| Aplicar patch outbox | `git apply --check` + `git apply` de `fase5_regenerated.patch` | 12 archivos | 4 modificados + 8 nuevos, exit 0 | `docs/evidence/fase5_outbox_20261119.txt` |
 | Compilar | `gradlew :app:compileStandardDebugKotlin` | BUILD SUCCESSFUL | `BUILD SUCCESSFUL in 57s` | `fase5_compile_log.txt` |
 | Tests outbox | `gradlew :app:testStandardDebugUnitTest --tests "*RsvpOutboxFase5Test"` | 6/6 | `tests="6" failures="0" errors="0"` | `fase5_outbox_test_log.txt` |
-| Regresion | `--tests "*LiveMapViewModelTest" --tests "*ConvoyRouteProjectionTest" --tests "*RideServicePhase3Test"` | sin regresiones | 29/29 (15+7+7), 0 fallos | `fase5_regression_log.txt` |
-| Build APK | `RBS_DEBUG_URL=https://omartinezpaz.tail6f67b0.ts.net gradlew :app:packageStandardDebug` | APK firmada | `BUILD SUCCESSFUL in 47s` | `app-standard-debug.apk` 92,1 MB |
-| Instalacion hardware | `adb install -r` en TECNO y Redmi | Success en ambos | **FALLO** `INSTALL_FAILED_UPDATE_INCOMPATIBLE` (firma RBS instalada vs firma debug del APK fresco); sin keystore RBS | misma evidencia |
-| RSVP offline en campo | rodada + modo avion + banner + restaurar red | sincronizacion automatica | **NO VERIFICADO**: sin keystore y sin UI/deep link que dispare RSVP ni pinte `rsvpPendingCount` | misma evidencia |
+| Tests UI | `--tests "*ClubRsvpUiTest"` | 7/7 | `tests="7" failures="0" errors="0"` | `fase5_ui_test_log.txt` |
+| Regresion | `*LiveMapViewModelTest` + `*ConvoyRouteProjectionTest` + `*RideServicePhase3Test` | sin regresiones | 42/42 total (6+7+29), 0 fallos | `fase5_ui_regression_log.txt` |
+| Build release v2 | `gradlew :app:assembleStandardRelease -Prbs.prod.url=https://omartinezpaz.tail6f67b0.ts.net -Prbs.keystore.path=...` (keystore `rbs-release-v2.jks`) | APK firmada RBS | `BUILD SUCCESSFUL in 3m 9s`, 68,24 MB; 1er intento FAIL por gate B1-4 (BASE_URL placeholder) corregido con URL real | `docs/evidence/fase5_release_hardware_20261119.txt` |
+| Firma APK | `apksigner verify --print-certs` | CN=Ruta Biker Sync, huella v2 | DN correcto, SHA-256 `e99c0e7dd35691d26d15b51ff0e9d1e0d3acbba8c2579ddb505cc13346e8546b` (BASE_URL tailnet) | misma evidencia |
+| Instalacion TECNO | uninstall + install (autorizado; firma distinta a la instalada 8502ba90) | app con firma v2 | instalado, SHA-256 `e99c0e7d`, `MainActivity` resumida | `fase5_tecno_state_20261119.png/.xml` |
+| Instalacion Redmi | uninstall + install | app con firma v2 | **NO EJECUTADA**: `b2c398bb` not found, `100.98.78.105:5555` no conecta (10013) | misma evidencia |
+| Humo Fase 5 (red/avion/red) | RSVP con red, modo avion, banner, restaurar red | sincronizacion automatica + captura | **NO EJECUTADA**: Redmi inaccesible; TECNO en estado limpio tras reinstalacion sin sesion/club/ruta; ping tailnet 100% loss en captura | misma evidencia |
+| Humo Fase 2 (motto) | TECNO cambia motto, Redmi refleja >1,5 s | propagacion sin reiniciar | **NO EJECUTADA**: requiere ambos dispositivos con sesion y mismo club | misma evidencia |
 
-**Confirmacion**: la capa de datos del outbox funciona y esta cubierta por 6/6 tests JVM (coalescencia, idempotencia 201/200, reintento ante error de red, descarte de 409 terminal, NoOp y contador del banner). La compilacion del cliente real es correcta y la regresion de malla/convoy/rodada queda en 29/29. **El RSVP offline NO queda confirmado en hardware**: no se inventa resultado de campo.
+**Confirmacion**: la capa de datos del outbox y el cableado del banner funcionan y estan cubiertos por 42/42 tests JVM. La compilacion y el release firmado son correctos. **El RSVP offline NO queda confirmado en hardware** y no hay captura real del banner "Pendiente de sincronizar".
 
-**Pendiente**: keystore RBS (4 variables) o autorizacion explicita para desinstalar con perdida de claves AndroidKeyStore; UI minima de rutas/RSVP y cableado del banner; repetir la prueba con red/avion/red y capturas en ambos equipos; humo Fase 2 del `motto` (BD intacta, `profileVersion=1`).
+**Pendiente**: reconectar Redmi e instalar release v2; restaurar sesion/club/ruta en ambos (estado limpio); ejecutar humo Fase 5 red->avion->red con capturas y humo Fase 2 del motto; validar conectividad Tailscale de TECNO y reinicio completo de Windows para WSL; rotar la contraseña del keystore v2 expuesta en la conversacion. No hacer push. No tocar BLE/GATT/PTT/crypto/backend.
