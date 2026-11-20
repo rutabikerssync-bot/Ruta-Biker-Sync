@@ -2267,10 +2267,11 @@ private fun ClubProfileEditDialog(
     var motto by remember { mutableStateOf(group.motto.ifBlank { "Hermandad, Respeto y Carretera" }) }
     var city by remember { mutableStateOf(group.city ?: "") }
 
-    val dateParts = group.foundationDate.split("-")
-    var foundationYear by remember { mutableStateOf(dateParts.getOrNull(0) ?: "2018") }
-    var foundationMonth by remember { mutableStateOf(dateParts.getOrNull(1) ?: "05") }
-    var foundationDay by remember { mutableStateOf(dateParts.getOrNull(2) ?: "15") }
+    val dateOnly = group.foundationDate.substringBefore('T').substringBefore(' ').trim()
+    val dateParts = dateOnly.split("-")
+    var foundationYear by remember { mutableStateOf(dateParts.getOrNull(0)?.filter { it.isDigit() }?.take(4).orEmpty().ifBlank { "2018" }) }
+    var foundationMonth by remember { mutableStateOf(dateParts.getOrNull(1)?.filter { it.isDigit() }?.takeLast(2).orEmpty().ifBlank { "05" }) }
+    var foundationDay by remember { mutableStateOf(dateParts.getOrNull(2)?.filter { it.isDigit() }?.takeLast(2).orEmpty().ifBlank { "15" }) }
 
     var expandedTraditionDropdown by remember { mutableStateOf(false) }
 
@@ -2310,9 +2311,11 @@ private fun ClubProfileEditDialog(
     )
 
     val formattedFoundationDateStr = remember(foundationYear, foundationMonth, foundationDay) {
-        val y = foundationYear.padStart(4, '0').takeLast(4)
-        val m = foundationMonth.padStart(2, '0').takeLast(2)
-        val d = foundationDay.padStart(2, '0').takeLast(2)
+        val y = foundationYear.filter { it.isDigit() }.padStart(4, '0').takeLast(4)
+        val mRaw = foundationMonth.filter { it.isDigit() }.ifBlank { "5" }.toIntOrNull()?.coerceIn(1, 12) ?: 5
+        val dRaw = foundationDay.filter { it.isDigit() }.ifBlank { "15" }.toIntOrNull()?.coerceIn(1, 31) ?: 15
+        val m = mRaw.toString().padStart(2, '0')
+        val d = dRaw.toString().padStart(2, '0')
         "$y-$m-$d"
     }
 
