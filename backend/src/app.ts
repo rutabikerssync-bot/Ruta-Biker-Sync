@@ -21,6 +21,7 @@ import {
   type RsvpStatus,
   type RsvpWritableStatus
 } from './lib/rsvpTransitions.js';
+import { registerRideLifecycleRoutes, validateRsvpLifecycle } from './lib/rideLifecycleRoutes.js';
 import {
   checkGroupNameCollision,
   normalizeGroupName
@@ -1724,6 +1725,8 @@ export async function buildApp({
     return typeof maybePool.connect === 'function' ? (db as Pool) : null;
   }
 
+  registerRideLifecycleRoutes(app, db, getRlsPool);
+
   app.post('/v1/groups/:id/routes', async (req, reply) => {
     const uid = requireUserId(req, reply);
     if (!uid) return;
@@ -1794,7 +1797,8 @@ export async function buildApp({
     const { rows } = await withUserDb(rls, uid, (client) =>
       client.query(
         `SELECT id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
-                status, created_at, updated_at
+                status, created_at, updated_at, outbound_started_at, destination_reached_at,
+                return_started_at, completed_at
          FROM club_routes
          WHERE group_id = $1
          ORDER BY starts_at NULLS LAST, created_at DESC`,
@@ -1843,6 +1847,8 @@ export async function buildApp({
         [routeId, uid]
       );
       const current = currentRes.rows[0]?.status as RsvpStatus | undefined;
+      const lifecycleError = await validateRsvpLifecycle(client, routeId, current, target);
+      if (lifecycleError) return { kind: 'lifecycle_error' as const, ...lifecycleError };
       if (current && !canTransition(current, target)) {
         return { kind: 'invalid_transition' as const, current };
       }
@@ -1864,8 +1870,12 @@ export async function buildApp({
                WHEN EXCLUDED.status <> 'home' THEN NULL
                ELSE club_route_rsvps.home_at END,
              updated_at = CASE WHEN club_route_rsvps.status = EXCLUDED.status
-                               THEN club_route_rsvps.updated_at ELSE now() END
-         RETURNING route_id, user_id, status, responded_at, home_at, updated_at`,
+                               THEN club_route_rsvps.updated_at ELSE now() END,
+         on_site_at = CASE
+                WHEN EXCLUDED.status = 'confirmed' AND club_route_rsvps.status = 'confirmed'
+                  THEN club_route_rsvps.on_site_at
+                ELSE NULL END
+          RETURNING route_id, user_id, status, responded_at, home_at, updated_at, on_site_at`,
         [routeId, uid, target]
       );
 
@@ -1879,6 +1889,9 @@ export async function buildApp({
 
     if (result.kind === 'not_found') return reply.code(404).send({ error: 'ROUTE_NOT_FOUND' });
     if (result.kind === 'forbidden') return reply.code(403).send({ error: 'NOT_A_CLUB_MEMBER' });
+    if (result.kind === 'lifecycle_error') {
+      return reply.code(result.statusCode).send({ error: result.error });
+    }
     if (result.kind === 'invalid_transition') {
       return reply.code(409).send({
         error: 'INVALID_RSVP_TRANSITION',
@@ -1919,7 +1932,7 @@ export async function buildApp({
       const canViewFull = leaderRes.rows.length > 0;
 
       const allRes = await client.query(
-        `SELECT user_id, status, responded_at, home_at, updated_at
+        `SELECT user_id, status, responded_at, home_at, updated_at, on_site_at
          FROM club_route_rsvps WHERE route_id = $1
          ORDER BY responded_at NULLS LAST, user_id`,
         [routeId]

@@ -62,7 +62,8 @@ export function readInitMigrationSql(): string {
     '0015_add_mf_tier.sql',
     '0016_club_profile.sql',
     '0017_club_routes_and_profile_version.sql',
-    '0018_routes_description_and_permissions.sql'
+    '0018_routes_description_and_permissions.sql',
+    '0020_ride_lifecycle.sql'
   ];
   return migrationFiles
     .map((file) => path.join(__dirname, 'migrations', file))

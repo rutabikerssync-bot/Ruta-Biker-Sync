@@ -204,6 +204,10 @@ describe('Fase 3 �?" endpoints de rutas de club y RSVP idempotente', () => {
     expect(enRoute.statusCode).toBe(200);
     expect(enRoute.json().rsvp.status).toBe('en_route');
 
+    // Precondición nueva del ciclo: "home" solo se permite con retorno iniciado.
+    await withUserDb(pool, presidentId, (client) =>
+      client.query('UPDATE club_routes SET return_started_at = now() WHERE id = $1', [routeId])
+    );
     const home = await app.inject({
       method: 'POST',
       url: `/v1/routes/${routeId}/rsvp`,
