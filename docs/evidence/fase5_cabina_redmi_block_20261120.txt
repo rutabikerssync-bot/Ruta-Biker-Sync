@@ -1,0 +1,19 @@
+Fase 5 — Regresión de cabina post b01b481 — bloqueo hardware Redmi (2026-11-20)
+
+Objetivo: confirmar ambos peers y capturar TECNO + Redmi tras el fix de MainAppScaffold.
+
+Observado antes del bloqueo:
+- En Redmi se visualizó el botón clásico "Iniciar Rodada (Cabina Activa)" restaurado.
+- En TECNO: HUD "2 riders"; avatar local Omartinezpaz y peer remoto genérico (fallback privacy actual, sin match userId↔shortId).
+
+Bloqueo confirmado:
+- adb devices dejó de listar Redmi: `b2c398bb not found`.
+- `adb connect 100.98.78.105:5555`: error 10061 (conexión rechazada).
+- `adb connect 192.168.100.138:5555`: el mismo error 10061.
+- Por USB apareció alternadamente `offline` y después no listado.
+- Tailscale permaneció activo: `redmi-note-13-pro-5g ... active; direct` y ping a 100.98.78.105 respondió, por lo que el bloqueo es del enlace adbd/USB, no un fallo del backend.
+
+Decisión honesta:
+- No se declara verificación bilateral completada.
+- No se fabrica captura ni identidad de peers.
+- El fix y las pruebas JVM sí son ejecutados/verificados; debe repetirse la validación de malla cuando el enlace ADB sea estable.

@@ -1327,8 +1327,9 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // La puerta real de inicio vive en el roster; evita saltársela desde otro CTA.
-        if (rideRoster == null) {
+        // La puerta real de inicio vive en el roster para líderes; miembros no líderes
+        // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
+        if (rideRoster == null || !canPublishClubRoute) {
             HeritageBrassButton(
                 text = stringResource(id = R.string.rides_btn_start_active_cockpit),
                 onClick = {

@@ -433,3 +433,19 @@ El patch original del outbox tenia CRLF+BOM y el repo mezcla LF/CRLF (`core.auto
 **Confirmacion**: la capa de datos del outbox y el cableado del banner funcionan y estan cubiertos por 42/42 tests JVM. La compilacion y el release firmado son correctos. **El RSVP offline NO queda confirmado en hardware** y no hay captura real del banner "Pendiente de sincronizar".
 
 **Pendiente**: reconectar Redmi e instalar release v2; restaurar sesion/club/ruta en ambos (estado limpio); ejecutar humo Fase 5 red->avion->red con capturas y humo Fase 2 del motto; validar conectividad Tailscale de TECNO y reinicio completo de Windows para WSL; rotar la contraseña del keystore v2 expuesta en la conversacion. No hacer push. No tocar BLE/GATT/PTT/crypto/backend.
+
+### Fix regresión cabina de miembros post b01b481 — 2026-11-20
+
+**Diagnóstico**: el commit `b01b481` ocultó el botón clásico "Iniciar Rodada (Cabina Activa)" cuando existía roster. Como el nuevo "Iniciar Ruta" se muestra solo al líder, un miembro (Redmi) perdió el camino que ejecuta `onStartLiveMapPreview()` y `startRideServiceNow(...)`; por ello no iniciaba su malla ni aparecían los peers. El render local y los cálculos de peer markers/conteo no cambiaron.
+
+**Cambio mínimo**: `MainAppScaffold.kt` pasa de `if (rideRoster == null)` a `if (rideRoster == null || !canPublishClubRoute)`. Líder: mantiene únicamente el CTA del roster con sus reglas de presencia. Miembro no líder: recupera cabina/malla sin invocar `/v1/routes/:id/start`. No se modificaron `LiveMapViewModel`, `RideService`, `RideParticipantsScreen`, GATT, outbox ni criptografía.
+
+**Tests**: `compileStandardDebugKotlin` BUILD SUCCESSFUL. Nueva `RideCabinaAccessTest` cubre sin roster, roster+líder, roster+miembro y multiclub (liderazgo real del grupo actual, no global). También `RideParticipantsUiTest`, `LiveMapViewModelTest` y `RideServicePhase3Test` pasan.
+
+**Evidencia hardware parcial, no cierre bilateral**:
+- Redmi mostró el botón clásico restaurado antes de perder el enlace ADB.
+- TECNO muestra HUD **2 riders** y un peer remoto genérico, evidencia en `docs/evidence/fase5_cabina_peers_tecno_20261120.png`.
+- En el peer remoto no se afirma identificación por nombre/avatar/rol: la implementación actual conserva el fallback de privacidad sin mapeo `userId↔shortId`.
+- Redmi no pudo confirmarse por ADB: 10061 en Tailscale y LAN, USB `offline` y luego no listado. Detalle en `docs/evidence/fase5_cabina_redmi_block_20261120.txt`.
+
+**Pendiente factual**: con enlace ADB estable, iniciar Redmi por el botón clásico, verificar el nombre/rol real permitido por la privacidad y capturar los dos peers en ambos mapas y la notificación 1→2 riders. Esta sección no declara completados esos últimos pasos.
