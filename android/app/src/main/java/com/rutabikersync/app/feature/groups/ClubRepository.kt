@@ -1307,6 +1307,43 @@ class ClubRepository(
         return Result.success(updated)
     }
 
+    /**
+     * Aplica la respuesta del PUT /v1/groups/:id/profile como fuente de verdad.
+     * Evita que el sync periódico (cada 1,5 s) revierta la edición si el listado
+     * aún no refleja el cambio o si la petición falló.
+     */
+    fun applyGroupProfileFromApi(groupId: String, body: kotlinx.serialization.json.JsonObject?): Boolean {
+        val gObj = body?.get("group") as? kotlinx.serialization.json.JsonObject ?: return false
+        val colorsDesc = gObj["colorsDescription"].asString()
+        val siglas = gObj["clubSiglas"].asString()
+        val tradition = gObj["traditionType"].asString()
+        val scope = gObj["directivaScope"].asString()
+        val region = gObj["directivaRegion"].asString()
+        val motto = gObj["motto"].asString()
+        val city = gObj["city"].asString()
+        val foundationDate = gObj["foundationDate"].asString()
+        val logoUrl = gObj["logoUrl"].asString()
+        val tierCode = gObj["tier"].asString()
+        val remoteVersion = gObj["profileVersion"]?.jsonPrimitive?.content?.toIntOrNull()
+
+        _groups.value = _groups.value.map {
+            if (it.id != groupId) it else it.copy(
+                tier = tierCode?.let { code -> runCatching { ClubTier.fromCode(code) }.getOrNull() } ?: it.tier,
+                colorsDescription = colorsDesc ?: it.colorsDescription,
+                clubSiglas = siglas ?: it.clubSiglas,
+                traditionType = tradition ?: it.traditionType,
+                directivaScope = scope ?: it.directivaScope,
+                directivaRegion = region ?: it.directivaRegion,
+                motto = motto ?: it.motto,
+                city = city ?: it.city,
+                foundationDate = foundationDate?.ifBlank { it.foundationDate } ?: it.foundationDate,
+                logoCustomUri = logoUrl ?: it.logoCustomUri,
+                profileVersion = remoteVersion ?: it.profileVersion
+            )
+        }
+        return true
+    }
+
     fun updateMemberClass(
         groupId: String,
         memberUserId: String,

@@ -931,11 +931,10 @@ class Phase1ViewModel(
             foundationDate = foundationDate
         )
         res.fold(
-            onSuccess = {
-                _statusBanner.value = "✓ Perfil e identidad biker de '${it.name}' guardados con éxito"
+            onSuccess = { optimistic ->
                 viewModelScope.launch {
-                    val logoPayload = if (it.logoCustomUri?.startsWith("data:image") == true) it.logoCustomUri else null
-                    repository.apiClient.updateGroupProfile(
+                    val logoPayload = if (optimistic.logoCustomUri?.startsWith("data:image") == true) optimistic.logoCustomUri else null
+                    val apiRes = repository.apiClient.updateGroupProfile(
                         groupId = groupId,
                         colorsDescription = colorsDescription,
                         clubSiglas = clubSiglas,
@@ -946,9 +945,28 @@ class Phase1ViewModel(
                         city = city,
                         foundationDate = foundationDate,
                         logoUrl = logoPayload,
-                        tier = it.tier.code
-                    )
-                    repository.syncClubsAndInvitations()
+                        tier = optimistic.tier.code
+                    ).getOrNull()
+
+                    if (apiRes != null && apiRes.isSuccess) {
+                        val applied = repository.applyGroupProfileFromApi(groupId, apiRes.body)
+                        if (applied) {
+                            _statusBanner.value = "✓ Perfil e identidad biker de '${optimistic.name}' guardados con éxito"
+                        } else {
+                            repository.syncClubsAndInvitations()
+                            _statusBanner.value = "✓ Perfil guardado en servidor. Sincronizando datos actualizados..."
+                        }
+                    } else {
+                        // Sincronizar para revertir el optimismo local: evita que el cambio
+                        // "dure un segundo" y vuelva a los valores antiguos del servidor.
+                        val detail = apiRes?.body?.get("error")?.toString()?.trim('"')
+                        _statusBanner.value = if (detail.isNullOrBlank()) {
+                            "⚠️ No se pudo guardar el perfil en el servidor. Se restauraron los datos actuales."
+                        } else {
+                            "⚠️ No se pudo guardar el perfil ($detail). Se restauraron los datos actuales."
+                        }
+                        repository.syncClubsAndInvitations()
+                    }
                 }
             },
             onFailure = { err ->
