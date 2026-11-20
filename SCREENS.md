@@ -102,12 +102,25 @@ Barra inferior (modo normal): **Rodadas · Grupo · Rutas · Perfil**. Los miemb
 - Propósito: ver ruta, participantes con estatus, roles de rodada, confirmaciones.
 - Datos: L+B. Acciones (Líder): editar, asignar roles (Scout/Sweep/Capitán, con excepción de rango R8.3), cancelar, iniciar sala.
 - Skeleton: cabecera de mapa + lista de participantes.
+- **Tres datos separados, nunca sustituibles entre sí:**
+  1. **RSVP (intención):** `pending | confirmed | no_go`.
+  2. **Presencia en el punto de encuentro:** `onSiteAt` ausente/presente. `confirmed` no demuestra presencia física.
+  3. **Ciclo operativo:** `SCHEDULED | READY | OUTBOUND | AT_DESTINATION | RETURNING | COMPLETED`. `READY` es derivado y no una acción manual.
+- La fila de cada participante muestra avatar real o iniciales, nombre, cargo y estado. Cada usuario cambia únicamente su propia fila; el resto es de consulta. No se crean nombres, avatares ni asistencias demo como si fueran datos reales.
+- La lista incluye líderes y miembros aceptados full/prospect. Los invitados solo entran con invitación temporal aceptada para esa rodada (**R6.4**). La regla de suscripción de **B3** se conserva: miembro con pago vencido queda excluido y se muestra en rojo, sin CTA de participación.
+- **Cambio de opinión:** `no_go → confirmed` únicamente dentro de `[startsAt - 1h, startsAt)`, validado con reloj del servidor. Antes de esa ventana la acción está bloqueada; al llegar `startsAt` o iniciar la rodada se cierra la decisión.
+- **Presencia:** el usuario confirmado marca explícitamente "En el sitio" en su dispositivo; no hay geocercas ni llegadas inferidas. Se registra `onSiteAt` de forma idempotente, sin reiniciarlo en reintentos.
+- **Puerta de inicio:** se habilita **Iniciar Ruta** solo si existe al menos un `confirmed` y **todos los `confirmed` tienen `onSiteAt != null`**. Pendientes/no_go no bloquean. Un `no_go → confirmed` permitido añade una llegada requerida y vuelve a bloquear el inicio hasta que esa persona marque presencia.
 
 **B5. Sala de espera (pre-rodada)**
 - Propósito: sincronizar antes de salir: credencial, lista de revocación, manifiesto, descarga de mapa, comprobación de batería y permisos.
 - Datos: B (sincronización forzada, BACKEND 7) + L.
 - Estado propio: **lista de verificación** con cada ítem en cargando / ok / aviso. Es una lista de progreso, no un skeleton.
-- Acciones: "Iniciar rodada" (solo anfitrión, solo con verificación completa o aviso aceptado), "Estoy listo" (miembros).
+- Acciones: "Iniciar rodada" (solo anfitrión, solo con verificación completa o aviso aceptado), "Estoy listo" (miembros). Además se exige la puerta de presencia de B4 antes de habilitar la salida.
+- **Secuencia canónica de fases:** `Pendiente → Asistiré/No asistiré → En el sitio → Iniciar Ruta → Ida → Destino → Retorno → Ya en casa`. Cada transición valida orden y actor; repetirla no duplica participantes ni reinicia timestamps. La decisión queda cerrada como manifiesto al iniciar.
+- **Ida:** "Iniciar Ruta" registra `outboundStartedAt`, pasa a `OUTBOUND` y abre el mapa activo existente con el origen/destino/geometría elegidos. Durante la ida no se solicita otra ruta ni se altera GATT/criptografía.
+- **Destino/retorno:** al finalizar la ida se registra `destinationReachedAt` y la fase pasa a `AT_DESTINATION`; solo entonces el líder puede pulsar "Retorno". "Retorno" registra `returnStartedAt`, pasa a `RETURNING` y activa el mapa con el plan de retorno ya guardado. No se inventan rutas inversas ni geocercas.
+- **Casa:** únicamente con el retorno iniciado cada participante puede marcar "Ya llegué a salvo a casa"; `homeAt` es individual e idempotente, y `home` es terminal. La acción de una persona no cierra la rodada de las demás. Cuando todos los participantes del manifiesto están a salvo el líder puede cerrar explícitamente y continuar a B6.
 - Avisos: sin internet → "la lista de revocación puede estar desactualizada" con fecha de última sincronización.
 
 **B6. Resumen de rodada**
@@ -126,6 +139,7 @@ Barra inferior (modo normal): **Rodadas · Grupo · Rutas · Perfil**. Los miemb
 - Elementos: avatares circulares de 48 dp con borde del color del rider, **nombre abreviado siempre visible** (`"J.M."` o `"R#X"` si es desconocido en rodada aliada según R4.7/R4.8 — Decisión D54 / 3.2 C) y tarjeta expandible con nombre completo, velocidad, batería y distancia al líder al tocar; estado con símbolo + texto (`✓ En ruta` / `⚠ Desviado` / `✕ Sin señal` / `SOS ACTIVO`); **pin del líder fijo** + botón `"Seguir líder"` que centra la cámara por 10 s y vuelve a navegación libre (Decisión D54 / 3.3 B); barra superior con batería, nº de nodos y estado de GPS; atribución `© OpenStreetMap contributors` siempre visible.
 - Estados propios: `Conectando` (buscando riders), `Mesh conectada`, `Mesh parcial` (islas), `Solo` (sin nadie en rango), `GPS sin fijar`.
 - Acciones (máx. 3 flotantes en modo guantes, ≥ 72 dp con vibración): **Hablar**, **SOS**, **Señales**.
+- **Ciclo de mapa:** durante `OUTBOUND` permanece la ruta de ida elegida; finalizarla muestra el CTA "Retorno" sin marcar RSVP `home`. "Retorno" activa el retorno configurado (misma ruta/circuito/libre) y habilita el check-in individual "Ya llegué a salvo a casa". El mapa y la malla no dependen de la red para estas acciones; los estados pendientes se sincronizan después sin alterar GATT, chat, SOS, PTT ni criptografía.
 
 **C2. Hablar (PTT por clips)**
 - Propósito: grabar y enviar clip de hasta 15 s.
