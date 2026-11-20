@@ -20,7 +20,7 @@ export const RSVP_STATUSES: readonly RsvpStatus[] = [
 ] as const;
 
 /** Estados que el cliente puede enviar explicitamente al endpoint de RSVP. */
-export const RSVP_WRITABLE_STATUSES = ['confirmed', 'home', 'no_go'] as const;
+export const RSVP_WRITABLE_STATUSES = ['confirmed', 'en_route', 'home', 'no_go'] as const;
 export type RsvpWritableStatus = (typeof RSVP_WRITABLE_STATUSES)[number];
 
 const ALLOWED_TRANSITIONS: Record<RsvpStatus, readonly RsvpStatus[]> = {

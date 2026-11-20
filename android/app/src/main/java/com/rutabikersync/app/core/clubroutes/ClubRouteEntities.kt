@@ -13,6 +13,7 @@ data class ClubRouteEntity(
     val groupId: String,
     val createdBy: String,
     val title: String,
+    val description: String? = null,
     val routeRef: String? = null,
     val startsAt: String? = null,
     val endsAt: String? = null,

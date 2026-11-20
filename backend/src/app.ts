@@ -196,13 +196,26 @@ const CreateGroupSchema = z.object({
 
 const CreateClubRouteSchema = z.object({
   title: z.string().min(3).max(140),
+  description: z.string().max(2000).nullable().optional(),
   routeRef: z.string().max(200).nullable().optional(),
-  startsAt: z.string().datetime().nullable().optional(),
+  startsAt: z.string().datetime(),
   endsAt: z.string().datetime().nullable().optional()
 });
 
+const UpdateClubRouteSchema = z
+  .object({
+    title: z.string().min(3).max(140).optional(),
+    description: z.string().max(2000).nullable().optional(),
+    startsAt: z.string().datetime().optional(),
+    endsAt: z.string().datetime().nullable().optional(),
+    routeRef: z.string().max(200).nullable().optional()
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'Al menos un campo debe actualizarse'
+  });
+
 const RsvpBodySchema = z.object({
-  status: z.enum(['confirmed', 'home', 'no_go'])
+  status: z.enum(['confirmed', 'en_route', 'home', 'no_go'])
 });
 
 const AddLeaderSchema = z.object({
@@ -1726,13 +1739,13 @@ export async function buildApp({
 
     const leaderCheck = await db.query(
       `SELECT 1 FROM group_leaders
-       WHERE group_id = $1 AND user_id = $2 AND is_principal = true`,
+       WHERE group_id = $1 AND user_id = $2`,
       [groupId, uid]
     );
     if (leaderCheck.rows.length === 0) {
       return reply.code(403).send({
         error: 'LEADER_REQUIRED',
-        message: 'Solo el presidente del club puede publicar rutas'
+        message: 'Solo la mesa directiva del club puede publicar rutas'
       });
     }
 
@@ -1743,16 +1756,17 @@ export async function buildApp({
       const { rows } = await withUserDb(rls, uid, (client) =>
         client.query(
           `INSERT INTO club_routes
-             (group_id, created_by, title, route_ref, starts_at, ends_at, status)
-           VALUES ($1, $2, $3, $4, $5, $6, 'published')
-           RETURNING id, group_id, created_by, title, route_ref, starts_at, ends_at,
+             (group_id, created_by, title, description, route_ref, starts_at, ends_at, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'published')
+           RETURNING id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
                      status, created_at, updated_at`,
           [
             groupId,
             uid,
             parsed.data.title,
+            parsed.data.description ?? null,
             parsed.data.routeRef ?? null,
-            parsed.data.startsAt ?? null,
+            parsed.data.startsAt,
             parsed.data.endsAt ?? null
           ]
         )
@@ -1779,7 +1793,7 @@ export async function buildApp({
 
     const { rows } = await withUserDb(rls, uid, (client) =>
       client.query(
-        `SELECT id, group_id, created_by, title, route_ref, starts_at, ends_at,
+        `SELECT id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
                 status, created_at, updated_at
          FROM club_routes
          WHERE group_id = $1
@@ -1897,12 +1911,12 @@ export async function buildApp({
       const route = routeRes.rows[0];
       if (!route) return { kind: 'not_found' as const };
 
-      const principalRes = await client.query(
+      const leaderRes = await client.query(
         `SELECT 1 FROM group_leaders
-         WHERE group_id = $1 AND user_id = $2 AND is_principal = true`,
+         WHERE group_id = $1 AND user_id = $2`,
         [route.group_id, uid]
       );
-      const isPrincipal = principalRes.rows.length > 0;
+      const canViewFull = leaderRes.rows.length > 0;
 
       const allRes = await client.query(
         `SELECT user_id, status, responded_at, home_at, updated_at
@@ -1922,7 +1936,7 @@ export async function buildApp({
 
       return {
         kind: 'ok' as const,
-        isPrincipal,
+        canViewFull,
         rows: allRes.rows,
         summary: summaryRes.rows[0]
       };
@@ -1931,8 +1945,8 @@ export async function buildApp({
     if (result.kind === 'not_found') return reply.code(404).send({ error: 'ROUTE_NOT_FOUND' });
 
     // RLS = aislamiento por club (0017). El filtro de rol es de aplicacion:
-    // el presidente ve filas individuales; el miembro, solo la suya + el resumen.
-    if (result.isPrincipal) {
+    // la mesa directiva ve filas individuales; el miembro, solo la suya + el resumen.
+    if (result.canViewFull) {
       return reply.code(200).send({
         routeId,
         scope: 'full',
@@ -1946,6 +1960,104 @@ export async function buildApp({
       rsvps: result.rows.filter((r) => String(r.user_id) === uid),
       summary: result.summary
     });
+  });
+
+  app.patch('/v1/routes/:id', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: routeId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(routeId).success) {
+      return reply.code(400).send({ error: 'INVALID_ROUTE_ID' });
+    }
+
+    const parsed = UpdateClubRouteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+
+    const rls = getRlsPool();
+    if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
+
+    const result = await withUserDb(rls, uid, async (client) => {
+      const routeRes = await client.query(
+        `SELECT id, group_id, status, starts_at
+         FROM club_routes
+         WHERE id = $1`,
+        [routeId]
+      );
+      const route = routeRes.rows[0];
+      if (!route) return { kind: 'not_found' as const };
+
+      const leaderRes = await client.query(
+        `SELECT 1 FROM group_leaders
+         WHERE group_id = $1 AND user_id = $2`,
+        [route.group_id, uid]
+      );
+      if (leaderRes.rows.length === 0) return { kind: 'forbidden' as const };
+
+      if (route.status !== 'published') {
+        return { kind: 'not_editable' as const, reason: 'STATUS_NOT_EDITABLE' };
+      }
+
+      const notPastRes = await client.query(
+        `SELECT (starts_at > now()) AS editable FROM club_routes WHERE id = $1`,
+        [routeId]
+      );
+      if (!notPastRes.rows[0]?.editable) {
+        return { kind: 'not_editable' as const, reason: 'ROUTE_ALREADY_STARTED' };
+      }
+
+      if (parsed.data.startsAt) {
+        const futureRes = await client.query(`SELECT ($1::timestamptz > now()) AS future`, [parsed.data.startsAt]);
+        if (!futureRes.rows[0]?.future) {
+          return { kind: 'not_editable' as const, reason: 'STARTS_AT_MUST_BE_FUTURE' };
+        }
+      }
+
+      const updates: string[] = [];
+      const values: unknown[] = [];
+      let idx = 1;
+      if (parsed.data.title !== undefined) {
+        updates.push(`title = $${idx++}`);
+        values.push(parsed.data.title);
+      }
+      if (Object.prototype.hasOwnProperty.call(parsed.data, 'description')) {
+        updates.push(`description = $${idx++}`);
+        values.push(parsed.data.description ?? null);
+      }
+      if (parsed.data.startsAt !== undefined) {
+        updates.push(`starts_at = $${idx++}::timestamptz`);
+        values.push(parsed.data.startsAt);
+      }
+      if (Object.prototype.hasOwnProperty.call(parsed.data, 'endsAt')) {
+        updates.push(`ends_at = $${idx++}::timestamptz`);
+        values.push(parsed.data.endsAt ?? null);
+      }
+      if (Object.prototype.hasOwnProperty.call(parsed.data, 'routeRef')) {
+        updates.push(`route_ref = $${idx++}`);
+        values.push(parsed.data.routeRef ?? null);
+      }
+      updates.push('updated_at = now()');
+      values.push(routeId);
+
+      const upRes = await client.query(
+        `UPDATE club_routes
+         SET ${updates.join(', ')}
+         WHERE id = $${idx}
+         RETURNING id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
+                   status, created_at, updated_at`,
+        values
+      );
+
+      return { kind: 'ok' as const, route: upRes.rows[0] };
+    });
+
+    if (result.kind === 'not_found') return reply.code(404).send({ error: 'ROUTE_NOT_FOUND' });
+    if (result.kind === 'forbidden') return reply.code(403).send({ error: 'LEADER_REQUIRED' });
+    if (result.kind === 'not_editable') {
+      return reply.code(409).send({ error: result.reason });
+    }
+    return reply.code(200).send({ route: result.route });
   });
 
   app.delete('/v1/groups/:id/leaders/:leaderUid', async (req, reply) => {

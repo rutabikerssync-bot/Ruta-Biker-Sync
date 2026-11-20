@@ -5,6 +5,7 @@ import com.rutabikersync.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -326,6 +327,37 @@ class ClubApiClient(
 
     suspend fun getClubRoutes(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
         executeRequest("GET", "/v1/groups/$groupId/routes", null)
+    }
+
+    suspend fun createClubRoute(
+        groupId: String,
+        title: String,
+        startsAt: String,
+        description: String? = null
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            put("title", title)
+            put("startsAt", startsAt)
+            if (description != null) put("description", description)
+        }
+        executeRequest("POST", "/v1/groups/$groupId/routes", payload)
+    }
+
+    suspend fun updateClubRoute(
+        routeId: String,
+        title: String? = null,
+        startsAt: String? = null,
+        description: String? = null,
+        updateDescription: Boolean = false
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject {
+            if (title != null) put("title", title)
+            if (startsAt != null) put("startsAt", startsAt)
+            if (updateDescription) {
+                if (description == null) put("description", JsonNull) else put("description", description)
+            }
+        }
+        executeRequest("PATCH", "/v1/routes/$routeId", payload)
     }
 
     suspend fun getRsvps(routeId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {

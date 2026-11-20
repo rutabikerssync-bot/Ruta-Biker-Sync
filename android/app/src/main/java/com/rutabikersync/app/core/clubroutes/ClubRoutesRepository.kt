@@ -2,6 +2,9 @@ package com.rutabikersync.app.core.clubroutes
 
 import android.content.Context
 import com.rutabikersync.app.core.network.ClubApiClient
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.format.DateTimeParseException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,6 +64,7 @@ class ClubRoutesRepository(
                 groupId = o["group_id"]?.asText() ?: groupId,
                 createdBy = o["created_by"]?.asText().orEmpty(),
                 title = o["title"]?.asText() ?: "Ruta",
+                description = o["description"]?.asText(),
                 routeRef = o["route_ref"]?.asText(),
                 startsAt = o["starts_at"]?.asText(),
                 endsAt = o["ends_at"]?.asText(),
@@ -71,6 +75,37 @@ class ClubRoutesRepository(
         }
         routeDao.upsertRoutes(fresh)
         return routeDao.getRoutes(groupId)
+    }
+
+    /**
+     * Próxima rodada publicada y futura del club (criterio D4): publicada,
+     * con startsAt parseable y posterior a ahora, ordenada por startsAt asc.
+     * Usa caché local; el llamador puede refrescar antes con [loadRoutes].
+     */
+    suspend fun getNextRoute(groupId: String): ClubRouteEntity? {
+        val now = Instant.now()
+        return routeDao.getRoutes(groupId)
+            .asSequence()
+            .filter { it.status == "published" }
+            .mapNotNull { route ->
+                val start = parseRouteInstant(route.startsAt) ?: return@mapNotNull null
+                if (start.isAfter(now)) route to start else null
+            }
+            .minByOrNull { it.second }
+            ?.first
+    }
+
+    private fun parseRouteInstant(value: String?): Instant? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            Instant.parse(value)
+        } catch (_: DateTimeParseException) {
+            try {
+                OffsetDateTime.parse(value).toInstant()
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 
     /**
