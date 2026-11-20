@@ -139,6 +139,14 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         is AuthState.Ready -> {
+                            androidx.compose.runtime.LaunchedEffect(state.profile.uid) {
+                                com.rutabikersync.app.feature.groups.ClubRepository
+                                    .getInstance()
+                                    .syncWithLocalProfile(applicationContext)
+                                com.rutabikersync.app.core.network.ClubApiClient
+                                    .getInstance()
+                                    .ensureAuthenticatedUser()
+                            }
                             MainAppScaffold(
                                 isDarkMode = isDarkMode,
                                 onToggleDarkMode = {
