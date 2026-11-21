@@ -46,4 +46,24 @@ class GattVoiceFramerTest {
         frames.forEach { reassembler.feed(it) }
         assertNull(reassembler.feed(frames.first()))
     }
+
+    @Test
+    fun `sobres sensibles de 52 y 120 B se fragmentan por GATT sin perder bytes`() {
+        listOf(52, 120).forEach { size ->
+            val payload = ByteArray(size) { (it * 13).toByte() }
+
+            val frames = GattVoiceFramer.frame(payload, mtu = 23, streamId = 21, sequence = 5)
+            assertTrue("Con MTU=23 debe haber fragmentos", frames.size > 1)
+            frames.forEach { assertTrue("Frame GATT excede ATT payload: ${it.size}", it.size <= 20) }
+
+            val rx = GattVoiceFramer.Reassembler()
+            var restored: ByteArray? = null
+            frames.reversed().forEach { restored = rx.feed(it) ?: restored }
+            assertArrayEquals(payload, restored!!)
+
+            val negotiated = GattVoiceFramer.frame(payload, mtu = 517, streamId = 21, sequence = 6)
+            assertEquals(1, negotiated.size)
+            assertArrayEquals(payload, GattVoiceFramer.Reassembler().feed(negotiated.single()))
+        }
+    }
 }

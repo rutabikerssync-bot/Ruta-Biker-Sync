@@ -373,16 +373,23 @@ class RideSessionController(
         // Reenvío autenticado: reutiliza el Transport activo de la rodada. Los bytes ya vienen
         // validados y con TTL decrementado por el engine; aquí no se fabrican ni alteran tramas.
         engine.onAuthenticatedRelayTransmit = { bytes ->
-            val priority = runCatching {
-                when (MeshHeader.fromByteArray(bytes).packetType) {
-                    MeshHeader.TYPE_SOS,
-                    MeshHeader.TYPE_SOS_ACK,
-                    MeshHeader.TYPE_MEDICAL_SHEET -> Transport.Priority.SOS
-                    MeshHeader.TYPE_PTT_VOICE -> Transport.Priority.VOICE
-                    MeshHeader.TYPE_HEARTBEAT -> Transport.Priority.POSITION
-                    else -> Transport.Priority.STATUS
-                }
-            }.getOrDefault(Transport.Priority.STATUS)
+            // Los SOS/ACK ya llegan dentro del sobre sensible: priorizar por KIND sin
+            // volver a abrir el ciphertext ni interpretar el magic como MeshHeader.
+            val priority = when (SensitiveFrameEnvelope.kindOf(bytes)) {
+                SensitiveFrameEnvelope.KIND_SOS,
+                SensitiveFrameEnvelope.KIND_SOS_ACK -> Transport.Priority.SOS
+                SensitiveFrameEnvelope.KIND_MESH_PACKET -> Transport.Priority.PEER_EVENT
+                else -> runCatching {
+                    when (MeshHeader.fromByteArray(bytes).packetType) {
+                        MeshHeader.TYPE_SOS,
+                        MeshHeader.TYPE_SOS_ACK,
+                        MeshHeader.TYPE_MEDICAL_SHEET -> Transport.Priority.SOS
+                        MeshHeader.TYPE_PTT_VOICE -> Transport.Priority.VOICE
+                        MeshHeader.TYPE_HEARTBEAT -> Transport.Priority.POSITION
+                        else -> Transport.Priority.STATUS
+                    }
+                }.getOrDefault(Transport.Priority.STATUS)
+            }
             scope.launch {
                 runCatching { selectedTransport.send(bytes, priority) }
                     .onFailure { Log.w("RideService", "RelayTx falló: ${it.message}") }

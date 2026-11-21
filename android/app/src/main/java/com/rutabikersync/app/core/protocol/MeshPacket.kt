@@ -20,6 +20,13 @@ import kotlin.math.roundToInt
  *                      - Byte 13: 3 bits altos = Priority ordinal (0..5), 5 bits bajos = initialTtl (1..15)
  *                      - Bytes 14..15 (UShort): 12 bits altos = sequenceNumber (0..4095), 4 bits bajos = currentTtl (0..15)
  * - Bytes 16..19(4 B): Etiqueta de autenticación HMAC-SHA256 truncada a 4 bytes (sobre los primeros 16 bytes con currentTtl enmascarado)
+ *
+ * Este formato de 20 bytes permanece intacto para heartbeats y telemetry de posición.
+ * Los frames sensibles (señales de convoy, eventos de ciclo, SOS y ACK) se envían dentro de
+ * `SensitiveFrameEnvelope`: magic `0x53 0x46`, versión `0x01`, kind, nonce de 12 bytes y
+ * `ciphertext || tag Poly1305`. El HMAC de estos 20 bytes viaja DENTRO del ciphertext y se
+ * verifica después de descifrar; el tag HMAC original enmascara `currentTtl`, por lo que el
+ * reenvío puede decrementar TTL y volver a cifrar con un nonce nuevo sin recalcularlo.
  */
 data class MeshPacket(
     val shortId: UShort,

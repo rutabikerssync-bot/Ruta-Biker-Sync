@@ -42,6 +42,7 @@ import com.rutabikersync.app.core.mesh.audio.AudioFocusController
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
 import com.rutabikersync.app.core.mesh.audio.PttState
 import com.rutabikersync.app.core.mesh.audio.VoicePacket
+import com.rutabikersync.app.core.protocol.MeshPacket
 import com.rutabikersync.app.core.mesh.sos.MedicalRescueData
 import com.rutabikersync.app.core.mesh.sos.MedicalSheetCrypto
 import com.rutabikersync.app.core.mesh.sos.MedicalSheetPacket
@@ -531,6 +532,7 @@ class BleMeshService : Service() {
             localShortId = shortId,
             clubNetworkId = clubId,
             deduplicationTable = engine.deduplicationTable,
+            scope = serviceScope,
             onTransmitRelay = { bytes -> transmitBleFrame(bytes) }
         ).also { relay ->
             // Conectar almacén de fichas médicas (Hito 4 · Etapa 3)
@@ -728,8 +730,9 @@ class BleMeshService : Service() {
             incidentCode = incidentCode,
             bloodType = bloodType
         )
-        relay.startSosBroadcaster(packet, serviceScope, intervalMs = 2000L) { bytes ->
-            transmitBleFrame(bytes)
+        relay.startSosBroadcaster(packet, serviceScope, intervalMs = 2000L) {
+            // El engine envuelve el SOS con ChaCha20-Poly1305 antes de emitirlo.
+            relay.emitSosPacket(packet)
         }
         Log.i(TAG, "SosBroadcaster legacy activado para shortId=${relay.localShortId}")
     }
@@ -752,11 +755,9 @@ class BleMeshService : Service() {
         if (RideService.getActiveRelayEngine() != null) {
             return RideService.dispatchSosAckPacket(ack)
         }
-        if (relayEngine == null) return false
-        serviceScope.launch(Dispatchers.Default) {
-            transmitBleFrame(ack.toByteArray())
-            Log.i(TAG, "SosAckPacket en emisión para originalSender=${ack.originalSenderShortId}")
-        }
+        val relay = relayEngine ?: return false
+        if (!relay.emitSosAckPacket(ack)) return false
+        Log.i(TAG, "SosAckPacket cifrado en emisión para originalSender=${ack.originalSenderShortId}")
         com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
         return true
     }
@@ -998,18 +999,35 @@ class BleMeshService : Service() {
     private fun handleScanResult(result: ScanResult) {
         val record = result.scanRecord ?: return
         val serviceData = record.getServiceData(ParcelUuid(MESH_SERVICE_UUID)) ?: return
-        if (serviceData.size < MeshHeader.HEADER_SIZE_BYTES) return
+        val relay = relayEngine
+
+        // Los frames sensibles llegan dentro de un sobre: descifrar ANTES de leer la cabecera.
+        val wire = if (SensitiveFrameEnvelope.isEnvelope(serviceData)) {
+            relay?.unwrapIncomingFrame(serviceData) ?: return
+        } else {
+            serviceData
+        }
+        if (wire.size == MeshPacket.PACKET_SIZE_BYTES &&
+            SensitiveFrameEnvelope.isEnvelope(serviceData)
+        ) {
+            if (relay != null) {
+                serviceScope.launch {
+                    relay.onRawPacketReceived(wire, System.currentTimeMillis(), result.rssi)
+                }
+            }
+            return
+        }
+        if (wire.size < MeshHeader.HEADER_SIZE_BYTES) return
 
         val header = try {
-            MeshHeader.fromByteArray(serviceData, 0)
+            MeshHeader.fromByteArray(wire, 0)
         } catch (e: Exception) {
             Log.w("MeshRelayEngine", "DroppedMalformed: cabecera corrupta (${e.message})")
             return
         }
 
-        val relay = relayEngine
         if (relay != null) {
-            when (val decision = relay.processIncomingPacket(serviceData, header.senderShortId)) {
+            when (val decision = relay.processIncomingPacket(wire, header.senderShortId)) {
                 is MeshRelayEngine.RelayDecision.Relayed -> {
                     Log.i(
                         "MeshRelayEngine",
@@ -1019,14 +1037,14 @@ class BleMeshService : Service() {
                         if (decision.jitterMs > 0) delay(decision.jitterMs)
                         transmitBleFrame(decision.relayedBytes)
                     }
-                    processLocalPacket(header, serviceData, result.rssi)
+                    processLocalPacket(header, wire, result.rssi)
                 }
                 is MeshRelayEngine.RelayDecision.ConsumedLocallyTtlExhausted -> {
                     Log.i(
                         "MeshRelayEngine",
                         "Received packet from shortId=${header.senderShortId} with currentTtl=${header.currentTtl}, ConsumedLocallyTtlExhausted(highPriority=${decision.isHighPriority})"
                     )
-                    processLocalPacket(header, serviceData, result.rssi)
+                    processLocalPacket(header, wire, result.rssi)
                 }
                 is MeshRelayEngine.RelayDecision.DroppedDuplicate -> {
                     Log.i(
@@ -1051,7 +1069,7 @@ class BleMeshService : Service() {
                 }
             }
         } else {
-            processLocalPacket(header, serviceData, result.rssi)
+            processLocalPacket(header, wire, result.rssi)
         }
     }
 

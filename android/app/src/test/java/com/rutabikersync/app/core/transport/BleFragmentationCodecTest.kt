@@ -4,6 +4,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Verifica la fragmentación transparente que permite texto cifrado en BLE legacy (29 B). */
@@ -68,6 +69,27 @@ class BleFragmentationCodecTest {
             assert(it.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) {
                 "frame de ${it.size} B excede el máximo legacy"
             }
+        }
+    }
+
+    @Test
+    fun `sobres sensibles de 52 y 120 B sobreviven a la fragmentacion BLE legacy`() {
+        listOf(52 to 4, 120 to 8).forEach { (size, expectedFragments) ->
+            val payload = ByteArray(size) { (it * 11).toByte() }
+            val frames = BleFragmentationCodec.fragment(payload, 0x0B17)
+
+            assertEquals("Payload de $size B", expectedFragments, frames.size)
+            frames.forEach {
+                assertTrue(
+                    "fragmento de ${it.size} B excede ${BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES} B",
+                    it.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES
+                )
+            }
+
+            val rx = BleFragmentationCodec.Reassembler()
+            var restored: ByteArray? = null
+            frames.reversed().forEach { restored = rx.feed(it) ?: restored }
+            assertArrayEquals(payload, restored!!)
         }
     }
 }

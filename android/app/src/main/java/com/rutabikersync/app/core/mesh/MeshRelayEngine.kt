@@ -35,6 +35,7 @@ import java.util.Locale
 import java.util.PriorityQueue
 import java.util.TimeZone
 import java.util.concurrent.CopyOnWriteArrayList
+import javax.crypto.AEADBadTagException
 import kotlin.math.roundToInt
 
 /**
@@ -225,7 +226,9 @@ class MeshRelayEngine(
         val activeLostPeers: List<Int>,
         val deviceModels: Map<String, Int>,
         val peerReports: List<PeerDeliveryReport> = emptyList(),
-        val distinctAdvAddressesPerPeer: Map<Int, Int> = emptyMap()
+        val distinctAdvAddressesPerPeer: Map<Int, Int> = emptyMap(),
+        val sensitiveTagRejected: Int = 0,
+        val sensitiveReplayRejected: Int = 0
     )
 
     private data class QueuedRelay(
@@ -257,7 +260,8 @@ class MeshRelayEngine(
             val jitterMs: Long,
             val relayedBytes: ByteArray,
             val isHighPriority: Boolean = false,
-            val hopCount: Int? = null
+            val hopCount: Int? = null,
+            val priority: Transport.Priority = Transport.Priority.STATUS
         ) : RelayDecision()
 
         object DroppedOwnPacket : RelayDecision()
@@ -360,8 +364,93 @@ class MeshRelayEngine(
     private fun hasRelayTransmitter(): Boolean =
         onAuthenticatedRelayTransmit != null || onTransmitRelay != null
 
+    private val sensitiveKey: ByteArray?
+        get() = (customRideSecretKey ?: rideSecretKey)
+            .takeIf { it.size == SensitiveFrameEnvelope.KEY_SIZE_BYTES }
+
+    private fun isSensitiveMeshPacket(packet: MeshPacket): Boolean =
+        packet.priority == Transport.Priority.PEER_EVENT || packet.isSos
+
+    /** Envía un `MeshPacket` cifrando únicamente las señales/eventos sensibles. */
+    private suspend fun sendMeshPacket(packet: MeshPacket) {
+        val bytes = if (isSensitiveMeshPacket(packet)) {
+            val key = sensitiveKey ?: return
+            SensitiveFrameEnvelope.wrap(key, SensitiveFrameEnvelope.KIND_MESH_PACKET, packet.toByteArray())
+        } else {
+            packet.toByteArray()
+        }
+        transport?.send(bytes, packet.priority)
+    }
+
+    /** Envuelve SOS/ACK antes de cualquier retransmisión; los demás tipos quedan intactos. */
+    private fun wrapSensitiveControl(bytes: ByteArray): ByteArray? {
+        if (SensitiveFrameEnvelope.isEnvelope(bytes)) return bytes
+        val kind = when (runCatching { MeshHeader.fromByteArray(bytes, 0).packetType }.getOrNull()) {
+            MeshHeader.TYPE_SOS -> SensitiveFrameEnvelope.KIND_SOS
+            MeshHeader.TYPE_SOS_ACK -> SensitiveFrameEnvelope.KIND_SOS_ACK
+            else -> return bytes
+        }
+        val key = sensitiveKey ?: return null
+        return SensitiveFrameEnvelope.wrap(key, kind, bytes)
+    }
+
+    /**
+     * Descifra un sobre sensible antes de cualquier validación de cabecera o HMAC.
+     * Devuelve `null` y contabiliza el descarte si falla el tag AEAD, el tipo o el nonce.
+     */
+    fun unwrapIncomingFrame(raw: ByteArray): ByteArray? {
+        if (!SensitiveFrameEnvelope.isEnvelope(raw)) return raw
+        val key = sensitiveKey
+        if (key == null) {
+            synchronized(this) { invalidAuthDropped++ }
+            refreshStateFlows()
+            return null
+        }
+        val nonce = SensitiveFrameEnvelope.nonceOf(raw) ?: return null
+        if (sensitiveReplayGuard.isReplay(nonce)) {
+            synchronized(this) {
+                sensitiveReplayRejected++
+                duplicatesDropped++
+            }
+            refreshStateFlows()
+            return null
+        }
+        val plaintext = try {
+            SensitiveFrameEnvelope.unwrap(key, raw)
+        } catch (e: AEADBadTagException) {
+            synchronized(this) { sensitiveTagRejected++ }
+            refreshStateFlows()
+            return null
+        } catch (e: IllegalArgumentException) {
+            synchronized(this) { sensitiveTagRejected++ }
+            refreshStateFlows()
+            return null
+        }
+        val expectedSize = when (SensitiveFrameEnvelope.kindOf(raw)) {
+            SensitiveFrameEnvelope.KIND_SOS -> SosPacket.PACKET_SIZE_BYTES
+            SensitiveFrameEnvelope.KIND_SOS_ACK -> SosAckPacket.PACKET_SIZE_BYTES
+            SensitiveFrameEnvelope.KIND_MESH_PACKET -> MeshPacket.PACKET_SIZE_BYTES
+            else -> -1
+        }
+        if (plaintext.size != expectedSize) {
+            synchronized(this) { sensitiveTagRejected++ }
+            refreshStateFlows()
+            return null
+        }
+        if (!sensitiveReplayGuard.registerIfNew(nonce)) {
+            synchronized(this) {
+                sensitiveReplayRejected++
+                duplicatesDropped++
+            }
+            refreshStateFlows()
+            return null
+        }
+        return plaintext
+    }
+
     private fun deliverAuthenticatedRelayFrame(bytes: ByteArray) {
-        (onAuthenticatedRelayTransmit ?: onTransmitRelay)?.invoke(bytes)
+        val outgoing = wrapSensitiveControl(bytes) ?: return
+        (onAuthenticatedRelayTransmit ?: onTransmitRelay)?.invoke(outgoing)
     }
 
     /** P0: cuando está configurado, solo el roster del manifiesto firmado puede emitir tramas. */
@@ -445,12 +534,19 @@ class MeshRelayEngine(
     ): RelayDecision {
         totalPacketsReceived.incrementAndGet()
 
-        if (rawBytes.size < MeshHeader.HEADER_SIZE_BYTES) {
-            return RelayDecision.DroppedMalformed("Tamaño insuficiente: ${rawBytes.size} bytes")
+        val wire = unwrapIncomingFrame(rawBytes)
+            ?: return RelayDecision.DroppedInvalidSignature("Sensible rechazado: tag/nonce inválido")
+        if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
+            // La ruta 20 B (heartbeats y PEER_EVENT) usa onRawPacketReceived desde el
+            // engine y desde BleMeshService; aquí solo se devuelve la decisión.
+            return processLegacyPacket(wire, nowMs, null, null, null)
+        }
+        if (wire.size < MeshHeader.HEADER_SIZE_BYTES) {
+            return RelayDecision.DroppedMalformed("Tamaño insuficiente: ${wire.size} bytes")
         }
 
         val header = try {
-            MeshHeader.fromByteArray(rawBytes, 0)
+            MeshHeader.fromByteArray(wire, 0)
         } catch (e: Exception) {
             return RelayDecision.DroppedMalformed("Cabecera corrupta: ${e.message}")
         }
@@ -478,11 +574,11 @@ class MeshRelayEngine(
         // 3. Enrutamiento por tipo de paquete
         when (header.packetType) {
             MeshHeader.TYPE_SOS -> {
-                if (rawBytes.size < SosPacket.PACKET_SIZE_BYTES) {
-                    return RelayDecision.DroppedMalformed("SosPacket tamaño insuficiente (${rawBytes.size} < ${SosPacket.PACKET_SIZE_BYTES})")
+                if (wire.size < SosPacket.PACKET_SIZE_BYTES) {
+                    return RelayDecision.DroppedMalformed("SosPacket tamaño insuficiente (${wire.size} < ${SosPacket.PACKET_SIZE_BYTES})")
                 }
                 val sos = try {
-                    SosPacket.fromByteArray(rawBytes, 0)
+                    SosPacket.fromByteArray(wire, 0)
                 } catch (e: Exception) {
                     return RelayDecision.DroppedMalformed("SosPacket parsing error: ${e.message}")
                 }
@@ -537,7 +633,8 @@ class MeshRelayEngine(
                 // Retransmisión prioritaria: decrementa TTL e incrementa hopCount (Opción B)
                 val newTtl = header.currentTtl - 1
                 val relayedSos = sos.copyWithIncrementedHop(newTtl.toByte())
-                val relayedBytes = relayedSos.toByteArray()
+                val relayedBytes = wrapSensitiveControl(relayedSos.toByteArray())
+                    ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible para SOS")
                 val jitterMs = SOS_RELAY_JITTER_MS
                 totalPacketsRelayed.incrementAndGet()
 
@@ -560,11 +657,11 @@ class MeshRelayEngine(
             }
 
             MeshHeader.TYPE_SOS_ACK -> {
-                if (rawBytes.size < SosAckPacket.PACKET_SIZE_BYTES) {
-                    return RelayDecision.DroppedMalformed("SosAckPacket tamaño insuficiente (${rawBytes.size} < ${SosAckPacket.PACKET_SIZE_BYTES})")
+                if (wire.size < SosAckPacket.PACKET_SIZE_BYTES) {
+                    return RelayDecision.DroppedMalformed("SosAckPacket tamaño insuficiente (${wire.size} < ${SosAckPacket.PACKET_SIZE_BYTES})")
                 }
                 val ack = try {
-                    SosAckPacket.fromByteArray(rawBytes, 0)
+                    SosAckPacket.fromByteArray(wire, 0)
                 } catch (e: Exception) {
                     return RelayDecision.DroppedMalformed("SosAckPacket parsing error: ${e.message}")
                 }
@@ -617,9 +714,11 @@ class MeshRelayEngine(
                 // Retransmisión del ACK hacia el emisor original
                 val newTtl = header.currentTtl - 1
                 val relayedHeader = header.copy(currentTtl = newTtl)
-                val relayedBytes = rawBytes.copyOf()
+                val relayedPlaintext = wire.copyOf()
                 val headerBytes = relayedHeader.toByteArray()
-                System.arraycopy(headerBytes, 0, relayedBytes, 0, MeshHeader.HEADER_SIZE_BYTES)
+                System.arraycopy(headerBytes, 0, relayedPlaintext, 0, MeshHeader.HEADER_SIZE_BYTES)
+                val relayedBytes = wrapSensitiveControl(relayedPlaintext)
+                    ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible para ACK")
                 val jitterMs = SOS_ACK_RELAY_JITTER_MS
                 totalPacketsRelayed.incrementAndGet()
 
@@ -641,11 +740,11 @@ class MeshRelayEngine(
             }
 
             MeshHeader.TYPE_MEDICAL_SHEET -> {
-                if (rawBytes.size < MedicalSheetPacket.FIXED_HEADER_AND_METADATA_BYTES) {
-                    return RelayDecision.DroppedMalformed("MedicalSheetPacket tamaño insuficiente (${rawBytes.size} < ${MedicalSheetPacket.FIXED_HEADER_AND_METADATA_BYTES})")
+                if (wire.size < MedicalSheetPacket.FIXED_HEADER_AND_METADATA_BYTES) {
+                    return RelayDecision.DroppedMalformed("MedicalSheetPacket tamaño insuficiente (${wire.size} < ${MedicalSheetPacket.FIXED_HEADER_AND_METADATA_BYTES})")
                 }
                 val medicalPacket = try {
-                    MedicalSheetPacket.fromByteArray(rawBytes, 0)
+                    MedicalSheetPacket.fromByteArray(wire, 0)
                 } catch (e: Exception) {
                     return RelayDecision.DroppedMalformed("MedicalSheetPacket parsing error: ${e.message}")
                 }
@@ -653,7 +752,7 @@ class MeshRelayEngine(
                 // Intentar descifrado si el nodo es Líder/Sargento autorizado
                 val decrypted = medicalSheetStore?.decryptAndStore(medicalPacket)
                 try {
-                    android.util.Log.i("MeshRelayEngine", "MEDICAL_SHEET_RECEIVED: sender=${header.senderShortId}, owner=${medicalPacket.ownerShortId}, size=${rawBytes.size}B, decrypted=${decrypted != null}")
+                    android.util.Log.i("MeshRelayEngine", "MEDICAL_SHEET_RECEIVED: sender=${header.senderShortId}, owner=${medicalPacket.ownerShortId}, size=${wire.size}B, decrypted=${decrypted != null}")
                 } catch (_: Throwable) {}
                 onMedicalSheetReceived?.invoke(medicalPacket, decrypted)
 
@@ -702,7 +801,7 @@ class MeshRelayEngine(
                 // La voz NO se deduplica por (sender, sequence): todos los frames de una
                 // ráfaga PTT comparten sequenceNum y solo cambia frameIndex.
                 val voicePacket = try {
-                    VoicePacket.fromBinary(rawBytes)
+                    VoicePacket.fromBinary(wire)
                 } catch (e: Exception) {
                     return RelayDecision.DroppedMalformed("VoicePacket parsing error: ${e.message}")
                 }
@@ -711,7 +810,7 @@ class MeshRelayEngine(
                     android.util.Log.i(
                         "MeshRelayEngine",
                         "VoicePacketRx sender=${header.senderShortId} frame=${voicePacket.frameIndex} " +
-                            "last=${voicePacket.isLastFrame} bytes=${rawBytes.size}"
+                            "last=${voicePacket.isLastFrame} bytes=${wire.size}"
                     )
                 } catch (_: Throwable) {}
                 voiceReceivedCallbacks.forEach { callback ->
@@ -726,11 +825,11 @@ class MeshRelayEngine(
             }
 
             MeshHeader.TYPE_TEXT_MSG, MeshHeader.TYPE_TEXT_MESSAGE -> {
-                if (rawBytes.size < TextMessagePacket.MIN_PACKET_SIZE) {
-                    return RelayDecision.DroppedMalformed("TextMessagePacket tamaño insuficiente (${rawBytes.size} < ${TextMessagePacket.MIN_PACKET_SIZE})")
+                if (wire.size < TextMessagePacket.MIN_PACKET_SIZE) {
+                    return RelayDecision.DroppedMalformed("TextMessagePacket tamaño insuficiente (${wire.size} < ${TextMessagePacket.MIN_PACKET_SIZE})")
                 }
                 val textPacket = try {
-                    TextMessagePacket.fromByteArray(rawBytes, 0)
+                    TextMessagePacket.fromByteArray(wire, 0)
                 } catch (e: Exception) {
                     return RelayDecision.DroppedMalformed("TextMessagePacket parsing error: ${e.message}")
                 }
@@ -841,7 +940,7 @@ class MeshRelayEngine(
 
                 val newTtl = header.currentTtl - 1
                 val relayedHeader = header.copy(currentTtl = newTtl)
-                val relayedBytes = rawBytes.copyOf()
+                val relayedBytes = wire.copyOf()
                 val headerBytes = relayedHeader.toByteArray()
                 System.arraycopy(headerBytes, 0, relayedBytes, 0, MeshHeader.HEADER_SIZE_BYTES)
 
@@ -874,6 +973,9 @@ class MeshRelayEngine(
     private var packetsRelayed: Int = 0
     private var duplicatesDropped: Int = 0
     private var invalidAuthDropped: Int = 0
+    private var sensitiveTagRejected: Int = 0
+    private var sensitiveReplayRejected: Int = 0
+    private val sensitiveReplayGuard = SensitiveFrameEnvelope.ReplayGuard(dedupCapacity)
     private var totalHopsAccumulated: Long = 0L
     private var islandEvents: Int = 0
     private var wasInIslandState: Boolean = false
@@ -942,9 +1044,11 @@ class MeshRelayEngine(
         if (pktFlow != null) {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 pktFlow.collect { pkt ->
-                    if (pkt.bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+                    // Descifrar antes de elegir la ruta: el sobre sensible mide 52/120 B.
+                    val wire = unwrapIncomingFrame(pkt.bytes) ?: return@collect
+                    if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
                         onRawPacketReceived(
-                            raw = pkt.bytes,
+                            raw = wire,
                             nowEpochMs = pkt.timestampEpochMs,
                             rssi = pkt.rssi,
                             senderAddressSuffix = pkt.senderAddressSuffix,
@@ -954,7 +1058,7 @@ class MeshRelayEngine(
                         // Hito 7.0.2: texto/SOS/médico no son heartbeats de 20 B.
                         // processIncomingPacket descifra y dispara onTextMessageReceived.
                         processIncomingPacket(
-                            rawBytes = pkt.bytes,
+                            rawBytes = wire,
                             nowMs = pkt.timestampEpochMs
                         )
                     }
@@ -963,10 +1067,11 @@ class MeshRelayEngine(
         } else {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 transport?.incoming?.collect { raw ->
-                    if (raw.size == MeshPacket.PACKET_SIZE_BYTES) {
-                        onRawPacketReceived(raw, System.currentTimeMillis(), null)
+                    val wire = unwrapIncomingFrame(raw) ?: return@collect
+                    if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
+                        onRawPacketReceived(wire, System.currentTimeMillis(), null)
                     } else {
-                        processIncomingPacket(rawBytes = raw)
+                        processIncomingPacket(rawBytes = wire)
                     }
                 }
             }
@@ -984,8 +1089,7 @@ class MeshRelayEngine(
     fun emitSosPacket(packet: SosPacket): Boolean {
         if (
             packet.header.senderShortId != localShortId ||
-            packet.header.clubNetworkId != clubNetworkId ||
-            !isRunning
+            packet.header.clubNetworkId != clubNetworkId
         ) return false
         return enqueueSosControl(packet.header, packet.toByteArray())
     }
@@ -995,15 +1099,17 @@ class MeshRelayEngine(
         if (
             packet.header.senderShortId != localShortId ||
             packet.ackerShortId != localShortId ||
-            packet.header.clubNetworkId != clubNetworkId ||
-            !isRunning
+            packet.header.clubNetworkId != clubNetworkId
         ) return false
         return enqueueSosControl(packet.header, packet.toByteArray())
     }
 
     private fun enqueueSosControl(header: MeshHeader, bytes: ByteArray): Boolean {
-        val transport = this.transport ?: return false
+        val transport = this.transport
+        val relayCallback = onAuthenticatedRelayTransmit ?: onTransmitRelay
+        if (transport == null && relayCallback == null) return false
         val scope = relayScope ?: return false
+        val wire = wrapSensitiveControl(bytes) ?: return false
         synchronized(this) {
             packetsEmitted++
             logPacketEntryLocked(
@@ -1014,7 +1120,7 @@ class MeshRelayEngine(
                     ttl = header.currentTtl,
                     hops = 0,
                     rssi = null,
-                    transportMode = transport.name,
+                    transportMode = transport?.name ?: "RELAY",
                     advertisingMode = currentAdvertisingMode(),
                     isDuplicate = false,
                     direction = "TX"
@@ -1022,7 +1128,13 @@ class MeshRelayEngine(
             )
         }
         scope.launch {
-            runCatching { transport.send(bytes, Transport.Priority.SOS) }
+            runCatching {
+                if (transport != null) {
+                    transport.send(wire, Transport.Priority.SOS)
+                } else {
+                    relayCallback?.invoke(wire)
+                }
+            }
                 .onFailure { android.util.Log.e("MeshRelayEngine", "SOSControlTx error: ${it.message}") }
         }
         refreshStateFlows()
@@ -1080,7 +1192,7 @@ class MeshRelayEngine(
                 )
             )
         }
-        transport?.send(packet.toByteArray(), packet.priority)
+        sendMeshPacket(packet)
         refreshStateFlows()
         return packet
     }
@@ -1134,7 +1246,7 @@ class MeshRelayEngine(
                 )
             )
         }
-        transport?.send(packet.toByteArray(), packet.priority)
+        sendMeshPacket(packet)
         refreshStateFlows()
         return packet
     }
@@ -1188,7 +1300,7 @@ class MeshRelayEngine(
                 )
             )
         }
-        transport?.send(packet.toByteArray(), packet.priority)
+        sendMeshPacket(packet)
         refreshStateFlows()
         return packet
     }
@@ -1243,7 +1355,7 @@ class MeshRelayEngine(
                 )
             )
         }
-        transport?.send(packet.toByteArray(), packet.priority)
+        sendMeshPacket(packet)
         refreshStateFlows()
         return packet
     }
@@ -1397,8 +1509,8 @@ class MeshRelayEngine(
     }
 
     /**
-     * Procesa un paquete entrante crudo (20 bytes), actualiza métricas de entrega/saltos,
-     * registra la entrada en el log CSV y reenvía por inundación controlada si corresponde.
+     * Procesa un paquete entrante crudo (20 bytes o su sobre sensible), actualiza métricas
+     * de entrega/saltos, registra la entrada en el log CSV y reenvía por flooding controlado.
      */
     suspend fun onRawPacketReceived(
         raw: ByteArray,
@@ -1407,21 +1519,40 @@ class MeshRelayEngine(
         senderAddressSuffix: String? = null,
         scanTimestampNanos: Long? = null
     ) {
-        if (raw.size != MeshPacket.PACKET_SIZE_BYTES) return
-        val packet = runCatching { MeshPacket.fromByteArray(raw) }.getOrNull() ?: return
+        val wire = unwrapIncomingFrame(raw) ?: return
+        if (wire.size != MeshPacket.PACKET_SIZE_BYTES) return
+        val decision = processLegacyPacket(wire, nowEpochMs, rssi, senderAddressSuffix, scanTimestampNanos)
+        if (decision is RelayDecision.Relayed) {
+            transport?.send(decision.relayedBytes, decision.priority)
+        }
+    }
+
+    /** Lógica compartida por la ruta legacy y por el sobre sensible ya descifrado. */
+    private fun processLegacyPacket(
+        wire: ByteArray,
+        nowEpochMs: Long,
+        rssi: Int?,
+        senderAddressSuffix: String?,
+        scanTimestampNanos: Long?
+    ): RelayDecision {
+        if (wire.size != MeshPacket.PACKET_SIZE_BYTES) {
+            return RelayDecision.DroppedMalformed("Tamaño inválido: ${wire.size} bytes")
+        }
+        val packet = runCatching { MeshPacket.fromByteArray(wire) }.getOrNull()
+            ?: return RelayDecision.DroppedMalformed("MeshPacket corrupto")
 
         if (!packet.verifyAuthTag(rideSecretKey)) {
             android.util.Log.w("MeshRelayEngine", "AuthMismatch: packetShortId=${packet.shortId} prio=${packet.priority} invalidAuthDropped")
             synchronized(this) { invalidAuthDropped++ }
             refreshStateFlows()
-            return
+            return RelayDecision.DroppedInvalidSignature("HMAC inválido para shortId=${packet.shortId}")
         }
 
         // Ignorar ecos de nuestro propio nodo
         if (packet.shortId == localShortId) {
             synchronized(this) { duplicatesDropped++ }
             refreshStateFlows()
-            return
+            return RelayDecision.DroppedOwnPacket
         }
 
         val authorization = rideAuthorization
@@ -1432,7 +1563,7 @@ class MeshRelayEngine(
             )
             synchronized(this) { invalidAuthDropped++ }
             refreshStateFlows()
-            return
+            return RelayDecision.DroppedInvalidSignature("shortId ausente del manifiesto firmado")
         }
 
         var lifecycleRejected = false
@@ -1466,7 +1597,7 @@ class MeshRelayEngine(
             if (isDuplicate) {
                 duplicatesDropped++
                 refreshStateFlowsLocked()
-                return
+                return RelayDecision.DroppedDuplicate
             }
             seenKeys[packet.dedupKey] = true
             packetsReceivedValid++
@@ -1555,26 +1686,50 @@ class MeshRelayEngine(
             onRideLifecycleEventReceived?.invoke(signal)
         }
 
-        relayCandidate?.let { toRelay ->
-            val utcIsoRelay = formatUtc(System.currentTimeMillis())
-            synchronized(this) {
-                logPacketEntryLocked(
-                    PacketLogEntry(
-                        timestampUtc = utcIsoRelay,
-                        senderShortId = toRelay.shortId.toInt(),
-                        sequenceNumber = toRelay.sequenceNumber,
-                        ttl = toRelay.currentTtl,
-                        hops = toRelay.hopsTaken,
-                        rssi = null,
-                        transportMode = transport?.name ?: "BLE_ADV",
-                        advertisingMode = currentAdvertisingMode(),
-                        isDuplicate = false,
-                        direction = "RELAY_TX"
-                    )
-                )
-            }
-            transport?.send(toRelay.toByteArray(), toRelay.priority)
+        val packetType = when {
+            packet.isSos -> MeshHeader.TYPE_SOS
+            packet.priority == Transport.Priority.PEER_EVENT -> MeshHeader.TYPE_CONTROL_SYNC
+            else -> MeshHeader.TYPE_HEARTBEAT
         }
+        val relay = relayCandidate
+        if (relay == null) {
+            return RelayDecision.ConsumedLocallyTtlExhausted(
+                finalTtl = packet.currentTtl,
+                isHighPriority = isSensitiveMeshPacket(packet),
+                packetType = packetType
+            )
+        }
+
+        val relayedBytes = if (isSensitiveMeshPacket(relay)) {
+            val key = sensitiveKey ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible")
+            SensitiveFrameEnvelope.wrap(key, SensitiveFrameEnvelope.KIND_MESH_PACKET, relay.toByteArray())
+        } else {
+            relay.toByteArray()
+        }
+        val utcIsoRelay = formatUtc(System.currentTimeMillis())
+        synchronized(this) {
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIsoRelay,
+                    senderShortId = relay.shortId.toInt(),
+                    sequenceNumber = relay.sequenceNumber,
+                    ttl = relay.currentTtl,
+                    hops = relay.hopsTaken,
+                    rssi = null,
+                    transportMode = transport?.name ?: "BLE_ADV",
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "RELAY_TX"
+                )
+            )
+        }
+        return RelayDecision.Relayed(
+            newTtl = relay.currentTtl,
+            jitterMs = 0,
+            relayedBytes = relayedBytes,
+            isHighPriority = isSensitiveMeshPacket(relay),
+            priority = relay.priority
+        )
     }
 
     /**
@@ -1802,7 +1957,9 @@ class MeshRelayEngine(
             activeLostPeers = peerMap.values.filter { it.isLost }.map { it.shortId.toInt() },
             deviceModels = deviceModels.toMap(),
             peerReports = peerReports,
-            distinctAdvAddressesPerPeer = distinctAddressesMap
+            distinctAdvAddressesPerPeer = distinctAddressesMap,
+            sensitiveTagRejected = sensitiveTagRejected,
+            sensitiveReplayRejected = sensitiveReplayRejected
         )
     }
 }

@@ -665,7 +665,38 @@ Nota: el source set `fieldTest` usa una clave derivada de una frase pública **s
 **Pendiente (no incluido en P0):**
 - Distribuir las claves públicas Ed25519 SOS en el manifiesto firmado y poblar `sosPublicKeyResolver` en producción; hoy la firma local ya se emite, pero el rechazo por firma inválida solo se activa con mappings reales.
 - Persistir/rotar la clave de rodada con política de expiración y rotación por temporada (la clave actual es estable por `ride_id`).
-- Cifrado real del payload de la malla (HMAC actual solo autentica): requiere cambiar el formato de 20 bytes y coordinarlo con GATT/transporte; **no se hizo sin autorización**.
+- Cifrado real del payload de la malla (HMAC actual solo autentica): **CERRADO** en la sección inmediatamente inferior (sobre sensible autorizado para SOS + ACK + PEER_EVENT).
 - P1 (audio) y P2 (estado/mapa) siguen bloqueados hasta confirmación del usuario.
 - Prohibido probar en campo (TECNO/Redmi) hasta nueva instrucción.
+
+### P0 CIERRE — Cifrado real de payload BLE sensible (2026-11-21)
+
+**Autorización del alcance:** el usuario autorizó expresamente el cambio de wire format solo para frames sensibles: `SOS`, `SOS_ACK` y `PEER_EVENT` (señales de convoy, eventos de ciclo y announced signals). Heartbeats de posición, chat, PTT/voz, GATT y transporte quedan intactos.
+
+**Formato del sobre (`SensitiveFrameEnvelope`, big-endian):**
+
+| Offset | Tamaño | Contenido |
+|---|---:|---|
+| `0..1` | 2 B | Magic `0x53 0x46` (`"SF"`) |
+| `2` | 1 B | Versión `0x01` |
+| `3` | 1 B | Kind: `0x01` SOS, `0x02` SOS_ACK, `0x03` MeshPacket 20 B |
+| `4..15` | 12 B | Nonce aleatorio por emisión/reenvío (`VoiceCrypto.generateNonce`) |
+| `16..N` | variable | `ciphertext || tag Poly1305` (16 B) |
+
+- AAD = `magic | version | kind`; el frame original viaja íntegro como plaintext (HMAC de 20 B y firma Ed25519 de SOS/ACK se verifican **después** de descifrar).
+- Reutiliza `VoiceCrypto.encrypt/decrypt` sin modificar su lógica; no se tocó `TextMessageCrypto`, `HeartbeatFrame`, GATT ni el codec de fragmentación.
+- Anti-replay: caché LRU de nonces por engine; el nonce se registra solo si el tag AEAD es válido. Un tag inválido o un nonce repetido se contabiliza y se descarta antes de cualquier callback de UI.
+
+| Frame | Antes | Después | Test que lo verifica |
+|---|---|---|---|
+| `PEER_EVENT` (señales/eventos) | `MeshPacket` 20 B en claro + HMAC truncado | Sobre `SF v1 kind=0x03`: **52 B** | `P0SecurityChecksTest.P0 PEER_EVENT sensible hace round trip cifrado…`; `SensitiveFrameEnvelopeTest.round trip de signal PEER_EVENT…` |
+| `SOS` | `SosPacket` 88 B con firma Ed25519 en claro | Sobre `SF v1 kind=0x01`: **120 B** | `P0SecurityChecksTest.P0 SOS y ACK se emiten cifrados…`; `SensitiveFrameEnvelopeTest.round trip de SOS y ACK…` |
+| `SOS_ACK` | `SosAckPacket` 83 B con firma Ed25519 en claro | Sobre `SF v1 kind=0x02`: **115 B** | `P0SecurityChecksTest.P0 SOS y ACK se emiten cifrados…`; `SensitiveFrameEnvelopeTest.round trip de SOS y ACK…` |
+| Heartbeat / posición | `MeshPacket` 20 B + HMAC | **Sin cambios** | `P0SecurityChecksTest.P0 heartbeats HMAC siguen en claro…` |
+| Fragmentación BLE legacy | `BleFragmentationCodec` (24 B/frame) | Sin cambios; 52 B → 4 fragmentos, 120 B → 8 | `BleFragmentationCodecTest.sobres sensibles de 52 y 120 B…` |
+| Fragmentación GATT | `GattVoiceFramer` (MTU 23 / 517) | Sin cambios; reensambla 52/120 B | `GattVoiceFramerTest.sobres sensibles de 52 y 120 B…` |
+
+**Integración:** `MeshRelayEngine` envuelve antes de emitir y descifra antes de parsear cabecera/verificar HMAC; los reenvíos SOS/ACK usan un nonce fresco y el mismo sobre. `BleMeshService` enruta el broadcaster de SOS y el ACK por el engine para evitar emisiones en claro. `RideService` prioriza el reenvío por `kind` sin abrir el ciphertext.
+
+**Estado:** cierre local atómico; sin `amend`, sin `push` y sin pruebas en campo hasta nueva instrucción.
 

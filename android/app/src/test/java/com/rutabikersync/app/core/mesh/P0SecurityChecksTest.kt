@@ -1,16 +1,21 @@
 package com.rutabikersync.app.core.mesh
 
+import com.rutabikersync.app.core.audio.ConvoySignalKind
 import com.rutabikersync.app.core.crypto.RideManifestKeyProvider
 import com.rutabikersync.app.core.crypto.RideManifestParticipantPayload
 import com.rutabikersync.app.core.crypto.RideManifestPayload
 import com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent
 import com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto
 import com.rutabikersync.app.core.mesh.sos.InMemorySosPublicKeyResolver
+import com.rutabikersync.app.core.mesh.sos.SosAckPacket
 import com.rutabikersync.app.core.mesh.sos.SosBloodType
 import com.rutabikersync.app.core.mesh.sos.SosIncidentCode
 import com.rutabikersync.app.core.mesh.sos.SosPacket
+import com.rutabikersync.app.core.protocol.MeshPacket
 import com.rutabikersync.app.core.transport.Transport
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -34,11 +39,12 @@ class P0SecurityChecksTest {
 
     class CapturingTransport : Transport {
         val sent = mutableListOf<ByteArray>()
+        private val incomingFlow = MutableSharedFlow<ByteArray>()
         override val name: String = "P0_CAPTURING"
         override suspend fun send(payload: ByteArray, priority: Transport.Priority) { sent.add(payload) }
         override suspend fun start() {}
         override suspend fun stop() {}
-        override val incoming: kotlinx.coroutines.flow.Flow<ByteArray> = kotlinx.coroutines.flow.emptyFlow()
+        override val incoming: kotlinx.coroutines.flow.Flow<ByteArray> = incomingFlow.asSharedFlow()
     }
 
     private fun pkOf(seed: String): String =
@@ -253,5 +259,164 @@ class P0SecurityChecksTest {
         val auth = authorizedRide(pk, pkOf("pk-member"))
         assertArrayEquals(rideKey, auth.rideSecretKey)
         assertTrue(first in auth.authorizedShortIds)
+    }
+
+    @Test
+    fun `P0 PEER_EVENT sensible hace round trip cifrado y entrega la señal`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (receiver, _) = engineWith(scope, 60_100u, auth)
+        val received = mutableListOf<MeshRelayEngine.IncomingConvoySignal>()
+        receiver.onConvoySignalReceived = { received.add(it) }
+
+        val (sender, senderTransport) = engineWith(scope, auth.localShortId)
+        sender.emitConvoySignal(ConvoySignalKind.OBSTACLE)
+        val envelope = senderTransport.sent.single()
+
+        assertTrue("PEER_EVENT debe viajar en sobre sensible", SensitiveFrameEnvelope.isEnvelope(envelope))
+        assertEquals(52, envelope.size)
+        assertEquals(SensitiveFrameEnvelope.KIND_MESH_PACKET, SensitiveFrameEnvelope.kindOf(envelope))
+
+        receiver.onRawPacketReceived(envelope)
+        assertEquals(1, received.size)
+        assertEquals(auth.localShortId, received.first().senderShortId)
+        assertEquals(ConvoySignalKind.OBSTACLE, received.first().signalKind)
+    }
+
+    @Test
+    fun `P0 tag AEAD manipulado se rechaza sin entregar la señal`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (receiver, _) = engineWith(scope, 60_101u, auth)
+        val received = mutableListOf<MeshRelayEngine.IncomingConvoySignal>()
+        receiver.onConvoySignalReceived = { received.add(it) }
+
+        val (sender, senderTransport) = engineWith(scope, auth.localShortId)
+        sender.emitConvoySignal(ConvoySignalKind.REDUCE_SPEED)
+        val tampered = senderTransport.sent.single().copyOf()
+        tampered[tampered.lastIndex] = (tampered[tampered.lastIndex].toInt() xor 0xFF).toByte()
+
+        receiver.onRawPacketReceived(tampered)
+        assertTrue(received.isEmpty())
+        assertEquals(1, receiver.metrics.value.sensitiveTagRejected)
+    }
+
+    @Test
+    fun `P0 nonce repetido se descarta aunque el tag sea valido`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (receiver, _) = engineWith(scope, 60_102u, auth)
+        val received = mutableListOf<MeshRelayEngine.IncomingConvoySignal>()
+        receiver.onConvoySignalReceived = { received.add(it) }
+
+        val (sender, senderTransport) = engineWith(scope, auth.localShortId)
+        sender.emitConvoySignal(ConvoySignalKind.POLICE_CHECKPOINT)
+        val envelope = senderTransport.sent.single()
+
+        receiver.onRawPacketReceived(envelope)
+        receiver.onRawPacketReceived(envelope.copyOf())
+
+        assertEquals("La segunda entrega debe caer por replay", 1, received.size)
+        assertEquals(1, receiver.metrics.value.sensitiveReplayRejected)
+    }
+
+    @Test
+    fun `P0 heartbeats HMAC siguen en claro y conservan su autenticacion`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val (sender, senderTransport) = engineWith(scope, 7u)
+        sender.emitLocalPosition(19.432608, -99.133209, 42, 90f, 88)
+        val heartbeat = senderTransport.sent.single()
+
+        assertEquals(MeshPacket.PACKET_SIZE_BYTES, heartbeat.size)
+        assertFalse("El heartbeat no debe cambiar de wire format", SensitiveFrameEnvelope.isEnvelope(heartbeat))
+        assertTrue(MeshPacket.fromByteArray(heartbeat).verifyAuthTag(rideKey))
+
+        val (receiver, _) = engineWith(scope, 8u)
+        receiver.onRawPacketReceived(heartbeat)
+        assertEquals(1, receiver.metrics.value.packetsReceivedValid)
+    }
+
+    @Test
+    fun `P0 SOS y ACK se emiten cifrados y se aceptan tras descifrar`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val (emitter, transport) = engineWith(scope, 12u)
+        emitter.start(scope)
+        testScheduler.advanceUntilIdle()
+
+        val sos = SosPacket.create(
+            clubNetworkId = 0x52425301u,
+            senderShortId = 12u,
+            sequenceNum = 300u,
+            latitude = 10.349070,
+            longitude = -67.034950,
+            incident = SosIncidentCode.MANUAL_BUTTON,
+            bloodType = SosBloodType.O_POSITIVE,
+            timestampEpochSec = 1_733_000_000,
+            signature = ByteArray(64),
+            currentTtl = 3
+        )
+        assertTrue(emitter.emitSosPacket(sos))
+        testScheduler.advanceUntilIdle()
+        val sosWire = transport.sent.last()
+        assertEquals(SosPacket.PACKET_SIZE_BYTES + 32, sosWire.size)
+        assertEquals(SensitiveFrameEnvelope.KIND_SOS, SensitiveFrameEnvelope.kindOf(sosWire))
+
+        val ack = SosAckPacket.create(
+            clubNetworkId = 0x52425301u,
+            ackerShortId = 12u,
+            sequenceNum = 301u,
+            originalSenderShortId = 99u,
+            originalSequenceNum = 300u,
+            ackTimestampEpochSec = 1_733_000_001,
+            signature = ByteArray(64),
+            currentTtl = 3
+        )
+        assertTrue(emitter.emitSosAckPacket(ack))
+        testScheduler.advanceUntilIdle()
+        val ackWire = transport.sent.last()
+        assertEquals(SosAckPacket.PACKET_SIZE_BYTES + 32, ackWire.size)
+        assertEquals(SensitiveFrameEnvelope.KIND_SOS_ACK, SensitiveFrameEnvelope.kindOf(ackWire))
+
+        val (receiver, _) = engineWith(scope, 13u)
+        var sosCount = 0
+        var ackCount = 0
+        receiver.onSosReceived = { sosCount++ }
+        receiver.onSosAckObserved = { ackCount++ }
+        receiver.processIncomingPacket(sosWire)
+        receiver.processIncomingPacket(ackWire)
+
+        assertEquals(1, sosCount)
+        assertEquals(1, ackCount)
+        emitter.stop()
+    }
+
+    @Test
+    fun `P0 SOS legacy sin transport sale cifrado por el callback de relay`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val emitted = mutableListOf<ByteArray>()
+        val engine = MeshRelayEngine(
+            localShortId = 15u,
+            clubNetworkId = 0x52425301u,
+            scope = scope,
+            onTransmitRelay = { emitted.add(it) }
+        )
+        val sos = SosPacket.create(
+            clubNetworkId = 0x52425301u,
+            senderShortId = 15u,
+            sequenceNum = 400u,
+            latitude = 10.349070,
+            longitude = -67.034950,
+            incident = SosIncidentCode.MANUAL_BUTTON,
+            bloodType = SosBloodType.O_POSITIVE,
+            timestampEpochSec = 1_733_000_002,
+            signature = ByteArray(64),
+            currentTtl = 5
+        )
+
+        assertTrue(engine.emitSosPacket(sos))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(1, emitted.size)
+        assertEquals(SensitiveFrameEnvelope.KIND_SOS, SensitiveFrameEnvelope.kindOf(emitted.single()))
     }
 }
