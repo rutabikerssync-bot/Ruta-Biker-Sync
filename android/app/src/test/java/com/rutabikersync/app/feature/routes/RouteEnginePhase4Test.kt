@@ -14,6 +14,20 @@ class RouteEnginePhase4Test {
     private val origin = LatLngPoint(10.3538, -67.0425)       // Los Teques
     private val destination = LatLngPoint(10.3452, -67.1648)  // El Jarillo
 
+    @org.junit.Before
+    fun setUp() {
+        DefaultRouteCatalog.customAssetLoader = { fileName ->
+            val file = java.io.File("src/main/assets/routes/$fileName").takeIf { it.exists() }
+                ?: java.io.File("app/src/main/assets/routes/$fileName").takeIf { it.exists() }
+            file?.readText()
+        }
+    }
+
+    @org.junit.After
+    fun tearDown() {
+        DefaultRouteCatalog.customAssetLoader = null
+    }
+
     @Test
     fun `Bloque 4_1 BRouter y perfiles de moto generan rutas, elevacion y hash SHA-256`() {
         // 1. Perfil rápido / autopista
@@ -73,7 +87,7 @@ class RouteEnginePhase4Test {
         // 2. Re-importar el XML generado
         val importedRoute = GpxManager.parseGpxContent(gpxXml, "Ruta Reimportada")
         assertNotNull(importedRoute)
-        assertEquals("Ruta 1: Vía Panamericana ➔ Carretera Tovar", importedRoute.name)
+        assertEquals(testRoute.name, importedRoute.name)
         assertEquals(testRoute.waypoints.size, importedRoute.waypoints.size)
         assertTrue("Distancia debe ser similar (+/- 1 km)", kotlin.math.abs(importedRoute.distanceKm - testRoute.distanceKm) < 1.0)
     }
@@ -145,7 +159,8 @@ class RouteEnginePhase4Test {
 
         // 2. Piloto se desvía 350 metros hacia el este
         // A latitud 10°, 0.003° de longitud ≈ 327 metros
-        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 35f)
+        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 35f, nowEpochMs = 10_000L)
+        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 35f, nowEpochMs = 20_000L)
         val stateDeviated = RouteDeviationDetector.deviationState.value
         assertEquals(DeviationStatus.DEVIATED, stateDeviated.status)
         assertTrue("Alerta de desvío debe estar activa", stateDeviated.isAlertActive)
@@ -163,7 +178,8 @@ class RouteEnginePhase4Test {
         assertEquals(DeviationStatus.VOLUNTARY_STOP, RouteDeviationDetector.deviationState.value.status)
 
         // 5. Auto-reanudación: el piloto arranca y supera 18 km/h de velocidad
-        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 25f)
+        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 25f, nowEpochMs = 20_000L)
+        RouteDeviationDetector.updateRiderLocation(LatLngPoint(10.3550, -67.0470), speedKmh = 25f, nowEpochMs = 40_000L)
         val stateResumed = RouteDeviationDetector.deviationState.value
         assertEquals("Debe auto-reanudar el monitoreo al arrancar", DeviationStatus.DEVIATED, stateResumed.status)
         assertTrue(stateResumed.isAlertActive)

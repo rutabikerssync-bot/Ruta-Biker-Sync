@@ -27,6 +27,8 @@ data class RouteAlternative(
 )
 
 object DefaultRouteCatalog {
+    var customAssetLoader: ((String) -> String?)? = null
+
     val tovarDirecta: RouteAlternative
         get() = loadCachedRoutes("tovar_routes.json").firstOrNull() ?: RouteAlternative(
             id = "route-tovar-directa",
@@ -62,8 +64,8 @@ object DefaultRouteCatalog {
      */
     fun loadCachedRoutes(assetFileName: String): List<RouteAlternative> {
         return try {
-            val context = com.rutabikersync.app.App.instance
-            val jsonStr = context.assets.open("routes/$assetFileName").bufferedReader().use { it.readText() }
+            val jsonStr = customAssetLoader?.invoke(assetFileName)
+                ?: com.rutabikersync.app.App.instance.assets.open("routes/$assetFileName").bufferedReader().use { it.readText() }
             val arr = org.json.JSONArray(jsonStr)
             val list = mutableListOf<RouteAlternative>()
             for (i in 0 until arr.length()) {
