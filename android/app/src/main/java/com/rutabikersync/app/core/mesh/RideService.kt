@@ -248,17 +248,16 @@ class RideSessionController(
     ): RideSessionState {
         stopAllInternal(resetToIdle = false)
 
-        // Bloqueante de lanzamiento: standardRelease no puede usar la clave fija por defecto
-        val effectiveRideSecretKey = if (!BuildConfig.ALLOW_DEFAULT_TEST_RIDE_KEY && rideSecretKey.contentEquals(DEFAULT_TEST_RIDE_KEY)) {
-            Log.w(
-                "RideService",
+        // P0: fail-closed. standardRelease nunca debe caer en una clave fija ni en
+        // una clave aleatoria local (ninguna de las dos permite autenticar al club).
+        require(rideSecretKey.size == 32) { "SecurityViolation: rideSecretKey debe tener 32 bytes" }
+        if (!BuildConfig.ALLOW_DEFAULT_TEST_RIDE_KEY && rideSecretKey.contentEquals(DEFAULT_TEST_RIDE_KEY)) {
+            error(
                 "SecurityViolation: rideSecretKey fija por defecto prohibida en standardRelease. " +
-                "Ignorando clave fija y generando clave efímera aleatoria por rodada (bloqueante de lanzamiento)."
+                    "La clave debe provenir del manifiesto firmado por el backend."
             )
-            ByteArray(32).also { SecureRandom().nextBytes(it) }
-        } else {
-            rideSecretKey
         }
+        val effectiveRideSecretKey = rideSecretKey
 
         val (selectedTransport, isSimulated) = resolveTransport(
             localShortId = localShortId,
@@ -278,6 +277,10 @@ class RideSessionController(
             relayEnabled = relayEnabled,
             relayScope = scope
         )
+        // P0: el manifiesto verificado es la única fuente de pertenencia al convoy.
+        com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)?.let { manifest ->
+            engine.rideAuthorization = RideMeshAuthorization(manifest)
+        }
         // Hito 7.0.2: conectar la recepción de texto al store del chat táctico.
         engine.onTextMessageReceived = { textPacket, decryptedText ->
             if (decryptedText != null) {
@@ -1021,7 +1024,9 @@ data class RideServiceEligibility(
     val effectiveForceSimulated: Boolean,
     val foregroundServiceTypes: Int,
     val shouldPromoteToForeground: Boolean,
-    val postNotificationsGranted: Boolean
+    val postNotificationsGranted: Boolean,
+    /** P0: false cuando no se pudo obtener una clave de rodada firmada por el backend. */
+    val securityKeyReady: Boolean = true
 )
 
 class RideService : Service() {
@@ -1057,6 +1062,17 @@ class RideService : Service() {
         const val EXTRA_TX_RX_ROLE = "extra_tx_rx_role"
         const val EXTRA_UNFILTERED_SCAN_DIAGNOSTIC = "extra_unfiltered_scan_diagnostic"
         const val EXTRA_ADVERTISING_DELIVERY_MODE = "extra_advertising_delivery_mode"
+        /** P0: clave de 32 bytes del manifiesto firmado, en hexadecimal. */
+        const val EXTRA_RIDE_SECRET_KEY_HEX = "extra_ride_secret_key_hex"
+
+        /** Decodifica exactamente 32 bytes hexadecimales; null si el valor es inválido. */
+        fun decodeManifestKey(hex: String?): ByteArray? {
+            val value = hex?.trim().takeUnless { it.isNullOrBlank() } ?: return null
+            if (value.length != 64) return null
+            return runCatching {
+                ByteArray(32) { i -> value.substring(i * 2, i * 2 + 2).toInt(16).toByte() }
+            }.getOrNull()
+        }
 
         /**
          * Función pura que devuelve los pares esperados del convoy dado el nº de teléfonos en la prueba (2..5)
@@ -1221,9 +1237,20 @@ class RideService : Service() {
             relayEnabled: Boolean = true,
             txRxRole: BleAdvTransport.TxRxRole = BleAdvTransport.TxRxRole.BOTH,
             unfilteredScanDiagnostic: Boolean = false,
-            advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST
+            advertisingDeliveryMode: BleAdvTransport.AdvertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.BURST,
+            /** P0: obligatoria en producción; nunca se usa la clave fija de tests. */
+            rideSecretKey: ByteArray? = null
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
+            val safeKey = rideSecretKey?.takeIf { it.size == 32 }
+            if (safeKey == null) {
+                Log.e(
+                    TAG,
+                    "RideStart bloqueado: falta la clave de rodada del manifiesto firmado. " +
+                        "No se inicia malla con clave fija ni aleatoria local."
+                )
+                return eligibility.copy(securityKeyReady = false, shouldPromoteToForeground = false)
+            }
             if (eligibility.shouldPromoteToForeground) {
                 val intent = Intent(context, RideService::class.java).apply {
                     action = ACTION_START_RIDE
@@ -1240,6 +1267,7 @@ class RideService : Service() {
                     putExtra(EXTRA_TX_RX_ROLE, txRxRole.code)
                     putExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, unfilteredScanDiagnostic)
                     putExtra(EXTRA_ADVERTISING_DELIVERY_MODE, advertisingDeliveryMode.code)
+                    putExtra(EXTRA_RIDE_SECRET_KEY_HEX, safeKey.joinToString("") { "%02x".format(it) })
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
@@ -1252,6 +1280,7 @@ class RideService : Service() {
                     val state = inAppSimController.startRide(
                         rideId = rideId,
                         localShortId = localShortId.toUShort(),
+                        rideSecretKey = safeKey,
                         forceSimulatedTransport = true,
                         bleModeOverride = bleModeOverride,
                         advertisingBurstDurationMs = advertisingBurstDurationMs,
@@ -1262,6 +1291,7 @@ class RideService : Service() {
                         advertisingDeliveryMode = advertisingDeliveryMode
                     )
                     _sharedState.value = state
+                    drainPendingLifecycleEvents()
                 }
             }
             return eligibility
@@ -1345,6 +1375,14 @@ class RideService : Service() {
 
         @Volatile
         var activeController: RideSessionController? = null
+
+        /**
+         * P0/H1: eventos autorizados por REST que llegan antes de que exista el
+         * MeshRelayEngine. Se conservan en memoria y se drenan en cuanto el
+         * servicio publica `RUNNING`. Conjunto para que un reintento de UI no
+         * duplique el evento.
+         */
+        private val pendingLifecycleEvents = PendingLifecycleEvents()
 
         fun getActiveRelayEngine(): MeshRelayEngine? {
             return activeController?.relayEngine ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController.relayEngine else null
@@ -1441,7 +1479,12 @@ class RideService : Service() {
          */
         suspend fun dispatchSendRideLifecycleEvent(event: MeshRelayEngine.RideLifecycleEvent): Boolean {
             val engine = getActiveRelayEngine() ?: run {
-                android.util.Log.w("RideService", "RideLifecycleEventTx abortado: no hay relayEngine activo")
+                // No se descarta: queda pendiente hasta que el motor esté listo.
+                pendingLifecycleEvents.enqueue(event)
+                android.util.Log.w(
+                    "RideService",
+                    "RideLifecycleEventTx encolado hasta engine-ready: event=${event.name}"
+                )
                 return false
             }
             when (event) {
@@ -1488,9 +1531,21 @@ class RideService : Service() {
                 }
             }
             val packet = engine.emitRideLifecycleEvent(event)
+            pendingLifecycleEvents.remove(event)
             android.util.Log.i("RideService", "RideLifecycleEventTx emitido por malla: event=${event.name} code=${event.code}")
             return true
         }
+
+        /** Drena los eventos encolados. Llamar cuando `sharedState` pasa a RUNNING. */
+        suspend fun drainPendingLifecycleEvents() {
+            if (getActiveRelayEngine() == null) return
+            val queued = pendingLifecycleEvents.snapshot()
+            for (event in queued) {
+                runCatching { dispatchSendRideLifecycleEvent(event) }
+            }
+        }
+
+        fun clearPendingLifecycleEvents() = pendingLifecycleEvents.clear()
 
         fun exportPacketsCsv(): String {
             val live = activeController?.relayEngine?.exportPacketsCsv()
@@ -1568,6 +1623,8 @@ class RideService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isPromotedToForeground: Boolean = false
     private var fallDetector: FallDetector? = null
+    @Volatile
+    private var activeManifestKey: ByteArray? = null
 
     private var autoFallbackJob: Job? = null
 
@@ -1656,6 +1713,12 @@ class RideService : Service() {
                 val advertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.fromCode(
                     intent.getStringExtra(EXTRA_ADVERTISING_DELIVERY_MODE)
                 )
+                val manifestKey = decodeManifestKey(intent.getStringExtra(EXTRA_RIDE_SECRET_KEY_HEX))
+                    ?: run {
+                        Log.e(TAG, "ACTION_START_RIDE rechazado: clave del manifiesto ausente o inválida")
+                        return START_NOT_STICKY
+                    }
+                activeManifestKey = manifestKey
                 val eligibility = evaluateContextEligibility(this, requestedForceSim)
                 val effectiveForceSim = eligibility.effectiveForceSimulated
 
@@ -1714,6 +1777,7 @@ class RideService : Service() {
                     val state = controller.startRide(
                         rideId = rideId,
                         localShortId = shortId,
+                        rideSecretKey = manifestKey,
                         forceSimulatedTransport = effectiveForceSim,
                         bleModeOverride = bleModeOverride,
                         advertisingBurstDurationMs = advertisingBurstDurationMs,
@@ -1724,6 +1788,7 @@ class RideService : Service() {
                         advertisingDeliveryMode = advertisingDeliveryMode
                     )
                     _sharedState.value = state
+                    drainPendingLifecycleEvents()
                     if (isPromotedToForeground) {
                         updateForegroundNotification(state.notification)
                     }
@@ -1806,11 +1871,16 @@ class RideService : Service() {
         val isSim = current.isUsingSimulatedTransport
         val txRx = current.txRxRole
         val relay = current.relayEnabled
+        val retainedKey = activeManifestKey ?: run {
+            Log.e(TAG, "restartWithBleMode abortado: no hay clave del manifiesto en memoria")
+            return current
+        }
         controller.stopAll()
         delay(400)
         val state = controller.startRide(
             rideId = rideId,
             localShortId = shortId.toUShort(),
+            rideSecretKey = retainedKey,
             forceSimulatedTransport = isSim,
             bleModeOverride = mode,
             expectedPeerShortIds = expected,

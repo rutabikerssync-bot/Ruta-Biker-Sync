@@ -1,0 +1,89 @@
+﻿To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preStandardDebugBuild UP-TO-DATE
+> Task :app:generateStandardDebugBuildConfig
+> Task :app:generateStandardDebugResValues
+> Task :app:processStandardDebugGoogleServices
+> Task :app:checkStandardDebugAarMetadata
+> Task :app:mapStandardDebugSourceSetPaths
+> Task :app:generateStandardDebugResources
+> Task :app:packageStandardDebugResources
+> Task :app:createStandardDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksStandardDebug
+> Task :app:parseStandardDebugLocalResources
+> Task :app:processStandardDebugMainManifest
+> Task :app:processStandardDebugManifest
+> Task :app:processStandardDebugManifestForPackage
+> Task :app:preStandardDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileStandardDebugUnitTest
+> Task :app:javaPreCompileStandardDebug
+> Task :app:mergeStandardDebugResources
+> Task :app:processStandardDebugResources
+> Task :app:kspStandardDebugKotlin
+> Task :app:compileStandardDebugKotlin
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/MainActivity.kt:69:20 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/MainActivity.kt:70:20 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:310:32 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:311:27 'fun writeCharacteristic(p0: BluetoothGattCharacteristic!): Boolean' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:328:32 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:329:29 'fun notifyCharacteristicChanged(p0: BluetoothDevice!, p1: BluetoothGattCharacteristic!, p2: Boolean): Boolean' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:399:14 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:518:25 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:663:22 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:664:23 'fun writeDescriptor(p0: BluetoothGattDescriptor!): Boolean' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/core/transport/GattVoiceTransport.kt:680:40 'var value: ByteArray!' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/auth/WelcomeAuthScreen.kt:442:57 'val Icons.Filled.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForward.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/auth/WelcomeAuthScreen.kt:511:45 'val Icons.Filled.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForward.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:66:8 'class MarkerOptions : BaseMarkerOptions<Marker!, MarkerOptions!>, Parcelable' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:67:8 'class PolylineOptions : Any, Parcelable' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:86:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:214:45 'fun clear(): Unit' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:216:49 'fun addMarker(p0: MarkerOptions): Marker' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:216:59 'constructor(): MarkerOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:217:49 'fun addMarker(p0: MarkerOptions): Marker' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:217:59 'constructor(): MarkerOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:218:49 'fun addPolyline(p0: PolylineOptions): Polyline' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt:219:49 'constructor(): PolylineOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:106:8 'class IconFactory : Any' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:107:8 'class MarkerOptions : BaseMarkerOptions<Marker!, MarkerOptions!>, Parcelable' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:108:8 'class PolylineOptions : Any, Parcelable' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:109:8 'class Polyline : BasePointCollection' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:142:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:215:61 'class Polyline : BasePointCollection' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:327:13 'fun clear(): Unit' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:330:13 'fun addMarker(p0: MarkerOptions): Marker' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:331:13 'constructor(): MarkerOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:338:17 'fun addMarker(p0: MarkerOptions): Marker' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:339:17 'constructor(): MarkerOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:347:40 'class Polyline : BasePointCollection' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:356:29 'fun addPolyline(p0: PolylineOptions): Polyline' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:357:21 'constructor(): PolylineOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:370:35 'fun addPolyline(p0: PolylineOptions): Polyline' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:371:17 'constructor(): PolylineOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:380:31 'class IconFactory : Any' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:400:21 'fun addMarker(p0: MarkerOptions): Marker' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:401:21 'constructor(): MarkerOptions' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:661:59 'fun getFromLocationName(p0: String, p1: Int): (MutableList<Address!>?..List<Address!>?)' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:662:55 'fun getFromLocationName(p0: String, p1: Int): (MutableList<Address!>?..List<Address!>?)' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:906:33 'fun setOnPolylineClickListener(p0: MapLibreMap.OnPolylineClickListener?): Unit' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt:919:33 'fun setOnMarkerClickListener(p0: MapLibreMap.OnMarkerClickListener?): Unit' is deprecated. Deprecated in Java.
+w: file:///D:/Ruta-Biker-Sync/android/app/src/main/java/com/rutabikersync/app/ui/components/HeritageComponents.kt:721:44 'fun CircularProgressIndicator(progress: Float, modifier: Modifier = ..., color: Color = ..., strokeWidth: Dp = ..., trackColor: Color = ..., strokeCap: StrokeCap = ...): Unit' is deprecated. Use the overload that takes `progress` as a lambda.
+
+> Task :app:compileStandardDebugJavaWithJavac
+> Task :app:processStandardDebugJavaRes
+> Task :app:bundleStandardDebugClassesToCompileJar
+> Task :app:bundleStandardDebugClassesToRuntimeJar
+> Task :app:kspStandardDebugUnitTestKotlin
+> Task :app:compileStandardDebugUnitTestKotlin
+> Task :app:compileStandardDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processStandardDebugUnitTestJavaRes
+> Task :app:testStandardDebugUnitTest
+
+BUILD SUCCESSFUL in 1m 48s
+27 actionable tasks: 27 executed
+
+
+RESULTADO XML:
+<testsuite name="com.rutabikersync.app.core.mesh.P0SecurityChecksTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-21T18:40:47" hostname="OMARTINEZPAZ" time="0.307">

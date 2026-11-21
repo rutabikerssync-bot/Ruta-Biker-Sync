@@ -9,6 +9,7 @@ import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.ui.components.skeleton.UiState
 import java.io.File
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -121,14 +122,9 @@ class Phase1ViewModel(
                     )
                 }
                 repository.refreshRsvpPendingCount()
-                if (status == "home") {
-                    // Redundancia activa: propagar evento de llegada segura también por malla BLE
-                    runCatching {
-                        com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
-                            com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.SAFE_HOME
-                        )
-                    }
-                }
+                // P0: SAFE_HOME no se emite por BLE desde el outbox local. Sin
+                // respuesta autorizada del backend no existe prueba de permiso
+                // para invertir/terminar la rodada de todo el convoy.
             } catch (_: Exception) {
                 // El outbox ya registró la intención antes de cualquier error de red.
             }
@@ -191,28 +187,20 @@ class Phase1ViewModel(
         RideScheduleRepository.setReturnPhase(false)
         viewModelScope.launch {
             try {
-                // Redundancia activa: propagar evento de inicio por malla BLE a miembros cercanos
-                runCatching {
-                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
-                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND
-                    )
-                }
-                val result = repository.clubRoutes.startRoute(routeId)
-                result.fold(
-                    onSuccess = { response ->
-                        if (response.isSuccess || response.statusCode == 409) {
-                            loadRideRoster(routeId)
-                            onStarted()
-                        } else {
-                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
-                                ?: "No se pudo iniciar la ruta (${response.statusCode})."
-                        }
-                    },
-                    onFailure = {
-                        // En zona sin cobertura celular, la malla BLE mantiene la coordinación activa
-                        _rideRosterError.value = "Modo Off-Grid: Ruta iniciada por malla BLE sin conexión a servidor."
+                // P0/H4: primero autoriza el backend; solo después se propaga por BLE.
+                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
+                    restCall = { repository.clubRoutes.startRoute(routeId) },
+                    authorized = { it.isSuccess || it.statusCode == 409 },
+                    onAuthorized = {
+                        loadRideRoster(routeId)
                         onStarted()
-                    }
+                    },
+                    onDenied = { response, _ ->
+                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
+                            ?: if (response != null) "No se pudo iniciar la ruta (${response.statusCode})."
+                            else "Sin conexión: inicio no autorizado por el servidor. La malla no propagó el evento."
+                    },
+                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND
                 )
             } finally {
                 _isStartingRide.value = false
@@ -223,28 +211,21 @@ class Phase1ViewModel(
     fun arriveDestination(routeId: String) {
         viewModelScope.launch {
             try {
-                // Redundancia activa: notificar llegada por malla BLE
-                runCatching {
-                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
-                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION
-                    )
-                }
-                // Actualizar inmediatamente en memoria local para no depender de latencia de red
-                val nowIso = Instant.now().toString()
-                _rideRoster.value = _rideRoster.value?.copy(destinationReachedAt = nowIso)
-                val res = repository.clubRoutes.arriveDestination(routeId)
-                res.fold(
-                    onSuccess = { response ->
-                        if (response.isSuccess) {
-                            loadRideRoster(routeId)
-                        } else {
-                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
-                                ?: "No se pudo marcar llegada a destino (${response.statusCode})."
-                        }
+                // P0/H4: REST decide; el estado local y la malla solo cambian tras éxito.
+                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
+                    restCall = { repository.clubRoutes.arriveDestination(routeId) },
+                    authorized = { it.isSuccess },
+                    onAuthorized = {
+                        val nowIso = Instant.now().toString()
+                        _rideRoster.value = _rideRoster.value?.copy(destinationReachedAt = nowIso)
+                        loadRideRoster(routeId)
                     },
-                    onFailure = {
-                        _rideRosterError.value = "Sin conexión celular: llegada registrada por malla localmente."
-                    }
+                    onDenied = { response, _ ->
+                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
+                            ?: if (response != null) "No se pudo marcar llegada a destino (${response.statusCode})."
+                            else "Sin conexión: llegada no autorizada por el servidor. La malla no propagó el evento."
+                    },
+                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION
                 )
             } catch (_: Exception) {
                 _rideRosterError.value = "Error al marcar llegada a destino."
@@ -255,30 +236,23 @@ class Phase1ViewModel(
     fun startReturn(routeId: String, onStarted: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                RideScheduleRepository.setReturnPhase(true)
-                // Redundancia activa: propagar evento de inicio de retorno por malla BLE
-                runCatching {
-                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
-                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN
-                    )
-                }
-                val nowIso = Instant.now().toString()
-                _rideRoster.value = _rideRoster.value?.copy(returnStartedAt = nowIso)
-                val res = repository.clubRoutes.startReturnRoute(routeId)
-                res.fold(
-                    onSuccess = { response ->
-                        if (response.isSuccess || response.statusCode == 409) {
-                            loadRideRoster(routeId)
-                            onStarted()
-                        } else {
-                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
-                                ?: "No se pudo iniciar el retorno (${response.statusCode})."
-                        }
-                    },
-                    onFailure = {
-                        _rideRosterError.value = "Modo Off-Grid: Retorno iniciado por malla BLE."
+                // P0/H4: la inversión de ruta solo se aplica si el servidor autoriza.
+                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
+                    restCall = { repository.clubRoutes.startReturnRoute(routeId) },
+                    authorized = { it.isSuccess || it.statusCode == 409 },
+                    onAuthorized = {
+                        RideScheduleRepository.setReturnPhase(true)
+                        val nowIso = Instant.now().toString()
+                        _rideRoster.value = _rideRoster.value?.copy(returnStartedAt = nowIso)
+                        loadRideRoster(routeId)
                         onStarted()
-                    }
+                    },
+                    onDenied = { response, _ ->
+                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
+                            ?: if (response != null) "No se pudo iniciar el retorno (${response.statusCode})."
+                            else "Sin conexión: retorno no autorizado por el servidor. La malla no propagó el evento."
+                    },
+                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN
                 )
             } catch (_: Exception) {
                 _rideRosterError.value = "Error al iniciar el retorno."
@@ -341,7 +315,9 @@ class Phase1ViewModel(
         }
         pingBackendServer()
         // Ciclo reactivo de sincronización periódica con el backend
-        viewModelScope.launch {
+        // Red en IO: evita reanudar sobre Dispatchers.Main después de que el test
+        // haya hecho resetMain (fatal "Main dispatcher failed to initialize").
+        viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
                 try {
                     repository.syncClubsAndInvitations()
@@ -359,7 +335,7 @@ class Phase1ViewModel(
             _statusBanner.value = "🟢 Fastify online (status: ok) · PostgreSQL 16"
             return
         }
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val res = repository.apiClient.checkHealth()
                 res.onSuccess { apiRes ->

@@ -78,6 +78,15 @@ class ClubApiClient(
         executeRequest("GET", "/v1/rides/$rideId/participants", null)
     }
 
+    /**
+     * P0 auditoría: manifiesto firmado por el backend. Contiene la clave de rodada
+     * estable (`rideSecretKeyHex`) y las claves públicas Ed25519 del emisor.
+     * Nunca se almacena en disco: se valida en memoria y se descarta al cerrar la rodada.
+     */
+    suspend fun fetchRideManifest(rideId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/rides/$rideId/manifest", null)
+    }
+
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
     var accessToken: String? = null

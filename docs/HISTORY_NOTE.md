@@ -639,3 +639,33 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
 - Enlace BLE bidireccional constante en `LEGACY_1M` (`AdvRx` en TECNO `rssi=-57 dBm`, `AdvRx` en Redmi `rssi=-72 dBm`).
 - Evidencia: `docs/evidence/tecno_dark_map_rendered_20261121.png`, `docs/evidence/redmi_dark_map_rendered_20261121.png`.
 
+### P0 AUDITORÍA — Cifrado real, binding de club y orden REST→BLE (2026-11-21)
+
+**Corrección documental previa:** `CHECKLIST.md` ya no afirma que HMAC-SHA256 cifra ni que la malla cifra sus frames. El wire format de 20 bytes sigue siendo texto plano con HMAC truncado (autenticación/integridad, **no confidencialidad**); el cifrado real de audio/PTT no se tocó en este hito.
+
+**Hallazgos y fix aplicado:**
+
+| Hallazgo | Fix aplicado | Test que lo verifica |
+|---|---|---|
+| H1 — BLE se emitía antes de REST; engine-null descartaba eventos | `RestFirstLifecycleGate` obliga a que REST autorice antes de emitir; `PendingLifecycleEvents` conserva el evento hasta que el engine está listo y se drena al pasar a `RUNNING`. SAFE_HOME local dejó de propagarse sin autorización. | `P0SecurityChecksTest.H1 REST autoriza antes que BLE…` y `H1 el evento queda encolado…` |
+| H2 — SOS se emitía con firma en ceros | `SosSigningHub` inicializa `Ed25519SosCrypto` al arrancar la app; emisor, ACK del servicio y ACK de la cabina usan la firma real. Wire format de 88/83 bytes sin cambios. | `SosPacketCryptoTest` (7/7) y `P0SecurityChecksTest.H2 SOS con firma Ed25519 inválida se rechaza…` |
+| H3 — “convoy cercano” ≠ club; sin roster/rol/frescura | `RideMeshAuthorization` filtra por `shortId` derivado de la clave pública Ed25519 del manifiesto firmado, exige rol de líder/marshal para inversión/fin y controla secuencia por emisor. No se añadieron campos al wire format ni se modificó GATT. | `P0SecurityChecksTest.H3 otro club…`, `H3 rol y frescura…` |
+| H4 — clave fija compartida / aleatoria local; `resolveRideSecretKey()` sin usar | Backend persiste `manifest_ride_secret_key_hex` (migración `0021`) y lo reutiliza en cada manifiesto; Android descarga y verifica el manifiesto con `RideManifestKeyProvider` y `dispatchStartRide` exige la clave de 32 bytes del manifiesto (fail-closed, sin fallback fijo). | `phase3_rides_manifest.test.ts` (clave estable entre dos peticiones) y `P0SecurityChecksTest.H5 identidad derivada…` |
+| H5 — verificación SOS sin mappings reales | El verificador solo se activa si hay `sosPublicKeyResolver` con claves reales; mientras el backend no distribuya claves públicas SOS en el manifiesto, se documenta como pendiente en vez de rechazar SOS legítimos. | `P0SecurityChecksTest.H2` |
+
+Nota: el source set `fieldTest` usa una clave derivada de una frase pública **solo de diagnóstico** para que dos dispositivos de campo puedan autenticarse; nunca se usa en `main`/release.
+
+**Pruebas (captura de la ejecución final):**
+- Android: `.\gradlew.bat :app:testStandardDebugUnitTest --no-daemon --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 491 tests, 0 fallos.
+- Nueva suite P0: `P0SecurityChecksTest` → 7 tests, 0 skipped, 0 failures, 0 errors.
+- Backend: `npm test` → 25 archivos, 165 tests PASSED; `npm run typecheck` → OK.
+- Captura P0: `docs/evidence/p0_tests_green_20261121.txt`.
+- Se corrigió además la fuga de `Dispatchers.Main` que hacía fallar la suite completa: `Phase1ViewModel` ahora hace el ping/sync en `Dispatchers.IO` (evita reanudar sobre un Main ya resetsado) y `Phase1RulesTest`/`LiveMapViewModelTest` cancelan su dispatcher en `tearDown`.
+
+**Pendiente (no incluido en P0):**
+- Distribuir las claves públicas Ed25519 SOS en el manifiesto firmado y poblar `sosPublicKeyResolver` en producción; hoy la firma local ya se emite, pero el rechazo por firma inválida solo se activa con mappings reales.
+- Persistir/rotar la clave de rodada con política de expiración y rotación por temporada (la clave actual es estable por `ride_id`).
+- Cifrado real del payload de la malla (HMAC actual solo autentica): requiere cambiar el formato de 20 bytes y coordinarlo con GATT/transporte; **no se hizo sin autorización**.
+- P1 (audio) y P2 (estado/mapa) siguen bloqueados hasta confirmación del usuario.
+- Prohibido probar en campo (TECNO/Redmi) hasta nueva instrucción.
+

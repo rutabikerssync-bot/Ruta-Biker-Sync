@@ -528,9 +528,15 @@ fun FieldTestScreen(
         activeTestSnapshot = snapshot
         lastTestSnapshot = snapshot
 
+        // Harness de campo (source set fieldTest): clave determinista SOLO de pruebas,
+        // derivada de una frase pública para que dos dispositivos de diagnóstico
+        // puedan autenticarse entre sí. Producción exige clave del manifiesto firmado.
+        val fieldTestRideKey = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("rbs-field-test-only-not-production".toByteArray())
         RideService.dispatchStartRide(
             context = context,
             rideId = "field-test-$now",
+            rideSecretKey = fieldTestRideKey,
             localShortId = selectedNodeShortId,
             forceSimulated = useSimulated,
             bleModeOverride = selectedTransportMode,

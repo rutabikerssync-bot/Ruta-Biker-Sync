@@ -325,6 +325,19 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
     expect(unauthorizedCheck.valid).toBe(false);
     expect(unauthorizedCheck.reason).toBe('PARTICIPANT_NOT_AUTHORIZED');
 
+    // P0 auditoría: la clave de rodada debe ser estable entre móviles del mismo club.
+    // Un manifiesto emitido dos veces no puede regenerar la clave: la malla no
+    // autenticaría al compañero con la clave que recibió el primer teléfono.
+    const secondManifestRes = await app.inject({
+      method: 'GET',
+      url: `/v1/rides/${jointRideId}/manifest`,
+      headers: { authorization: `Bearer ${cohostMemberToken}` }
+    });
+    expect(secondManifestRes.statusCode).toBe(200);
+    const secondBody = secondManifestRes.json();
+    expect(secondBody.payload.rideSecretKeyHex).toMatch(/^[0-9a-fA-F]{64}$/);
+    expect(secondBody.payload.rideSecretKeyHex).toBe(body.payload.rideSecretKeyHex);
+
     // Con el manifiesto de 2 grupos, los teléfonos aceptan credenciales Ed25519 tanto de hostGroupId como de cohostGroupId,
     // pero rechazan credenciales de thirdGroupId
     const nowSec = Math.floor(Date.now() / 1000);

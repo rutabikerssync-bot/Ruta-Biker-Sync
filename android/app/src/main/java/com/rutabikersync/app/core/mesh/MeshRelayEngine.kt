@@ -364,6 +364,9 @@ class MeshRelayEngine(
         (onAuthenticatedRelayTransmit ?: onTransmitRelay)?.invoke(bytes)
     }
 
+    /** P0: cuando está configurado, solo el roster del manifiesto firmado puede emitir tramas. */
+    var rideAuthorization: RideMeshAuthorization? = null
+
     var sosCrypto: Ed25519SosCrypto? = null
     var sosPublicKeyResolver: SosPublicKeyResolver? = null
     var onSosReceived: ((SosPacket) -> Unit)? = null
@@ -1421,6 +1424,18 @@ class MeshRelayEngine(
             return
         }
 
+        val authorization = rideAuthorization
+        if (authorization != null && !authorization.isClubMember(packet.shortId)) {
+            android.util.Log.w(
+                "MeshRelayEngine",
+                "RosterMismatch: shortId=${packet.shortId} no pertenece al manifiesto firmado"
+            )
+            synchronized(this) { invalidAuthDropped++ }
+            refreshStateFlows()
+            return
+        }
+
+        var lifecycleRejected = false
         var relayCandidate: MeshPacket? = null
         var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
         var decodedConvoySignal: IncomingConvoySignal? = null
@@ -1478,12 +1493,23 @@ class MeshRelayEngine(
                     val eventCode = (kindCode and 0x0F).toByte()
                     val event = RideLifecycleEvent.fromCode(eventCode)
                     if (event != null) {
-                        decodedRideLifecycleEvent = IncomingRideLifecycleEvent(
-                            senderShortId = packet.shortId,
-                            event = event,
-                            sequenceNumber = packet.sequenceNumber,
-                            hopsTaken = packet.hopsTaken
-                        )
+                        val allowed = authorization == null ||
+                            (authorization.canAuthorLifecycle(packet.shortId, event) &&
+                                authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort()))
+                        if (allowed) {
+                            decodedRideLifecycleEvent = IncomingRideLifecycleEvent(
+                                senderShortId = packet.shortId,
+                                event = event,
+                                sequenceNumber = packet.sequenceNumber,
+                                hopsTaken = packet.hopsTaken
+                            )
+                        } else {
+                            lifecycleRejected = true
+                            android.util.Log.w(
+                                "MeshRelayEngine",
+                                "LifecycleRejected: event=${event.name} sender=${packet.shortId} sin rol/frescura válida"
+                            )
+                        }
                     }
                 } else {
                     decodedAnnouncedSignal = AnnouncedMeshSignal(
@@ -1498,7 +1524,7 @@ class MeshRelayEngine(
                 updatePeerTrackLocked(packet, nowEpochMs, rssi)
             }
 
-            val decremented = if (relayEnabled) packet.decrementTtlForRelay() else null
+            val decremented = if (relayEnabled && !lifecycleRejected) packet.decrementTtlForRelay() else null
             if (decremented != null) {
                 relayQueue.add(QueuedRelay(decremented, enqueueSequence++))
                 relayCandidate = relayQueue.poll()?.packet

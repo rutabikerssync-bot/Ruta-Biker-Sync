@@ -22,9 +22,7 @@ object SosMeshEmitter {
             initTtl = 5,
             currentTtl = 5
         )
-        // Se conserva exactamente la construcción criptográfica vigente de BleMeshService.
-        // Su resolución/verificación no se modifica en este hito de audio y transporte.
-        return SosPacket(
+        val unsigned = SosPacket(
             header = header,
             latitudeRaw = (latitude * 1e7).toInt(),
             longitudeRaw = (longitude * 1e7).toInt(),
@@ -34,6 +32,8 @@ object SosMeshEmitter {
             signature = ByteArray(64),
             hopCount = 0
         )
+        // Wire format idéntico (88 bytes); solo se rellena la firma que antes iba en ceros.
+        return SosSigningHub.signSos(unsigned)
     }
 
     fun startLocalBroadcast(

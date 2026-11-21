@@ -3,6 +3,7 @@ package com.rutabikersync.app.feature.livemap
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -39,6 +40,9 @@ class LiveMapViewModelTest {
 
     @After
     fun tearDown() {
+        // Evita que corrutinas de un test sigan usando Main cuando el siguiente
+        // test cambia el dispatcher (fuga detectada en la suite completa).
+        testDispatcher.cancel()
         Dispatchers.resetMain()
     }
 

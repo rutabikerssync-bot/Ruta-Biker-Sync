@@ -409,7 +409,7 @@ class BleMeshService : Service() {
             ACTION_EMIT_ACK -> {
                 val targetShortId = intent?.getIntExtra("extra_target_short_id", 2)?.toUShort() ?: 2u
                 Log.i(TAG, "ACTION_EMIT_ACK recibido para target=$targetShortId")
-                val ack = SosAckPacket.create(
+                val unsignedAck = SosAckPacket.create(
                     clubNetworkId = relayEngine?.clubNetworkId ?: 0x52425301u,
                     ackerShortId = relayEngine?.localShortId ?: 1u,
                     sequenceNum = 1u,
@@ -418,7 +418,9 @@ class BleMeshService : Service() {
                     ackTimestampEpochSec = (System.currentTimeMillis() / 1000L).toInt(),
                     signature = ByteArray(64)
                 )
-                sendSosAckPacket(ack)
+                sendSosAckPacket(
+                    com.rutabikersync.app.core.mesh.sos.SosSigningHub.signSosAck(unsignedAck)
+                )
             }
             ACTION_PURGE_R12 -> {
                 Log.i(TAG, "ACTION_PURGE_R12 recibido: purgando fichas médicas en RAM")

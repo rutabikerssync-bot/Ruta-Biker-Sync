@@ -334,20 +334,24 @@ fun LiveMapScreen(
     LaunchedEffect(Unit) {
         // Asegurar que la malla BLE y el servicio en primer plano estén activos al estar en la cabina
         if (RideService.sharedState.value.lifecycleState != RideLifecycleState.RUNNING) {
-            val shortId = run {
-                val androidId = android.provider.Settings.Secure.getString(
-                    context.contentResolver,
-                    android.provider.Settings.Secure.ANDROID_ID
-                ).orEmpty()
-                val uniqueSeed = "${android.os.Build.MODEL}:$androidId"
-                ((uniqueSeed.hashCode() and 0x7FFF) % 65534) + 1
-            }
-            RideService.dispatchStartRide(
-                context = context.applicationContext,
+            val authorized = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(
                 rideId = "ride-live-01",
-                localShortId = shortId,
-                forceSimulated = false
+                currentUserId = com.rutabikersync.app.feature.groups.ClubRepository.getInstance().currentUser.value.id
             )
+            if (authorized != null) {
+                RideService.dispatchStartRide(
+                    context = context.applicationContext,
+                    rideId = "ride-live-01",
+                    localShortId = authorized.localShortId.toInt(),
+                    forceSimulated = false,
+                    rideSecretKey = authorized.rideSecretKey
+                )
+            } else {
+                android.util.Log.e(
+                    "LiveMapScreen",
+                    "Malla BLE no iniciada: manifiesto firmado no disponible"
+                )
+            }
         }
         // El alcance real pertenece a App; cabina solo observa PTT y el estado SOS.
         com.rutabikersync.app.core.audio.SosToneHub.ensureInitialized(context.applicationContext)
@@ -1958,7 +1962,7 @@ fun LiveMapScreen(
                     // Crear y emitir SosAckPacket usando el servicio BLE activo
                     val ackerShortId = selfShortId
                     val ack = try {
-                        com.rutabikersync.app.core.mesh.sos.SosAckPacket.create(
+                        val unsignedAck = com.rutabikersync.app.core.mesh.sos.SosAckPacket.create(
                             clubNetworkId = event.clubNetworkId,
                             ackerShortId = ackerShortId,
                             sequenceNum = (System.currentTimeMillis() and 0xFFFF).toUShort(),
@@ -1967,6 +1971,7 @@ fun LiveMapScreen(
                             ackTimestampEpochSec = (System.currentTimeMillis() / 1000L).toInt(),
                             signature = ByteArray(64)
                         )
+                        com.rutabikersync.app.core.mesh.sos.SosSigningHub.signSosAck(unsignedAck)
                     } catch (e: Exception) {
                         null
                     }

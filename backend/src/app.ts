@@ -11,7 +11,7 @@ import fastifyStatic from '@fastify/static';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { Pool } from 'pg';
 import type { DbExecutor } from './db/pool.js';
@@ -4856,7 +4856,8 @@ export async function buildApp({
     const { id: rideId } = req.params as { id: string };
 
     const rideRes = await db.query(
-      `SELECT id, host_group, host_leader, cohost_group, cohost_leader, route_hash, state
+      `SELECT id, host_group, host_leader, cohost_group, cohost_leader, route_hash, state,
+              manifest_ride_secret_key_hex
        FROM rides WHERE id = $1`,
       [rideId]
     );
@@ -4890,6 +4891,22 @@ export async function buildApp({
         Buffer.from(`dev-pk-${r.user_id}`, 'utf8').toString('base64')
     }));
 
+    // P0: la clave de rodada se genera UNA sola vez y se reutiliza en cada
+    // manifiesto firmado. Sin esta persistencia cada dispositivo recibía una
+    // clave distinta y la malla no podía autenticar a los compañeros de club.
+    let rideSecretKeyHex: string | null =
+      typeof ride.manifest_ride_secret_key_hex === 'string' &&
+      /^[0-9a-fA-F]{64}$/.test(ride.manifest_ride_secret_key_hex)
+        ? ride.manifest_ride_secret_key_hex
+        : null;
+    if (!rideSecretKeyHex) {
+      rideSecretKeyHex = randomBytes(32).toString('hex');
+      await db.query(
+        `UPDATE rides SET manifest_ride_secret_key_hex = $1 WHERE id = $2`,
+        [rideSecretKeyHex, rideId]
+      );
+    }
+
     const signed = issueRideManifest(
       {
         rideId: String(ride.id),
@@ -4898,7 +4915,8 @@ export async function buildApp({
         hostLeaderId: String(ride.host_leader),
         cohostLeaderId: ride.cohost_leader ? String(ride.cohost_leader) : null,
         routeHash: ride.route_hash ? String(ride.route_hash) : null,
-        participants
+        participants,
+        rideSecretKeyHex
       },
       credentialKeyring
     );

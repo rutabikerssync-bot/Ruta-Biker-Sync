@@ -2,6 +2,7 @@ package com.rutabikersync.app.feature.groups
 
 import com.rutabikersync.app.ui.components.skeleton.SkeletonTimingRules
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -25,6 +26,10 @@ class Phase1RulesTest {
 
     @After
     fun tearDown() {
+        // Las corrutinas lanzadas por los ViewModel pueden sobrevivir al aserto.
+        // Cancelar el dispatcher antes de soltar Main evita que otro test herede
+        // excepciones no controladas o el error "Main is used concurrently".
+        testDispatcher.cancel()
         Dispatchers.resetMain()
     }
 

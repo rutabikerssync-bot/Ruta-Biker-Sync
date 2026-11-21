@@ -24,6 +24,7 @@ class App : Application() {
         instance = this
         // Alcance de aplicación: el SOS suena aunque no exista cabina/Compose montada.
         SosToneHub.ensureInitialized(this)
+        com.rutabikersync.app.core.mesh.sos.SosSigningHub.initialize(this)
         applicationScope.launch {
             RideService.sharedState
                 .distinctUntilChangedBy { it.isSosActive }

@@ -77,6 +77,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,6 +117,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import com.rutabikersync.app.core.uxtest.UxTestTracker
 import com.rutabikersync.app.core.uxtest.ModeratorControlDialog
@@ -691,6 +693,7 @@ private fun RidesReleaseHomeScreen(
     initialOpenRideHistory: Boolean = false
 ) {
     val context = LocalContext.current
+    val startRideScope = rememberCoroutineScope()
     val activity = context as? Activity
     val rideState by RideService.sharedState.collectAsState()
     val currentRide by RideScheduleRepository.currentRide.collectAsState()
@@ -802,23 +805,34 @@ private fun RidesReleaseHomeScreen(
 
     fun startRideServiceNow(useSimulated: Boolean) {
         startErrorBroadcastMessage = null
-        val eligibility = RideService.dispatchStartRide(
-            context = context,
-            rideId = "ride-live-01",
-            localShortId = run {
-                val androidId = android.provider.Settings.Secure.getString(
-                    context.contentResolver,
-                    android.provider.Settings.Secure.ANDROID_ID
-                ).orEmpty()
-                val uniqueSeed = "${android.os.Build.MODEL}:$androidId"
-                ((uniqueSeed.hashCode() and 0x7FFF) % 65534) + 1
-            },
-            forceSimulated = useSimulated
-        )
-        if (!useSimulated && !eligibility.shouldPromoteToForeground) {
-            startErrorBroadcastMessage =
-                "Malla BLE no viable en este dispositivo o sin permisos/Bluetooth activo. " +
-                    "Se inició en modo simulado dentro de la app sin notificación persistente en primer plano."
+        startRideScope.launch {
+            // P0: la malla solo arranca con clave verificada del manifiesto firmado.
+            // Sin backend/manifiesto válido se muestra la causa y no se fabrica clave.
+            val authorized = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(
+                rideId = "ride-live-01",
+                currentUserId = currentUser.id
+            )
+            if (authorized == null) {
+                startErrorBroadcastMessage =
+                    "No se pudo verificar el manifiesto firmado de la rodada. " +
+                        "La malla BLE no se inició para no usar una clave falsa."
+                return@launch
+            }
+            val eligibility = RideService.dispatchStartRide(
+                context = context,
+                rideId = "ride-live-01",
+                localShortId = authorized.localShortId.toInt(),
+                forceSimulated = useSimulated,
+                rideSecretKey = authorized.rideSecretKey
+            )
+            if (!eligibility.securityKeyReady) {
+                startErrorBroadcastMessage =
+                    "Clave de rodada rechazada por el servicio. La malla BLE no se inició."
+            } else if (!useSimulated && !eligibility.shouldPromoteToForeground) {
+                startErrorBroadcastMessage =
+                    "Malla BLE no viable en este dispositivo o sin permisos/Bluetooth activo. " +
+                        "Se inició en modo simulado dentro de la app sin notificación persistente en primer plano."
+            }
         }
     }
 
