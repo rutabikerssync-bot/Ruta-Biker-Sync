@@ -210,7 +210,7 @@ fun RouteDetailScreen(
                             mapView.apply {
                                 getMapAsync { map ->
                                     mapInstance = map
-                                    map.setStyle("asset://tiles/positron_corridor_style.json") {
+                                    map.setStyle("asset://tiles/dark_corridor_style.json") {
                                         map.clear()
                                         if (route.waypoints.isNotEmpty()) {
                                             map.addMarker(MarkerOptions().position(LatLng(route.waypoints.first().latitude, route.waypoints.first().longitude)).title("Salida"))

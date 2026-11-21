@@ -594,3 +594,48 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
 - Cabina abierta con enlace bidireccional de malla activo (`Convoy 2 riders`).
 - Diálogo de señales rápidas probado en vivo en pantalla: toque en `🛑 Reducir velocidad` reprodujo la cadencia audible a través de `ToneGenerator` (canal `STREAM_ALARM`) y emitió el feedback `📢 Señal emitida: ¡🛑 Reducir velocidad!`.
 - Capturas: `docs/evidence/fase5_tecno_signals_dialog.png` y `.xml`, `docs/evidence/fase5_tecno_signal_emitted.png` y `.xml`.
+
+### HITO 2 (Extensión) — Propagación BLE por Malla de Señales Rápidas de Convoy (2026-11-21)
+
+**Cambio (archivos):**
+- `android/app/src/main/java/com/rutabikersync/app/core/mesh/MeshRelayEngine.kt`:
+  - Callback `var onConvoySignalReceived: ((IncomingConvoySignal) -> Unit)? = null`.
+  - Despacho inmediato en `onRawPacketReceived` para `kindCode in (0xC1..0xC5)`.
+- `android/app/src/main/java/com/rutabikersync/app/core/mesh/RideService.kt`:
+  - Canal estático `incomingConvoySignals` con `replay = 1` y buffer de 64.
+  - Reproducción directa de audio en `onConvoySignalReceived` vía `ConvoySignalAudioHub.playSignal(incoming.signalKind)`.
+  - Método `dispatchSendConvoySignal(signal)` con prioridad `Transport.Priority.PEER_EVENT` (ráfaga de 100 ms).
+- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`:
+  - Suscripción reactiva desacoplada a `RideService.incomingConvoySignals` con banner `📢 [Sender]: ¡[Icono] [Título]!`.
+- `android/app/src/test/java/com/rutabikersync/app/core/mesh/ConvoySignalMeshPropagationTest.kt`:
+  - Suite unitaria (3/3 tests PASSED) validando prioridad, decodificación y deduplicación.
+
+**Hardware (TECNO 098813734B105395 y Redmi 100.98.78.105:38109 / b2c398bb):**
+- Emisión probada desde TECNO (`kind=REDUCE_SPEED code=2`) y recepción en Redmi vía ManufacturerData `0x5242` en ráfaga BLE:
+  - `MeshRelayEngine: IncomingConvoySignal decoded & emitting: sender=32191 kind=REDUCE_SPEED`
+  - `RideService: ConvoySignalRx recibido por BLE Mesh: from=32191 kind=REDUCE_SPEED`
+  - `ToneGenerator: constructor streamType=4 volume=1.0` -> Cadencia multi-pulso audible en Redmi.
+  - UI de Redmi: Banner `📢 Rider #32191: ¡🛑 Reducir velocidad!`.
+- Evidencia: `docs/evidence/convoy_signal_ble_propagation_20261121.txt`, capturas `convoy_signal_ble_tx_tecno_20261121.png` y `convoy_signal_ble_rx_redmi_20261121.png`.
+
+### HITO 3 — Lienzo MapLibre RBS Dark Corridor con OpenStreetMap Raster y Proyección de Avatares (2026-11-21)
+
+**Cambio (archivos):**
+- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapViewModel.kt`:
+  - `DEFAULT_STYLE_ASSET_URI = "asset://tiles/dark_corridor_style.json"` resolviendo la causa raíz de la pantalla gris (dependencia de vector tiles externos de OpenFreeMap inalcanzables en redes móviles/offline).
+- `android/app/src/main/java/com/rutabikersync/app/feature/routes/RouteDetailScreen.kt` y `ScheduleRideMapScreen.kt`:
+  - Migración de estilo a `dark_corridor_style.json`.
+- `android/app/src/main/assets/tiles/positron_corridor_style.json`:
+  - Fallback raster claro universal basado en `osm-raster` de OpenStreetMap.
+
+**Pruebas:**
+- `PeerPositionValidityTest`: 2/2 tests PASSED.
+- `LiveMapViewModelTest`: 7/7 tests PASSED.
+- Suite obligatoria: 58/58 tests PASSED (0 fallos, 0 errores).
+
+**Hardware (TECNO 098813734B105395 y Redmi 100.98.78.105:38109 / b2c398bb):**
+- TECNO Spark 10C: Lienzo MapLibre 11.5.2 cargado con estilo oscuro OSM raster completo (626 KB), ícono de atribución OSM visible y avatar de `Ozmartinezpaz` geolocalizado en Los Teques (`10.34907, -67.03495`).
+- Redmi Note 13 Pro 5G: Cabina sincronizada con `Convoy 2 riders`, avatares de ambos moteros proyectados sobre las vías reales.
+- Enlace BLE bidireccional constante en `LEGACY_1M` (`AdvRx` en TECNO `rssi=-57 dBm`, `AdvRx` en Redmi `rssi=-72 dBm`).
+- Evidencia: `docs/evidence/tecno_dark_map_rendered_20261121.png`, `docs/evidence/redmi_dark_map_rendered_20261121.png`.
+

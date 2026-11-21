@@ -882,7 +882,7 @@ fun ScheduleRideMapScreen(
             factory = {
                 mapView.apply {
                     getMapAsync { map ->
-                        map.setStyle("asset://tiles/positron_corridor_style.json") {
+                        map.setStyle("asset://tiles/dark_corridor_style.json") {
                             map.uiSettings.isAttributionEnabled = false
                             map.uiSettings.isLogoEnabled = false
                             map.uiSettings.isCompassEnabled = true

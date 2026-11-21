@@ -195,7 +195,7 @@ class LiveMapController(
 
     companion object {
         const val DEFAULT_PMTILES_ASSET_URI: String = "asset://tiles/sample_corridor.pmtiles"
-        const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/positron_corridor_style.json"
+        const val DEFAULT_STYLE_ASSET_URI: String = "asset://tiles/dark_corridor_style.json"
         const val OSM_ATTRIBUTION: String = "© OpenStreetMap contributors"
         const val MAP_UPDATE_CADENCE_MS: Long = 1_000L
         const val FOLLOW_LEADER_DURATION_MS: Long = 10_000L
