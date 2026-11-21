@@ -285,6 +285,8 @@ class ConvoySignalAudioPlayerTest {
                 lastPlayed = kind
                 stopped = false
             }
+            override fun playTone(toneType: Int, durationMs: Long) {}
+            override fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long) {}
             override fun stop() {
                 stopped = true
             }

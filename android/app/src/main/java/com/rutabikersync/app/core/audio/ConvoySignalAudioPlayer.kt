@@ -32,7 +32,7 @@ enum class ConvoySignalKind(
         title = "Obstáculo en la vía",
         subtitle = "Bache, grava o escombros",
         icon = "⚠",
-        toneType = ToneGenerator.TONE_PROP_BEEP,
+        toneType = ToneGenerator.TONE_PROP_NACK,
         pulseCount = 1,
         pulseDurationMs = 300L,
         gapMs = 100L
@@ -44,8 +44,8 @@ enum class ConvoySignalKind(
         icon = "🛑",
         toneType = ToneGenerator.TONE_PROP_BEEP2,
         pulseCount = 2,
-        pulseDurationMs = 120L,
-        gapMs = 80L
+        pulseDurationMs = 100L,
+        gapMs = 60L
     ),
     REGROUP(
         code = 3,
@@ -64,7 +64,7 @@ enum class ConvoySignalKind(
         icon = "⛽",
         toneType = ToneGenerator.TONE_PROP_ACK,
         pulseCount = 1,
-        pulseDurationMs = 400L,
+        pulseDurationMs = 450L,
         gapMs = 100L
     ),
     POLICE_CHECKPOINT(
@@ -72,10 +72,10 @@ enum class ConvoySignalKind(
         title = "Retén / Precaución",
         subtitle = "Control o alerta en la vía",
         icon = "👮",
-        toneType = ToneGenerator.TONE_PROP_BEEP2,
+        toneType = ToneGenerator.TONE_PROP_PROMPT,
         pulseCount = 3,
-        pulseDurationMs = 100L,
-        gapMs = 70L
+        pulseDurationMs = 90L,
+        gapMs = 60L
     );
 
     val fullLabel: String get() = "$icon $title"
@@ -89,6 +89,8 @@ enum class ConvoySignalKind(
 interface ConvoySignalAudioPlayer {
     val isPlaying: Boolean
     fun playSignal(kind: ConvoySignalKind)
+    fun playTone(toneType: Int, durationMs: Long)
+    fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L)
     fun stop()
 }
 
@@ -112,6 +114,42 @@ class DefaultConvoySignalPlayer(
     @Volatile
     private var playing = false
     override val isPlaying: Boolean get() = playing
+
+    override fun playTone(toneType: Int, durationMs: Long) {
+        playPattern(toneType, 1, durationMs, 0L)
+    }
+
+    override fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long) {
+        synchronized(stateLock) {
+            if (sosStateProvider() || pttStateProvider.isPttActive() || !audibilityProvider()) {
+                return
+            }
+            stopInternal()
+            if (!focusDelegate.requestFocus()) return
+            playing = true
+            val job = coroutineScope.launch(dispatcher) {
+                try {
+                    for (i in 0 until pulseCount) {
+                        if (!currentCoroutineContext().isActive || !playing) break
+                        if (sosStateProvider() || pttStateProvider.isPttActive()) break
+                        val emitted = synchronized(stateLock) {
+                            if (!playing) false else toneEmitter.toneOn(toneType, pulseDurationMs)
+                        }
+                        if (!emitted) break
+                        delay(pulseDurationMs)
+                        synchronized(stateLock) { toneEmitter.toneOff() }
+                        if (i < pulseCount - 1) {
+                            delay(gapMs)
+                        }
+                    }
+                } finally {
+                    finishOwnedPlayback(currentCoroutineContext()[Job])
+                }
+            }
+            playbackJob = job
+            if (!coroutineScope.isActive || job.isCancelled) finishOwnedPlayback(job)
+        }
+    }
 
     override fun playSignal(kind: ConvoySignalKind) {
         synchronized(stateLock) {
@@ -232,6 +270,14 @@ object ConvoySignalAudioHub {
 
     fun playSignal(kind: ConvoySignalKind) {
         player?.playSignal(kind)
+    }
+
+    fun playTone(toneType: Int, durationMs: Long) {
+        player?.playTone(toneType, durationMs)
+    }
+
+    fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L) {
+        player?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
     }
 
     fun stop() {

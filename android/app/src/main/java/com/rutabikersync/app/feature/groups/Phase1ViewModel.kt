@@ -121,6 +121,14 @@ class Phase1ViewModel(
                     )
                 }
                 repository.refreshRsvpPendingCount()
+                if (status == "home") {
+                    // Redundancia activa: propagar evento de llegada segura también por malla BLE
+                    runCatching {
+                        com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
+                            com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.SAFE_HOME
+                        )
+                    }
+                }
             } catch (_: Exception) {
                 // El outbox ya registró la intención antes de cualquier error de red.
             }
@@ -180,12 +188,19 @@ class Phase1ViewModel(
         if (_isStartingRide.value) return
         _isStartingRide.value = true
         _rideRosterError.value = null
+        RideScheduleRepository.setReturnPhase(false)
         viewModelScope.launch {
             try {
+                // Redundancia activa: propagar evento de inicio por malla BLE a miembros cercanos
+                runCatching {
+                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
+                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND
+                    )
+                }
                 val result = repository.clubRoutes.startRoute(routeId)
                 result.fold(
                     onSuccess = { response ->
-                        if (response.isSuccess) {
+                        if (response.isSuccess || response.statusCode == 409) {
                             loadRideRoster(routeId)
                             onStarted()
                         } else {
@@ -194,7 +209,9 @@ class Phase1ViewModel(
                         }
                     },
                     onFailure = {
-                        _rideRosterError.value = "Sin conexión: no se pudo iniciar la ruta."
+                        // En zona sin cobertura celular, la malla BLE mantiene la coordinación activa
+                        _rideRosterError.value = "Modo Off-Grid: Ruta iniciada por malla BLE sin conexión a servidor."
+                        onStarted()
                     }
                 )
             } finally {
@@ -206,6 +223,15 @@ class Phase1ViewModel(
     fun arriveDestination(routeId: String) {
         viewModelScope.launch {
             try {
+                // Redundancia activa: notificar llegada por malla BLE
+                runCatching {
+                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
+                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION
+                    )
+                }
+                // Actualizar inmediatamente en memoria local para no depender de latencia de red
+                val nowIso = Instant.now().toString()
+                _rideRoster.value = _rideRoster.value?.copy(destinationReachedAt = nowIso)
                 val res = repository.clubRoutes.arriveDestination(routeId)
                 res.fold(
                     onSuccess = { response ->
@@ -217,7 +243,7 @@ class Phase1ViewModel(
                         }
                     },
                     onFailure = {
-                        _rideRosterError.value = "Sin conexión: no se pudo marcar llegada a destino."
+                        _rideRosterError.value = "Sin conexión celular: llegada registrada por malla localmente."
                     }
                 )
             } catch (_: Exception) {
@@ -229,11 +255,19 @@ class Phase1ViewModel(
     fun startReturn(routeId: String, onStarted: () -> Unit = {}) {
         viewModelScope.launch {
             try {
+                RideScheduleRepository.setReturnPhase(true)
+                // Redundancia activa: propagar evento de inicio de retorno por malla BLE
+                runCatching {
+                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(
+                        com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN
+                    )
+                }
+                val nowIso = Instant.now().toString()
+                _rideRoster.value = _rideRoster.value?.copy(returnStartedAt = nowIso)
                 val res = repository.clubRoutes.startReturnRoute(routeId)
                 res.fold(
                     onSuccess = { response ->
-                        if (response.isSuccess) {
-                            RideScheduleRepository.setReturnPhase(true)
+                        if (response.isSuccess || response.statusCode == 409) {
                             loadRideRoster(routeId)
                             onStarted()
                         } else {
@@ -242,7 +276,8 @@ class Phase1ViewModel(
                         }
                     },
                     onFailure = {
-                        _rideRosterError.value = "Sin conexión: no se pudo iniciar el retorno."
+                        _rideRosterError.value = "Modo Off-Grid: Retorno iniciado por malla BLE."
+                        onStarted()
                     }
                 )
             } catch (_: Exception) {

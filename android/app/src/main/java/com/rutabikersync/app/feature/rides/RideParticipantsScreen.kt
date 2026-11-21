@@ -112,10 +112,10 @@ fun RideParticipantsScreen(
                 }
             }
 
-            if (currentUserIsLeader) {
+            if (currentUserIsLeader || alreadyStarted) {
                 val isReturnActive = roster.returnStartedAt != null
                 val isDestinationReached = roster.destinationReachedAt != null
-                if (!alreadyStarted && !gate.enabled) {
+                if (currentUserIsLeader && !alreadyStarted && !gate.enabled) {
                     Text(
                         text = gate.blockedMessage,
                         color = BikerColors.StatusYellow,
@@ -124,17 +124,32 @@ fun RideParticipantsScreen(
                     )
                 }
                 if (isDestinationReached && !isReturnActive) {
-                    Button(
-                        onClick = { onStartReturn?.invoke(roster.routeId) ?: onStart(roster.routeId) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF10B981),
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Iniciar Retorno", fontWeight = FontWeight.Bold)
+                    if (currentUserIsLeader) {
+                        Button(
+                            onClick = { onStartReturn?.invoke(roster.routeId) ?: onStart(roster.routeId) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF10B981),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Iniciar Retorno", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = { onStart(roster.routeId) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF38BDF8),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("En Destino · Abrir mapa", fontWeight = FontWeight.Bold)
+                        }
                     }
                 } else if (alreadyStarted && !isDestinationReached) {
                     Row(

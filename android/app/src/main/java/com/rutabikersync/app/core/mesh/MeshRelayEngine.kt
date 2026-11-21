@@ -99,6 +99,9 @@ class MeshRelayEngine(
         const val CONVOY_SIGNAL_PREFIX = 0xC0
         const val CONVOY_SIGNAL_BROADCAST_TARGET: UShort = 0xFFFFu
 
+        const val RIDE_LIFECYCLE_PREFIX = 0xD0
+        const val RIDE_LIFECYCLE_BROADCAST_TARGET: UShort = 0xFFFFu
+
         private val utcFormatter = ThreadLocal.withInitial {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
                 timeZone = TimeZone.getTimeZone("UTC")
@@ -175,6 +178,31 @@ class MeshRelayEngine(
     data class IncomingConvoySignal(
         val senderShortId: UShort,
         val signalKind: ConvoySignalKind,
+        val sequenceNumber: Int,
+        val hopsTaken: Int
+    )
+
+    /**
+     * Eventos de ciclo de rodada para sincronización offline del convoy (Fase C).
+     */
+    enum class RideLifecycleEvent(val code: Byte, val label: String) {
+        START_OUTBOUND(0x01, "Inicio de ruta"),
+        ARRIVE_DESTINATION(0x02, "Llegamos a destino"),
+        START_RETURN(0x03, "Inicio de retorno"),
+        COMPLETE_RIDE(0x04, "Rodada finalizada"),
+        SAFE_HOME(0x05, "Ya en casa");
+
+        companion object {
+            fun fromCode(code: Byte): RideLifecycleEvent? = entries.firstOrNull { it.code == code }
+        }
+    }
+
+    /**
+     * Notificación de ciclo de rodada recibida por la malla BLE (Fase C).
+     */
+    data class IncomingRideLifecycleEvent(
+        val senderShortId: UShort,
+        val event: RideLifecycleEvent,
         val sequenceNumber: Int,
         val hopsTaken: Int
     )
@@ -347,6 +375,7 @@ class MeshRelayEngine(
     var customRideSecretKey: ByteArray? = null
     var onTextMessageReceived: ((TextMessagePacket, String?) -> Unit)? = null
     var onConvoySignalReceived: ((IncomingConvoySignal) -> Unit)? = null
+    var onRideLifecycleEventReceived: ((IncomingRideLifecycleEvent) -> Unit)? = null
     var isFriendNodeEnabled: Boolean = false
     var friendNodeBuffer: com.rutabikersync.app.core.mesh.text.FriendNodeBuffer? = null
     var lpnMode: LowPowerNodeMode? = null
@@ -874,6 +903,13 @@ class MeshRelayEngine(
     )
     val incomingConvoySignals: SharedFlow<IncomingConvoySignal> = _incomingConvoySignals.asSharedFlow()
 
+    private val _incomingRideLifecycleEvents = MutableSharedFlow<IncomingRideLifecycleEvent>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val incomingRideLifecycleEvents: SharedFlow<IncomingRideLifecycleEvent> = _incomingRideLifecycleEvents.asSharedFlow()
+
     private fun currentAdvertisingMode(): String =
         (transport as? BleAdvTransport)?.advertisingDeliveryMode?.code ?: "BURST_1S"
 
@@ -1059,6 +1095,60 @@ class MeshRelayEngine(
 
         val kindCode = CONVOY_SIGNAL_PREFIX or (signalKind.code.toInt() and 0x0F)
         val encodedLatMicro = ((CONVOY_SIGNAL_BROADCAST_TARGET.toInt() and 0xFFFF) shl 8) or (kindCode and 0xFF)
+        val encodedLonMicro = seq
+
+        val packet = MeshPacket.createSigned(
+            shortId = localShortId,
+            latitude = encodedLatMicro / 1e7,
+            longitude = encodedLonMicro / 1e7,
+            speedKmh = 0,
+            bearingDegrees = 0f,
+            batteryPercent = 100,
+            isSos = false,
+            isExtendedBle = false,
+            priority = Transport.Priority.PEER_EVENT,
+            sequenceNumber = seq,
+            ttl = ttl,
+            rideSecretKey = rideSecretKey
+        )
+
+        val utcIso = formatUtc(System.currentTimeMillis())
+        synchronized(this) {
+            seenKeys[packet.dedupKey] = true
+            packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIso,
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = seq,
+                    ttl = ttl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport?.name ?: "BLE_ADV",
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
+        }
+        transport?.send(packet.toByteArray(), packet.priority)
+        refreshStateFlows()
+        return packet
+    }
+
+    /**
+     * Emite una notificación de ciclo de rodada (Fase C) al convoy por la malla BLE con prioridad alta
+     * (`Transport.Priority.PEER_EVENT`) para sincronización inmediata de fase off-grid.
+     */
+    suspend fun emitRideLifecycleEvent(
+        event: RideLifecycleEvent,
+        ttl: Int = MeshPacket.DEFAULT_TTL
+    ): MeshPacket {
+        val seq = sequenceCounter
+        sequenceCounter = (sequenceCounter + 1) and MeshPacket.MAX_SEQUENCE_NUMBER
+
+        val kindCode = RIDE_LIFECYCLE_PREFIX or (event.code.toInt() and 0x0F)
+        val encodedLatMicro = ((RIDE_LIFECYCLE_BROADCAST_TARGET.toInt() and 0xFFFF) shl 8) or (kindCode and 0xFF)
         val encodedLonMicro = seq
 
         val packet = MeshPacket.createSigned(
@@ -1334,6 +1424,7 @@ class MeshRelayEngine(
         var relayCandidate: MeshPacket? = null
         var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
         var decodedConvoySignal: IncomingConvoySignal? = null
+        var decodedRideLifecycleEvent: IncomingRideLifecycleEvent? = null
         val utcIso = formatUtc(nowEpochMs)
         synchronized(this) {
             if (!senderAddressSuffix.isNullOrBlank()) {
@@ -1383,6 +1474,17 @@ class MeshRelayEngine(
                             hopsTaken = packet.hopsTaken
                         )
                     }
+                } else if (kindCode in (RIDE_LIFECYCLE_PREFIX + 1)..(RIDE_LIFECYCLE_PREFIX + 5)) {
+                    val eventCode = (kindCode and 0x0F).toByte()
+                    val event = RideLifecycleEvent.fromCode(eventCode)
+                    if (event != null) {
+                        decodedRideLifecycleEvent = IncomingRideLifecycleEvent(
+                            senderShortId = packet.shortId,
+                            event = event,
+                            sequenceNumber = packet.sequenceNumber,
+                            hopsTaken = packet.hopsTaken
+                        )
+                    }
                 } else {
                     decodedAnnouncedSignal = AnnouncedMeshSignal(
                         eventId = "EVT:$kindCode:${subjectId.toInt()}:$cycle",
@@ -1417,6 +1519,14 @@ class MeshRelayEngine(
             )
             _incomingConvoySignals.tryEmit(signal)
             onConvoySignalReceived?.invoke(signal)
+        }
+        decodedRideLifecycleEvent?.let { signal ->
+            android.util.Log.i(
+                "MeshRelayEngine",
+                "IncomingRideLifecycleEvent decoded & emitting: sender=${signal.senderShortId} event=${signal.event.name}"
+            )
+            _incomingRideLifecycleEvents.tryEmit(signal)
+            onRideLifecycleEventReceived?.invoke(signal)
         }
 
         relayCandidate?.let { toRelay ->

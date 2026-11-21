@@ -840,6 +840,29 @@ private fun RidesReleaseHomeScreen(
         }
     }
 
+    // Recepción reactiva de ciclo de rodada para miembros convocados (Fase C · Sincronización)
+    LaunchedEffect(Unit) {
+        RideService.incomingRideLifecycleEvents.collect { incoming ->
+            when (incoming.event) {
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND -> {
+                    com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(false)
+                    onStartLiveMapPreview()
+                    startRideServiceNow(useSimulated = forceSimulated)
+                }
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN -> {
+                    com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(true)
+                    onStartLiveMapPreview()
+                    startRideServiceNow(useSimulated = forceSimulated)
+                }
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION,
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE,
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.SAFE_HOME -> {
+                    rideRoster?.let { phase1ViewModel.loadRideRoster(it.routeId) }
+                }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1120,18 +1143,32 @@ private fun RidesReleaseHomeScreen(
                     onRsvp = { routeId, _, status -> phase1ViewModel.requestRsvp(routeId, status) },
                     onArrive = { routeId, userId -> phase1ViewModel.requestOnSite(routeId, userId) },
                     onStart = { routeId ->
-                        phase1ViewModel.startRide(routeId) {
+                        if (roster.outboundStartedAt != null) {
+                            if (roster.returnStartedAt != null) {
+                                com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(true)
+                            }
                             onStartLiveMapPreview()
                             startRideServiceNow(useSimulated = forceSimulated)
+                        } else {
+                            phase1ViewModel.startRide(routeId) {
+                                onStartLiveMapPreview()
+                                startRideServiceNow(useSimulated = forceSimulated)
+                            }
                         }
                     },
                     onArriveDestination = { routeId ->
                         phase1ViewModel.arriveDestination(routeId)
                     },
                     onStartReturn = { routeId ->
-                        phase1ViewModel.startReturn(routeId) {
+                        if (roster.returnStartedAt != null) {
+                            com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(true)
                             onStartLiveMapPreview()
                             startRideServiceNow(useSimulated = forceSimulated)
+                        } else {
+                            phase1ViewModel.startReturn(routeId) {
+                                onStartLiveMapPreview()
+                                startRideServiceNow(useSimulated = forceSimulated)
+                            }
                         }
                     }
                 )

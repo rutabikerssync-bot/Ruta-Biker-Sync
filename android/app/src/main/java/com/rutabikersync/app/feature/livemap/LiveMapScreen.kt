@@ -236,6 +236,33 @@ fun LiveMapScreen(
         }
     }
 
+    // Recepción reactiva de ciclo de rodada (Fase C · Sincronización e Inversión de Retorno)
+    LaunchedEffect(Unit) {
+        RideService.incomingRideLifecycleEvents.collect { incoming ->
+            val selfMarker = state.markers.firstOrNull { it.isSelf }
+            if (selfMarker == null || incoming.senderShortId != selfMarker.shortId) {
+                val senderName = state.markers.firstOrNull { it.shortId == incoming.senderShortId }?.let { it.nickname ?: it.fullName }
+                    ?: "Rider #${incoming.senderShortId.toInt()}"
+                actionFeedback = when (incoming.event) {
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND ->
+                        "🚀 $senderName: ¡Inicio de ruta del convoy!"
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION ->
+                        "🏁 $senderName: ¡Llegamos al punto de destino!"
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN ->
+                        "🔄 $senderName: ¡Inicio de retorno (Ruta invertida)!"
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE ->
+                        "🏁 $senderName: ¡Rodada finalizada!"
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.SAFE_HOME ->
+                        "🏠 $senderName: ¡Ha llegado seguro a casa!"
+                }
+                android.util.Log.i(
+                    "LiveMapScreen",
+                    "RideLifecycleEventRx recibido de $senderName por malla: ${incoming.event.name}"
+                )
+            }
+        }
+    }
+
     val pttState by pttEngine.pttState.collectAsState()
     val isRecording = pttState is PttState.Transmitting
     var recordingSeconds by remember { mutableIntStateOf(0) }
