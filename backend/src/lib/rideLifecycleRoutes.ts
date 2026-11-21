@@ -47,7 +47,7 @@ export async function validateRsvpLifecycle(
 ): Promise<{ statusCode: number; error: string } | null> {
   if (current === 'no_go' && target === 'confirmed') {
     const { rows } = await client.query(
-      `SELECT (starts_at - interval '1 hour' <= now() AND now() < starts_at) AS allowed
+      `SELECT (now() <= starts_at - interval '1 hour') AS allowed
        FROM club_routes WHERE id = $1`,
       [routeId]
     );

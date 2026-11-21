@@ -9,6 +9,7 @@ enum class RideParticipantActionKind {
     DECISIONS,
     CONFIRM,
     ON_SITE,
+    HOME,
     NONE
 }
 
@@ -37,7 +38,7 @@ object RideParticipantsUi {
 
     fun canReconsider(startsAt: String?, now: Instant = Instant.now()): Boolean {
         val start = parseInstant(startsAt) ?: return false
-        return !now.isBefore(start.minusSeconds(3600)) && now.isBefore(start)
+        return !now.isAfter(start.minusSeconds(3600))
     }
 
     fun rowAction(
@@ -45,10 +46,25 @@ object RideParticipantsUi {
         currentUserId: String,
         startsAt: String?,
         now: Instant = Instant.now()
+    ): RideParticipantAction = rowAction(participant, currentUserId, startsAt, null, now)
+
+    fun rowAction(
+        participant: RideRosterParticipant,
+        currentUserId: String,
+        startsAt: String?,
+        returnStartedAt: String?,
+        now: Instant = Instant.now()
     ): RideParticipantAction {
         val isOwn = participant.userId == currentUserId
         if (participant.homeAt != null || participant.status == "home") {
             return RideParticipantAction(RideParticipantActionKind.NONE, "En casa ✓", false)
+        }
+        if (returnStartedAt != null && (participant.status == "confirmed" || participant.status == "en_route" || participant.onSiteAt != null)) {
+            return if (isOwn) {
+                RideParticipantAction(RideParticipantActionKind.HOME, "Ya en casa", true)
+            } else {
+                RideParticipantAction(RideParticipantActionKind.NONE, "En retorno", false)
+            }
         }
         if (participant.onSiteAt != null) {
             return RideParticipantAction(RideParticipantActionKind.NONE, "En el sitio ✓", false)

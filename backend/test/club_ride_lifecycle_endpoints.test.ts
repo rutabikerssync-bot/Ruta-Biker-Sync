@@ -168,24 +168,24 @@ describe('Ciclo de rodada: presencia, fases y ventana RSVP con reloj servidor', 
     expect(rows[0].n).toBe(1);
   });
 
-  it('02 no_go no puede reconsiderar antes de T-1h', async () => {
+  it('02 no_go puede reconsiderar con mas de 1h de anticipacion', async () => {
     await seedRsvp(memberId, 'no_go');
     const res = await rsvp('confirmed');
-    expect(res.statusCode).toBe(409);
-    expect(res.json().error).toBe('RSVP_LOCKED');
+    expect(res.statusCode).toBe(200);
+    expect(res.json().rsvp.status).toBe('confirmed');
   });
 
-  it('03 no_go puede reconsiderar exactamente en T-1h y dentro de la ventana', async () => {
-    for (const interval of ['1 hour', '30 minutes']) {
+  it('03 no_go no puede reconsiderar dentro de la ultima hora antes del inicio', async () => {
+    for (const interval of ['59 minutes', '30 minutes']) {
       const id = await createRouteFromNow(interval);
       await seedRsvp(memberId, 'no_go', false, id);
       const res = await rsvp('confirmed', memberId, id);
-      expect(res.statusCode).toBe(200);
-      expect(res.json().rsvp.status).toBe('confirmed');
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error).toBe('RSVP_LOCKED');
     }
   });
 
-  it('04 no_go no puede reconsiderar desde startsAt', async () => {
+  it('04 no_go no puede reconsiderar desde startsAt o posterior', async () => {
     const id = await createRouteFromNow('-1 second');
     await seedRsvp(memberId, 'no_go', false, id);
     const res = await rsvp('confirmed', memberId, id);
@@ -221,7 +221,7 @@ describe('Ciclo de rodada: presencia, fases y ventana RSVP con reloj servidor', 
 
   it('08 un nuevo confirmado vuelve a bloquear inicio', async () => {
     await withUserDb(pool, presidentId, (client) =>
-      client.query(`UPDATE club_routes SET starts_at = now() + interval '30 minutes' WHERE id = $1`, [routeId])
+      client.query(`UPDATE club_routes SET starts_at = now() + interval '2 hours' WHERE id = $1`, [routeId])
     );
     await seedRsvp(memberId, 'confirmed', true);
     await seedRsvp(member2Id, 'no_go');

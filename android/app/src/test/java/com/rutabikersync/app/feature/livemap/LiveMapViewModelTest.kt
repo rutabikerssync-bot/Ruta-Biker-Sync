@@ -125,6 +125,7 @@ class LiveMapViewModelTest {
             leaderShortId = 1u
         )
         mapController.bindToMeshEngine(engines.getValue(1u), enablePeriodicCadenceLoop = false)
+        mapController.updateLocalRiderPose(latitude = 19.4300, longitude = -99.1332, speedKmh = 60)
 
         // Posición inicial del Rider 2 en lat = 19.4300
         engines.getValue(2u).emitLocalPosition(19.4300, -99.1332, 70, 180f, 90, ttl = 4)

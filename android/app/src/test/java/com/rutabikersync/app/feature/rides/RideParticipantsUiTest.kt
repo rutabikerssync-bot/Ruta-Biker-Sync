@@ -53,27 +53,46 @@ class RideParticipantsUiTest {
     }
 
     @Test
-    fun `no_go no permite reconsiderar antes de T-1h`() {
+    fun `no_go permite reconsiderar con mas de 1h de anticipacion y hasta T-1h`() {
         val participant = participant("member", "no_go")
-        val before = now.minusSeconds(1801)
-        assertFalse(RideParticipantsUi.canReconsider(startsAt, before))
-        assertFalse(RideParticipantsUi.rowAction(participant, "member", startsAt, before).enabled)
-    }
-
-    @Test
-    fun `no_go permite reconsiderar exactamente en T-1h y dentro de ventana`() {
-        assertTrue(RideParticipantsUi.canReconsider(startsAt, now))
-        val action = RideParticipantsUi.rowAction(participant("member", "no_go"), "member", startsAt, now)
+        val twoHoursBefore = Instant.parse("2026-11-21T12:00:00Z")
+        assertTrue(RideParticipantsUi.canReconsider(startsAt, twoHoursBefore))
+        val action = RideParticipantsUi.rowAction(participant, "member", startsAt, null, twoHoursBefore)
         assertEquals(RideParticipantActionKind.CONFIRM, action.kind)
         assertEquals("Cambiar a asistiré", action.label)
-        assertTrue(RideParticipantsUi.canReconsider(startsAt, now.plusSeconds(1799)))
+        assertTrue(action.enabled)
+
+        val exactlyOneHourBefore = Instant.parse("2026-11-21T13:00:00Z")
+        assertTrue(RideParticipantsUi.canReconsider(startsAt, exactlyOneHourBefore))
     }
 
     @Test
-    fun `no_go no permite reconsiderar desde startsAt y home es terminal`() {
-        assertFalse(RideParticipantsUi.canReconsider(startsAt, startsAt.toInstant()))
+    fun `no_go bloqueado a menos de 1h del inicio o posterior`() {
+        val participant = participant("member", "no_go")
+        val lessThanOneHour = Instant.parse("2026-11-21T13:00:01Z")
+        assertFalse(RideParticipantsUi.canReconsider(startsAt, lessThanOneHour))
+        val action = RideParticipantsUi.rowAction(participant, "member", startsAt, null, lessThanOneHour)
+        assertEquals(RideParticipantActionKind.NONE, action.kind)
+        assertEquals("No asistiré ✗", action.label)
+        assertFalse(action.enabled)
+
+        val thirtyMinBefore = Instant.parse("2026-11-21T13:30:00Z")
+        assertFalse(RideParticipantsUi.canReconsider(startsAt, thirtyMinBefore))
+        assertFalse(RideParticipantsUi.canReconsider(startsAt, Instant.parse(startsAt)))
+    }
+
+    @Test
+    fun `retorno activo habilita boton Ya en casa para confirmados y en casa es terminal`() {
+        val onSiteParticipant = participant("member", "confirmed", onSiteAt = now.toString())
+        val action = RideParticipantsUi.rowAction(
+            onSiteParticipant, "member", startsAt, returnStartedAt = now.toString(), now = now
+        )
+        assertEquals(RideParticipantActionKind.HOME, action.kind)
+        assertEquals("Ya en casa", action.label)
+        assertTrue(action.enabled)
+
         val home = RideParticipantsUi.rowAction(
-            participant("member", "home", homeAt = now.toString()), "member", startsAt, now
+            participant("member", "home", homeAt = now.toString()), "member", startsAt, returnStartedAt = now.toString(), now = now
         )
         assertEquals("En casa ✓", home.label)
         assertFalse(home.enabled)

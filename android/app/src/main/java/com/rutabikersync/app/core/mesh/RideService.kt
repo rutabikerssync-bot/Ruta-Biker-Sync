@@ -29,6 +29,7 @@ import com.rutabikersync.app.feature.sos.SosRepository
 import com.rutabikersync.app.feature.sos.SosTriggerType
 import com.rutabikersync.app.feature.vault.VaultRepository
 import com.rutabikersync.app.core.announcer.UniqueAnnouncer
+import com.rutabikersync.app.core.audio.SosToneHub
 import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
 import com.rutabikersync.app.core.power.PowerProfile
@@ -218,6 +219,8 @@ class RideSessionController(
     @Volatile
     private var hasValidLocalPosition: Boolean = false
     @Volatile
+    private var localPositionObservedAtEpochMs: Long = 0L
+    @Volatile
     private var localSpeedKmh: Int = 45
     @Volatile
     private var localBearingDegrees: Float = 90f
@@ -287,7 +290,35 @@ class RideSessionController(
                 )
             }
         }
+        // Todo SOS recibido por este engine activo alimenta su alarma local, no un servicio legacy.
+        engine.onSosReceived = { sos ->
+            com.rutabikersync.app.core.audio.SosToneHub.onRemoteSos(sos)
+        }
+        engine.onSosAckObserved = { ack ->
+            com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
+            if (ack.originalSenderShortId == localShortId) {
+                scope.launch { triggerSos(active = false) }
+            }
+        }
         relayEngine = engine
+        // Reenvío autenticado: reutiliza el Transport activo de la rodada. Los bytes ya vienen
+        // validados y con TTL decrementado por el engine; aquí no se fabrican ni alteran tramas.
+        engine.onAuthenticatedRelayTransmit = { bytes ->
+            val priority = runCatching {
+                when (MeshHeader.fromByteArray(bytes).packetType) {
+                    MeshHeader.TYPE_SOS,
+                    MeshHeader.TYPE_SOS_ACK,
+                    MeshHeader.TYPE_MEDICAL_SHEET -> Transport.Priority.SOS
+                    MeshHeader.TYPE_PTT_VOICE -> Transport.Priority.VOICE
+                    MeshHeader.TYPE_HEARTBEAT -> Transport.Priority.POSITION
+                    else -> Transport.Priority.STATUS
+                }
+            }.getOrDefault(Transport.Priority.STATUS)
+            scope.launch {
+                runCatching { selectedTransport.send(bytes, priority) }
+                    .onFailure { Log.w("RideService", "RelayTx falló: ${it.message}") }
+            }
+        }
         val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
         for (peerId in effectiveExpectedPeers) {
             engine.registerExpectedPeer(shortId = peerId, nowEpochMs = nowEpochMs, initialExpectedBeats = 0)
@@ -416,7 +447,17 @@ class RideSessionController(
 
         // Observar cambios en los peers de la mesh para actualizar en tiempo real la notificación persistente
         peerObserveJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val previousPeerSos = mutableMapOf<UShort, Boolean>()
             engine.peers.collect { peerMap ->
+                peerMap.forEach { (peerId, track) ->
+                    val wasActive = previousPeerSos[peerId] == true
+                    com.rutabikersync.app.core.audio.SosToneHub.onPeerSosStateChanged(
+                        senderShortId = peerId,
+                        wasActive = wasActive,
+                        isActive = track.isSos
+                    )
+                    previousPeerSos[peerId] = track.isSos
+                }
                 updateRealtimePeerCounts(peerMap)
             }
         }
@@ -497,7 +538,8 @@ class RideSessionController(
         longitude: Double,
         speedKmh: Int,
         bearingDegrees: Float = 0f,
-        batteryPercent: Int = 85
+        batteryPercent: Int = 85,
+        observedAtEpochMs: Long = System.currentTimeMillis()
     ) {
         // Nunca aceptar un centinela como posición propia: se publicaría por BLE y el
         // receptor calcularía distancias de miles de km contra una coordenada falsa.
@@ -507,6 +549,7 @@ class RideSessionController(
         }
         localLatitude = latitude
         localLongitude = longitude
+        localPositionObservedAtEpochMs = observedAtEpochMs
         hasValidLocalPosition = true
         localSpeedKmh = speedKmh
         localBearingDegrees = bearingDegrees
@@ -514,7 +557,9 @@ class RideSessionController(
         meshOdometer?.onLocationUpdate(latitude, longitude)
     }
 
-    suspend fun emitHeartbeatNow(nowEpochMs: Long = System.currentTimeMillis()) {
+    suspend fun emitHeartbeatNow(
+        nowEpochMs: Long = System.currentTimeMillis()
+    ) {
         val engine = relayEngine ?: return
         val current = _state.value
         if (current.lifecycleState != RideLifecycleState.RUNNING &&
@@ -522,16 +567,15 @@ class RideSessionController(
         ) {
             return
         }
-        if (requireValidPositionForHeartbeat && !hasValidLocalPosition) {
-            // Sin GPS real ni caché: no fabricar telemetry. La malla sigue viva para
-            // salud/timeout; en cuanto llegue una posición real se emite con normalidad.
-            peerHealthMonitor?.evaluateHealth(nowEpochMs) ?: engine.evaluatePeerTimeouts(nowEpochMs)
-            updateRealtimePeerCounts(engine.peers.value)
-            return
-        }
+        val hasFreshLocalPosition = hasValidLocalPosition &&
+            LocalGpsPositionPolicy.isFresh(localPositionObservedAtEpochMs, nowEpochMs)
+        val publishRealPosition = hasFreshLocalPosition || !requireValidPositionForHeartbeat
+        // La identidad y la vida de la malla se publican siempre. Sin fix fresco se envía
+        // el centinela (0,0), que MeshTelemetry.isValidPosition excluye del mapa; nunca
+        // se reemite una coordenada antigua como si fuese actual.
         engine.emitLocalPosition(
-            latitude = localLatitude,
-            longitude = localLongitude,
+            latitude = if (publishRealPosition) localLatitude else 0.0,
+            longitude = if (publishRealPosition) localLongitude else 0.0,
             speedKmh = localSpeedKmh,
             bearingDegrees = localBearingDegrees,
             batteryPercent = localBatteryPercent,
@@ -556,6 +600,14 @@ class RideSessionController(
         ) {
             return
         }
+        if (active) {
+            SosToneHub.setLocalActive(true)
+        } else {
+            relayEngine?.stopSosBroadcaster()
+            SosToneHub.setLocalActive(false)
+        }
+        if (active && current.isSosActive) return
+
         val nextSnapshot = buildNotificationSnapshot(
             lifecycleState = current.lifecycleState,
             connectedRiders = current.connectedRidersCount,
@@ -571,9 +623,30 @@ class RideSessionController(
         )
         onNotificationUpdated?.invoke(nextSnapshot)
         if (active) {
+            val now = System.currentTimeMillis()
+            val hasFreshPosition = hasValidLocalPosition &&
+                LocalGpsPositionPolicy.isFresh(localPositionObservedAtEpochMs, now)
+            val transmitted = relayEngine?.let { relay ->
+                com.rutabikersync.app.core.mesh.sos.SosMeshEmitter.startLocalBroadcast(
+                    relay = relay,
+                    scope = scope,
+                    latitude = if (hasFreshPosition) localLatitude else 0.0,
+                    longitude = if (hasFreshPosition) localLongitude else 0.0
+                )
+            } == true
+            if (!transmitted) {
+                android.util.Log.w("RideService", "SOS local activo, sin transporte disponible para emitir aún")
+            }
+            emitHeartbeatNow()
+        } else {
+            // Cancelar SOS es un estado prioritario y debe llegar incluso sin fix GPS fresco.
             emitHeartbeatNow()
         }
     }
+
+    /** ACK real creado desde el paquete recibido y enviado por el motor activo. */
+    fun sendSosAck(packet: com.rutabikersync.app.core.mesh.sos.SosAckPacket): Boolean =
+        relayEngine?.emitSosAckPacket(packet) == true
 
     /**
      * Acción "Detener rodada" desde la notificación persistente:
@@ -679,6 +752,7 @@ class RideSessionController(
     }
 
     private suspend fun stopAllInternal(resetToIdle: Boolean) {
+        com.rutabikersync.app.core.audio.SosToneHub.stopAll()
         stopConfirmTimeoutJob?.cancel()
         stopConfirmTimeoutJob = null
         heartbeatJob?.cancel()
@@ -1197,7 +1271,8 @@ class RideService : Service() {
             longitude: Double,
             speedKmh: Int,
             bearingDegrees: Float = 0f,
-            batteryPercent: Int = 85
+            batteryPercent: Int = 85,
+            observedAtEpochMs: Long = System.currentTimeMillis()
         ) {
             val controller = activeController
                 ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController else null
@@ -1206,8 +1281,22 @@ class RideService : Service() {
                 longitude = longitude,
                 speedKmh = speedKmh,
                 bearingDegrees = bearingDegrees,
-                batteryPercent = batteryPercent
+                batteryPercent = batteryPercent,
+                observedAtEpochMs = observedAtEpochMs
             )
+        }
+
+        /** ACK emitido por el motor activo: false si no existe transporte para aceptar el envío. */
+        fun dispatchSosAckPacket(ack: com.rutabikersync.app.core.mesh.sos.SosAckPacket): Boolean {
+            val controller = activeController
+                ?: if (_sharedState.value.isUsingSimulatedTransport) inAppSimController else null
+            val accepted = controller?.sendSosAck(ack) == true
+            if (accepted) {
+                com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
+            } else {
+                android.util.Log.w("RideService", "SosAckPacket rechazado: no hay transporte activo")
+            }
+            return accepted
         }
 
         /** Abre la sesión lógica de voz GATT justo antes de pulsar PTT. */
@@ -1358,17 +1447,28 @@ class RideService : Service() {
         val prefs = getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE)
         val latitude = prefs.getFloat("last_known_lat", 0f).toDouble()
         val longitude = prefs.getFloat("last_known_lon", 0f).toDouble()
-        if (MeshTelemetry.isValidPosition(latitude, longitude)) {
+        val accuracy = prefs.getFloat("last_known_accuracy", Float.NaN)
+        val observedAtEpochMs = prefs.getLong("last_known_time_epoch_ms", 0L)
+        if (
+            LocalGpsPositionPolicy.isUsableFix(
+                latitude = latitude,
+                longitude = longitude,
+                accuracyMeters = accuracy,
+                fixTimeEpochMs = observedAtEpochMs,
+                nowEpochMs = System.currentTimeMillis()
+            )
+        ) {
             controller.updateLocalTelemetry(
                 latitude = latitude,
                 longitude = longitude,
                 speedKmh = 0,
                 bearingDegrees = 180f,
-                batteryPercent = 85
+                batteryPercent = 85,
+                observedAtEpochMs = observedAtEpochMs
             )
-            Log.i(TAG, "Telemetry sembrada desde caché real al iniciar rodada")
+            Log.i(TAG, "Telemetry sembrada desde caché real reciente al iniciar rodada")
         } else {
-            Log.w(TAG, "Sin caché GPS real: no se emite telemetry con coordenadas por defecto")
+            Log.w(TAG, "Sin caché GPS reciente y precisa: no se publica una coordenada obsoleta")
         }
     }
 
@@ -1567,6 +1667,7 @@ class RideService : Service() {
 
     override fun onDestroy() {
         instance = null
+        com.rutabikersync.app.core.audio.SosToneHub.stopAll()
         autoFallbackJob?.cancel()
         autoFallbackJob = null
         runCatching {

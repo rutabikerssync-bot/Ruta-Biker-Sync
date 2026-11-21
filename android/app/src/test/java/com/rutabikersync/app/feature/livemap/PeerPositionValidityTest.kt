@@ -27,13 +27,15 @@ class PeerPositionValidityTest {
         // (0,0) también es un peer sin fix: no es coordenada de tráfico real.
         remoteEngine.emitLocalPosition(latitude = 0.0, longitude = 0.0, speedKmh = 0, bearingDegrees = 0f, batteryPercent = 80)
         val noFixFrame = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
-        assertTrue(noFixFrame.markers.all { it.isSelf })
+        assertTrue(noFixFrame.markers.isEmpty())
+        assertFalse(noFixFrame.gpsFixed)
 
         // Fallback conocido: no publicarlo como si el peer estuviera en CDMX.
         remoteEngine.emitLocalPosition(latitude = 19.4326, longitude = -99.1332, speedKmh = 0, bearingDegrees = 0f, batteryPercent = 80)
         val fallbackFrame = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
-        assertTrue(fallbackFrame.markers.all { it.isSelf })
-        assertEquals(1, fallbackFrame.ridersCount)
+        assertTrue(fallbackFrame.markers.isEmpty())
+        assertFalse(fallbackFrame.gpsFixed)
+        assertEquals(0, fallbackFrame.ridersCount)
 
         assertFalse(LiveMapController.isRenderablePeerPosition(0.0, 0.0))
         assertFalse(LiveMapController.isRenderablePeerPosition(19.4326, -99.1332))
@@ -52,6 +54,7 @@ class PeerPositionValidityTest {
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)
+        controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
 
         val latitude = 10.349293
         val longitude = -67.034980

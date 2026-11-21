@@ -16,6 +16,7 @@ class RiderProfileFallbackTest {
             leaderShortId = 1u,
             initialDirectory = emptyList()
         )
+        controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
         controller.applyCachedLocalProfile(null, null, null, null, null)
         val frame = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
         val self = frame.markers.first { it.isSelf }
@@ -32,6 +33,7 @@ class RiderProfileFallbackTest {
             leaderShortId = 1u,
             initialDirectory = emptyList()
         )
+        controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
         controller.applyCachedLocalProfile("Oscar Rider", null, null, "#00E676", "u-local")
         controller.applyBackendRoster(
             listOf(

@@ -312,10 +312,22 @@ class MeshRelayEngine(
      * para despachar comandos al chip de radio. Un jitter inferior a 10 ms satura la cola HCI provocando
      * colisiones de radio simultáneas entre nodos adyacentes del convoy.
      */
+    /** Salida inyectada por RideService para reenviar bytes ya validados por su Transport activo. */
+    var onAuthenticatedRelayTransmit: ((ByteArray) -> Unit)? = null
+
+    private fun hasRelayTransmitter(): Boolean =
+        onAuthenticatedRelayTransmit != null || onTransmitRelay != null
+
+    private fun deliverAuthenticatedRelayFrame(bytes: ByteArray) {
+        (onAuthenticatedRelayTransmit ?: onTransmitRelay)?.invoke(bytes)
+    }
+
     var sosCrypto: Ed25519SosCrypto? = null
     var sosPublicKeyResolver: SosPublicKeyResolver? = null
     var onSosReceived: ((SosPacket) -> Unit)? = null
     var onSosAckReceived: ((SosAckPacket) -> Unit)? = null
+    /** Observa también ACK para otros nodos: todos deben silenciar ese incidente real. */
+    var onSosAckObserved: ((SosAckPacket) -> Unit)? = null
     var medicalSheetStore: MedicalSheetStore? = null
     var onMedicalSheetReceived: ((MedicalSheetPacket, DecryptedMedicalSheet?) -> Unit)? = null
     var customRideSecretKey: ByteArray? = null
@@ -368,12 +380,12 @@ class MeshRelayEngine(
         if (!isFriendNodeEnabled) return emptyList()
         val buffer = friendNodeBuffer ?: return emptyList()
         val pending = buffer.drainForPeer(discoveredShortId)
-        if (pending.isNotEmpty() && onTransmitRelay != null) {
+        if (pending.isNotEmpty() && hasRelayTransmitter()) {
             for (msg in pending) {
                 val newTtl = (msg.header.currentTtl - 1).coerceAtLeast(1)
                 val relayed = msg.copyWithIncrementedHop(newTtl.toByte())
                 totalPacketsRelayed.incrementAndGet()
-                onTransmitRelay.invoke(relayed.toByteArray())
+                deliverAuthenticatedRelayFrame(relayed.toByteArray())
             }
         }
         return pending
@@ -482,13 +494,13 @@ class MeshRelayEngine(
                 val jitterMs = SOS_RELAY_JITTER_MS
                 totalPacketsRelayed.incrementAndGet()
 
-                if (relayScope != null && onTransmitRelay != null) {
+                if (relayScope != null && hasRelayTransmitter()) {
                     relayScope.launch {
                         kotlinx.coroutines.delay(jitterMs)
-                        onTransmitRelay.invoke(relayedBytes)
+                        deliverAuthenticatedRelayFrame(relayedBytes)
                     }
                 } else {
-                    onTransmitRelay?.invoke(relayedBytes)
+                    deliverAuthenticatedRelayFrame(relayedBytes)
                 }
 
                 return RelayDecision.Relayed(
@@ -522,6 +534,10 @@ class MeshRelayEngine(
                         }
                     }
                 }
+
+                // La telemetría acústica de todos los nodos observa el mismo ACK; el callback
+                // dirigido original se conserva para la semántica de emisor/broadcaster.
+                onSosAckObserved?.invoke(ack)
 
                 // Si el ACK es para este nodo (fuimos el emisor del SOS)
                 if (ack.originalSenderShortId == localShortId) {
@@ -560,13 +576,13 @@ class MeshRelayEngine(
                 val jitterMs = SOS_ACK_RELAY_JITTER_MS
                 totalPacketsRelayed.incrementAndGet()
 
-                if (relayScope != null && onTransmitRelay != null) {
+                if (relayScope != null && hasRelayTransmitter()) {
                     relayScope.launch {
                         kotlinx.coroutines.delay(jitterMs)
-                        onTransmitRelay.invoke(relayedBytes)
+                        deliverAuthenticatedRelayFrame(relayedBytes)
                     }
                 } else {
-                    onTransmitRelay?.invoke(relayedBytes)
+                    deliverAuthenticatedRelayFrame(relayedBytes)
                 }
 
                 return RelayDecision.Relayed(
@@ -618,13 +634,13 @@ class MeshRelayEngine(
                 val jitterMs = MEDICAL_SHEET_RELAY_JITTER_MS
                 totalPacketsRelayed.incrementAndGet()
 
-                if (relayScope != null && onTransmitRelay != null) {
+                if (relayScope != null && hasRelayTransmitter()) {
                     relayScope.launch {
                         kotlinx.coroutines.delay(jitterMs)
-                        onTransmitRelay.invoke(relayedBytes)
+                        deliverAuthenticatedRelayFrame(relayedBytes)
                     }
                 } else {
-                    onTransmitRelay?.invoke(relayedBytes)
+                    deliverAuthenticatedRelayFrame(relayedBytes)
                 }
 
                 return RelayDecision.Relayed(
@@ -740,13 +756,13 @@ class MeshRelayEngine(
                 val jitterMs = (MIN_RELAY_JITTER_MS..MAX_RELAY_JITTER_MS).random()
                 totalPacketsRelayed.incrementAndGet()
 
-                if (relayScope != null && onTransmitRelay != null) {
+                if (relayScope != null && hasRelayTransmitter()) {
                     relayScope.launch {
                         kotlinx.coroutines.delay(jitterMs)
-                        onTransmitRelay.invoke(relayedBytes)
+                        deliverAuthenticatedRelayFrame(relayedBytes)
                     }
                 } else {
-                    onTransmitRelay?.invoke(relayedBytes)
+                    deliverAuthenticatedRelayFrame(relayedBytes)
                 }
 
                 return RelayDecision.Relayed(
@@ -785,13 +801,13 @@ class MeshRelayEngine(
                 val jitterMs = (MIN_RELAY_JITTER_MS..MAX_RELAY_JITTER_MS).random()
                 totalPacketsRelayed.incrementAndGet()
 
-                if (relayScope != null && onTransmitRelay != null) {
+                if (relayScope != null && hasRelayTransmitter()) {
                     relayScope.launch {
                         kotlinx.coroutines.delay(jitterMs)
-                        onTransmitRelay.invoke(relayedBytes)
+                        deliverAuthenticatedRelayFrame(relayedBytes)
                     }
                 } else {
-                    onTransmitRelay?.invoke(relayedBytes)
+                    deliverAuthenticatedRelayFrame(relayedBytes)
                 }
 
                 return RelayDecision.Relayed(
@@ -897,9 +913,59 @@ class MeshRelayEngine(
     }
 
     suspend fun stop() {
+        stopSosBroadcaster()
         collectJob?.cancel()
         collectJob = null
         transport?.stop()
+    }
+
+    /** Entrega el formato SOS existente al transporte activo, sin alterar firma ni wire format. */
+    fun emitSosPacket(packet: SosPacket): Boolean {
+        if (
+            packet.header.senderShortId != localShortId ||
+            packet.header.clubNetworkId != clubNetworkId ||
+            !isRunning
+        ) return false
+        return enqueueSosControl(packet.header, packet.toByteArray())
+    }
+
+    /** Entrega un ACK real al transporte activo; true significa aceptado para emisión, no entrega remota. */
+    fun emitSosAckPacket(packet: SosAckPacket): Boolean {
+        if (
+            packet.header.senderShortId != localShortId ||
+            packet.ackerShortId != localShortId ||
+            packet.header.clubNetworkId != clubNetworkId ||
+            !isRunning
+        ) return false
+        return enqueueSosControl(packet.header, packet.toByteArray())
+    }
+
+    private fun enqueueSosControl(header: MeshHeader, bytes: ByteArray): Boolean {
+        val transport = this.transport ?: return false
+        val scope = relayScope ?: return false
+        synchronized(this) {
+            packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = formatUtc(System.currentTimeMillis()),
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = header.sequenceNum.toInt(),
+                    ttl = header.currentTtl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport.name,
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
+        }
+        scope.launch {
+            runCatching { transport.send(bytes, Transport.Priority.SOS) }
+                .onFailure { android.util.Log.e("MeshRelayEngine", "SOSControlTx error: ${it.message}") }
+        }
+        refreshStateFlows()
+        return true
     }
 
     /**

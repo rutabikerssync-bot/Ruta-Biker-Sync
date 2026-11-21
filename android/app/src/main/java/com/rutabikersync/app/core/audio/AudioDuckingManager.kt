@@ -15,9 +15,13 @@ import android.os.Build
  * - Enruta el audio hacia el intercomunicador Bluetooth del casco (A2DP/HFP/SCO) según el perfil activo.
  * - Restaura el volumen de fondo de forma inmediata al finalizar la reproducción o transmisión.
  */
-class AudioDuckingManager(private val context: Context) {
+class AudioDuckingManager(
+    context: Context,
+    private val onFocusAvailabilityChanged: ((Boolean) -> Unit)? = null
+) {
 
-    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    private val appContext = context.applicationContext
+    private val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
     private var focusRequest: AudioFocusRequest? = null
     private var isDuckingActive = false
 
@@ -42,7 +46,21 @@ class AudioDuckingManager(private val context: Context) {
                     .setAudioAttributes(audioAttributes)
                     .setAcceptsDelayedFocusGain(false)
                     .setWillPauseWhenDucked(false)
-                    .setOnAudioFocusChangeListener { /* No-op para transient duck */ }
+                    .setOnAudioFocusChangeListener { focusChange ->
+                        when (focusChange) {
+                            AudioManager.AUDIOFOCUS_LOSS,
+                            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                                isDuckingActive = false
+                                focusRequest = null
+                                onFocusAvailabilityChanged?.invoke(false)
+                            }
+                            AudioManager.AUDIOFOCUS_GAIN,
+                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
+                                isDuckingActive = true
+                                onFocusAvailabilityChanged?.invoke(true)
+                            }
+                        }
+                    }
                     .build()
                 focusRequest = req
                 val result = am.requestAudioFocus(req)
@@ -51,7 +69,21 @@ class AudioDuckingManager(private val context: Context) {
             } else {
                 @Suppress("DEPRECATION")
                 val result = am.requestAudioFocus(
-                    null,
+                    { focusChange ->
+                        when (focusChange) {
+                            AudioManager.AUDIOFOCUS_LOSS,
+                            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                                isDuckingActive = false
+                                focusRequest = null
+                                onFocusAvailabilityChanged?.invoke(false)
+                            }
+                            AudioManager.AUDIOFOCUS_GAIN,
+                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
+                                isDuckingActive = true
+                                onFocusAvailabilityChanged?.invoke(true)
+                            }
+                        }
+                    },
                     AudioManager.STREAM_MUSIC,
                     AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
                 )

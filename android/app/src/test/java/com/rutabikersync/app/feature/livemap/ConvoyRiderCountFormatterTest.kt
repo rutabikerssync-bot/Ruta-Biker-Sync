@@ -18,9 +18,9 @@ class ConvoyRiderCountFormatterTest {
     }
 
     @Test
-    fun `sin dato o valor invalido cae al fallback de un rider`() {
-        assertEquals("1 rider", ConvoyRiderCountFormatter.format(null))
-        assertEquals("1 rider", ConvoyRiderCountFormatter.format(0))
-        assertEquals("1 rider", ConvoyRiderCountFormatter.format(-4))
+    fun `sin fix ni peers validos informa cero sin inventar un rider`() {
+        assertEquals("0 riders", ConvoyRiderCountFormatter.format(null))
+        assertEquals("0 riders", ConvoyRiderCountFormatter.format(0))
+        assertEquals("0 riders", ConvoyRiderCountFormatter.format(-4))
     }
 }

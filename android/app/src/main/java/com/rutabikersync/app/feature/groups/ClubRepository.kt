@@ -982,6 +982,21 @@ class ClubRepository(
         addGroup(group)
     }
 
+    /**
+     * Reconciliación tras creación remota: el grupo se crea localmente con ID temporal `grp-*`
+     * y el backend devuelve el UUID real. Sin este reemplazo, las llamadas posteriores
+     * (perfil, invitaciones, rutas, etc.) envían el ID temporal y fallan con 500 por UUID inválido.
+     */
+    fun reconcileGroupId(localId: String, serverId: String) {
+        if (localId.isBlank() || serverId.isBlank() || localId == serverId) return
+        _groups.value = _groups.value.map { group ->
+            if (group.id == localId) group.copy(id = serverId) else group
+        }
+        _pendingInvitations.value = _pendingInvitations.value.map { inv ->
+            if (inv.groupId == localId) inv.copy(groupId = serverId) else inv
+        }
+    }
+
     fun removeGroup(groupId: String) {
         _groups.value = _groups.value.filterNot { it.id == groupId }
     }

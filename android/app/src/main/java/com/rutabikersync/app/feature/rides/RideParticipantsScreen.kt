@@ -53,7 +53,9 @@ fun RideParticipantsScreen(
     errorMessage: String?,
     onRsvp: (routeId: String, userId: String, status: String) -> Unit,
     onArrive: (routeId: String, userId: String) -> Unit,
-    onStart: (routeId: String) -> Unit
+    onStart: (routeId: String) -> Unit,
+    onArriveDestination: ((routeId: String) -> Unit)? = null,
+    onStartReturn: ((routeId: String) -> Unit)? = null
 ) {
     val gate = RideParticipantsUi.startGate(roster.participants)
     val alreadyStarted = roster.outboundStartedAt != null
@@ -103,6 +105,7 @@ fun RideParticipantsScreen(
                         participant = participant,
                         isOwn = participant.userId == currentUserId,
                         startsAt = roster.startsAt,
+                        returnStartedAt = roster.returnStartedAt,
                         onRsvp = { status -> onRsvp(roster.routeId, participant.userId, status) },
                         onArrive = { onArrive(roster.routeId, participant.userId) }
                     )
@@ -110,6 +113,8 @@ fun RideParticipantsScreen(
             }
 
             if (currentUserIsLeader) {
+                val isReturnActive = roster.returnStartedAt != null
+                val isDestinationReached = roster.destinationReachedAt != null
                 if (!alreadyStarted && !gate.enabled) {
                     Text(
                         text = gate.blockedMessage,
@@ -118,26 +123,78 @@ fun RideParticipantsScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Button(
-                    onClick = { onStart(roster.routeId) },
-                    enabled = !isStarting && (alreadyStarted || gate.enabled),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BikerColors.PrimaryAmber,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isStarting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    } else {
+                if (isDestinationReached && !isReturnActive) {
+                    Button(
+                        onClick = { onStartReturn?.invoke(roster.routeId) ?: onStart(roster.routeId) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF10B981),
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Iniciar Retorno", fontWeight = FontWeight.Bold)
                     }
-                    Text(if (isStarting) "Iniciando…" else if (alreadyStarted) "Abrir mapa" else "Iniciar Ruta")
+                } else if (alreadyStarted && !isDestinationReached) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { onStart(roster.routeId) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BikerColors.PrimaryAmber,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Abrir mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Button(
+                            onClick = { onArriveDestination?.invoke(roster.routeId) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF38BDF8),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = null)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Llegamos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = { onStart(roster.routeId) },
+                        enabled = !isStarting && (alreadyStarted || gate.enabled),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BikerColors.PrimaryAmber,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isStarting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        } else {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        }
+                        Text(
+                            when {
+                                isStarting -> "Iniciando…"
+                                isReturnActive -> "Abrir mapa (Retorno)"
+                                alreadyStarted -> "Abrir mapa"
+                                else -> "Iniciar Ruta"
+                            }
+                        )
+                    }
                 }
             }
             errorMessage?.let { error ->
@@ -152,10 +209,11 @@ private fun ParticipantRow(
     participant: RideRosterParticipant,
     isOwn: Boolean,
     startsAt: String?,
+    returnStartedAt: String? = null,
     onRsvp: (String) -> Unit,
     onArrive: () -> Unit
 ) {
-    val action = RideParticipantsUi.rowAction(participant, if (isOwn) participant.userId else "", startsAt)
+    val action = RideParticipantsUi.rowAction(participant, if (isOwn) participant.userId else "", startsAt, returnStartedAt)
     val accent = actionColor(participant)
     Row(
         modifier = Modifier
@@ -207,7 +265,8 @@ private fun ParticipantRow(
                 label = action.label,
                 icon = when (action.kind) {
                     RideParticipantActionKind.ON_SITE,
-                    RideParticipantActionKind.CONFIRM -> Icons.Default.Check
+                    RideParticipantActionKind.CONFIRM,
+                    RideParticipantActionKind.HOME -> Icons.Default.Check
                     else -> null
                 },
                 color = accent,
@@ -216,6 +275,7 @@ private fun ParticipantRow(
                     when (action.kind) {
                         RideParticipantActionKind.ON_SITE -> onArrive()
                         RideParticipantActionKind.CONFIRM -> onRsvp("confirmed")
+                        RideParticipantActionKind.HOME -> onRsvp("home")
                         else -> Unit
                     }
                 }

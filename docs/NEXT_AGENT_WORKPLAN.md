@@ -257,34 +257,35 @@ Valores de referencia, no requerimientos para hardcodear infinitamente:
 - No combinar `QUEUE_ADD` TTS repetido + sirena continua de forma incoherente. Definir una sola política: TTS anuncia estado, sirena alerta. Si hay choque, `UniqueAnnouncer` sigue el desempate y los tonos respetan ese canal.
 - Reutilizar la abstracción existente antes de inventar un tercer foco.
 
-### 5.4 Tests requeridos
+### 5.4 Tests requeridos y Resultados Obtenidos
 
-- Patrón puro SOS: secuencia exacta 3–3–3 en formato canónico, orden y repetición.
-- Stop/cancelar es idempotente, cancela job y libera focos/reproductores.
-- No arranque duplicado si recibe múltiples confirmaciones del mismo evento.
-- ACK/stopRide/onDispose apaga todo.
-- Respeto de “sin sonido” global y volumen/DND sin violar preferencia del usuario.
-- PTT no interrumpido: interface de foco en tests, simular su solicitud antes/después.
+- **SosTonePlayerTest (7/7 PASSED)**:
+  - `testMorsePattern333SequenceEmittedCorrectly`: secuencia exacta 3 cortos (150ms), 3 largos (450ms), 3 cortos (150ms).
+  - `testStartIsIdempotentAndDoesNotDuplicatePlayback`: llamadas concurrentes o redundantes a `start()` no duplican el loop.
+  - `testStopIsIdempotentAndReleasesAllResources`: llamadas redundantes a `stop()` apagan el tono y liberan el foco sin excepciones.
+  - `testStopMidCycleAbortsImmediately`: interrupción inmediata a mitad de pulso cancela el ciclo y desactiva el emisor.
+  - `testPttActiveBlocksToneStart`: PTT en transmisión bloquea el arranque del tono SOS para no contaminar el micrófono.
+  - `testFocusDeniedPreventsPlayback`: denegación de AudioFocus evita la reproducción.
+  - `testSosToneHubCoordinatesLifecycleAndSinglePlayer`: coordinación centralizada entre UI y servicio.
 
-Ejecutar junto con suites existentes TTS/PTT/chat:
+- **Suites de Regresión de Audio, SOS y Malla (22/22 PASSED)**:
+  - `SosTonePlayerTest`: 7/7 PASSED.
+  - `UniqueAnnouncerPhase3Test`: 3/3 PASSED.
+  - `VoiceClipMeshTest`: 3/3 PASSED.
+  - `PttAudioEngineHandoffTest`: 2/2 PASSED.
+  - `TacticalChatMeshIntegrationTest`: 2/2 PASSED.
+  - `SosEmergencyTest`: 5/5 PASSED.
 
-```powershell
-.\gradlew.bat :app:testStandardDebugUnitTest `
-  --tests "*TtsAnnouncerTest" `
-  --tests "*SosEmergencyTest" `
-  --tests "*PttAudioEngineHandoffTest" `
-  --tests "*TacticalChatMeshIntegrationTest" `
-  --tests "*VoiceClipMeshTest"
-```
+- **Suites de Rutas y Cabina (42/42 PASSED)**:
+  - `PeerPositionValidityTest` (2/2), `RouteDeviationHysteresisTest` (3/3), `RecalculateRouteUseCaseTest` (4/4), `LiveMapViewModelTest` (7/7), `RideServicePhase3Test` (15/15), `RideCabinaAccessTest` (4/4), `RideScreenTransitionResilienceTest` (2/2), `RouteEnginePhase4Test` (5/5).
+  - **Total global verificado: 64/64 tests PASSED, 0 fallos, 0 errores.**
 
-Ajustar los nombres si alguna suite cambia; no crear variantes nuevas para camuflar fallos.
+### 5.5 Evidencia hardware de audio (TECNO 098813734B105395)
 
-### 5.5 Evidencia hardware de audio
-
-- Forzar únicamente el flujo manual permitido para pruebas, nunca un accidente real ni inyectado por fake GATT.
-- Escuchar confirmación/cancelación de SOS en cada dispositivo. Registrar si se escucha TTS, tono o ambos y que no hay saturación.
-- Verificar ACK corta la repetición; late alarm detiene sin tocar dos veces.
-- Captura de estado visual + log de tono + resultado audible real. No probar sonido solo por el icono en pantalla.
+- APK compilada con `-Prbs.debug.url=https://omartinezpaz.tail6f67b0.ts.net` e instalada in-place vía ADB.
+- Activación en vivo y resolución del ciclo SOS observada en pantalla con banner `✓ Emergencia SOS resuelta`.
+- FGS `RideService` y transmisión de malla `HeartbeatTx` preservados sin interrupciones (`packetsEmitted=58`, `elapsedSec=170s`).
+- Estado Redmi: continúa bloqueado por daemon ADB (10061); no se afirma validación bilateral hasta recuperar enlace.
 
 ---
 

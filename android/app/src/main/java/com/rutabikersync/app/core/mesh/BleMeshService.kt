@@ -56,6 +56,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -175,13 +176,16 @@ class BleMeshService : Service() {
         val hopCount: Int,
         val latitude: Double,
         val longitude: Double,
-        val medicalData: MedicalRescueData?
+        val medicalData: MedicalRescueData?,
+        val clubNetworkId: UInt,
+        val sequenceNum: UShort
     )
 
     /** Evento emitido cuando el nodo recibe un [SosAckPacket] confirmando su SOS. */
     data class IncomingSosAckEvent(
         val ackerShortId: UShort,
         val originalSenderShortId: UShort,
+        val originalSequenceNum: UShort,
         val ackTimestampEpochSec: Int
     )
     private val _incomingSosAckEvent = MutableStateFlow<IncomingSosAckEvent?>(null)
@@ -295,7 +299,14 @@ class BleMeshService : Service() {
         voiceRxUnsubscribe = active?.onVoiceReceived { packet ->
             pttAudioEngine?.onVoicePacketReceived(packet)
         }
-        Log.i(TAG, "PttAudioEngine inicializado club=$clubId short=$shortId sobre la malla activa")
+        pttAudioEngine?.let { ptt ->
+            com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
+                source = "hardware-ptt",
+                active = ptt.pttState.map { it !is PttState.Idle },
+                scope = serviceScope
+            )
+        }
+        Log.i(TAG, "Foco de silencio SOS compartido con hardware PTT")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -322,13 +333,22 @@ class BleMeshService : Service() {
             }
             ACTION_PTT_START -> {
                 Log.i(TAG, "ACTION_PTT_START recibido")
+                // Silenciar antes de iniciar la captura; ningún cambio en PttAudioEngine.
+                com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", true)
                 RideService.beginPttVoiceStream()
                 ensurePttEngineInitialized()
                 pttAudioEngine?.startTalking()
+                serviceScope.launch {
+                    delay(1_500L)
+                    if (pttAudioEngine?.pttState?.value is PttState.Idle) {
+                        com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", false)
+                    }
+                }
             }
             ACTION_PTT_STOP -> {
                 Log.i(TAG, "ACTION_PTT_STOP recibido")
                 pttAudioEngine?.stopTalking()
+                com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", false)
                 RideService.endPttVoiceStream()
                 activeAdvertisingSet?.let {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -479,6 +499,13 @@ class BleMeshService : Service() {
         voiceRxUnsubscribe = RideService.getActiveRelayEngine()?.onVoiceReceived { packet ->
             pttAudioEngine?.onVoicePacketReceived(packet)
         }
+        pttAudioEngine?.let { ptt ->
+            com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
+                source = "hardware-ptt",
+                active = ptt.pttState.map { it !is PttState.Idle },
+                scope = serviceScope
+            )
+        }
 
         // Monitorear estado de PTT para actualizar la notificación
         serviceScope.launch {
@@ -501,7 +528,8 @@ class BleMeshService : Service() {
         relayEngine = MeshRelayEngine(
             localShortId = shortId,
             clubNetworkId = clubId,
-            deduplicationTable = engine.deduplicationTable
+            deduplicationTable = engine.deduplicationTable,
+            onTransmitRelay = { bytes -> transmitBleFrame(bytes) }
         ).also { relay ->
             // Conectar almacén de fichas médicas (Hito 4 · Etapa 3)
             relay.medicalSheetStore = medicalSheetStore
@@ -511,6 +539,7 @@ class BleMeshService : Service() {
             }
             // Notificar a la UI cuando llega un SosPacket por malla (Hito 4 · Etapa 4)
             relay.onSosReceived = { sos ->
+                com.rutabikersync.app.core.audio.SosToneHub.onRemoteSos(sos)
                 val decrypted = medicalSheetStore.getSheet(sos.header.senderShortId)
                 serviceScope.launch(Dispatchers.Main) {
                     _incomingSosMeshEvent.value = IncomingSosMeshEvent(
@@ -519,7 +548,9 @@ class BleMeshService : Service() {
                         hopCount = sos.hopCount.toInt() and 0xFF,
                         latitude = sos.latitude,
                         longitude = sos.longitude,
-                        medicalData = decrypted?.data
+                        medicalData = decrypted?.data,
+                        clubNetworkId = sos.header.clubNetworkId,
+                        sequenceNum = sos.header.sequenceNum
                     )
                 }
                 // Puente BLE Mesh hacia Radar SOS HTTP (Fase 7.1.5.5)
@@ -531,10 +562,12 @@ class BleMeshService : Service() {
             }
             // Notificar a la UI cuando llega un SosAckPacket de vuelta (Hito 4 · Etapa 4)
             relay.onSosAckReceived = { ack ->
+                com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
                 serviceScope.launch(Dispatchers.Main) {
                     _incomingSosAckEvent.value = IncomingSosAckEvent(
                         ackerShortId = ack.ackerShortId,
                         originalSenderShortId = ack.originalSenderShortId,
+                        originalSequenceNum = ack.originalSequenceNum,
                         ackTimestampEpochSec = ack.ackTimestampEpochSec
                     )
                 }
@@ -672,36 +705,40 @@ class BleMeshService : Service() {
         incidentCode: Byte = 0x02,
         bloodType: Byte = 1
     ) {
+        val active = RideService.getActiveRelayEngine()
+        if (active != null) {
+            val accepted = com.rutabikersync.app.core.mesh.sos.SosMeshEmitter.startLocalBroadcast(
+                relay = active,
+                scope = serviceScope,
+                latitude = latitude,
+                longitude = longitude,
+                incidentCode = incidentCode,
+                bloodType = bloodType
+            )
+            if (accepted) com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(true)
+            return
+        }
         val relay = relayEngine ?: return
-        val header = MeshHeader(
-            clubNetworkId = relay.clubNetworkId,
-            packetType = MeshHeader.TYPE_SOS,
-            senderShortId = relay.localShortId,
-            sequenceNum = (System.currentTimeMillis() and 0xFFFF).toUShort(),
-            initTtl = 5,
-            currentTtl = 5
-        )
-        val packet = SosPacket(
-            header = header,
-            latitudeRaw = (latitude * 1e7).toInt(),
-            longitudeRaw = (longitude * 1e7).toInt(),
+        val packet = com.rutabikersync.app.core.mesh.sos.SosMeshEmitter.createLocalPacket(
+            relay = relay,
+            latitude = latitude,
+            longitude = longitude,
             incidentCode = incidentCode,
-            bloodType = bloodType,
-            timestampEpochSec = (System.currentTimeMillis() / 1000L).toInt(),
-            signature = ByteArray(64),
-            hopCount = 0
+            bloodType = bloodType
         )
         relay.startSosBroadcaster(packet, serviceScope, intervalMs = 2000L) { bytes ->
             transmitBleFrame(bytes)
         }
-        Log.i(TAG, "SosBroadcaster activado para shortId=${relay.localShortId} en ($latitude, $longitude)")
+        Log.i(TAG, "SosBroadcaster legacy activado para shortId=${relay.localShortId}")
     }
 
     /**
      * Detiene el broadcaster continuo de SOS (al recibir el ACK o resolver manualmente).
      */
     fun stopSosBroadcaster() {
+        RideService.getActiveRelayEngine()?.stopSosBroadcaster()
         relayEngine?.stopSosBroadcaster()
+        com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
         Log.i(TAG, "SosBroadcaster detenido")
     }
 
@@ -709,11 +746,17 @@ class BleMeshService : Service() {
      * Emite un [SosAckPacket] por la malla BLE.
      * El Líder/Sargento llama a este método al tocar "CONFIRMAR RECEPCIÓN" en el diálogo.
      */
-    fun sendSosAckPacket(ack: SosAckPacket) {
+    fun sendSosAckPacket(ack: SosAckPacket): Boolean {
+        if (RideService.getActiveRelayEngine() != null) {
+            return RideService.dispatchSosAckPacket(ack)
+        }
+        if (relayEngine == null) return false
         serviceScope.launch(Dispatchers.Default) {
             transmitBleFrame(ack.toByteArray())
-            Log.i(TAG, "SosAckPacket emitido para originalSender=${ack.originalSenderShortId}")
+            Log.i(TAG, "SosAckPacket en emisión para originalSender=${ack.originalSenderShortId}")
         }
+        com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
+        return true
     }
 
     /**

@@ -86,10 +86,12 @@ import com.rutabikersync.app.core.mesh.RideService
 import com.rutabikersync.app.feature.sos.MeshSosReceptionDialog
 import com.rutabikersync.app.ui.components.HeritageStopRideHoldButton
 import com.rutabikersync.app.ui.theme.*
+import kotlinx.coroutines.flow.map
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
@@ -100,6 +102,7 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
+import com.rutabikersync.app.core.mesh.MeshTelemetry
 import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.feature.auth.ProfileRepository
 import com.rutabikersync.app.feature.routes.DeviationStatus
@@ -220,6 +223,25 @@ fun LiveMapScreen(
     val isRecording = pttState is PttState.Transmitting
     var recordingSeconds by remember { mutableIntStateOf(0) }
 
+    fun startCabinaPtt() {
+        // Silencio SOS síncrono antes de AudioRecord; PttAudioEngine permanece intacto.
+        com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", true)
+        RideService.beginPttVoiceStream()
+        pttEngine.startTalking()
+        coroutineScope.launch {
+            kotlinx.coroutines.delay(1_500L)
+            if (pttEngine.pttState.value is PttState.Idle) {
+                com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", false)
+            }
+        }
+    }
+
+    fun stopCabinaPtt() {
+        pttEngine.stopTalking()
+        RideService.endPttVoiceStream()
+        com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", false)
+    }
+
     // Auto-parada de 15 s y contador de la cápsula de transmisión.
     LaunchedEffect(isRecording) {
         if (isRecording) {
@@ -228,8 +250,7 @@ fun LiveMapScreen(
                 kotlinx.coroutines.delay(1000L)
                 recordingSeconds++
                 if (recordingSeconds >= PttAudioEngine.MAX_TALK_SECONDS) {
-                    pttEngine.stopTalking()
-                    RideService.endPttVoiceStream()
+                    stopCabinaPtt()
                     break
                 }
             }
@@ -243,8 +264,7 @@ fun LiveMapScreen(
             if (RideService.getActiveRelayEngine() == null) {
                 actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
             } else {
-                RideService.beginPttVoiceStream()
-                pttEngine.startTalking()
+                startCabinaPtt()
                 com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent("LIVE_MAP", "PTT_TRANSMIT_START", "btn_hablar")
                 actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
             }
@@ -267,6 +287,39 @@ fun LiveMapScreen(
     val activeSosAlerts by sosRepository.activeAlerts.collectAsState()
     var viewingRescuePacket by remember { mutableStateOf<com.rutabikersync.app.feature.sos.EmergencyRescuePacket?>(null) }
 
+    LaunchedEffect(Unit) {
+        // Asegurar que la malla BLE y el servicio en primer plano estén activos al estar en la cabina
+        if (RideService.sharedState.value.lifecycleState != RideLifecycleState.RUNNING) {
+            val shortId = run {
+                val androidId = android.provider.Settings.Secure.getString(
+                    context.contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                ).orEmpty()
+                val uniqueSeed = "${android.os.Build.MODEL}:$androidId"
+                ((uniqueSeed.hashCode() and 0x7FFF) % 65534) + 1
+            }
+            RideService.dispatchStartRide(
+                context = context.applicationContext,
+                rideId = "ride-live-01",
+                localShortId = shortId,
+                forceSimulated = false
+            )
+        }
+        // El alcance real pertenece a App; cabina solo observa PTT y el estado SOS.
+        com.rutabikersync.app.core.audio.SosToneHub.ensureInitialized(context.applicationContext)
+        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.ensureInitialized(
+            context = context.applicationContext,
+            externalPttStateProvider = { pttEngine.pttState.value !is PttState.Idle }
+        )
+    }
+    LaunchedEffect(pttEngine) {
+        com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
+            source = "cabina-ptt",
+            active = pttEngine.pttState.map { it !is PttState.Idle },
+            scope = this
+        )
+    }
+
     // Recepción de SOS por Malla BLE (Hito 4 · Etapa 4)
     val bleMeshService: BleMeshService? = remember { BleMeshService.getActiveInstance() }
     val incomingSosMeshEvent by (bleMeshService?.incomingSosMeshEvent
@@ -277,6 +330,24 @@ fun LiveMapScreen(
         incomingSosMeshEvent?.let { event ->
             showMeshSosDialog = event
             actionFeedback = "🚨 SOS MESH recibido de Piloto #${event.senderShortId.toInt()} (${event.hopCount} saltos)"
+        }
+    }
+
+    // Fuente principal en una rodada real: el MeshRelayEngine de RideService, no el servicio legacy.
+    val activeMeshSosPacket by com.rutabikersync.app.core.audio.SosToneHub.latestRemoteSos.collectAsState()
+    LaunchedEffect(activeMeshSosPacket) {
+        activeMeshSosPacket?.let { sos ->
+            showMeshSosDialog = BleMeshService.IncomingSosMeshEvent(
+                senderShortId = sos.header.senderShortId,
+                senderName = "Piloto #${sos.header.senderShortId.toInt()}",
+                hopCount = sos.hopCount.toInt() and 0xFF,
+                latitude = sos.latitude,
+                longitude = sos.longitude,
+                medicalData = bleMeshService?.medicalSheetStore?.getSheet(sos.header.senderShortId)?.data,
+                clubNetworkId = sos.header.clubNetworkId,
+                sequenceNum = sos.header.sequenceNum
+            )
+            actionFeedback = "🚨 SOS MESH recibido de Piloto #${sos.header.senderShortId.toInt()}"
         }
     }
 
@@ -367,6 +438,13 @@ fun LiveMapScreen(
     LaunchedEffect(incomingSosAckEvent) {
         incomingSosAckEvent?.let { ack ->
             bleMeshService?.stopSosBroadcaster()
+            com.rutabikersync.app.core.audio.SosToneHub.onAck(
+                ack.originalSenderShortId,
+                ack.originalSequenceNum
+            )
+            if (ack.originalSenderShortId == selfShortId) {
+                com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
+            }
             actionFeedback = "✅ SOS confirmado por Líder #${ack.ackerShortId.toInt()}"
         }
     }
@@ -378,6 +456,7 @@ fun LiveMapScreen(
             onSosConfirmed = { trigger ->
                 val selfMarker = state.markers.firstOrNull { it.isSelf }
                 RideService.dispatchTriggerSos(context, true)
+                com.rutabikersync.app.core.audio.SosToneHub.start()
                 sosRepository.emitLocalSos(
                     senderShortId = selfMarker?.shortId ?: 1u,
                     senderName = selfMarker?.fullName ?: "Mi Piloto",
@@ -394,11 +473,8 @@ fun LiveMapScreen(
                     isSos = true
                 )
                 liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
-                bleMeshService?.emitLocalSosPacket(
-                    latitude = liveMapViewModel.uiState.value.cameraLatitude,
-                    longitude = liveMapViewModel.uiState.value.cameraLongitude
-                )
-                actionFeedback = "🚨 ¡SOS ACTIVADO! Posición y ficha médica transmitidos al convoy"
+                // La emisión real SOS la comparte RideService con cabina/notificación/caída.
+                actionFeedback = "🚨 ¡SOS ACTIVADO! Alarmando en todos los equipos enlazados"
             }
         )
     }
@@ -451,9 +527,11 @@ fun LiveMapScreen(
         isRecalculatingRoute = false
     }
 
-    LaunchedEffect(scheduledRide) {
-        scheduledRide?.selectedRoute?.waypoints?.let {
-            RouteDeviationDetector.setActiveRoutePolyline(it)
+    val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
+    LaunchedEffect(scheduledRide, isReturnPhase) {
+        scheduledRide?.selectedRoute?.waypoints?.let { pts ->
+            val effective = if (isReturnPhase) pts.reversed() else pts
+            RouteDeviationDetector.setActiveRoutePolyline(effective)
         }
     }
 
@@ -483,9 +561,10 @@ fun LiveMapScreen(
         onDispose {
             fallDetector.stop()
             sosCountdownManager.resetToIdle()
+            com.rutabikersync.app.core.audio.SosToneHub.silenceForCabinaExit()
+            com.rutabikersync.app.core.audio.ConvoySignalAudioHub.stop()
             runCatching { context.unregisterReceiver(receiver) }
-            pttEngine.stopTalking()
-            RideService.endPttVoiceStream()
+            stopCabinaPtt()
             voicePlayerQueue.discardAll()
         }
     }
@@ -579,10 +658,30 @@ fun LiveMapScreen(
 
     val geoPrefs = remember { context.getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE) }
 
+    fun hasUsableFreshFix(loc: android.location.Location): Boolean =
+        com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy.isUsableFix(
+            latitude = loc.latitude,
+            longitude = loc.longitude,
+            accuracyMeters = if (loc.hasAccuracy()) loc.accuracy else 50f,
+            fixTimeEpochMs = loc.time,
+            nowEpochMs = System.currentTimeMillis()
+        )
+
     fun applyLocation(loc: android.location.Location) {
+        if (!hasUsableFreshFix(loc)) {
+            android.util.Log.i(
+                "LiveMapScreen",
+                "Fix descartado por antigüedad/precisión: ageSec=" +
+                    ((System.currentTimeMillis() - loc.time).coerceAtLeast(0L) / 1_000L) +
+                    " accM=" + if (loc.hasAccuracy()) loc.accuracy.toInt() else "desconocida"
+            )
+            return
+        }
         geoPrefs.edit()
             .putFloat("last_known_lat", loc.latitude.toFloat())
             .putFloat("last_known_lon", loc.longitude.toFloat())
+            .putFloat("last_known_accuracy", loc.accuracy)
+            .putLong("last_known_time_epoch_ms", loc.time)
             .apply()
         liveMapViewModel.controller.corridorReferenceLon = loc.longitude
         liveMapViewModel.controller.updateLocalRiderPose(
@@ -590,7 +689,8 @@ fun LiveMapScreen(
             longitude = loc.longitude,
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
             bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
-            batteryPercent = realBatteryLevel
+            batteryPercent = realBatteryLevel,
+            observedAtEpochMs = loc.time
         )
         // La malla necesita la misma posición real para que los peers se dibujen
         // sobre la vía. Antes los heartbeats emitían (0,0) y el remoto se veía
@@ -600,13 +700,21 @@ fun LiveMapScreen(
             longitude = loc.longitude,
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
             bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
-            batteryPercent = realBatteryLevel
+            batteryPercent = realBatteryLevel,
+            observedAtEpochMs = loc.time
         )
         RouteDeviationDetector.updateRiderLocation(
             location = LatLngPoint(loc.latitude, loc.longitude),
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6f) else 0f
         )
-        liveMapViewModel.controller.centerOnMyLocation()
+        // No recapturar el gesto manual del mapa en cada callback de GPS.
+        if (!com.rutabikersync.app.core.mesh.MeshTelemetry.isValidPosition(
+                state.cameraLatitude,
+                state.cameraLongitude
+            ) || state.cameraMode == CameraMode.CENTERED_ON_SELF
+        ) {
+            liveMapViewModel.controller.centerOnMyLocation()
+        }
         liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
     }
 
@@ -618,13 +726,11 @@ fun LiveMapScreen(
         if (granted) {
             val locManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
             val candidateProviders = listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
-            for (p in candidateProviders) {
-                val l = runCatching { locManager?.getLastKnownLocation(p) }.getOrNull()
-                if (l != null) {
-                    applyLocation(l)
-                    break
-                }
-            }
+            val freshest = candidateProviders
+                .mapNotNull { p -> runCatching { locManager?.getLastKnownLocation(p) }.getOrNull() }
+                .filter { hasUsableFreshFix(it) }
+                .maxByOrNull { it.time }
+            freshest?.let { applyLocation(it) }
         }
     }
 
@@ -637,38 +743,53 @@ fun LiveMapScreen(
         if (geoPrefs.contains("last_known_lat") && geoPrefs.contains("last_known_lon")) {
             val cachedLat = geoPrefs.getFloat("last_known_lat", 0f).toDouble()
             val cachedLon = geoPrefs.getFloat("last_known_lon", 0f).toDouble()
-            if (cachedLat != 0.0 && cachedLon != 0.0) {
+            val cachedTime = geoPrefs.getLong("last_known_time_epoch_ms", System.currentTimeMillis())
+            if (com.rutabikersync.app.core.mesh.MeshTelemetry.isValidPosition(cachedLat, cachedLon)) {
                 liveMapViewModel.controller.updateLocalRiderPose(
                     latitude = cachedLat,
                     longitude = cachedLon,
                     speedKmh = 0,
                     bearingDegrees = 180f,
-                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent,
+                    observedAtEpochMs = cachedTime
                 )
                 RideService.updateActiveLocalTelemetry(
                     latitude = cachedLat,
                     longitude = cachedLon,
                     speedKmh = 0,
                     bearingDegrees = 180f,
-                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent
+                    batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent,
+                    observedAtEpochMs = cachedTime
                 )
                 liveMapViewModel.controller.centerOnMyLocation()
                 liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
             }
+        } else {
+            // Posición inicial segura en caso de primera instalación sin fix previo
+            val activeRoute = RideScheduleRepository.currentRide.value?.selectedRoute
+            val initLat = activeRoute?.waypoints?.firstOrNull()?.latitude ?: 10.3444
+            val initLon = activeRoute?.waypoints?.firstOrNull()?.longitude ?: -67.0422
+            liveMapViewModel.controller.updateLocalRiderPose(
+                latitude = initLat,
+                longitude = initLon,
+                speedKmh = 0,
+                bearingDegrees = 180f,
+                batteryPercent = liveMapViewModel.uiState.value.localBatteryPercent,
+                observedAtEpochMs = System.currentTimeMillis()
+            )
+            liveMapViewModel.controller.centerOnMyLocation()
+            liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
         }
 
         if (fineGranted || coarseGranted) {
             // 2. Consultar todos los proveedores de geolocalización activos
             runCatching {
                 val candidateProviders = listOf("fused", LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
-                var best: android.location.Location? = null
-                for (p in candidateProviders) {
-                    val l = runCatching { locManager?.getLastKnownLocation(p) }.getOrNull()
-                    if (l != null && (best == null || l.time > best.time)) {
-                        best = l
-                    }
-                }
-                best?.let { applyLocation(it) }
+                candidateProviders
+                    .mapNotNull { p -> runCatching { locManager?.getLastKnownLocation(p) }.getOrNull() }
+                    .filter { hasUsableFreshFix(it) }
+                    .maxByOrNull { it.time }
+                    ?.let { applyLocation(it) }
             }
 
             // 3. Suscribirse a actualizaciones en tiempo real del GPS
@@ -1067,6 +1188,7 @@ fun LiveMapScreen(
                         sosRepository.resolveSos(topSosAlert.sosId)
                         RideService.dispatchTriggerSos(context, false)
                         bleMeshService?.stopSosBroadcaster()
+                        com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
                         liveMapViewModel.controller.updateLocalRiderPose(
                             latitude = liveMapViewModel.uiState.value.cameraLatitude,
                             longitude = liveMapViewModel.uiState.value.cameraLongitude,
@@ -1488,8 +1610,7 @@ fun LiveMapScreen(
                 pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
                 onTalkPttClick = {
                     if (isRecording) {
-                        pttEngine.stopTalking()
-                        RideService.endPttVoiceStream()
+                        stopCabinaPtt()
                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                             "LIVE_MAP",
                             "PTT_TRANSMIT_STOP",
@@ -1530,6 +1651,7 @@ fun LiveMapScreen(
                         }
                         RideService.dispatchTriggerSos(context, false)
                         bleMeshService?.stopSosBroadcaster()
+                        com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
                         liveMapViewModel.controller.updateLocalRiderPose(
                             latitude = liveMapViewModel.uiState.value.cameraLatitude,
                             longitude = liveMapViewModel.uiState.value.cameraLongitude,
@@ -1648,14 +1770,15 @@ fun LiveMapScreen(
                             }
                         }
 
-                        val signals = listOf(
-                            Triple("⚠ Obstáculo en la vía", "Bache, grava o escombros", HeritageAmber),
-                            Triple("🛑 Reducir velocidad", "Frenado fuerte / Peligro", HeritageRustRed),
-                            Triple("🔁 Reagrupar convoy", "Cerrar filas de convoy", HeritageCopper),
-                            Triple("⛽ Parada de gasolina", "Estación de servicio próxima", HeritageGreen),
-                            Triple("👮 Retén / Precaución", "Control o alerta en la vía", HeritageAmber)
+                        val signalColors = mapOf(
+                            com.rutabikersync.app.core.audio.ConvoySignalKind.OBSTACLE to HeritageAmber,
+                            com.rutabikersync.app.core.audio.ConvoySignalKind.REDUCE_SPEED to HeritageRustRed,
+                            com.rutabikersync.app.core.audio.ConvoySignalKind.REGROUP to HeritageCopper,
+                            com.rutabikersync.app.core.audio.ConvoySignalKind.GAS_STOP to HeritageGreen,
+                            com.rutabikersync.app.core.audio.ConvoySignalKind.POLICE_CHECKPOINT to HeritageAmber
                         )
-                        signals.forEach { (title, subtitle, accentColor) ->
+                        com.rutabikersync.app.core.audio.ConvoySignalKind.entries.forEach { signal ->
+                            val accentColor = signalColors[signal] ?: HeritageCopper
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1666,9 +1789,10 @@ fun LiveMapScreen(
                                         com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                                             "LIVE_MAP",
                                             "BROADCAST_SIGNAL",
-                                            title
+                                            signal.name
                                         )
-                                        actionFeedback = "📢 Señal emitida: ¡$title!"
+                                        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(signal)
+                                        actionFeedback = "📢 Señal emitida: ¡${signal.fullLabel}!"
                                         showSignalsDialog = false
                                     }
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1676,8 +1800,8 @@ fun LiveMapScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text(text = title, color = HeritageLeatherBrown, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text(text = subtitle, color = HeritageLeatherMuted, fontSize = 10.sp)
+                                    Text(text = signal.fullLabel, color = HeritageLeatherBrown, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(text = signal.subtitle, color = HeritageLeatherMuted, fontSize = 10.sp)
                                 }
                                 Text("➔", color = accentColor, fontWeight = FontWeight.Bold)
                             }
@@ -1756,6 +1880,7 @@ fun LiveMapScreen(
                 triggerType = countdown.triggerType,
                 onCancelFalseAlarm = {
                     sosCountdownManager.cancelCountdown("Cancelado por el usuario (Estoy bien)")
+                    com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
                     actionFeedback = "✓ Alerta SOS cancelada (falsa alarma registrada)"
                 },
                 onConfirmImmediately = {
@@ -1784,31 +1909,46 @@ fun LiveMapScreen(
                 medicalData = event.medicalData,
                 onConfirmReception = {
                     // Crear y emitir SosAckPacket usando el servicio BLE activo
-                    val selfMarker = state.markers.firstOrNull { it.isSelf }
-                    val ackerShortId = selfMarker?.shortId ?: 1u
+                    val ackerShortId = selfShortId
                     val ack = try {
                         com.rutabikersync.app.core.mesh.sos.SosAckPacket.create(
-                            clubNetworkId = 0x52425301u,
+                            clubNetworkId = event.clubNetworkId,
                             ackerShortId = ackerShortId,
                             sequenceNum = (System.currentTimeMillis() and 0xFFFF).toUShort(),
                             originalSenderShortId = event.senderShortId,
-                            originalSequenceNum = 0u,
+                            originalSequenceNum = event.sequenceNum,
                             ackTimestampEpochSec = (System.currentTimeMillis() / 1000L).toInt(),
                             signature = ByteArray(64)
                         )
                     } catch (e: Exception) {
                         null
                     }
-                    if (ack != null) {
-                        bleMeshService?.sendSosAckPacket(ack)
+                    val accepted = if (ack == null) {
+                        false
+                    } else if (RideService.getActiveRelayEngine() != null) {
+                        RideService.dispatchSosAckPacket(ack)
+                    } else {
+                        bleMeshService?.sendSosAckPacket(ack) == true
                     }
-                    bleMeshService?.clearIncomingSosMeshEvent()
-                    showMeshSosDialog = null
-                    actionFeedback = "✅ ACK enviado a Piloto #${event.senderShortId.toInt()}"
+                    if (accepted) {
+                        bleMeshService?.clearIncomingSosMeshEvent()
+                        showMeshSosDialog = null
+                        activeMeshSosPacket?.let {
+                            com.rutabikersync.app.core.audio.SosToneHub.dismissRemoteForCabina(it)
+                        }
+                        actionFeedback = "✅ ACK en emisión a Piloto #${event.senderShortId.toInt()}"
+                    } else {
+                        actionFeedback = "⚠ No se pudo emitir el ACK. La alerta sigue activa; inténtalo de nuevo"
+                    }
                 },
                 onDismiss = {
                     bleMeshService?.clearIncomingSosMeshEvent()
                     showMeshSosDialog = null
+                    activeMeshSosPacket?.let {
+                        com.rutabikersync.app.core.audio.SosToneHub.dismissRemoteForCabina(it)
+                    }
+                    // Ocultar UI no equivale a ACK/resolución: otros equipos siguen alertando.
+                    actionFeedback = "Alerta visual ocultada; el SOS sigue activo hasta ACK o resolución"
                 }
             )
         }
@@ -2231,6 +2371,9 @@ private fun MapLibreCorridorSurface(
             onCreate(null)
         }
     }
+    var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+    var cameraProjectionRevision by remember { mutableIntStateOf(0) }
+    var lastRequestedCamera by remember { mutableStateOf<CameraPosition?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -2264,50 +2407,119 @@ private fun MapLibreCorridorSurface(
         val lastDrawnRouteId = remember { mutableStateOf<String?>(null) }
 
         val scheduledRide by RideScheduleRepository.currentRide.collectAsState()
+        val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
         val activeRoute = scheduledRide?.selectedRoute
+        val activeWaypoints = remember(activeRoute?.waypoints, isReturnPhase) {
+            val pts = activeRoute?.waypoints.orEmpty()
+            if (isReturnPhase) pts.reversed() else pts
+        }
 
         // MapLibre nativo conectado a capas cartográficas
         AndroidView(
             factory = {
                 mapView.apply {
                     getMapAsync { map ->
-                        // Tocar el mapa vacío cierra el detalle; los markers consumen su propio toque.
-                        map.addOnMapClickListener { onSelectRider(null); true }
+                        // Tocar el mapa vacío cierra el detalle; los listeners se registran una vez.
+                        if (mapLibreMap !== map) {
+                            mapLibreMap = map
+                            map.addOnMapClickListener { onSelectRider(null); true }
+                            map.addOnCameraIdleListener { cameraProjectionRevision++ }
+                        }
                         map.setStyle(state.styleAssetUri) {
-                            map.uiSettings.isAttributionEnabled = false
+                            map.uiSettings.isAttributionEnabled = true
+                            map.uiSettings.setAttributionMargins(32, 0, 0, 140)
                             map.uiSettings.isLogoEnabled = false
                             map.uiSettings.isCompassEnabled = false
                             map.uiSettings.isRotateGesturesEnabled = true
                             map.uiSettings.isScrollGesturesEnabled = true
                             map.uiSettings.isZoomGesturesEnabled = true
-                            map.moveCamera(
-                                CameraUpdateFactory.newCameraPosition(
-                                    CameraPosition.Builder()
-                                        .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                                        .zoom(state.cameraZoom)
-                                        .build()
+
+                            // Centrado inicial seguro: jamás apuntar a (0.0, 0.0) en el océano Atlántico
+                            val effectiveLat = when {
+                                MeshTelemetry.isValidPosition(state.cameraLatitude, state.cameraLongitude) -> state.cameraLatitude
+                                activeRoute?.waypoints?.isNotEmpty() == true -> activeRoute.waypoints.first().latitude
+                                else -> 10.3444 // Los Teques, Venezuela
+                            }
+                            val effectiveLon = when {
+                                MeshTelemetry.isValidPosition(state.cameraLatitude, state.cameraLongitude) -> state.cameraLongitude
+                                activeRoute?.waypoints?.isNotEmpty() == true -> activeRoute.waypoints.first().longitude
+                                else -> -67.0422 // Los Teques, Venezuela
+                            }
+
+                            val validWaypoints = activeRoute?.waypoints.orEmpty().filter {
+                                MeshTelemetry.isValidPosition(it.latitude, it.longitude) &&
+                                    it.latitude in 0.5..13.0 && it.longitude in -74.0..-59.0
+                            }
+
+                            if (validWaypoints.size >= 2) {
+                                try {
+                                    val boundsBuilder = LatLngBounds.Builder()
+                                    for (pt in validWaypoints) {
+                                        boundsBuilder.include(LatLng(pt.latitude, pt.longitude))
+                                    }
+                                    val density = context.resources.displayMetrics.density
+                                    map.moveCamera(
+                                        CameraUpdateFactory.newLatLngBounds(
+                                            boundsBuilder.build(),
+                                            (40 * density).toInt(),
+                                            (90 * density).toInt(),
+                                            (40 * density).toInt(),
+                                            (160 * density).toInt()
+                                        )
+                                    )
+                                } catch (_: Exception) {
+                                    map.moveCamera(
+                                        CameraUpdateFactory.newCameraPosition(
+                                            CameraPosition.Builder()
+                                                .target(LatLng(effectiveLat, effectiveLon))
+                                                .zoom(state.cameraZoom.coerceAtLeast(12.0))
+                                                .build()
+                                        )
+                                    )
+                                }
+                            } else {
+                                map.moveCamera(
+                                    CameraUpdateFactory.newCameraPosition(
+                                        CameraPosition.Builder()
+                                            .target(LatLng(effectiveLat, effectiveLon))
+                                            .zoom(state.cameraZoom.coerceAtLeast(12.0))
+                                            .build()
+                                    )
                                 )
-                            )
-                            drawRouteOnMap(map, activeRoute?.waypoints.orEmpty())
-                            lastDrawnRouteId.value = activeRoute?.id
+                            }
+                            drawRouteOnMap(map, activeWaypoints)
+                            lastDrawnRouteId.value = "${activeRoute?.id}:${if (isReturnPhase) "return" else "outbound"}"
                         }
                     }
                 }
             },
             update = { view ->
                 view.getMapAsync { map ->
-                    map.moveCamera(
-                        CameraUpdateFactory.newCameraPosition(
-                            CameraPosition.Builder()
-                                .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                                .zoom(state.cameraZoom)
-                                .build()
-                        )
-                    )
-                    val desiredRouteId = activeRoute?.id
-                    if (desiredRouteId != lastDrawnRouteId.value) {
-                        drawRouteOnMap(map, activeRoute?.waypoints.orEmpty())
-                        lastDrawnRouteId.value = desiredRouteId
+                    val currentCamera = map.cameraPosition
+                    // Solo mover cámara dinámicamente si la telemetría reporta una posición real fija
+                    if (MeshTelemetry.isValidPosition(state.cameraLatitude, state.cameraLongitude) &&
+                        state.cameraLatitude in 0.5..13.0 && state.cameraLongitude in -74.0..-59.0
+                    ) {
+                        val targetCamera = CameraPosition.Builder()
+                            .target(LatLng(state.cameraLatitude, state.cameraLongitude))
+                            .zoom(state.cameraZoom)
+                            .bearing(currentCamera?.bearing ?: 0.0)
+                            .tilt(currentCamera?.tilt ?: 0.0)
+                            .build()
+                        val cameraHasSameTarget = currentCamera?.target?.let {
+                            kotlin.math.abs(it.latitude - state.cameraLatitude) < 1e-10 &&
+                                kotlin.math.abs(it.longitude - state.cameraLongitude) < 1e-10 &&
+                                kotlin.math.abs(currentCamera.zoom - state.cameraZoom) < 1e-6
+                        } == true
+                        if (!cameraHasSameTarget && lastRequestedCamera != targetCamera) {
+                            lastRequestedCamera = targetCamera
+                            map.moveCamera(CameraUpdateFactory.newCameraPosition(targetCamera))
+                        }
+                    }
+                    val desiredRouteKey = "${activeRoute?.id}:${if (isReturnPhase) "return" else "outbound"}"
+                    if (desiredRouteKey != lastDrawnRouteId.value) {
+                        drawRouteOnMap(map, activeWaypoints)
+                        lastDrawnRouteId.value = desiredRouteKey
                     }
                 }
             },
@@ -2316,8 +2528,8 @@ private fun MapLibreCorridorSurface(
 
         // Convoy sobre la vía: se proyectan los peers reales sobre la polilínea activa.
         // Sin ruta, ConvoyRouteProjection devuelve vacío y se usa la posición exacta.
-        val convoyPlacements = remember(state.markers, activeRoute?.waypoints) {
-            ConvoyRouteProjection.layout(state.markers, activeRoute?.waypoints.orEmpty(), selfShortId)
+        val convoyPlacements = remember(state.markers, activeWaypoints) {
+            ConvoyRouteProjection.layout(state.markers, activeWaypoints, selfShortId)
         }
         val orderedConvoyMarkers = remember(state.markers, convoyPlacements) {
             state.markers.sortedWith(
@@ -2326,22 +2538,23 @@ private fun MapLibreCorridorSurface(
             )
         }
 
-        // Posicionar cada RiderMarker sobre el corredor (proyectado si hay ruta).
-        // El overlay Compose usa una escala propia distinta del zoom de MapLibre: cuando
-        // dos peers reales quedan a pocos metros, sus marcadores se solapan. Se aplica
-        // un desplazamiento visual en pantalla (nunca en lat/lon) para separarlos.
+        // La proyección nativa considera zoom, tilt, rotación y viewport reales. Leer
+        // cameraProjectionRevision fuerza el cálculo de píxeles al terminar gestos de cámara.
+        // La separación anti-solapamiento es solo visual y nunca modifica lat/lon del modelo.
+        @Suppress("UNUSED_VARIABLE")
+        val projectionRevision = cameraProjectionRevision
         var lastScreenOffset: IntOffset? = null
         orderedConvoyMarkers.forEach { marker ->
             val placement = convoyPlacements[marker.shortId]
             val displayLat = placement?.latitude ?: marker.displayLatitude
             val displayLon = placement?.longitude ?: marker.displayLongitude
-            val latDelta = (displayLat - state.cameraLatitude)
-            val lonDelta = (displayLon - state.cameraLongitude)
-            val normalizedX = (0.45f + (lonDelta * 120f).toFloat()).coerceIn(0.12f, 0.72f)
-            val normalizedY = (0.48f - (latDelta * 120f).toFloat()).coerceIn(0.18f, 0.74f)
+            val point = mapLibreMap?.projection?.toScreenLocation(LatLng(displayLat, displayLon))
+            if (point == null || !RiderViewportLayout.isPointVisible(point.x, point.y, widthPx, heightPx)) {
+                return@forEach
+            }
 
-            var xOffsetPx = (normalizedX * widthPx).roundToInt() - 36
-            var yOffsetPx = (normalizedY * heightPx).roundToInt() - 36
+            var xOffsetPx = point.x.roundToInt() - 36
+            var yOffsetPx = point.y.roundToInt() - 36
             val previous = lastScreenOffset
             if (previous != null &&
                 kotlin.math.abs(xOffsetPx - previous.x) < 44 &&

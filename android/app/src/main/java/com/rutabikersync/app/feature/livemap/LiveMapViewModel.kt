@@ -2,6 +2,7 @@ package com.rutabikersync.app.feature.livemap
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.mesh.MeshTelemetry
 import kotlinx.coroutines.CoroutineScope
@@ -278,6 +279,9 @@ class LiveMapController(
     private var localBearing: Float = 180f
     private var localBattery: Int = 88
     private var localSos: Boolean = false
+    // Fecha real del último fix recibido del sistema. Las fixtures sintéticas sin fecha
+    // mantienen su comportamiento previo; la cabina real siempre proporciona la fecha OS.
+    private var localPositionObservedAtEpochMs: Long? = null
 
     private var meshObserveJob: Job? = null
     private var cadenceLoopJob: Job? = null
@@ -324,7 +328,8 @@ class LiveMapController(
         speedKmh: Int,
         bearingDegrees: Float = 180f,
         batteryPercent: Int = 88,
-        isSos: Boolean = false
+        isSos: Boolean = false,
+        observedAtEpochMs: Long? = null
     ) {
         // (0,0) y NaN son centinelas, nunca una posición: marcar "sin fix" y conservar
         // la última coordenada real conocida en lugar de contaminar los cálculos.
@@ -338,6 +343,7 @@ class LiveMapController(
         localBearing = bearingDegrees
         localBattery = batteryPercent
         localSos = isSos
+        observedAtEpochMs?.let { localPositionObservedAtEpochMs = it }
         setGpsFixed(true)
     }
 
@@ -359,7 +365,10 @@ class LiveMapController(
 
         // FIX distancia al líder: si no hay posición válida del líder NO se inventa un
         // punto de referencia (antes se caía a la posición local y se mostraba "0 m").
-        val localPositionValid = _uiState.value.gpsFixed && MeshTelemetry.isValidPosition(localLat, localLon)
+        val localPositionIsFresh = localPositionObservedAtEpochMs?.let {
+            LocalGpsPositionPolicy.isFresh(it, nowEpochMs)
+        } != false
+        val localPositionValid = MeshTelemetry.isValidPosition(localLat, localLon)
         val leaderPose: Pair<Double, Double>? = if (leaderShortId == localShortId) {
             if (localPositionValid) localLat to localLon else null
         } else {
@@ -408,38 +417,40 @@ class LiveMapController(
             peerGroupId = selfEntry.groupId,
             localGroupId = localGroupId
         )
-        updatedMarkers.add(
-            RiderMarkerUiModel(
-                shortId = localShortId,
-                fullName = PeerProfilePrivacy.visibleName(localShortId, selfEntry.fullName, selfCanShowReal),
-                nickname = if (selfCanShowReal) selfEntry.nickname else null,
-                relation = if (selfCanShowReal) selfEntry.relation else RiderRelation.ALLIED_STRANGER,
-                rideRole = if (selfCanShowReal) selfEntry.rideRole else RiderRideRole.NONE,
-                routeStatus = selfStatus,
-                markerColorHex = selfEntry.markerColorHex,
-                prevLatitude = prevSelf?.displayLatitude ?: localLat,
-                prevLongitude = prevSelf?.displayLongitude ?: localLon,
-                targetLatitude = localLat,
-                targetLongitude = localLon,
-                displayLatitude = localLat,
-                displayLongitude = localLon,
-                speedKmh = localSpeedKmh,
-                bearingDegrees = localBearing,
-                batteryPercent = localBattery,
-                distanceToLeaderMeters = if (leaderPose != null && localPositionValid) {
-                    haversineMeters(localLat, localLon, leaderPose.first, leaderPose.second)
-                } else {
-                    null
-                },
-                lastHops = 0,
-                isSelf = true,
-                avatarUrl = if (selfCanShowReal) selfEntry.avatarUrl else null,
-                avatarBase64 = if (selfCanShowReal) selfEntry.avatarBase64 else null,
-                roleLabel = if (selfCanShowReal) selfEntry.roleLabel else "Desconocido",
-                groupId = selfEntry.groupId,
-                profileRedacted = !selfCanShowReal
+        if (localPositionValid) {
+            updatedMarkers.add(
+                RiderMarkerUiModel(
+                    shortId = localShortId,
+                    fullName = PeerProfilePrivacy.visibleName(localShortId, selfEntry.fullName, selfCanShowReal),
+                    nickname = if (selfCanShowReal) selfEntry.nickname else null,
+                    relation = if (selfCanShowReal) selfEntry.relation else RiderRelation.ALLIED_STRANGER,
+                    rideRole = if (selfCanShowReal) selfEntry.rideRole else RiderRideRole.NONE,
+                    routeStatus = selfStatus,
+                    markerColorHex = selfEntry.markerColorHex,
+                    prevLatitude = prevSelf?.displayLatitude ?: localLat,
+                    prevLongitude = prevSelf?.displayLongitude ?: localLon,
+                    targetLatitude = localLat,
+                    targetLongitude = localLon,
+                    displayLatitude = localLat,
+                    displayLongitude = localLon,
+                    speedKmh = localSpeedKmh,
+                    bearingDegrees = localBearing,
+                    batteryPercent = localBattery,
+                    distanceToLeaderMeters = if (leaderPose != null) {
+                        haversineMeters(localLat, localLon, leaderPose.first, leaderPose.second)
+                    } else {
+                        null
+                    },
+                    lastHops = 0,
+                    isSelf = true,
+                    avatarUrl = if (selfCanShowReal) selfEntry.avatarUrl else null,
+                    avatarBase64 = if (selfCanShowReal) selfEntry.avatarBase64 else null,
+                    roleLabel = if (selfCanShowReal) selfEntry.roleLabel else "Desconocido",
+                    groupId = selfEntry.groupId,
+                    profileRedacted = !selfCanShowReal
+                )
             )
-        )
+        }
 
         // 2. Marcadores de los peers recibidos por la mesh. Sin fix GPS real no
         // se coloca un pin geográfico artificial sobre CDMX u otro fallback.
@@ -513,13 +524,11 @@ class LiveMapController(
         val lostPeers = latestPeersFromMesh.values.count { it.isLost }
         val totalPeers = latestPeersFromMesh.size
 
-        // FIX contador HUD: se deriva de los mismos marcadores que pinta el mapa, no de
-        // `connectedPeers` (que excluye al piloto local). El marcador "Sin señal" sigue
-        // visible para diagnóstico pero no cuenta como rider activo, así al desconectarse
-        // un peer el HUD baja a 1 (solo local). Sin marcadores, fallback honesto a 1.
+        // El HUD usa los mismos riders activos y con posición válida que pinta el mapa.
+        // Sin fix local no se puede afirmar "1 rider" ni dibujar un avatar en (0,0).
         val ridersCount = updatedMarkers.count {
             it.routeStatus != RiderRouteStatus.OFF_MESH_LOST
-        }.coerceAtLeast(1)
+        }
 
         val connectivityState = when {
             totalPeers == 0 -> LiveMapConnectivityState.ALONE
@@ -553,6 +562,7 @@ class LiveMapController(
         }
 
         _uiState.value = current.copy(
+            gpsFixed = localPositionValid,
             localBatteryPercent = localBattery,
             connectedNodesCount = connectedPeers,
             ridersCount = ridersCount,

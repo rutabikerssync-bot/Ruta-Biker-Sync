@@ -1124,6 +1124,15 @@ private fun RidesReleaseHomeScreen(
                             onStartLiveMapPreview()
                             startRideServiceNow(useSimulated = forceSimulated)
                         }
+                    },
+                    onArriveDestination = { routeId ->
+                        phase1ViewModel.arriveDestination(routeId)
+                    },
+                    onStartReturn = { routeId ->
+                        phase1ViewModel.startReturn(routeId) {
+                            onStartLiveMapPreview()
+                            startRideServiceNow(useSimulated = forceSimulated)
+                        }
                     }
                 )
             }
@@ -1273,6 +1282,7 @@ private fun RidesReleaseHomeScreen(
                         onClick = {
                             UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_recorrido")
                             onStartLiveMapPreview()
+                            startRideServiceNow(useSimulated = forceSimulated)
                         },
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(

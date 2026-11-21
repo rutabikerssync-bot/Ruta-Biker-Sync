@@ -19,6 +19,13 @@ object RideScheduleRepository {
     private val _currentRide = MutableStateFlow<ScheduledRide?>(null)
     val currentRide: StateFlow<ScheduledRide?> = _currentRide.asStateFlow()
 
+    private val _isReturnPhase = MutableStateFlow(false)
+    val isReturnPhase: StateFlow<Boolean> = _isReturnPhase.asStateFlow()
+
+    fun setReturnPhase(isReturn: Boolean) {
+        _isReturnPhase.value = isReturn
+    }
+
     fun publishScheduledRide(ride: ScheduledRide) {
         _currentRide.value = ride
     }

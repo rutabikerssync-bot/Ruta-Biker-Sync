@@ -228,6 +228,14 @@ class ClubRoutesRepository(
     suspend fun startRoute(routeId: String): Result<ClubApiClient.ApiResponse> =
         api.startClubRoute(routeId)
 
+    /** Notifica que el convoy alcanzó el destino programado. */
+    suspend fun arriveDestination(routeId: String): Result<ClubApiClient.ApiResponse> =
+        api.arriveDestination(routeId)
+
+    /** Inicia formalmente la fase de retorno de la rodada. */
+    suspend fun startReturnRoute(routeId: String): Result<ClubApiClient.ApiResponse> =
+        api.startReturnRoute(routeId)
+
     /**
      * Escribe la intención en el outbox y refleja el estado en caché al instante.
      * Nunca lanza la petición en primer plano: la hace [RsvpOutboxWorker] al volver la red.

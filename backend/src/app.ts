@@ -1490,6 +1490,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const parsed = AddLeaderSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -1552,6 +1555,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     // ACL explícita: el perfil de un club sólo lo leen sus miembros aceptados
     // o sus líderes. No depender de RLS aquí evita filtrar clubes ajenos por UUID.
@@ -1622,6 +1628,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const leaderCheck = await db.query(
       `SELECT 1 FROM group_leaders
@@ -2184,6 +2193,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const leaderCheck = await db.query(
       `SELECT is_principal FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
@@ -2303,6 +2315,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const clientIp = getClientIp(req);
     const inviteRateLimited = await checkAndEnforceInviteRateLimit(clientIp, uid, reply);
@@ -2384,6 +2399,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId } = req.params as { id: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const leaderCheck = await db.query(
       `SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2`,
@@ -2619,6 +2637,9 @@ export async function buildApp({
     const uid = requireUserId(req, reply);
     if (!uid) return;
     const { id: groupId, memberUid } = req.params as { id: string; memberUid: string };
+    if (!z.string().uuid().safeParse(groupId).success) {
+      return reply.code(400).send({ error: 'INVALID_GROUP_ID' });
+    }
 
     const parsed = PatchMemberSchema.safeParse(req.body);
     if (!parsed.success) {

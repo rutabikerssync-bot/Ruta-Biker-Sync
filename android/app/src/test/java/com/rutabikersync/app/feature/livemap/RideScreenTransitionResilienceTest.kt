@@ -30,6 +30,7 @@ class RideScreenTransitionResilienceTest {
         // 1. Simular entrada en LiveMapScreen: bindToMeshEngine activo
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(engine, enablePeriodicCadenceLoop = false)
+        controller.updateLocalRiderPose(latitude = 10.348, longitude = -67.04, speedKmh = 30)
 
         val peerEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
             .also { it.start(backgroundScope) }
@@ -46,6 +47,8 @@ class RideScreenTransitionResilienceTest {
         // 3. Simular retorno a LiveMapScreen: re-bind del controller
         val returningController = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         returningController.bindToMeshEngine(engine, enablePeriodicCadenceLoop = false)
+        // Un controller nuevo tras volver a cabina necesita su fix local real para no inventar ni omitir riders.
+        returningController.updateLocalRiderPose(latitude = 10.348, longitude = -67.04, speedKmh = 30)
 
         frame = returningController.flushMapFrame(nowEpochMs = 2_000L, force = true)
         assertEquals(2, frame.ridersCount)

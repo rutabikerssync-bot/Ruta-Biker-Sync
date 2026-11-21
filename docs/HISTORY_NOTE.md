@@ -520,8 +520,77 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
 - `docs/evidence/fase5_redmi_adbd_block_20261120.txt` (Registro factual de rechazo ADB 10061).
 
 **Pendiente:**
-- GPX: listo para Commit B separado, ya comprobado en JVM con customAssetLoader (42/42 tests totales verdes).
-- Validación física real en hardware: TECNO comprobado en vivo; validación bilateral pendiente por bloqueo de enlace ADB (10061) en Redmi.
-- Hito 1: Audio SOS con foco, ACK y parada segura.
-- Hito 2: Tonos coherentes para señales de convoy.
+- Validación física real en hardware: TECNO comprobado en vivo (cabina, monitor malla y ciclo SOS resuelto); validación bilateral pendiente por bloqueo de enlace ADB (10061) en Redmi.
+- Hito 2: Tonos coherentes para señales de convoy (ConvoySignalKind único).
 - Hito 3: Proyección MapLibre 11.5.2 y atribución OSM.
+
+### HITO 1 — Audio Real para SOS (2026-11-20)
+
+**Cambio (archivos):**
+- `android/app/src/main/java/com/rutabikersync/app/core/audio/SosTonePlayer.kt`:
+  - `interface SosTonePlayer`: contrato con `start()`, `stop()`, `isPlaying` y constantes Morse (`DOT_DURATION_MS = 150L`, `DASH_DURATION_MS = 450L`, etc.).
+  - `interface ToneEmitter` y `class AndroidToneEmitter`: emisor desacoplado que usa `ToneGenerator(AudioManager.STREAM_ALARM, MAX_VOLUME)`.
+  - `interface AudioFocusDelegate` y `class DuckingFocusDelegate`: aprovecha `AudioDuckingManager` para atenuación de música y navegación.
+  - `class DefaultSosTonePlayer`: reproductor reactivo del patrón Morse 3-3-3 (S-O-S) con intra-silencios y repetición controlada. Idempotente en `start()` y `stop()`, con prioridad absoluta para PTT (cede el foco y detiene beeps si PTT transmite voz).
+  - `object SosToneHub`: singleton coordinador entre `LiveMapScreen` y `RideService` para evitar doble dueño o solapamientos.
+- `android/app/src/main/java/com/rutabikersync/app/core/mesh/RideService.kt`:
+  - Conexión de `SosToneHub.start()` en `ACTION_TRIGGER_SOS`.
+  - Conexión de `SosToneHub.stop()` en `ACTION_CANCEL_SOS`, `ACTION_STOP_RIDE`, `ACTION_FORCE_STOP_RIDE` y `onDestroy()`.
+- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`:
+  - Inicialización de `SosToneHub` en `LaunchedEffect(Unit)` con `PttStateProvider { pttEngine.pttState.value !is PttState.Idle }`.
+  - Inicio de tono en `onSosConfirmed` (local) y en `incomingSosMeshEvent` (remoto de malla).
+  - Parada inmediata en ACK recibido de líder (`incomingSosAckEvent`), ACK confirmado/descartado (`MeshSosReceptionDialog`), desactivación manual (`onSosClick`), cancelación de falsa alarma (`onCancelFalseAlarm`) y desmonte de la pantalla (`onDispose`).
+- `android/app/src/test/java/com/rutabikersync/app/core/audio/SosTonePlayerTest.kt`:
+  - Suite unitaria TDD (7/7 tests PASSED): validación de cadencia Morse 3-3-3, idempotencia de start/stop, bloqueo por PTT activo, denegación de foco, cancelación inmediata mid-cycle y ciclo de vida de `SosToneHub`.
+
+**Pruebas:**
+- `SosTonePlayerTest`: 7 tests pasados (0 fallos).
+- `UniqueAnnouncerPhase3Test`: 3 tests pasados (0 fallos).
+- `VoiceClipMeshTest`: 3 tests pasados (0 fallos).
+- `PttAudioEngineHandoffTest`: 2 tests pasados (0 fallos).
+- `TacticalChatMeshIntegrationTest`: 2 tests pasados (0 fallos).
+- `SosEmergencyTest`: 5 tests pasados (0 fallos).
+- Regresión de rutas (Bloque 0 y GPX): 42/42 tests pasados (0 fallos).
+- Total verificado: **64/64 tests PASSED (0 fallos, 0 errores)**.
+
+**Hardware TECNO (098813734B105395):**
+- APK `assembleStandardDebug` compilada con `-Prbs.debug.url=https://omartinezpaz.tail6f67b0.ts.net` e instalada in-place vía ADB (`Success`).
+- App iniciada en vivo, entrada a cabina LiveMap con `Convoy 2 riders` activo.
+- Activación y resolución del ciclo SOS en hardware: banner visual `✓ Emergencia SOS resuelta`, apagado del tono y retorno inmediato a reposo manteniendo `RideService` y `HeartbeatTx` activo (`packetsEmitted=58`, `elapsedSec=170s`).
+- Capturas: `docs/evidence/fase5_tecno_audio_sos_test.png` y `.xml`, `docs/evidence/fase5_tecno_livemap_sos_ready.png` y `.xml`, `docs/evidence/fase5_tecno_sos_held.png` y `.xml`.
+
+### HITO 2 — Señales Rápidas Audibles de Convoy y Atribución MapLibre (2026-11-21)
+
+**Cambio (archivos):**
+- `android/app/src/main/java/com/rutabikersync/app/core/audio/ConvoySignalAudioPlayer.kt`:
+  - `enum class ConvoySignalKind`: catálogo unificado con `code`, `title`, `subtitle`, `icon`, `toneType`, `pulseCount`, `pulseDurationMs` y `gapMs` (5 señales: Obstáculo, Reducir velocidad, Reagrupar convoy, Parada de gasolina, Retén/precaución).
+  - `interface ConvoySignalAudioPlayer`: contrato con `playSignal(kind)`, `stop()` y `isPlaying`.
+  - `class DefaultConvoySignalPlayer`: emisor secuencial de tonos breves con ducking de audio, supresión estricta si SOS o PTT están activos, interrupción limpia e idempotencia en parada.
+  - `object ConvoySignalAudioHub`: singleton de coordinación para inicialización reactiva y parada en ciclo de vida de la cabina.
+- `android/app/src/main/java/com/rutabikersync/app/core/audio/SosTonePlayer.kt`:
+  - Sobrecarga de `toneOn(toneType: Int, durationMs: Long): Boolean` en `ToneEmitter` y `AndroidToneEmitter` con delegación backwards-compatible para permitir tonos diferenciados por tipo (`TONE_PROP_BEEP`, `TONE_PROP_BEEP2`, `TONE_PROP_ACK`).
+- `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`:
+  - Inicialización de `ConvoySignalAudioHub` en `LaunchedEffect(Unit)` con enlace de PTT.
+  - Limpieza de tonos en `onDispose` (`ConvoySignalAudioHub.stop()`).
+  - Refactorización de `showSignalsDialog` para iterar sobre `ConvoySignalKind.entries` vinculando la reproducción audible local con el feedback visual y telemetría UX.
+  - Hito 3: activación de atribución cartográfica OSM `map.uiSettings.isAttributionEnabled = true` con márgenes adaptados al HUD.
+- `android/app/src/test/java/com/rutabikersync/app/core/audio/ConvoySignalAudioPlayerTest.kt`:
+  - Suite unitaria TDD completa (8/8 tests PASSED): validación de catálogo y códigos únicos, cadencia de un solo pulso (`OBSTACLE`), cadencia multi-pulso (`REDUCE_SPEED`), bloqueo estricto ante SOS activo, bloqueo ante PTT activo, parada mid-playback, sustitución de señal en curso y ciclo de vida del Hub.
+
+**Pruebas:**
+- `ConvoySignalAudioPlayerTest`: 8/8 tests PASSED.
+- `SosTonePlayerTest`: 10/10 tests PASSED.
+- `RideServicePhase3Test`: 15/15 tests PASSED.
+- `LiveMapViewModelTest`: 7/7 tests PASSED.
+- `PeerPositionValidityTest`: 2/2 tests PASSED.
+- `RecalculateRouteUseCaseTest`: 4/4 tests PASSED.
+- `RouteDeviationHysteresisTest`: 3/3 tests PASSED.
+- `RouteEnginePhase4Test`: 5/5 tests PASSED.
+- `RideCabinaAccessTest`: 4/4 tests PASSED.
+- Total verificado en suite obligatoria: **58/58 tests PASSED (0 fallos, 0 errores)**.
+
+**Hardware (TECNO 098813734B105395 y Redmi b2c398bb):**
+- APK `assembleStandardDebug` compilada e instalada en ambos dispositivos vía ADB (`Performing Streamed Install Success`).
+- Cabina abierta con enlace bidireccional de malla activo (`Convoy 2 riders`).
+- Diálogo de señales rápidas probado en vivo en pantalla: toque en `🛑 Reducir velocidad` reprodujo la cadencia audible a través de `ToneGenerator` (canal `STREAM_ALARM`) y emitió el feedback `📢 Señal emitida: ¡🛑 Reducir velocidad!`.
+- Capturas: `docs/evidence/fase5_tecno_signals_dialog.png` y `.xml`, `docs/evidence/fase5_tecno_signal_emitted.png` y `.xml`.

@@ -227,7 +227,7 @@ class MultiHopFloodingTest {
     }
 
     @Test
-    fun testRelayPreservesVoicePacketPayloadAndJitterIsBetweenTenAndThirtyFiveMs() {
+    fun testVoicePacketIsConsumedLocallyAndNeverRelayed() {
         val relayEngine = MeshRelayEngine(localShortId = 2u, clubNetworkId = clubId)
 
         val key = ByteArray(32) { (it + 0xA5).toByte() }
@@ -251,28 +251,23 @@ class MultiHopFloodingTest {
             encryptedPayloadWithTag = encryptedPayload
         )
         val wireBytes = voicePacket.toBinary()
+        val locallyDelivered = ConcurrentLinkedQueue<VoicePacket>()
+        relayEngine.onVoiceReceived { locallyDelivered.add(it) }
 
         val decision = relayEngine.processIncomingPacket(wireBytes)
-        assertTrue(decision is MeshRelayEngine.RelayDecision.Relayed)
 
-        val relayed = decision as MeshRelayEngine.RelayDecision.Relayed
-        assertEquals("TTL debe haber decrementado de 4 a 3", 3, relayed.newTtl)
+        // Contrato PTT: la voz se consume localmente y NUNCA se retransmite (TTL de voz = 1).
+        assertTrue(decision is MeshRelayEngine.RelayDecision.ConsumedLocallyTtlExhausted)
+        assertEquals("La voz no debe reenviarse por flooding", 0, relayEngine.totalPacketsRelayed.get())
 
-        // Verificar que el Jitter se encuentra estrictamente en [10..35] ms
-        assertTrue(
-            "Jitter (${relayed.jitterMs} ms) debe estar entre 10 y 35 ms",
-            relayed.jitterMs in 10L..35L
-        )
-
-        // Deserializar el paquete retransmitido y verificar paridad criptográfica exacta
-        val relayedVoicePacket = VoicePacket.fromBinary(relayed.relayedBytes)
-        assertEquals(1u.toUShort(), relayedVoicePacket.header.senderShortId)
-        assertEquals(MeshHeader.TYPE_PTT_VOICE, relayedVoicePacket.header.packetType)
-        assertEquals(3, relayedVoicePacket.header.currentTtl)
-        assertEquals(voicePacket.frameIndex, relayedVoicePacket.frameIndex)
+        val receivedLocally = locallyDelivered.poll()
+        assertNotNull("El receptor debe recibir el frame de voz localmente", receivedLocally)
+        assertEquals(1u.toUShort(), receivedLocally!!.header.senderShortId)
+        assertEquals(MeshHeader.TYPE_PTT_VOICE, receivedLocally.header.packetType)
+        assertEquals(voicePacket.frameIndex, receivedLocally.frameIndex)
 
         // El payload cifrado debe poder descifrarse con la misma clave y nonce intacto
-        val decrypted = VoiceCrypto.decrypt(key, relayedVoicePacket.nonce, relayedVoicePacket.encryptedPayloadWithTag)
+        val decrypted = VoiceCrypto.decrypt(key, receivedLocally.nonce, receivedLocally.encryptedPayloadWithTag)
         assertArrayEquals(opusBytes, decrypted)
     }
 

@@ -349,7 +349,9 @@ fun ScheduleRideMapScreen(
             // Dibujar primero las rutas no seleccionadas (Gris / Púrpura suave)
             val nonSelected = availableRoutes.filter { it.id != selectedRouteId }
             nonSelected.forEachIndexed { idx, altRoute ->
-                val points = altRoute.waypoints.map { LatLng(it.latitude, it.longitude) }
+                val points = altRoute.waypoints
+                    .filter { it.latitude in 0.5..13.0 && it.longitude in -74.0..-59.0 && (it.latitude != 0.0 || it.longitude != 0.0) }
+                    .map { LatLng(it.latitude, it.longitude) }
                 val altColor = if (idx == 0) "#94A3B8" else "#A78BFA"
                 val p = map.addPolyline(
                     PolylineOptions()
@@ -362,7 +364,9 @@ fun ScheduleRideMapScreen(
 
             // Dibujar encima la ruta seleccionada (Azul vibrante Google Maps)
             val selected = currentSelectedRoute ?: availableRoutes.first()
-            val selPoints = selected.waypoints.map { LatLng(it.latitude, it.longitude) }
+            val selPoints = selected.waypoints
+                .filter { it.latitude in 0.5..13.0 && it.longitude in -74.0..-59.0 && (it.latitude != 0.0 || it.longitude != 0.0) }
+                .map { LatLng(it.latitude, it.longitude) }
             val selPolyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(selPoints)
@@ -445,14 +449,22 @@ fun ScheduleRideMapScreen(
             } else {
                 try {
                     val boundsBuilder = LatLngBounds.Builder()
-                    // Incluir los puntos de todas las rutas disponibles para que ninguna quede fuera de la vista
-                    val allRoutesPoints = availableRoutes.flatMap { it.waypoints }
-                    if (allRoutesPoints.isNotEmpty()) {
-                        for (pt in allRoutesPoints) {
+                    // Incluir solo puntos válidos dentro del territorio venezolano para evitar encuadres oceánicos
+                    val validRoutesPoints = availableRoutes.flatMap { it.waypoints }
+                        .filter { pt ->
+                            pt.latitude in 0.5..13.0 && pt.longitude in -74.0..-59.0 &&
+                                (pt.latitude != 0.0 || pt.longitude != 0.0)
+                        }
+                    if (validRoutesPoints.isNotEmpty()) {
+                        for (pt in validRoutesPoints) {
                             boundsBuilder.include(LatLng(pt.latitude, pt.longitude))
                         }
                     } else {
-                        for (pt in selPoints) {
+                        val validSel = selPoints.filter { pt ->
+                            pt.latitude in 0.5..13.0 && pt.longitude in -74.0..-59.0 &&
+                                (pt.latitude != 0.0 || pt.longitude != 0.0)
+                        }
+                        for (pt in validSel) {
                             boundsBuilder.include(pt)
                         }
                     }

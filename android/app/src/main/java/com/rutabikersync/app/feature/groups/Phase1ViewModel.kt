@@ -116,7 +116,8 @@ class Phase1ViewModel(
                 updateRosterParticipant(userId) { participant ->
                     participant.copy(
                         status = status,
-                        onSiteAt = if (status == "confirmed") participant.onSiteAt else null
+                        onSiteAt = if (status == "confirmed") participant.onSiteAt else null,
+                        homeAt = if (status == "home") (participant.homeAt ?: Instant.now().toString()) else participant.homeAt
                     )
                 }
                 repository.refreshRsvpPendingCount()
@@ -133,7 +134,7 @@ class Phase1ViewModel(
                 val next = ClubRsvpUi.nextRoute(routes) ?: return@launch
                 loadRideRoster(next.id)
             } catch (_: Exception) {
-                // Conservar el roster ya cargado/cach├® durante una ca├¡da de red.
+                // Conservar el roster ya cargado/caché durante una caída de red.
             }
         }
     }
@@ -145,12 +146,13 @@ class Phase1ViewModel(
                 if (fresh != null) {
                     _rideRoster.value = fresh
                     _rideRosterError.value = null
+                    RideScheduleRepository.setReturnPhase(fresh.returnStartedAt != null)
                 } else if (_rideRoster.value?.routeId != routeId) {
                     _rideRosterError.value = "No se pudo cargar la lista real de participantes."
                 }
             } catch (_: Exception) {
                 if (_rideRoster.value?.routeId != routeId) {
-                    _rideRosterError.value = "Sin conexi├│n: reintenta cargar los participantes."
+                    _rideRosterError.value = "Sin conexión: reintenta cargar los participantes."
                 }
             }
         }
@@ -169,7 +171,7 @@ class Phase1ViewModel(
                 _rideRosterError.value = null
                 repository.refreshRsvpPendingCount()
             } catch (_: Exception) {
-                _rideRosterError.value = "La llegada qued├│ pendiente de sincronizar."
+                _rideRosterError.value = "La llegada quedó pendiente de sincronizar."
             }
         }
     }
@@ -192,7 +194,7 @@ class Phase1ViewModel(
                         }
                     },
                     onFailure = {
-                        _rideRosterError.value = "Sin conexi├│n: no se pudo iniciar la ruta."
+                        _rideRosterError.value = "Sin conexión: no se pudo iniciar la ruta."
                     }
                 )
             } finally {
@@ -201,7 +203,55 @@ class Phase1ViewModel(
         }
     }
 
-    /** Vincula el mapa guardado con la ruta real publicada por el l├¡der. */
+    fun arriveDestination(routeId: String) {
+        viewModelScope.launch {
+            try {
+                val res = repository.clubRoutes.arriveDestination(routeId)
+                res.fold(
+                    onSuccess = { response ->
+                        if (response.isSuccess) {
+                            loadRideRoster(routeId)
+                        } else {
+                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
+                                ?: "No se pudo marcar llegada a destino (${response.statusCode})."
+                        }
+                    },
+                    onFailure = {
+                        _rideRosterError.value = "Sin conexión: no se pudo marcar llegada a destino."
+                    }
+                )
+            } catch (_: Exception) {
+                _rideRosterError.value = "Error al marcar llegada a destino."
+            }
+        }
+    }
+
+    fun startReturn(routeId: String, onStarted: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val res = repository.clubRoutes.startReturnRoute(routeId)
+                res.fold(
+                    onSuccess = { response ->
+                        if (response.isSuccess) {
+                            RideScheduleRepository.setReturnPhase(true)
+                            loadRideRoster(routeId)
+                            onStarted()
+                        } else {
+                            _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
+                                ?: "No se pudo iniciar el retorno (${response.statusCode})."
+                        }
+                    },
+                    onFailure = {
+                        _rideRosterError.value = "Sin conexión: no se pudo iniciar el retorno."
+                    }
+                )
+            } catch (_: Exception) {
+                _rideRosterError.value = "Error al iniciar el retorno."
+            }
+        }
+    }
+
+    /** Vincula el mapa guardado con la ruta real publicada por el líder. */
     fun publishClubRoute(
         groupId: String,
         title: String,
@@ -220,11 +270,11 @@ class Phase1ViewModel(
                             loadRideRoster(serverRouteId)
                         } else {
                             _rideRosterError.value = response.body?.get("error")?.jsonPrimitive?.contentOrNull
-                                ?: "El mapa qued├│ guardado, pero la rodada no se public├│ (${response.statusCode})."
+                                ?: "El mapa quedó guardado, pero la rodada no se publicó (${response.statusCode})."
                         }
                     },
                     onFailure = {
-                        _rideRosterError.value = "Mapa guardado localmente; publicaci├│n del club pendiente por conexi├│n."
+                        _rideRosterError.value = "Mapa guardado localmente; publicación del club pendiente por conexión."
                     }
                 )
             } catch (_: Exception) {
@@ -363,7 +413,23 @@ class Phase1ViewModel(
                     val remoteRes = repository.apiClient.createGroup(countryCode, name, logoPhashHex)
                     remoteRes.fold(
                         onSuccess = { apiRes ->
-                            if (!apiRes.isSuccess && !repository.devOverrides.value.useFakeBackend) {
+                            if (apiRes.isSuccess) {
+                                val serverGroupId = apiRes.body
+                                    ?.get("id")
+                                    ?.jsonPrimitive
+                                    ?.contentOrNull
+                                if (!serverGroupId.isNullOrBlank() && serverGroupId != grp.id) {
+                                    repository.reconcileGroupId(grp.id, serverGroupId)
+                                    if (_selectedGroupId.value == grp.id) {
+                                        _selectedGroupId.value = serverGroupId
+                                    }
+                                }
+                                try {
+                                    repository.syncClubsAndInvitations()
+                                } catch (_: Exception) {
+                                    // Best-effort: el ID real ya quedó reconciliado.
+                                }
+                            } else if (!repository.devOverrides.value.useFakeBackend) {
                                 repository.removeGroup(grp.id)
                                 _statusBanner.value = "⚠️ Error del servidor (${apiRes.statusCode}). Creación de club revertida."
                             }
@@ -459,8 +525,8 @@ class Phase1ViewModel(
                             if (apiRes.statusCode == 409) {
                                 // R2.2: Conflicto de doble membresía detectado por el backend (sin rollback silencioso)
                                 _statusBanner.value = "🛡️ Estatuto Biker (Servidor): Conflicto de doble membresía detectado (409 Conflict). Unión rechazada."
-                            } else if (apiRes.isSuccess || apiRes.statusCode == 404) {
-                                // Aprobado por el backend o invitación local/mesh (404 INVITATION_NOT_FOUND): aplicar mutación local garantizando estatutos
+                            } else if (apiRes.isSuccess) {
+                                // Aprobado por el backend: aplicar mutación local y sincronizar con estado canónico del servidor
                                 val res = invitationRepository.acceptInvitation(
                                     invitationId = invitationId,
                                     inviteeUid = user.id,
