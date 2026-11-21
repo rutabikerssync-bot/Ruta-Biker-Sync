@@ -465,6 +465,16 @@ class LiveMapController(
                 roleLabel = "Desconocido"
             )
             val prev = previousByShortId[peerId]
+            // Fix A: el motor conserva la última coordenada válida cuando el heartbeat
+            // trae el centinela (0,0). Solo mostramos antigüedad cuando esa posición es
+            // retenida (más vieja que el último latido); un fix reciente no lleva aviso.
+            val positionAgeSeconds = if (
+                track.isPositionRetained && track.lastPositionEpochMs > 0L
+            ) {
+                ((nowEpochMs - track.lastPositionEpochMs) / 1_000L).coerceAtLeast(0L)
+            } else {
+                null
+            }
             val routeStatus = when {
                 track.isSos -> RiderRouteStatus.SOS_ACTIVE
                 track.isLost -> RiderRouteStatus.OFF_MESH_LOST
@@ -515,7 +525,8 @@ class LiveMapController(
                     avatarBase64 = if (canShowReal) entry.avatarBase64 else null,
                     roleLabel = if (canShowReal) entry.roleLabel else "Desconocido",
                     groupId = entry.groupId,
-                    profileRedacted = !canShowReal
+                    profileRedacted = !canShowReal,
+                    positionAgeSeconds = positionAgeSeconds
                 )
             )
         }

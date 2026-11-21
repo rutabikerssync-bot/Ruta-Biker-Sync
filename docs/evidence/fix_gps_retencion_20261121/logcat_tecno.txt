@@ -1,0 +1,194 @@
+﻿
+11-21 19:21:41.369 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:44.665 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:47.230 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1598s 
+packetsEmitted=123
+11-21 19:21:47.370 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-55
+11-21 19:21:47.379 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:50.738 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-61
+11-21 19:21:51.377 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:55.391 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:56.253 I/HeartbeatRx(23024): shortId=11034 seq=59 rssi=-41 hops=1 at=1795302548343
+11-21 19:21:56.689 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:21:59.464 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-67
+11-21 19:22:01.401 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:02.834 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-66
+11-21 19:22:04.399 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:05.264 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1616s 
+packetsEmitted=124
+11-21 19:22:06.398 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:09.411 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:11.553 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-67
+11-21 19:22:13.407 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:14.278 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1625s 
+packetsEmitted=125
+11-21 19:22:14.925 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-67
+11-21 19:22:16.423 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:20.419 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:23.295 I/HeartbeatRx(23024): shortId=11034 seq=61 rssi=-43 hops=1 at=1795302572522
+11-21 19:22:23.318 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:23.654 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-57
+11-21 19:22:24.682 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:27.025 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-57
+11-21 19:22:29.427 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:32.304 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1643s 
+packetsEmitted=126
+11-21 19:22:32.441 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:36.323 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-61
+11-21 19:22:36.439 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:39.118 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-57
+11-21 19:22:40.451 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:41.316 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1652s 
+packetsEmitted=127
+11-21 19:22:42.450 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:45.447 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:48.962 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-68
+11-21 19:22:49.460 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:50.328 I/HeartbeatRx(23024): shortId=11034 seq=63 rssi=-44 hops=1 at=1795302599524
+11-21 19:22:50.692 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:55.471 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:22:59.339 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1670s 
+packetsEmitted=128
+11-21 19:22:59.353 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:01.639 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-58
+11-21 19:23:02.483 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:06.479 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:08.356 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1679s 
+packetsEmitted=129
+11-21 19:23:08.379 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:12.310 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-63
+11-21 19:23:12.490 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:16.255 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-63
+11-21 19:23:16.503 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:17.370 I/HeartbeatRx(23024): shortId=11034 seq=64 rssi=-42 hops=1 at=1795302614986
+11-21 19:23:19.501 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:22.664 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:25.662 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:26.386 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1697s 
+packetsEmitted=130
+11-21 19:23:27.493 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-59
+11-21 19:23:28.510 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:31.524 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:33.672 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:35.399 I/HeartbeatTx(23024): rideId=ride-live-01 startedAtEpochMs=1795301684821 elapsedSec=1706s 
+packetsEmitted=131
+11-21 19:23:36.495 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-64
+11-21 19:23:36.669 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-21 19:23:39.876 I/BleAdvTransport(23024): FragmentReassembled bytes=52 rssi=-66
+11-21 19:23:40.532 I/tabikersync.ap(23024): Method exceeds compiler instruction limit: 24956 in void com.rutabikersync.
+app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+
+
