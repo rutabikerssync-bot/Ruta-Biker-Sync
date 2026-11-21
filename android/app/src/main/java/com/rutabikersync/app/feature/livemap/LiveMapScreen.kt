@@ -219,6 +219,23 @@ fun LiveMapScreen(
         onDispose { unsubscribe?.invoke() }
     }
 
+    // Recepción reactiva de señales de convoy por la malla activa (Hito 2 · Propagación BLE)
+    LaunchedEffect(Unit) {
+        RideService.incomingConvoySignals.collect { incoming ->
+            val selfMarker = state.markers.firstOrNull { it.isSelf }
+            if (selfMarker == null || incoming.senderShortId != selfMarker.shortId) {
+                // Banner de feedback visual en la cabina
+                val senderName = state.markers.firstOrNull { it.shortId == incoming.senderShortId }?.let { it.nickname ?: it.fullName }
+                    ?: "Rider #${incoming.senderShortId.toInt()}"
+                actionFeedback = "📢 $senderName: ¡${incoming.signalKind.fullLabel}!"
+                android.util.Log.i(
+                    "LiveMapScreen",
+                    "ConvoySignalRx recibido de $senderName por malla: ${incoming.signalKind.name}"
+                )
+            }
+        }
+    }
+
     val pttState by pttEngine.pttState.collectAsState()
     val isRecording = pttState is PttState.Transmitting
     var recordingSeconds by remember { mutableIntStateOf(0) }
@@ -1792,6 +1809,9 @@ fun LiveMapScreen(
                                             signal.name
                                         )
                                         com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(signal)
+                                        coroutineScope.launch {
+                                            RideService.dispatchSendConvoySignal(signal)
+                                        }
                                         actionFeedback = "📢 Señal emitida: ¡${signal.fullLabel}!"
                                         showSignalsDialog = false
                                     }

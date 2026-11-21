@@ -49,6 +49,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -299,6 +303,16 @@ class RideSessionController(
             if (ack.originalSenderShortId == localShortId) {
                 scope.launch { triggerSos(active = false) }
             }
+        }
+        engine.onConvoySignalReceived = { incoming ->
+            android.util.Log.i(
+                "RideService",
+                "ConvoySignalRx recibido por BLE Mesh: from=${incoming.senderShortId} kind=${incoming.signalKind.name}"
+            )
+            // 1. Tono audible en el casco inmediatamente en Foreground Service
+            com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(incoming.signalKind)
+            // 2. Notificar al canal estático de RideService para la UI
+            RideService.notifyIncomingConvoySignal(incoming)
         }
         relayEngine = engine
         // Reenvío autenticado: reutiliza el Transport activo de la rodada. Los bytes ya vienen
@@ -1255,6 +1269,17 @@ class RideService : Service() {
         @Volatile
         var globalLastPacketsCsv: String? = null
 
+        private val _incomingConvoySignals = MutableSharedFlow<MeshRelayEngine.IncomingConvoySignal>(
+            replay = 1,
+            extraBufferCapacity = 64,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+        val incomingConvoySignals: SharedFlow<MeshRelayEngine.IncomingConvoySignal> = _incomingConvoySignals.asSharedFlow()
+
+        internal fun notifyIncomingConvoySignal(incoming: MeshRelayEngine.IncomingConvoySignal) {
+            _incomingConvoySignals.tryEmit(incoming)
+        }
+
         @Volatile
         var activeController: RideSessionController? = null
 
@@ -1331,6 +1356,20 @@ class RideService : Service() {
                 android.util.Log.w("RideService", "TextMessageTx abortado: emitTextMessage devolvió null")
             }
             return sent != null
+        }
+
+        /**
+         * Emite una señal rápida de convoy por el MeshRelayEngine activo del RideService
+         * con prioridad Transport.Priority.PEER_EVENT.
+         */
+        suspend fun dispatchSendConvoySignal(signal: com.rutabikersync.app.core.audio.ConvoySignalKind): Boolean {
+            val engine = getActiveRelayEngine() ?: run {
+                android.util.Log.w("RideService", "ConvoySignalTx abortado: no hay relayEngine activo")
+                return false
+            }
+            val packet = engine.emitConvoySignal(signal)
+            android.util.Log.i("RideService", "ConvoySignalTx emitido por malla: kind=${signal.name} code=${signal.code}")
+            return true
         }
 
         fun exportPacketsCsv(): String {

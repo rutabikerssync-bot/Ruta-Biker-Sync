@@ -1,6 +1,7 @@
 package com.rutabikersync.app.core.mesh
 
 import com.rutabikersync.app.core.protocol.MeshPacket
+import com.rutabikersync.app.core.audio.ConvoySignalKind
 import com.rutabikersync.app.core.mesh.sos.DecryptedMedicalSheet
 import com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto
 import com.rutabikersync.app.core.mesh.sos.MedicalSheetPacket
@@ -95,6 +96,9 @@ class MeshRelayEngine(
         const val MEDICAL_SHEET_RELAY_JITTER_MS = 5L
         const val MAX_SOS_HOP_LIMIT = 5
 
+        const val CONVOY_SIGNAL_PREFIX = 0xC0
+        const val CONVOY_SIGNAL_BROADCAST_TARGET: UShort = 0xFFFFu
+
         private val utcFormatter = ThreadLocal.withInitial {
             SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
                 timeZone = TimeZone.getTimeZone("UTC")
@@ -163,6 +167,16 @@ class MeshRelayEngine(
         val subjectShortId: UShort,
         val eventKindCode: Int,
         val eventCycle: Int
+    )
+
+    /**
+     * Señal rápida de convoy recibida por la malla BLE (Hito 2 · Propagación por Malla).
+     */
+    data class IncomingConvoySignal(
+        val senderShortId: UShort,
+        val signalKind: ConvoySignalKind,
+        val sequenceNumber: Int,
+        val hopsTaken: Int
     )
 
     @Serializable
@@ -332,6 +346,7 @@ class MeshRelayEngine(
     var onMedicalSheetReceived: ((MedicalSheetPacket, DecryptedMedicalSheet?) -> Unit)? = null
     var customRideSecretKey: ByteArray? = null
     var onTextMessageReceived: ((TextMessagePacket, String?) -> Unit)? = null
+    var onConvoySignalReceived: ((IncomingConvoySignal) -> Unit)? = null
     var isFriendNodeEnabled: Boolean = false
     var friendNodeBuffer: com.rutabikersync.app.core.mesh.text.FriendNodeBuffer? = null
     var lpnMode: LowPowerNodeMode? = null
@@ -852,6 +867,13 @@ class MeshRelayEngine(
     )
     val announcedSignals: SharedFlow<AnnouncedMeshSignal> = _announcedSignals.asSharedFlow()
 
+    private val _incomingConvoySignals = MutableSharedFlow<IncomingConvoySignal>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val incomingConvoySignals: SharedFlow<IncomingConvoySignal> = _incomingConvoySignals.asSharedFlow()
+
     private fun currentAdvertisingMode(): String =
         (transport as? BleAdvTransport)?.advertisingDeliveryMode?.code ?: "BURST_1S"
 
@@ -995,6 +1017,60 @@ class MeshRelayEngine(
             isSos = isSos,
             isExtendedBle = isExtendedBle,
             priority = if (isSos) Transport.Priority.SOS else Transport.Priority.POSITION,
+            sequenceNumber = seq,
+            ttl = ttl,
+            rideSecretKey = rideSecretKey
+        )
+
+        val utcIso = formatUtc(System.currentTimeMillis())
+        synchronized(this) {
+            seenKeys[packet.dedupKey] = true
+            packetsEmitted++
+            logPacketEntryLocked(
+                PacketLogEntry(
+                    timestampUtc = utcIso,
+                    senderShortId = localShortId.toInt(),
+                    sequenceNumber = seq,
+                    ttl = ttl,
+                    hops = 0,
+                    rssi = null,
+                    transportMode = transport?.name ?: "BLE_ADV",
+                    advertisingMode = currentAdvertisingMode(),
+                    isDuplicate = false,
+                    direction = "TX"
+                )
+            )
+        }
+        transport?.send(packet.toByteArray(), packet.priority)
+        refreshStateFlows()
+        return packet
+    }
+
+    /**
+     * Emite una señal rápida de convoy al convoy por la malla BLE con prioridad alta
+     * (`Transport.Priority.PEER_EVENT`) para latencia ultra-baja en carretera.
+     */
+    suspend fun emitConvoySignal(
+        signalKind: ConvoySignalKind,
+        ttl: Int = MeshPacket.DEFAULT_TTL
+    ): MeshPacket {
+        val seq = sequenceCounter
+        sequenceCounter = (sequenceCounter + 1) and MeshPacket.MAX_SEQUENCE_NUMBER
+
+        val kindCode = CONVOY_SIGNAL_PREFIX or (signalKind.code.toInt() and 0x0F)
+        val encodedLatMicro = ((CONVOY_SIGNAL_BROADCAST_TARGET.toInt() and 0xFFFF) shl 8) or (kindCode and 0xFF)
+        val encodedLonMicro = seq
+
+        val packet = MeshPacket.createSigned(
+            shortId = localShortId,
+            latitude = encodedLatMicro / 1e7,
+            longitude = encodedLonMicro / 1e7,
+            speedKmh = 0,
+            bearingDegrees = 0f,
+            batteryPercent = 100,
+            isSos = false,
+            isExtendedBle = false,
+            priority = Transport.Priority.PEER_EVENT,
             sequenceNumber = seq,
             ttl = ttl,
             rideSecretKey = rideSecretKey
@@ -1242,6 +1318,7 @@ class MeshRelayEngine(
         val packet = runCatching { MeshPacket.fromByteArray(raw) }.getOrNull() ?: return
 
         if (!packet.verifyAuthTag(rideSecretKey)) {
+            android.util.Log.w("MeshRelayEngine", "AuthMismatch: packetShortId=${packet.shortId} prio=${packet.priority} invalidAuthDropped")
             synchronized(this) { invalidAuthDropped++ }
             refreshStateFlows()
             return
@@ -1256,6 +1333,7 @@ class MeshRelayEngine(
 
         var relayCandidate: MeshPacket? = null
         var decodedAnnouncedSignal: AnnouncedMeshSignal? = null
+        var decodedConvoySignal: IncomingConvoySignal? = null
         val utcIso = formatUtc(nowEpochMs)
         synchronized(this) {
             if (!senderAddressSuffix.isNullOrBlank()) {
@@ -1294,13 +1372,26 @@ class MeshRelayEngine(
                 val subjectId = ((latMicro ushr 8) and 0xFFFF).toUShort()
                 val kindCode = latMicro and 0xFF
                 val cycle = lonMicro
-                decodedAnnouncedSignal = AnnouncedMeshSignal(
-                    eventId = "EVT:$kindCode:${subjectId.toInt()}:$cycle",
-                    announcerShortId = packet.shortId,
-                    subjectShortId = subjectId,
-                    eventKindCode = kindCode,
-                    eventCycle = cycle
-                )
+                if (kindCode in (CONVOY_SIGNAL_PREFIX + 1)..(CONVOY_SIGNAL_PREFIX + 5)) {
+                    val signalCode = (kindCode and 0x0F).toByte()
+                    val signalKind = ConvoySignalKind.fromCode(signalCode)
+                    if (signalKind != null) {
+                        decodedConvoySignal = IncomingConvoySignal(
+                            senderShortId = packet.shortId,
+                            signalKind = signalKind,
+                            sequenceNumber = packet.sequenceNumber,
+                            hopsTaken = packet.hopsTaken
+                        )
+                    }
+                } else {
+                    decodedAnnouncedSignal = AnnouncedMeshSignal(
+                        eventId = "EVT:$kindCode:${subjectId.toInt()}:$cycle",
+                        announcerShortId = packet.shortId,
+                        subjectShortId = subjectId,
+                        eventKindCode = kindCode,
+                        eventCycle = cycle
+                    )
+                }
             } else {
                 updatePeerTrackLocked(packet, nowEpochMs, rssi)
             }
@@ -1318,6 +1409,14 @@ class MeshRelayEngine(
 
         decodedAnnouncedSignal?.let { signal ->
             _announcedSignals.tryEmit(signal)
+        }
+        decodedConvoySignal?.let { signal ->
+            android.util.Log.i(
+                "MeshRelayEngine",
+                "IncomingConvoySignal decoded & emitting: sender=${signal.senderShortId} kind=${signal.signalKind.name}"
+            )
+            _incomingConvoySignals.tryEmit(signal)
+            onConvoySignalReceived?.invoke(signal)
         }
 
         relayCandidate?.let { toRelay ->

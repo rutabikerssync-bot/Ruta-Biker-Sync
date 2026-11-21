@@ -1,0 +1,37 @@
+================================================================================
+EVIDENCIA DE PROPAGACIÓN BLE OFF-GRID: SEÑALES RÁPIDAS DE CONVOY (HITO 2)
+Fecha: 2026-11-21
+Dispositivos en Malla:
+  - TX: TECNO Spark 10C (Node 32191 / 0x7DBF, shortId=32191)
+  - RX: Redmi Note 13 Pro 5G (Node 22873 / 0x5959, shortId=22873)
+Entorno: Red móvil deshabilitada / Zero Internet / Malla BLE Legacy 1M 20B
+Transporte: BleAdvTransport (ManufacturerData 0x5242) con Priority.PEER_EVENT
+================================================================================
+
+1. EMISIÓN EN TECNO (TX):
+Pulsación de señal en diálogo de cabina: "🛑 Reducir velocidad" (kind=REDUCE_SPEED, code=2).
+Logcat TECNO:
+11-21 11:22:06.078 I/RideService( 3160): ConvoySignalTx emitido por malla: kind=REDUCE_SPEED code=2
+Prioridad: Transport.Priority.PEER_EVENT (Intervalo BLE 100 ms, LOW_LATENCY).
+Trama: 20 bytes autenticados con HMAC-SHA256 truncado a 4 bytes.
+Codificación: latMicro=(0xFFFF shl 8) or (0xC0 or 2), lonMicro=seq.
+
+2. RECEPCIÓN POR AIRE EN REDMI (RX):
+Trama recibida por el receptor Bluetooth LE de Redmi (PID 6360):
+11-21 11:38:10.903 I/MeshRelayEngine( 6360): IncomingConvoySignal decoded & emitting: sender=32191 kind=REDUCE_SPEED
+11-21 11:38:10.903 I/RideService( 6360): ConvoySignalRx recibido por BLE Mesh: from=32191 kind=REDUCE_SPEED
+11-21 11:38:10.916 D/ToneGenerator( 6360): ToneGenerator constructor: streamType=4, volume=1.000000
+11-21 11:38:10.916 D/ToneGenerator( 6360): AudioTrack(0xb400007cd0f80c00) created
+11-21 11:38:10.922 I/LiveMapScreen( 6360): ConvoySignalRx recibido de Rider #32191 por malla: REDUCE_SPEED
+
+3. VALIDACIÓN VISUAL Y AUDIBLE EN REDMI:
+- Tono audible ejecutado vía ToneGenerator sobre STREAM_ALARM (streamType=4) a volumen máximo (1.0).
+- Banner proyectado en pantalla de Cabina:
+  "📢 Rider #32191: ¡🛑 Reducir velocidad!"
+- Latencia de entrega: < 20 ms desde la recepción del paquete por el chip Bluetooth.
+
+Archivos de soporte:
+- docs/evidence/convoy_signal_ble_rx_redmi_20261121.png
+- docs/evidence/convoy_signal_ble_tx_tecno_20261121.png
+- docs/evidence/convoy_signal_ble_rx_redmi_20261121.xml
+================================================================================

@@ -2,14 +2,19 @@ package com.rutabikersync.app.feature.livemap
 
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.io.File
 
@@ -25,6 +30,17 @@ import java.io.File
 class LiveMapViewModelTest {
 
     private val secretKey = "rbs-phase3-livemap-secret-32b!!!".encodeToByteArray()
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `Bloque 3_3 convoy de 5 riders actualiza a cadencia 1s con abreviatura siempre visible y privacidad R4_7`() = runTest(UnconfinedTestDispatcher()) {
