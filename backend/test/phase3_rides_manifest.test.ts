@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { createPgPool, runMigrations, type DbExecutor } from '../src/db/pool.js';
@@ -30,6 +30,8 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
   let cohostGroupId = '';
   let thirdGroupId = '';
   let jointRideId = '';
+  let jointRideKeyHex = '';
+  const sosKeysByUser = new Map<string, string>();
 
   beforeAll(async () => {
     db = createPgPool();
@@ -116,6 +118,25 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
     outsiderGuestToken = og.token;
 
     const tl = await registerUser('third-leader@f3.mx', 'Líder Tercero', true);
+
+    // P0 cierre final: los participantes confirmados publican la clave Ed25519
+    // real que usa su móvil para firmar SOS/ACK. El invitado NO publica clave.
+    for (const [uid, token] of [
+      [hostLeaderId, hostLeaderToken],
+      [hostMemberId, hostMemberToken],
+      [cohostLeaderId, cohostLeaderToken],
+      [cohostMemberId, cohostMemberToken]
+    ] as const) {
+      const publicKeyBase64 = randomBytes(32).toString('base64');
+      sosKeysByUser.set(uid, publicKeyBase64);
+      const pub = await app.inject({
+        method: 'PATCH',
+        url: '/v1/users/me/sos-public-key',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { publicKeyBase64 }
+      });
+      expect(pub.statusCode).toBe(200);
+    }
 
     // Crear Grupo Anfitrión, Grupo Coanfitrión y un 3.er Grupo ajeno
     const g1 = await app.inject({
@@ -209,6 +230,12 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
     });
     expect(createRes.statusCode).toBe(201);
     jointRideId = createRes.json().id;
+    const keyRow = await db.query(
+      `SELECT manifest_ride_secret_key_hex FROM rides WHERE id = $1`,
+      [jointRideId]
+    );
+    jointRideKeyHex = keyRow.rows[0].manifest_ride_secret_key_hex;
+    expect(jointRideKeyHex).toMatch(/^[0-9a-f]{64}$/);
     expect(createRes.json().hostGroupId).toBe(hostGroupId);
     expect(createRes.json().cohostGroupId).toBe(cohostGroupId);
 
@@ -307,6 +334,17 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
     expect(body.payload.rideId).toBe(jointRideId);
     expect(body.payload.groupIds).toEqual([hostGroupId, cohostGroupId]);
     expect(body.payload.participants.length).toBe(5); // hostLeader, hostMember, cohostLeader, cohostMember, outsiderGuest
+    expect(body.payload.rideState).toBe('active');
+
+    // P0 cierre final: mapa firmado uid -> publicKeyEd25519 de confirmados (leader/full).
+    expect(Object.keys(body.payload.sosPublicKeys).sort()).toEqual(
+      [hostLeaderId, hostMemberId, cohostLeaderId, cohostMemberId].sort()
+    );
+    expect(body.payload.sosPublicKeys[hostLeaderId]).toBe(sosKeysByUser.get(hostLeaderId));
+    expect(body.payload.sosPublicKeys[outsiderGuestId]).toBeUndefined();
+    for (const uid of [hostLeaderId, hostMemberId, cohostLeaderId, cohostMemberId]) {
+      expect(Buffer.from(body.payload.sosPublicKeys[uid], 'base64')).toHaveLength(32);
+    }
 
     // Verificar firma Ed25519 del manifiesto sin internet y autorización de participantes
     const verification = verifyRideManifest(body.manifest, {
@@ -424,6 +462,35 @@ describe('Fase 3 (Bloque 3.1) — Ciclo de vida de Rodada, Manifiesto firmado Ed
     const closeBody = closeRes.json();
     expect(closeBody.state).toBe('validated');
     expect(closeBody.rideMeetsR66).toBe(true);
+
+    // P0 cierre final: COMPLETED invalida la clave y el manifiesto falla cerrado.
+    const closedKey = await db.query(
+      `SELECT manifest_ride_secret_key_hex FROM rides WHERE id = $1`,
+      [jointRideId]
+    );
+    expect(closedKey.rows[0].manifest_ride_secret_key_hex).toBeNull();
+    const manifestAfterClose = await app.inject({
+      method: 'GET',
+      url: `/v1/rides/${jointRideId}/manifest`,
+      headers: { authorization: `Bearer ${hostLeaderToken}` }
+    });
+    expect(manifestAfterClose.statusCode).toBe(409);
+    expect(manifestAfterClose.json().error).toBe('RIDE_COMPLETED');
+
+    // Rotación real: una rodada nueva recibe una clave distinta desde el alta.
+    const rotatedRes = await app.inject({
+      method: 'POST',
+      url: '/v1/rides',
+      headers: { authorization: `Bearer ${hostLeaderToken}` },
+      payload: { hostGroupId, title: 'Rodada con clave rotada' }
+    });
+    expect(rotatedRes.statusCode).toBe(201);
+    const rotatedKey = await db.query(
+      `SELECT manifest_ride_secret_key_hex FROM rides WHERE id = $1`,
+      [rotatedRes.json().id]
+    );
+    expect(rotatedKey.rows[0].manifest_ride_secret_key_hex).toMatch(/^[0-9a-f]{64}$/);
+    expect(rotatedKey.rows[0].manifest_ride_secret_key_hex).not.toBe(jointRideKeyHex);
     expect(closeBody.countedUsers).toContain(hostLeaderId);
     expect(closeBody.countedUsers).toContain(hostMemberId);
     expect(closeBody.countedUsers).toContain(cohostLeaderId);

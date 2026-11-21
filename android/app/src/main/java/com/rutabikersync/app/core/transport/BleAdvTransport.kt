@@ -22,6 +22,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.rutabikersync.app.core.mesh.MeshHeader
+import com.rutabikersync.app.core.mesh.SensitiveFrameEnvelope
 import com.rutabikersync.app.core.protocol.MeshPacket
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -781,7 +782,10 @@ class BleAdvTransport(
                 Log.i(TAG, "FragmentReassembled bytes=${bytes.size} rssi=$rssi")
             }
             val rawAddr = runCatching { result.device?.address }.getOrNull()
-            if (!rawAddr.isNullOrBlank()) {
+            // Los sobres sensibles (52/120 B) no son MeshHeader: parsearlos aquí
+            // produciría un shortId falso y alimentaría mal el allowlist GATT de PTT.
+            // El engine ya asocia la dirección tras descifrar el sobre.
+            if (!rawAddr.isNullOrBlank() && !SensitiveFrameEnvelope.isEnvelope(bytes)) {
                 val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
                     runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
                 } else {
@@ -811,7 +815,8 @@ class BleAdvTransport(
                 val bytes = fragmentReassembler.feed(raw) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
-                if (!rawAddr.isNullOrBlank()) {
+                // Igual que en onScanResult: nunca derivar identidad de un sobre cifrado.
+                if (!rawAddr.isNullOrBlank() && !SensitiveFrameEnvelope.isEnvelope(bytes)) {
                     val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
                     runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
                 } else {

@@ -12,7 +12,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PeerPositionValidityTest {
-    private val secretKey = "rbs-peer-gps-validity-test-32b!".encodeToByteArray()
+    private val secretKey = "rbs-peer-gps-validity-test-32b!!".encodeToByteArray()
 
     @Test
     fun `peer sin GPS real o con fallback CDMX no se dibuja`() = runTest(UnconfinedTestDispatcher()) {

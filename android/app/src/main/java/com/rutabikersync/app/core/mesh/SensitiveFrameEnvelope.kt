@@ -1,6 +1,8 @@
 package com.rutabikersync.app.core.mesh
 
 import com.rutabikersync.app.core.mesh.audio.VoiceCrypto
+import com.rutabikersync.app.core.protocol.MeshPacket
+import com.rutabikersync.app.core.transport.Transport
 import java.util.LinkedHashMap
 import javax.crypto.AEADBadTagException
 
@@ -12,7 +14,7 @@ import javax.crypto.AEADBadTagException
  *   [com.rutabikersync.app.core.transport.BleFragmentationCodec] ni con 0x47 0x56 de
  *   [com.rutabikersync.app.core.transport.GattVoiceFramer].
  * - Byte  2   (1 B): VERSIÓN = 0x01.
- * - Byte  3   (1 B): KIND: [KIND_SOS], [KIND_SOS_ACK] o [KIND_MESH_PACKET].
+ * - Byte  3   (1 B): KIND: [KIND_SOS], [KIND_SOS_ACK], [KIND_MESH_PACKET] o [KIND_HEARTBEAT].
  * - Bytes 4..15 (12 B): nonce aleatorio criptográfico, generado por [VoiceCrypto.generateNonce].
  * - Bytes 16..N: ciphertext + tag Poly1305 de 16 bytes.
  *
@@ -20,7 +22,8 @@ import javax.crypto.AEADBadTagException
  * de 20 bytes y la firma Ed25519 de SOS/ACK se verifican DESPUÉS de descifrar.
  * La cabecera de 4 bytes se usa como AAD para evitar confusión de tipos.
  *
- * No modifica la lógica de [VoiceCrypto], `TextMessageCrypto`, GATT, PTT ni heartbeats.
+ * No modifica la lógica de [VoiceCrypto], `TextMessageCrypto`, GATT ni PTT. Los
+ * heartbeats (MeshPacket de 20 B con prioridad POSITION) pasan a usar este sobre.
  */
 object SensitiveFrameEnvelope {
 
@@ -31,13 +34,20 @@ object SensitiveFrameEnvelope {
     const val KIND_SOS: Byte = 0x01
     const val KIND_SOS_ACK: Byte = 0x02
     const val KIND_MESH_PACKET: Byte = 0x03
+    /** Heartbeat de posición: MeshPacket de 20 B con prioridad POSITION. */
+    const val KIND_HEARTBEAT: Byte = 0x04
 
     const val KEY_SIZE_BYTES: Int = VoiceCrypto.KEY_SIZE_BYTES
     const val NONCE_SIZE_BYTES: Int = VoiceCrypto.NONCE_SIZE_BYTES
     const val TAG_SIZE_BYTES: Int = VoiceCrypto.TAG_SIZE_BYTES
     const val HEADER_BYTES: Int = 4 + NONCE_SIZE_BYTES
 
-    private val VALID_KINDS = setOf(KIND_SOS, KIND_SOS_ACK, KIND_MESH_PACKET)
+    private val VALID_KINDS = setOf(KIND_SOS, KIND_SOS_ACK, KIND_MESH_PACKET, KIND_HEARTBEAT)
+
+    /** El tipo del sobre se decide por la prioridad real del packet, nunca por el caller. */
+    fun envelopeKindFor(packet: MeshPacket): Byte =
+        if (packet.priority == Transport.Priority.POSITION && !packet.isSos) KIND_HEARTBEAT
+        else KIND_MESH_PACKET
 
     fun isEnvelope(frame: ByteArray): Boolean =
         frame.size >= HEADER_BYTES + TAG_SIZE_BYTES &&

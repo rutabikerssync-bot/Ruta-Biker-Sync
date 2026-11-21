@@ -2,7 +2,10 @@ package com.rutabikersync.app.core.mesh
 
 import com.rutabikersync.app.core.audio.SosToneHub
 import com.rutabikersync.app.core.audio.SosTonePlayer
+import com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto
+import com.rutabikersync.app.core.mesh.sos.InMemorySosPublicKeyResolver
 import com.rutabikersync.app.core.mesh.sos.SosAckPacket
+import com.rutabikersync.app.core.mesh.sos.SosSigningHub
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -46,6 +49,7 @@ class SosAlarmMeshDeliveryTest {
     @After
     fun tearDown() {
         SosToneHub.setCustomPlayerForTesting(null)
+        SosSigningHub.resetForTesting()
     }
 
     @Test
@@ -82,6 +86,22 @@ class SosAlarmMeshDeliveryTest {
         )
         sender.updateLocalTelemetry(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
 
+        // Fail-closed: sin manifiesto SOS no se entregaría nada. Este fixture usa un
+        // par Ed25519 real (el mismo embedding que firma SOS y ACK en el hub) y lo
+        // publica en el resolver de ambos motores con sus shortIds reales de rodada.
+        val sosVerifier = Ed25519SosCrypto(context = null)
+        SosSigningHub.setCryptoForTesting(sosVerifier)
+        val sosPublicKey = sosVerifier.getOrCreateLocalKeyPair().public
+        listOf(sender, receiver).forEach { controller ->
+            controller.relayEngine?.apply {
+                sosCrypto = sosVerifier
+                sosPublicKeyResolver = InMemorySosPublicKeyResolver().apply {
+                    registerPeer(1u, sosPublicKey)
+                    registerPeer(2u, sosPublicKey)
+                }
+            }
+        }
+
         assertNull("Sin SOS previo no debe haber alerta remota", SosToneHub.latestRemoteSos.value)
 
         sender.triggerSos(active = true)
@@ -107,7 +127,8 @@ class SosAlarmMeshDeliveryTest {
             signature = ByteArray(64),
             currentTtl = 5
         )
-        assertTrue("El ACK debe aceptarse en el transporte activo del receptor", receiver.sendSosAck(ack))
+        val signedAck = sosVerifier.signSosAck(ack, sosVerifier.getOrCreateLocalKeyPair().private)
+        assertTrue("El ACK debe aceptarse en el transporte activo del receptor", receiver.sendSosAck(signedAck))
         runCurrent()
 
         assertFalse("El ACK debe detener la alarma del incidente", player.isPlaying)

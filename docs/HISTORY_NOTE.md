@@ -700,3 +700,30 @@ Nota: el source set `fieldTest` usa una clave derivada de una frase pública **s
 
 **Estado:** cierre local atómico; sin `amend`, sin `push` y sin pruebas en campo hasta nueva instrucción.
 
+### P0 CIERRE FINAL — Claves SOS en manifiesto, rotación de clave y cifrado de heartbeats (2026-11-21)
+
+Esta sección **supersede** los tres puntos que seguían «Pendiente» arriba y la fila de heartbeat «Sin cambios» del cierre anterior. No reescribe commits: `f386332` sigue siendo el cierre del sobre sensible para SOS/ACK/PEER_EVENT y este ticket cierra lo que faltaba.
+
+| Pendiente | Fix aplicado | Test que lo verifica |
+|---|---|---|
+| Distribuir claves públicas Ed25519 SOS en el manifiesto firmado | Migración `0022` (`users.sos_public_key BYTEA`); `PATCH /v1/users/me/sos-public-key` publica los 32 bytes crudos generados por el móvil; `GET /v1/rides/:id/manifest` entrega `sosPublicKeys` (uid → Base64) **firmado** solo para `leader`/`full` con clave real. Android publica su clave antes de resolver y puebla `AuthorizedRide.sosPublicKeyResolver` desde el mapa firmado. Sin clave no hay placeholder ni fallback. | `backend/test/phase3_rides_manifest.test.ts` (mapa firmado, 32 B, invitado ausente, firma Ed25519 válida) y `P0SecurityChecksTest.H2 SOS con clave pública desconocida…` |
+| Rechazar SOS/ACK con clave desconocida o firma manipulada | `MeshRelayEngine` pasa a **fail-closed**: exige resolver + verificador + clave para el `shortId`; si falta el mapa, el firmante es desconocido o la firma Ed25519 no verifica, devuelve `DroppedInvalidSignature` antes de notificar UI/alarma o reenviar. `SosAlarmMeshDeliveryTest` usa un par Ed25519 real en ambos motores. | `P0SecurityChecksTest.H2 SOS con firma Ed25519 inválida…` y `H2 SOS con clave pública desconocida…`; `SosMultiHopSimulationTest` (firma inválida SOS/ACK); `SosAlarmMeshDeliveryTest` |
+| Rotación/expiración de `rideSecretKey` por rodada | La clave de 32 B se genera en `POST /v1/rides` y se persiste en `manifest_ride_secret_key_hex`; el manifiesto **nunca** la regenera y falla con `RIDE_KEY_UNAVAILABLE` si no está. Al cerrar/validar la rodada (equivalente a `COMPLETED`) se limpia la columna y el manifiesto responde `409 RIDE_COMPLETED`. Una rodada nueva recibe una clave distinta. Android sigue exigiendo 32 B y rechazando la clave fija de test en `standardRelease`. | `backend/test/phase3_rides_manifest.test.ts` (clave desde el alta, rotación entre rodadas, limpieza y `409` tras cierre) y `P0SecurityChecksTest.H5 identidad derivada…` |
+| Cifrar heartbeats con AEAD | `SensitiveFrameEnvelope.KIND_HEARTBEAT = 0x04` entra en `VALID_KINDS`; `MeshPacket` de 20 B con prioridad `POSITION` usa `envelopeKindFor()` al emitir y se descifra antes del HMAC/parseo. El sobre mide **52 B** (16 B cabecera + 20 B plaintext + 16 B tag). Tag manipulado → `sensitiveTagRejected`; nonce repetido → `sensitiveReplayRejected`. `RideService` prioriza el kind como `POSITION`. | `P0SecurityChecksTest.P0 heartbeats viajan cifrados…`, `P0 tag manipulado de heartbeat…`, `P0 nonce repetido de heartbeat…`; `SensitiveFrameEnvelopeTest.heartbeat cifrado usa KIND_HEARTBEAT…` |
+| Verificar fragmentación BLE del heartbeat cifrado | Sin tocar `BleAdvTransport` ni el codec: 52 B → **4 frames** (24/24/24/12 B útiles) y reensamblaje exacto. Se evita además parsear el sobre como `MeshHeader` para no alimentar un `shortId` falso al allowlist GATT de PTT. | `BleFragmentationCodecTest.sobres sensibles de 52 y 120 B…` y `SensitiveFrameEnvelopeTest.heartbeat cifrado usa KIND_HEARTBEAT y 52 B se fragmentan en 4 frames` |
+
+**Alcance no tocado:** GATT, `HeartbeatFrame`, `VoiceCrypto`, PTT/voz, chat y transporte siguen igual; solo cambia el payload de los frames sensibles y el origen de las claves. La firma Ed25519 de SOS/ACK y el HMAC de los `MeshPacket` de 20 B se verifican **después** de descifrar.
+
+**Evidencia (ejecución secuencial, sin backend en paralelo con Android):**
+- Android: `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → `BUILD SUCCESSFUL`, **509 tests, 0 fallos, 0 errores**. Captura: `docs/evidence/p0_cierre_final_android_tests_green_20261121.txt`.
+- Backend: `npm test` con base aislada `rbs_test` (`PG_TEST_URL=...`) → **25 archivos, 166 tests PASSED**; `npm run typecheck` → OK. Captura: `docs/evidence/p0_cierre_final_backend_tests_green_20261121.txt`.
+- Dos fixtures JVM usaban claves de 31 B y ahora fallarían cerrado; se corrigieron a 32 B en `PeerPositionValidityTest` y `RideScreenTransitionResilienceTest` (solo datos de test, sin lógica de producción).
+
+**Riesgo operativo documentado:** con `FRAGMENT_REPEATS=2` y una ráfaga de fragmentos de ~1 s, cada heartbeat cifrado ocupa ~9 s de aire cada 3 s. Eso puede elevar falsos `peer lost` en la ventana de 15 s. No se cambió la cadencia ni el transporte porque el alcance era solo el payload; debe observarse en campo cuando se autorice.
+
+**Pendiente:**
+- Validación en campo (TECNO KI5k / Redmi Note 13 Pro 5G) del heartbeat cifrado y de su impacto en la cadencia/pérdida de peers. **No ejecutado**: el ticket prohíbe pruebas en campo hasta nueva instrucción.
+- P1 (audio) y P2 (estado/mapa) permanecen bloqueados hasta confirmación del usuario.
+
+**Estado:** commit local atómico, sin `amend` y sin `push`.
+

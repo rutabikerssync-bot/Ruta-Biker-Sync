@@ -3,6 +3,7 @@ package com.rutabikersync.app.core.mesh
 import com.rutabikersync.app.core.mesh.sos.SosAckPacket
 import com.rutabikersync.app.core.mesh.sos.SosPacket
 import com.rutabikersync.app.core.protocol.MeshPacket
+import com.rutabikersync.app.core.transport.BleFragmentationCodec
 import com.rutabikersync.app.core.transport.Transport
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -46,6 +47,43 @@ class SensitiveFrameEnvelopeTest {
         val decoded = SensitiveFrameEnvelope.unwrap(key, envelope)
         assertArrayEquals(packet.toByteArray(), decoded)
         assertTrue("El HMAC original debe sobrevivir dentro del ciphertext", MeshPacket.fromByteArray(decoded).verifyAuthTag(key))
+    }
+
+    @Test
+    fun `heartbeat cifrado usa KIND_HEARTBEAT y 52 B se fragmentan en 4 frames`() {
+        val packet = MeshPacket.createSigned(
+            shortId = 58u,
+            latitude = 19.4326077,
+            longitude = -99.133208,
+            speedKmh = 42,
+            bearingDegrees = 90f,
+            batteryPercent = 77,
+            priority = Transport.Priority.POSITION,
+            sequenceNumber = 88,
+            ttl = 4,
+            rideSecretKey = key
+        )
+        val plaintext = packet.toByteArray()
+        val envelope = SensitiveFrameEnvelope.wrap(
+            key,
+            SensitiveFrameEnvelope.envelopeKindFor(packet),
+            plaintext
+        )
+
+        assertEquals(SensitiveFrameEnvelope.KIND_HEARTBEAT, SensitiveFrameEnvelope.kindOf(envelope))
+        assertEquals(20 + 32, envelope.size)
+        assertArrayEquals(plaintext, SensitiveFrameEnvelope.unwrap(key, envelope))
+
+        val frames = BleFragmentationCodec.fragment(envelope, 0x0B17)
+        assertEquals(4, frames.size)
+        frames.forEach {
+            assertTrue("fragmento de ${it.size} B excede el máximo legacy",
+                it.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES)
+        }
+        val rx = BleFragmentationCodec.Reassembler()
+        var restored: ByteArray? = null
+        frames.reversed().forEach { restored = rx.feed(it) ?: restored }
+        assertArrayEquals(envelope, restored!!)
     }
 
     @Test

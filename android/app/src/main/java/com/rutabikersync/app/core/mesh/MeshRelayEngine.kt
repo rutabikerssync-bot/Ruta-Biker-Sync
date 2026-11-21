@@ -369,13 +369,19 @@ class MeshRelayEngine(
             .takeIf { it.size == SensitiveFrameEnvelope.KEY_SIZE_BYTES }
 
     private fun isSensitiveMeshPacket(packet: MeshPacket): Boolean =
-        packet.priority == Transport.Priority.PEER_EVENT || packet.isSos
+        packet.priority == Transport.Priority.PEER_EVENT ||
+            packet.priority == Transport.Priority.POSITION ||
+            packet.isSos
 
-    /** Envía un `MeshPacket` cifrando únicamente las señales/eventos sensibles. */
+    /** Envía un `MeshPacket` cifrando eventos sensibles y heartbeats de posición. */
     private suspend fun sendMeshPacket(packet: MeshPacket) {
         val bytes = if (isSensitiveMeshPacket(packet)) {
             val key = sensitiveKey ?: return
-            SensitiveFrameEnvelope.wrap(key, SensitiveFrameEnvelope.KIND_MESH_PACKET, packet.toByteArray())
+            SensitiveFrameEnvelope.wrap(
+                key,
+                SensitiveFrameEnvelope.envelopeKindFor(packet),
+                packet.toByteArray()
+            )
         } else {
             packet.toByteArray()
         }
@@ -429,7 +435,8 @@ class MeshRelayEngine(
         val expectedSize = when (SensitiveFrameEnvelope.kindOf(raw)) {
             SensitiveFrameEnvelope.KIND_SOS -> SosPacket.PACKET_SIZE_BYTES
             SensitiveFrameEnvelope.KIND_SOS_ACK -> SosAckPacket.PACKET_SIZE_BYTES
-            SensitiveFrameEnvelope.KIND_MESH_PACKET -> MeshPacket.PACKET_SIZE_BYTES
+            SensitiveFrameEnvelope.KIND_MESH_PACKET,
+            SensitiveFrameEnvelope.KIND_HEARTBEAT -> MeshPacket.PACKET_SIZE_BYTES
             else -> -1
         }
         if (plaintext.size != expectedSize) {
@@ -589,25 +596,24 @@ class MeshRelayEngine(
                     return RelayDecision.DroppedHopLimitExceeded(currentHops)
                 }
 
-                // Verificación de firma digital Ed25519 si hay resolver y crypto disponibles
+                // P0 cierre final: fail-closed. Sin manifiesto firmado (resolver) o sin
+                // verificador Ed25519 no se entrega ningún SOS. Un shortId ausente del
+                // mapa firmado es clave desconocida y se rechaza igual que una firma rota.
                 val resolver = sosPublicKeyResolver
+                    ?: return RelayDecision.DroppedInvalidSignature("SOS_REJECTED: manifiesto SOS no disponible")
                 val crypto = sosCrypto
-                var signatureValid = true
-                if (resolver != null && crypto != null) {
-                    val senderPubKey = resolver.resolvePublicKey(header.senderShortId)
-                    if (senderPubKey != null) {
-                        signatureValid = crypto.verifySos(sos, senderPubKey)
-                        if (!signatureValid) {
-                            try {
-                                android.util.Log.w("MeshRelayEngine", "SOS_REJECTED: sender=${header.senderShortId}, hops=${sos.hopCount.toInt() and 0xFF}, sigValid=false")
-                            } catch (_: Throwable) {}
-                            return RelayDecision.DroppedInvalidSignature("Firma Ed25519 de SOS inválida para shortId=${header.senderShortId}")
-                        }
-                    }
+                    ?: return RelayDecision.DroppedInvalidSignature("SOS_REJECTED: verificador Ed25519 no disponible")
+                val senderPubKey = resolver.resolvePublicKey(header.senderShortId)
+                    ?: return RelayDecision.DroppedInvalidSignature("SOS_REJECTED: clave pública desconocida para shortId=${header.senderShortId}")
+                if (!crypto.verifySos(sos, senderPubKey)) {
+                    try {
+                        android.util.Log.w("MeshRelayEngine", "SOS_REJECTED: sender=${header.senderShortId}, hops=${sos.hopCount.toInt() and 0xFF}, sigValid=false")
+                    } catch (_: Throwable) {}
+                    return RelayDecision.DroppedInvalidSignature("Firma Ed25519 de SOS inválida para shortId=${header.senderShortId}")
                 }
 
                 try {
-                    android.util.Log.i("MeshRelayEngine", "SOS_VERIFIED: sender=${header.senderShortId}, hops=${sos.hopCount.toInt() and 0xFF}, sigValid=$signatureValid, incident=${sos.incidentCode}, blood=${sos.bloodType}")
+                    android.util.Log.i("MeshRelayEngine", "SOS_VERIFIED: sender=${header.senderShortId}, hops=${sos.hopCount.toInt() and 0xFF}, sigValid=true, incident=${sos.incidentCode}, blood=${sos.bloodType}")
                 } catch (_: Throwable) {}
 
                 // Notificar a listeners locales (UI, Pantalla de emergencia, Alarma acústica)
@@ -666,17 +672,16 @@ class MeshRelayEngine(
                     return RelayDecision.DroppedMalformed("SosAckPacket parsing error: ${e.message}")
                 }
 
-                // Verificación de firma Ed25519 del ACK
+                // Mismo fail-closed que SOS: el ACK solo se observa si su firmante
+                // pertenece al mapa firmado y la firma Ed25519 es válida.
                 val resolver = sosPublicKeyResolver
+                    ?: return RelayDecision.DroppedInvalidSignature("ACK_REJECTED: manifiesto SOS no disponible")
                 val crypto = sosCrypto
-                if (resolver != null && crypto != null) {
-                    val ackerPubKey = resolver.resolvePublicKey(ack.ackerShortId)
-                    if (ackerPubKey != null) {
-                        val isValid = crypto.verifySosAck(ack, ackerPubKey)
-                        if (!isValid) {
-                            return RelayDecision.DroppedInvalidSignature("Firma Ed25519 de ACK inválida para ackerShortId=${ack.ackerShortId}")
-                        }
-                    }
+                    ?: return RelayDecision.DroppedInvalidSignature("ACK_REJECTED: verificador Ed25519 no disponible")
+                val ackerPubKey = resolver.resolvePublicKey(ack.ackerShortId)
+                    ?: return RelayDecision.DroppedInvalidSignature("ACK_REJECTED: clave pública desconocida para ackerShortId=${ack.ackerShortId}")
+                if (!crypto.verifySosAck(ack, ackerPubKey)) {
+                    return RelayDecision.DroppedInvalidSignature("Firma Ed25519 de ACK inválida para ackerShortId=${ack.ackerShortId}")
                 }
 
                 // La telemetría acústica de todos los nodos observa el mismo ACK; el callback
@@ -1702,7 +1707,11 @@ class MeshRelayEngine(
 
         val relayedBytes = if (isSensitiveMeshPacket(relay)) {
             val key = sensitiveKey ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible")
-            SensitiveFrameEnvelope.wrap(key, SensitiveFrameEnvelope.KIND_MESH_PACKET, relay.toByteArray())
+            SensitiveFrameEnvelope.wrap(
+                key,
+                SensitiveFrameEnvelope.envelopeKindFor(relay),
+                relay.toByteArray()
+            )
         } else {
             relay.toByteArray()
         }

@@ -277,9 +277,12 @@ class RideSessionController(
             relayEnabled = relayEnabled,
             relayScope = scope
         )
-        // P0: el manifiesto verificado es la única fuente de pertenencia al convoy.
+        // P0 cierre final: el manifiesto verificado es la única fuente de pertenencia
+        // al convoy Y de las claves públicas SOS. Sin resolver, SOS/ACK se descartan.
         com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)?.let { manifest ->
             engine.rideAuthorization = RideMeshAuthorization(manifest)
+            engine.sosPublicKeyResolver = manifest.sosPublicKeyResolver
+            engine.sosCrypto = com.rutabikersync.app.core.mesh.sos.SosSigningHub.verifier
         }
         // Hito 7.0.2: conectar la recepción de texto al store del chat táctico.
         engine.onTextMessageReceived = { textPacket, decryptedText ->
@@ -379,6 +382,7 @@ class RideSessionController(
                 SensitiveFrameEnvelope.KIND_SOS,
                 SensitiveFrameEnvelope.KIND_SOS_ACK -> Transport.Priority.SOS
                 SensitiveFrameEnvelope.KIND_MESH_PACKET -> Transport.Priority.PEER_EVENT
+                SensitiveFrameEnvelope.KIND_HEARTBEAT -> Transport.Priority.POSITION
                 else -> runCatching {
                     when (MeshHeader.fromByteArray(bytes).packetType) {
                         MeshHeader.TYPE_SOS,

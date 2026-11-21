@@ -4,6 +4,8 @@ import com.rutabikersync.app.core.mesh.HeartbeatFrame
 import com.rutabikersync.app.core.mesh.LowPowerNodeMode
 import com.rutabikersync.app.core.mesh.MeshHeader
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto
+import com.rutabikersync.app.core.mesh.sos.InMemorySosPublicKeyResolver
 import com.rutabikersync.app.core.mesh.sos.SosPacket
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -11,6 +13,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.security.KeyPairGenerator
 
 /**
  * Suite de Pruebas Unitarias para Nodos Amigos (Store & Forward) y Nodos LPN (Fase 6 · Hito 5 · Etapa 2).
@@ -303,6 +306,7 @@ class FriendNodeLpnTest {
     fun testLpnAlwaysAwakesAndRelaysSos() {
         val lpn = LowPowerNodeMode(batteryPercent = 5) // Batería al 5%
         var relayedBytes: ByteArray? = null
+        val senderKeys = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
 
         val node = MeshRelayEngine(
             localShortId = 2u,
@@ -310,6 +314,10 @@ class FriendNodeLpnTest {
             onTransmitRelay = { bytes -> relayedBytes = bytes }
         ).apply {
             lpnMode = lpn
+            sosCrypto = Ed25519SosCrypto(context = null)
+            sosPublicKeyResolver = InMemorySosPublicKeyResolver().apply {
+                registerPeer(1u, senderKeys.public)
+            }
         }
 
         // Simular SosPacket con TTL=5
@@ -325,7 +333,8 @@ class FriendNodeLpnTest {
             hopCount = 0
         )
 
-        val decision = node.processIncomingPacket(sosPacket.toByteArray())
+        val signedSos = Ed25519SosCrypto(context = null).signSos(sosPacket, senderKeys.private)
+        val decision = node.processIncomingPacket(signedSos.toByteArray())
         assertTrue("LPN SIEMPRE debe retransmitir alertas SOS prioritarias", decision is MeshRelayEngine.RelayDecision.Relayed)
         assertNotNull(relayedBytes)
     }

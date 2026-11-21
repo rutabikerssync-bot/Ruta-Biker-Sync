@@ -53,6 +53,9 @@ class Ed25519SosCrypto(
         private const val GCM_IV_BYTES = 12
         private const val GCM_TAG_BITS = 128
 
+        /** Tamaño de la clave pública Ed25519 cruda (sin cabecera SPKI). */
+        const val RAW_PUBLIC_KEY_SIZE_BYTES = 32
+
         /**
          * Cabecera SPKI DER estándar de 12 bytes para clave pública Ed25519 (OID 1.3.101.112).
          * 30 2a 30 05 06 03 2b 65 70 03 21 00 + [32 bytes raw key]
@@ -67,7 +70,7 @@ class Ed25519SosCrypto(
          * Importa una clave pública Ed25519 a partir de sus 32 bytes crudos.
          */
         fun importRawPublicKey(raw32: ByteArray): PublicKey {
-            require(raw32.size == 32) { "Clave pública cruda Ed25519 debe medir exactamente 32 bytes" }
+            require(raw32.size == RAW_PUBLIC_KEY_SIZE_BYTES) { "Clave pública cruda Ed25519 debe medir exactamente 32 bytes" }
             val spki = ED25519_SPKI_HEADER + raw32
             return KeyFactory.getInstance("Ed25519").generatePublic(X509EncodedKeySpec(spki))
         }

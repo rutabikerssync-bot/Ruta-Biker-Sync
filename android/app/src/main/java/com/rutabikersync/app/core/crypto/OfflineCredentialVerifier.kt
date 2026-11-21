@@ -309,6 +309,10 @@ data class RideManifestPayload(
     val routeHash: String? = null,
     val participants: List<RideManifestParticipantPayload>,
     val rideSecretKeyHex: String? = null,
+    /** Mapa firmado uid -> Base64 de la clave pública Ed25519 SOS (32 bytes crudos). */
+    val sosPublicKeys: Map<String, String>? = null,
+    /** planned|active son válidos; closed|validated|rejected equivalen a COMPLETED. */
+    val rideState: String? = null,
     val iat: Long,
     val exp: Long,
     val kid: String
@@ -323,6 +327,10 @@ data class RideManifestPayload(
             null
         }
     }
+
+    /** COMPLETED (Android) se mapea a closed|validated|rejected en el backend. */
+    fun isCompletedRide(): Boolean =
+        rideState?.trim()?.lowercase() in setOf("closed", "validated", "rejected")
 }
 
 data class RideManifestVerificationOutcome(

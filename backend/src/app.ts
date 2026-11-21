@@ -186,6 +186,11 @@ const UpdateProfileSchema = z.object({
   publicKeyBase64: z.string().max(256).optional()
 });
 
+/** Clave pública Ed25519 SOS generada por el propio móvil (32 bytes crudos o SPKI DER). */
+const SosPublicKeySchema = z.object({
+  publicKeyBase64: z.string().min(32).max(128)
+});
+
 const CreateGroupSchema = z.object({
   countryCode: CountryCodeSchema,
   name: z.string().min(3).max(60),
@@ -1000,6 +1005,32 @@ export async function buildApp({
   };
 
   app.patch('/v1/users/me', handlePatchProfile);
+
+  /**
+   * P0 cierre final: el móvil publica la clave pública Ed25519 que realmente usa
+   * `Ed25519SosCrypto` para firmar SOS/ACK. El backend nunca genera ni deduce una
+   * clave para el usuario: sin publicación no aparece en el manifiesto firmado.
+   */
+  app.patch('/v1/users/me/sos-public-key', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const parsed = SosPublicKeySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const decoded = Buffer.from(parsed.data.publicKeyBase64, 'base64');
+    const spkiPrefix = Buffer.from('302a300506032b6570032100', 'hex');
+    const raw = decoded.length === 44 && decoded.subarray(0, 12).equals(spkiPrefix)
+      ? decoded.subarray(12)
+      : decoded;
+    if (raw.length !== 32) {
+      return reply.code(400).send({ error: 'INVALID_SOS_PUBLIC_KEY' });
+    }
+
+    await db.query(`UPDATE users SET sos_public_key = $1 WHERE id = $2`, [Buffer.from(raw), uid]);
+    return reply.code(200).send({ updated: true, publicKeyBase64: raw.toString('base64') });
+  });
 
   // PUT /v1/users/profile — Actualización integral de perfil de piloto y moto
   app.put('/v1/users/profile', async (req, reply) => {
@@ -4672,12 +4703,15 @@ export async function buildApp({
 
     const rideId = randomUUID();
     const initialState = body.state === 'planned' ? 'planned' : 'active';
+    // P0 cierre final: una clave aleatoria NUEVA por rodada, disponible desde el
+    // alta y nunca regenerada por el endpoint de manifiesto.
+    const rideSecretKeyHex = randomBytes(32).toString('hex');
 
     await db.query(
       `INSERT INTO rides (
          id, host_group, host_leader, cohost_group, cohost_leader,
-         title, route_hash, state, starts_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())`,
+         title, route_hash, state, starts_at, manifest_ride_secret_key_hex
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), $9)`,
       [
         rideId,
         body.hostGroupId,
@@ -4686,7 +4720,8 @@ export async function buildApp({
         body.cohostLeaderId ?? null,
         body.title ?? null,
         body.routeHash ?? null,
-        initialState
+        initialState,
+        rideSecretKeyHex
       ]
     );
 
@@ -4865,7 +4900,7 @@ export async function buildApp({
     if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
 
     const partRes = await db.query(
-      `SELECT rp.user_id, rp.group_id, rp.status_kind, rp.ride_role, u.public_key
+      `SELECT rp.user_id, rp.group_id, rp.status_kind, rp.ride_role, u.public_key, u.sos_public_key
        FROM ride_participants rp
        JOIN users u ON u.id = rp.user_id
        WHERE rp.ride_id = $1
@@ -4881,30 +4916,42 @@ export async function buildApp({
       return reply.code(403).send({ error: 'NOT_IN_RIDE' });
     }
 
+    // COMPLETED (Android) equivale a closed|validated|rejected en `rides`: una vez
+    // cerrada la rodada la clave deja de ser válida y no se entrega más.
+    const rideState = String(ride.state);
+    if (['closed', 'validated', 'rejected'].includes(rideState)) {
+      return reply.code(409).send({ error: 'RIDE_COMPLETED' });
+    }
+
     const participants: RideManifestParticipant[] = partRes.rows.map((r) => ({
       uid: String(r.user_id),
       gid: String(r.group_id),
       statusKind: (r.status_kind ?? 'full') as CredentialRoleKind,
       rideRole: (r.ride_role ?? 'participante') as RideRoleKind,
-      pk:
-        parseBytea(r.public_key)?.toString('base64') ??
-        Buffer.from(`dev-pk-${r.user_id}`, 'utf8').toString('base64')
+      // Sin placeholder: si no hay clave real publicada Android falla cerrado.
+      pk: parseBytea(r.public_key)?.toString('base64')
+        ?? parseBytea(r.sos_public_key)?.toString('base64')
+        ?? null
     }));
 
-    // P0: la clave de rodada se genera UNA sola vez y se reutiliza en cada
-    // manifiesto firmado. Sin esta persistencia cada dispositivo recibía una
-    // clave distinta y la malla no podía autenticar a los compañeros de club.
-    let rideSecretKeyHex: string | null =
+    // Solo participantes confirmados (leader/full) con clave SOS real publicada.
+    const sosPublicKeys: Record<string, string> = {};
+    for (const r of partRes.rows) {
+      const statusKind = String(r.status_kind ?? 'full');
+      if (statusKind !== 'leader' && statusKind !== 'full') continue;
+      const sosKey = parseBytea(r.sos_public_key);
+      if (sosKey?.length === 32) sosPublicKeys[String(r.user_id)] = sosKey.toString('base64');
+    }
+
+    // P0 cierre final: la clave se generó al crear la rodada y se limpia al
+    // cerrarla. Regenerarla aquí o emitir sin clave haría claves distintas por móvil.
+    const rideSecretKeyHex =
       typeof ride.manifest_ride_secret_key_hex === 'string' &&
       /^[0-9a-fA-F]{64}$/.test(ride.manifest_ride_secret_key_hex)
         ? ride.manifest_ride_secret_key_hex
         : null;
     if (!rideSecretKeyHex) {
-      rideSecretKeyHex = randomBytes(32).toString('hex');
-      await db.query(
-        `UPDATE rides SET manifest_ride_secret_key_hex = $1 WHERE id = $2`,
-        [rideSecretKeyHex, rideId]
-      );
+      return reply.code(409).send({ error: 'RIDE_KEY_UNAVAILABLE' });
     }
 
     const signed = issueRideManifest(
@@ -4916,7 +4963,9 @@ export async function buildApp({
         cohostLeaderId: ride.cohost_leader ? String(ride.cohost_leader) : null,
         routeHash: ride.route_hash ? String(ride.route_hash) : null,
         participants,
-        rideSecretKeyHex
+        rideSecretKeyHex,
+        sosPublicKeys,
+        rideState
       },
       credentialKeyring
     );
@@ -5205,7 +5254,12 @@ export async function buildApp({
     }
 
     const finalState = rideMeetsR66 && countedUsers.length > 0 ? 'validated' : 'closed';
-    await db.query(`UPDATE rides SET state = $1 WHERE id = $2`, [finalState, rideId]);
+    // P0 cierre final: COMPLETED invalida la clave de la rodada. Se limpia en la
+    // misma transición de estado para que ningún manifiesto posterior la reentregue.
+    await db.query(
+      `UPDATE rides SET state = $1, manifest_ride_secret_key_hex = NULL WHERE id = $2`,
+      [finalState, rideId]
+    );
 
     await appendAudit(db, uid, 'RIDE_CLOSED', 'ride', rideId, {
       finalState,

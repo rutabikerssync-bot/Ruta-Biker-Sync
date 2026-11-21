@@ -2,7 +2,6 @@ import {
   createPrivateKey,
   createPublicKey,
   generateKeyPairSync,
-  randomBytes,
   randomUUID,
   sign,
   verify,
@@ -349,7 +348,12 @@ export interface RideManifestPayload {
   cohostLeaderId: string | null;
   routeHash: string | null;
   participants: RideManifestParticipant[];
+  /** Clave simétrica de la rodada: 32 bytes en hexadecimal. Obligatoria al emitir. */
   rideSecretKeyHex?: string | null;
+  /** Mapa firmado uid -> Base64 de la clave pública Ed25519 SOS (32 bytes crudos). */
+  sosPublicKeys?: Record<string, string>;
+  /** Estado backend de la rodada: planned|active|closed|validated|rejected. */
+  rideState?: string | null;
   iat: number;
   exp: number;
   kid: string;
@@ -383,7 +387,9 @@ export function issueRideManifest(
     cohostLeaderId?: string | null;
     routeHash?: string | null;
     participants: RideManifestParticipant[];
-    rideSecretKeyHex?: string | null;
+    rideSecretKeyHex: string;
+    sosPublicKeys?: Record<string, string>;
+    rideState?: string | null;
     nowSec?: number;
     ttlSeconds?: number;
   },
@@ -405,7 +411,12 @@ export function issueRideManifest(
     throw new Error(`MISSING_ACTIVE_ED25519_KEY:${activeKid}`);
   }
 
-  const rideSecretKeyHex = params.rideSecretKeyHex ?? randomBytes(32).toString('hex');
+  // Fail closed: la clave se genera al crear la rodada. Emitir un manifiesto sin
+  // clave persistida (o regenerarla aquí) daría a cada móvil una clave distinta.
+  if (!/^[0-9a-fA-F]{64}$/.test(params.rideSecretKeyHex)) {
+    throw new Error('MISSING_RIDE_SECRET_KEY');
+  }
+  const rideSecretKeyHex = params.rideSecretKeyHex.toLowerCase();
 
   const payload: RideManifestPayload = {
     v: 1,
@@ -419,6 +430,8 @@ export function issueRideManifest(
     routeHash: params.routeHash ?? null,
     participants: params.participants,
     rideSecretKeyHex,
+    ...(params.sosPublicKeys !== undefined ? { sosPublicKeys: params.sosPublicKeys } : {}),
+    ...(params.rideState !== undefined ? { rideState: params.rideState } : {}),
     iat: nowSec,
     exp: nowSec + ttlSeconds,
     kid: activeKid

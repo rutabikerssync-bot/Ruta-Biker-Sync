@@ -15,7 +15,7 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RideScreenTransitionResilienceTest {
-    private val secretKey = "rbs-screen-resilience-test-key!".encodeToByteArray()
+    private val secretKey = "rbs-screen-resilience-test-key!!".encodeToByteArray()
 
     @Test
     fun `desconexion o cambio de pantalla en UI no detiene el relay engine ni degrada el estado RUNNING`() = runTest(UnconfinedTestDispatcher()) {

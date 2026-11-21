@@ -87,6 +87,19 @@ class ClubApiClient(
         executeRequest("GET", "/v1/rides/$rideId/manifest", null)
     }
 
+    /**
+     * P0 cierre final: publica la clave pública Ed25519 real generada por
+     * `Ed25519SosCrypto`. El backend la devuelve dentro del manifiesto firmado
+     * para que los demás pilotos puedan verificar nuestros SOS/ACK.
+     */
+    suspend fun publishSosPublicKey(publicKeyBase64: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest(
+            "PATCH",
+            "/v1/users/me/sos-public-key",
+            buildJsonObject { put("publicKeyBase64", publicKeyBase64) }
+        )
+    }
+
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
     var accessToken: String? = null

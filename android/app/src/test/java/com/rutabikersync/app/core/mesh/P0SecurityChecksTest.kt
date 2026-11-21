@@ -25,6 +25,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.security.KeyPairGenerator
+import java.security.PrivateKey
 import java.util.Base64
 
 /**
@@ -36,6 +37,8 @@ class P0SecurityChecksTest {
 
     private val rideKey = "0123456789abcdef0123456789abcdef".toByteArray()
     private val keyHex = rideKey.joinToString("") { "%02x".format(it) }
+    /** Claves privadas reales del fixture, indexadas por el shortId derivado del manifiesto. */
+    private val sosPrivateKeys = mutableMapOf<UShort, PrivateKey>()
 
     class CapturingTransport : Transport {
         val sent = mutableListOf<ByteArray>()
@@ -51,6 +54,22 @@ class P0SecurityChecksTest {
         Base64.getEncoder().encodeToString(seed.toByteArray(Charsets.UTF_8))
 
     private fun authorizedRide(leaderPk: String, memberPk: String): RideManifestKeyProvider.AuthorizedRide {
+        sosPrivateKeys.clear()
+        val kpg = KeyPairGenerator.getInstance("Ed25519")
+        val leaderKeys = kpg.generateKeyPair()
+        val memberKeys = kpg.generateKeyPair()
+        val leaderSid = RideManifestKeyProvider.shortIdFromParticipantPublicKey(leaderPk)
+        val memberSid = RideManifestKeyProvider.shortIdFromParticipantPublicKey(memberPk)
+        sosPrivateKeys[leaderSid] = leaderKeys.private
+        sosPrivateKeys[memberSid] = memberKeys.private
+        val sosPublicKeys = mapOf(
+            "u-leader" to Base64.getEncoder().encodeToString(
+                Ed25519SosCrypto.exportRawPublicKey(leaderKeys.public)
+            ),
+            "u-member" to Base64.getEncoder().encodeToString(
+                Ed25519SosCrypto.exportRawPublicKey(memberKeys.public)
+            )
+        )
         val manifest = RideManifestPayload(
             rideId = "ride-p0",
             hostGroupId = "club-a",
@@ -67,10 +86,14 @@ class P0SecurityChecksTest {
                 )
             ),
             rideSecretKeyHex = keyHex,
+            sosPublicKeys = sosPublicKeys,
+            rideState = "active",
             iat = 0L,
             exp = Long.MAX_VALUE,
             kid = "p0-kid"
         )
+        val resolver = RideManifestKeyProvider.buildSosPublicKeyResolver(manifest)
+            ?: error("El fixture del manifiesto debe incluir claves SOS válidas")
         return RideManifestKeyProvider.AuthorizedRide(
             rideId = manifest.rideId,
             manifest = manifest,
@@ -78,7 +101,8 @@ class P0SecurityChecksTest {
             participantUid = "u-leader",
             groupIds = manifest.groupIds.toSet(),
             authorizedShortIds = manifest.participants.mapNotNull { it.pk?.let(RideManifestKeyProvider::shortIdFromParticipantPublicKey) }.toSet(),
-            localShortId = RideManifestKeyProvider.shortIdFromParticipantPublicKey(leaderPk)
+            localShortId = leaderSid,
+            sosPublicKeyResolver = resolver
         )
     }
 
@@ -94,7 +118,11 @@ class P0SecurityChecksTest {
             relayScope = scope,
             rideSecretKey = rideKey
         )
-        if (auth != null) engine.rideAuthorization = RideMeshAuthorization(auth)
+        if (auth != null) {
+            engine.rideAuthorization = RideMeshAuthorization(auth)
+            engine.sosPublicKeyResolver = auth.sosPublicKeyResolver
+            engine.sosCrypto = Ed25519SosCrypto(context = null)
+        }
         return engine to transport
     }
 
@@ -201,6 +229,37 @@ class P0SecurityChecksTest {
         val validDecision = receiver.processIncomingPacket(valid.toByteArray())
         assertFalse(validDecision is MeshRelayEngine.RelayDecision.DroppedInvalidSignature)
         assertTrue("Un SOS legítimo sí debe notificarse", notified)
+    }
+
+    @Test
+    fun `H2 SOS con clave publica desconocida en el manifiesto se rechaza`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (receiver, _) = engineWith(scope, 1u, auth)
+        var notified = false
+        receiver.onSosReceived = { notified = true }
+
+        // Firma real, pero de una clave que NO está en el mapa firmado del manifiesto.
+        val outsider = KeyPairGenerator.getInstance("Ed25519").generateKeyPair()
+        val unsigned = SosPacket.create(
+            clubNetworkId = 0x52425301u,
+            senderShortId = 999u,
+            sequenceNum = 102u,
+            latitude = 19.432608,
+            longitude = -99.133209,
+            incident = SosIncidentCode.MANUAL_BUTTON,
+            bloodType = SosBloodType.O_POSITIVE,
+            timestampEpochSec = 1_733_000_000,
+            signature = ByteArray(64),
+            currentTtl = 5,
+            hopCount = 0
+        )
+        val signed = Ed25519SosCrypto(context = null).signSos(unsigned, outsider.private)
+        val decision = receiver.processIncomingPacket(signed.toByteArray())
+
+        assertTrue("Un shortId sin clave en el manifiesto debe caer en fail-closed: $decision",
+            decision is MeshRelayEngine.RelayDecision.DroppedInvalidSignature)
+        assertFalse("El SOS de clave desconocida no debe llegar a la alarma", notified)
     }
 
     @Test
@@ -321,31 +380,66 @@ class P0SecurityChecksTest {
     }
 
     @Test
-    fun `P0 heartbeats HMAC siguen en claro y conservan su autenticacion`() = runTest {
+    fun `P0 heartbeats viajan cifrados y conservan su HMAC de 20 bytes`() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
         val (sender, senderTransport) = engineWith(scope, 7u)
         sender.emitLocalPosition(19.432608, -99.133209, 42, 90f, 88)
-        val heartbeat = senderTransport.sent.single()
+        val envelope = senderTransport.sent.single()
 
+        assertEquals(52, envelope.size)
+        assertTrue("El heartbeat debe viajar en sobre AEAD", SensitiveFrameEnvelope.isEnvelope(envelope))
+        assertEquals(SensitiveFrameEnvelope.KIND_HEARTBEAT, SensitiveFrameEnvelope.kindOf(envelope))
+        val heartbeat = SensitiveFrameEnvelope.unwrap(rideKey, envelope)
         assertEquals(MeshPacket.PACKET_SIZE_BYTES, heartbeat.size)
-        assertFalse("El heartbeat no debe cambiar de wire format", SensitiveFrameEnvelope.isEnvelope(heartbeat))
         assertTrue(MeshPacket.fromByteArray(heartbeat).verifyAuthTag(rideKey))
 
         val (receiver, _) = engineWith(scope, 8u)
-        receiver.onRawPacketReceived(heartbeat)
+        receiver.onRawPacketReceived(envelope)
         assertEquals(1, receiver.metrics.value.packetsReceivedValid)
+    }
+
+    @Test
+    fun `P0 tag manipulado de heartbeat se rechaza sin entregar posicion`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val (sender, senderTransport) = engineWith(scope, 17u)
+        sender.emitLocalPosition(19.43, -99.13, 40, 90f, 80)
+        val tampered = senderTransport.sent.single().copyOf()
+        tampered[tampered.lastIndex] = (tampered[tampered.lastIndex].toInt() xor 0xFF).toByte()
+
+        val (receiver, _) = engineWith(scope, 18u)
+        receiver.onRawPacketReceived(tampered)
+        assertEquals(0, receiver.metrics.value.packetsReceivedValid)
+        assertEquals(1, receiver.metrics.value.sensitiveTagRejected)
+    }
+
+    @Test
+    fun `P0 nonce repetido de heartbeat se descarta aunque el tag sea valido`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val (sender, senderTransport) = engineWith(scope, 27u)
+        sender.emitLocalPosition(19.44, -99.14, 41, 95f, 79)
+        val envelope = senderTransport.sent.single()
+
+        val (receiver, _) = engineWith(scope, 28u)
+        receiver.onRawPacketReceived(envelope)
+        receiver.onRawPacketReceived(envelope.copyOf())
+        assertEquals(1, receiver.metrics.value.packetsReceivedValid)
+        assertEquals(1, receiver.metrics.value.sensitiveReplayRejected)
     }
 
     @Test
     fun `P0 SOS y ACK se emiten cifrados y se aceptan tras descifrar`() = runTest {
         val scope = TestScope(StandardTestDispatcher(testScheduler))
-        val (emitter, transport) = engineWith(scope, 12u)
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val senderSid = auth.localShortId
+        val privateKey = sosPrivateKeys.getValue(senderSid)
+        val verifier = Ed25519SosCrypto(context = null)
+        val (emitter, transport) = engineWith(scope, senderSid, auth)
         emitter.start(scope)
         testScheduler.advanceUntilIdle()
 
-        val sos = SosPacket.create(
+        val unsignedSos = SosPacket.create(
             clubNetworkId = 0x52425301u,
-            senderShortId = 12u,
+            senderShortId = senderSid,
             sequenceNum = 300u,
             latitude = 10.349070,
             longitude = -67.034950,
@@ -355,15 +449,16 @@ class P0SecurityChecksTest {
             signature = ByteArray(64),
             currentTtl = 3
         )
+        val sos = verifier.signSos(unsignedSos, privateKey)
         assertTrue(emitter.emitSosPacket(sos))
         testScheduler.advanceUntilIdle()
         val sosWire = transport.sent.last()
         assertEquals(SosPacket.PACKET_SIZE_BYTES + 32, sosWire.size)
         assertEquals(SensitiveFrameEnvelope.KIND_SOS, SensitiveFrameEnvelope.kindOf(sosWire))
 
-        val ack = SosAckPacket.create(
+        val unsignedAck = SosAckPacket.create(
             clubNetworkId = 0x52425301u,
-            ackerShortId = 12u,
+            ackerShortId = senderSid,
             sequenceNum = 301u,
             originalSenderShortId = 99u,
             originalSequenceNum = 300u,
@@ -371,13 +466,14 @@ class P0SecurityChecksTest {
             signature = ByteArray(64),
             currentTtl = 3
         )
+        val ack = verifier.signSosAck(unsignedAck, privateKey)
         assertTrue(emitter.emitSosAckPacket(ack))
         testScheduler.advanceUntilIdle()
         val ackWire = transport.sent.last()
         assertEquals(SosAckPacket.PACKET_SIZE_BYTES + 32, ackWire.size)
         assertEquals(SensitiveFrameEnvelope.KIND_SOS_ACK, SensitiveFrameEnvelope.kindOf(ackWire))
 
-        val (receiver, _) = engineWith(scope, 13u)
+        val (receiver, _) = engineWith(scope, 13u, auth)
         var sosCount = 0
         var ackCount = 0
         receiver.onSosReceived = { sosCount++ }
