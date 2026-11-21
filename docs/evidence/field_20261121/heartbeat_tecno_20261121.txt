@@ -1,0 +1,34 @@
+﻿
+11-21 17:30:37.025 I/BleAdvTransport(15198): FragmentTx session=1 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:46.042 I/HeartbeatTx(15198): rideId=ride-live-01 startedAtEpochMs=1795296636933 elapsedSec=0s 
+packetsEmitted=1
+11-21 17:30:48.847 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-66
+11-21 17:30:49.073 I/BleAdvTransport(15198): FragmentTx session=2 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:54.202 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-65
+11-21 17:30:54.206 I/HeartbeatRx(15198): shortId=11034 seq=2 rssi=-65 hops=1 at=1795296654202
+11-21 17:30:58.089 I/BleAdvTransport(15198): FragmentTx session=3 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:58.091 I/HeartbeatTx(15198): rideId=ride-live-01 startedAtEpochMs=1795296636933 elapsedSec=12s 
+packetsEmitted=2
+11-21 17:30:58.146 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-65
+11-21 17:31:02.353 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-69
+11-21 17:31:06.847 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-57
+11-21 17:31:07.105 I/BleAdvTransport(15198): FragmentTx session=4 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:11.625 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-58
+11-21 17:31:11.631 I/HeartbeatRx(15198): shortId=11034 seq=3 rssi=-58 hops=1 at=1795296671625
+11-21 17:31:16.118 I/BleAdvTransport(15198): FragmentTx session=5 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:16.119 I/HeartbeatTx(15198): rideId=ride-live-01 startedAtEpochMs=1795296636933 elapsedSec=24s 
+packetsEmitted=3
+11-21 17:31:16.157 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-66
+11-21 17:31:20.627 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-61
+11-21 17:31:24.003 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-60
+11-21 17:31:25.134 I/BleAdvTransport(15198): FragmentTx session=6 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:29.635 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-67
+11-21 17:31:29.641 I/HeartbeatRx(15198): shortId=11034 seq=4 rssi=-67 hops=1 at=1795296689636
+11-21 17:31:33.001 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-66
+11-21 17:31:34.152 I/BleAdvTransport(15198): FragmentTx session=7 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:34.154 I/HeartbeatTx(15198): rideId=ride-live-01 startedAtEpochMs=1795296636933 elapsedSec=42s 
+packetsEmitted=4
+11-21 17:31:38.624 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-61
+11-21 17:31:42.003 I/BleAdvTransport(15198): FragmentReassembled bytes=52 rssi=-60
+
+

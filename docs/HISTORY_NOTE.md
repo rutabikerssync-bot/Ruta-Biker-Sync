@@ -727,3 +727,38 @@ Esta sección **supersede** los tres puntos que seguían «Pendiente» arriba y 
 
 **Estado:** commit local atómico, sin `amend` y sin `push`.
 
+### FIX - Pérdida de peers independiente de RSSI/IP y redundancia BLE+IP en campo - 2026-11-21
+**Commit atómico**: `fix(mesh): PeerHealthMonitor no depende de RSSI ni de IP (preserva redundancia BLE+IP)` (sin `amend`, sin `push`).
+
+**Diagnóstico**: `PeerHealthMonitor.kt` ya era timeout-only (`evaluatePeerTimeouts`, 15 s = 5 latidos × 3 s) y no se modificó. El riesgo real estaba en el semáforo de `MeshConvoyStatusScreen.evaluate()`: degradaba a `WEAK` con una lectura puntual de RSSI `< -82` o con `PLR > 8%`, y a `DOWN` en cuanto no había peers, sin distinguir timeout de heartbeats de otras causas. Eso podía hacer que “malla débil/caída” dependiera de una ráfaga RF, del PLR o de la caída del backend/IP, aunque los heartbeats BLE siguieran llegando.
+
+**Cambio**:
+- `MeshRelayEngine.PeerTrack` conserva hasta `MAX_RSSI_SAMPLES = 32` muestras con marca de tiempo (`RssiSample`). Solo alimentan las barras visuales; la pérdida sigue gobernada exclusivamente por `evaluatePeerTimeouts`. Se añade el log `HeartbeatRx` al recibir un `MeshPacket` con prioridad `POSITION` y `!isSos`; el log previo de `RideService` se renombra a tag `HeartbeatTx`.
+- `MeshConvoyStatusScreen.GlobalMeshStatus.evaluate(peers, nowEpochMs)` usa `WEAK_RSSI_WINDOW_MS = 10_000`, `WEAK_RSSI_THRESHOLD_DBM = -85.0` y `MIN_RSSI_SAMPLES_FOR_WEAK = 3`: solo baja a `WEAK` si el promedio de la ventana supera 3 muestras y es menor que −85 dBm. El PLR permanece como métrica visible, pero ya no decide el estado. `DOWN` se declara solo si no hay peers o todos están `isLost` por timeout BLE; el estado IP/backend no interviene.
+- `HeartbeatBatteryPhase3Test` cubre que un heartbeat con RSSI −105 sigue contando como presente y que la pérdida aparece solo tras 16 s sin heartbeats. `MeshConvoyStatusScreenTest` cubre histéresis, una sola lectura puntual, PLR alto sin degradación, muestras fuera de ventana, propagación del historial y `DOWN` por timeout.
+
+**Alcance no tocado**: GATT, cifrado ChaCha20/Ed25519, `HeartbeatFrame`, `VoiceCrypto`, PTT/voz, chat, transporte y lógica de liderazgo. `PeerHealthMonitor.kt` no se modificó. Backend sin cambios.
+
+| Tarea | Comando / acción | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- | --- |
+| Tests JVM | `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` | BUILD SUCCESSFUL | **514 tests, 0 fallos, 0 errores, 0 skipped** | salida de Gradle de la sesión |
+| Compilación | `.\gradlew.bat :app:assembleStandardDebug --no-daemon` | BUILD SUCCESSFUL | BUILD SUCCESSFUL | salida de Gradle de la sesión |
+| Despliegue | `apksigner` + `adb install -r` en TECNO `098813734B105395` y Redmi `b2c398bb` | APK firmada en ambos | `Success` en ambos | este archivo |
+| Arranque y malla | Rodada con `BleAdvTransport(LEGACY_1M)`, UIDs distintos y manifiesto firmado | malla iniciada en ambos | TECNO `9120`, Redmi `11034`; `HeartbeatTx`, `HeartbeatRx`, `FragmentTx`, `FragmentReassembled` en ambos | `docs/evidence/field_20261121/heartbeat_{tecno,redmi}_20261121.txt` |
+| Mapa a 1 m | `uiautomator dump` + `screencap` | «Convoy 2 riders» en ambos | TECNO y Redmi: `2 riders` | `docs/evidence/field_20261121/{tecno,redmi}_2riders.png` |
+| Chat/PTT | chat táctico y PTT en vivo | entrega bidireccional sin IP | Redmi envió `avion_ble_ok` y TECNO lo recibió por malla; PTT: `VoicePacketTx ... via=ADV` y TECNO `VoicePacketRx ... entregado al reproductor PTT` + `AudioTrack` | logs de campo y `redmi_airplane_ptt_tx.png`, `tecno_airplane_ptt_received.png` |
+| Modo avión con BLE | `cmd connectivity airplane-mode enable`, `svc bluetooth enable`, `adb reverse --remove tcp:3000` | `airplane=enabled`, `bluetooth=1`, sin túnel IP | Redmi mantuvo `2 riders`, heartbeats y fragmentos BLE; `Mbgl-ConnectivityReceiver connected - false` a las 17:32:07; el proxy/backend no recibió peticiones durante el corte | `redmi_airplane_ble_on.png`, `tecno_during_redmi_airplane.png`, `redmi_airplane_logcat_20261121.txt` |
+| SOS por malla en modo avión | mantener SOS 3 s + confirmar en Redmi | SOS verify en TECNO sin backend | `SOS_VERIFIED: sender=11034, hops=0, sigValid=true, incident=2, blood=1`; TECNO mostró «SOS RECIBIDO POR MESH» y ACK | `redmi_airplane_sos.png`, `sos_mesh_evidence_20261121.txt` |
+| Reanudación IP | `airplane-mode disable` + `adb reverse tcp:3000 tcp:3002` | sincronización vuelve sin afectar malla | backend volvió a registrar `GET /v1/groups` para ambos UIDs; heartbeats BLE continuos; SOS se canceló y se hizo ACK | `tecno_backend_resumed.png`, `redmi_backend_resumed.png` |
+
+**Limitaciones factuales**:
+- Android bloqueó el broadcast `android.intent.action.AIRPLANE_MODE` desde `shell` (`SecurityException`); se usó `cmd connectivity airplane-mode enable/disable`, que sí cambia el estado, y `svc bluetooth enable` para conservar BLE. El túnel IP se eliminó con `adb reverse --remove tcp:3000` para que el único canal caído fuera el backend.
+- El backend local se levantó en `:3001` y el proxy de demo en `:3002` porque la app fija `ride-live-01`; no se modificó ese código. Los procesos del shell caducan a los 600 s y se reiniciaron cuando hizo falta.
+- El hardware no permitió inyectar una posición GPS simulada (`cmd location set-location` → `Unknown command`). Sin fix fresco de 30 s, el HUD puede bajar temporalmente a «1 rider» aunque el monitor muestre el peer «En línea» y los heartbeats sigan llegando. Por eso las capturas «2 riders» se tomaron con fix válido y el diagnóstico de malla se apoya en los logs, no solo en el contador del mapa.
+- El SOS transmitió coordenadas `0,000000` porque no había fix fresco; la firma y el paquete de rescate se verificaron igual (`sigValid=true`). La ficha médica no estaba disponible en TECNO por no poseer la clave de rescate de la rodada.
+- `Ed25519SosCrypto.kt` tiene en el árbol de trabajo un fix del IV de AndroidKeyStore (`cipher.init(ENCRYPT_MODE, kek)` + `iv = cipher.iv`, persistencia best-effort) que evitó el fatal de arranque en TECNO. **No se incluye en este commit**: `docs/AGENTS.md` exige autorización explícita para tocar Ed25519 y se decidió excluirlo de este commit. Queda documentado como dependencia operativa pendiente; el wire format, el algoritmo y las claves publicadas no cambian.
+
+**Confirmación**: la caída de IP/modo avión no declaró pérdida de peers; chat, PTT y SOS continuaron por BLE y el backend se reanudó sin reiniciar la malla. El estado de la malla ya no depende de RSSI puntual, PLR ni conectividad IP.
+
+**Estado:** commit local atómico, sin `amend` y sin `push`.
+

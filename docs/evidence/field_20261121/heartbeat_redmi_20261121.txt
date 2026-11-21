@@ -1,0 +1,40 @@
+﻿
+11-21 17:30:19.974 I/BleAdvTransport( 6626): FragmentTx session=1 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:29.022 I/HeartbeatTx( 6626): rideId=ride-live-01 startedAtEpochMs=1795296619901 elapsedSec=0s 
+packetsEmitted=1
+11-21 17:30:32.047 I/BleAdvTransport( 6626): FragmentTx session=2 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:41.110 I/HeartbeatTx( 6626): rideId=ride-live-01 startedAtEpochMs=1795296619901 elapsedSec=12s 
+packetsEmitted=2
+11-21 17:30:41.187 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-73
+11-21 17:30:41.195 I/HeartbeatRx( 6626): shortId=9120 seq=0 rssi=-73 hops=1 at=1795296641187
+11-21 17:30:41.231 I/BleAdvTransport( 6626): FragmentTx session=3 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:44.568 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-70
+11-21 17:30:50.282 I/BleAdvTransport( 6626): FragmentTx session=4 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:53.231 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-70
+11-21 17:30:53.246 I/HeartbeatRx( 6626): shortId=9120 seq=1 rssi=-70 hops=1 at=1795296653231
+11-21 17:30:56.644 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-72
+11-21 17:30:59.347 I/BleAdvTransport( 6626): FragmentTx session=5 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:30:59.351 I/HeartbeatTx( 6626): rideId=ride-live-01 startedAtEpochMs=1795296619901 elapsedSec=24s 
+packetsEmitted=3
+11-21 17:31:02.246 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-71
+11-21 17:31:05.627 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-78
+11-21 17:31:08.422 I/BleAdvTransport( 6626): FragmentTx session=6 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:11.264 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-77
+11-21 17:31:11.272 I/HeartbeatRx( 6626): shortId=9120 seq=2 rssi=-77 hops=1 at=1795296671264
+11-21 17:31:14.636 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-71
+11-21 17:31:17.480 I/BleAdvTransport( 6626): FragmentTx session=7 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:17.483 I/HeartbeatTx( 6626): rideId=ride-live-01 startedAtEpochMs=1795296619901 elapsedSec=42s 
+packetsEmitted=4
+11-21 17:31:20.318 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-70
+11-21 17:31:23.683 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-69
+11-21 17:31:26.531 I/BleAdvTransport( 6626): FragmentTx session=8 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:29.307 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-69
+11-21 17:31:29.320 I/HeartbeatRx( 6626): shortId=9120 seq=3 rssi=-69 hops=1 at=1795296689307
+11-21 17:31:32.674 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-70
+11-21 17:31:35.598 I/BleAdvTransport( 6626): FragmentTx session=9 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-21 17:31:35.603 I/HeartbeatTx( 6626): rideId=ride-live-01 startedAtEpochMs=1795296619901 elapsedSec=60s 
+packetsEmitted=5
+11-21 17:31:38.344 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-69
+11-21 17:31:41.693 I/BleAdvTransport( 6626): FragmentReassembled bytes=52 rssi=-68
+
+

@@ -106,28 +106,92 @@ class MeshConvoyStatusScreenTest {
 
     @Test
     fun testSemaforoGlobal() {
-        // 1. Malla Activa: Varios peers con buen RSSI y bajo PLR
+        val now = 1_700_000_000_000L
+
+        // 1. Malla Activa: heartbeats presentes y RSSI medio por encima de -85 dBm
         val healthyPeers = listOf(
-            MeshPeerLiveState(shortId = 2u, name = "A", roleInConvoy = "Punta", rssiDbm = -60, hopCount = 0, batteryPercent = 90, plrPercent = 0.5),
-            MeshPeerLiveState(shortId = 3u, name = "B", roleInConvoy = "Scout", rssiDbm = -70, hopCount = 1, batteryPercent = 70, plrPercent = 1.2)
+            MeshPeerLiveState(
+                shortId = 2u, name = "A", roleInConvoy = "Punta", rssiDbm = -60, hopCount = 0,
+                batteryPercent = 90, plrPercent = 0.5,
+                rssiSamples = listOf(
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 6_000L, -60),
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 2_000L, -64)
+                )
+            ),
+            MeshPeerLiveState(
+                shortId = 3u, name = "B", roleInConvoy = "Scout", rssiDbm = -70, hopCount = 1,
+                batteryPercent = 70, plrPercent = 1.2,
+                rssiSamples = listOf(com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 1_000L, -70))
+            )
         )
-        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(healthyPeers))
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(healthyPeers, now))
 
-        // 2. Malla Débil: RSSI degradado o PLR alto (> 8%)
+        // 2. Malla Débil: promedio de los últimos 10 s por debajo de -85 dBm
         val weakPeers = listOf(
-            MeshPeerLiveState(shortId = 2u, name = "A", roleInConvoy = "Punta", rssiDbm = -85, hopCount = 2, batteryPercent = 20, plrPercent = 9.5),
-            MeshPeerLiveState(shortId = 3u, name = "B", roleInConvoy = "Rider", rssiDbm = -88, hopCount = 3, batteryPercent = 15, plrPercent = 12.0)
+            MeshPeerLiveState(
+                shortId = 2u, name = "A", roleInConvoy = "Punta", rssiDbm = -85, hopCount = 2,
+                batteryPercent = 20, plrPercent = 9.5,
+                rssiSamples = listOf(
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 8_000L, -84),
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 5_000L, -92),
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 2_000L, -90)
+                )
+            )
         )
-        assertEquals(GlobalMeshStatus.WEAK, GlobalMeshStatus.evaluate(weakPeers))
+        assertEquals(GlobalMeshStatus.WEAK, GlobalMeshStatus.evaluate(weakPeers, now))
 
-        // 3. Malla Caída: Sin peers
-        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(emptyList()))
+        // 3. Malla Caída: sin peers (o todos declarados perdidos por timeout de heartbeats)
+        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(emptyList(), now))
+        assertEquals(
+            GlobalMeshStatus.DOWN,
+            GlobalMeshStatus.evaluate(listOf(healthyPeers.first().copy(isLost = true)), now)
+        )
+    }
+
+    @Test
+    fun testUnaLecturaPuntualNoDeclaraMallaDebil() {
+        val now = 1_700_000_000_000L
+        val peer = MeshPeerLiveState(
+            shortId = 5u, hopCount = 0, batteryPercent = 60,
+            rssiDbm = -99,
+            rssiSamples = listOf(com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 500L, -99))
+        )
+        // Con una sola muestra por debajo del umbral NO se degrada: hace falta el promedio de 10 s.
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
+    }
+
+    @Test
+    fun testPlrYOstadoIpNoDeclaranMallaDebil() {
+        val now = 1_700_000_000_000L
+        val peer = MeshPeerLiveState(
+            shortId = 6u, hopCount = 0, batteryPercent = 60, plrPercent = 87.0,
+            rssiSamples = listOf(
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 7_000L, -55),
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 1_000L, -60)
+            )
+        )
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
+    }
+
+    @Test
+    fun testMuestrasFueraDeLaVentanaDe10sSeIgnoran() {
+        val now = 1_700_000_000_000L
+        val peer = MeshPeerLiveState(
+            shortId = 7u, hopCount = 0, batteryPercent = 60,
+            rssiSamples = listOf(
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 30_000L, -95),
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 11_000L, -95),
+                com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 4_000L, -50)
+            )
+        )
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
     }
 
     @Test
     fun testEmptyState() {
+        val now = 1_700_000_000_000L
         val emptyPeers = emptyList<MeshPeerLiveState>()
-        val status = GlobalMeshStatus.evaluate(emptyPeers)
+        val status = GlobalMeshStatus.evaluate(emptyPeers, now)
         assertEquals("Malla caída", status.label)
         assertEquals("🔴", status.emoji)
         assertTrue("El conjunto de peers debe estar vacío", emptyPeers.isEmpty())
@@ -169,9 +233,10 @@ class MeshConvoyStatusScreenTest {
 
     @Test
     fun testMapeoPeersVacios() {
-        val mapped = mapPeerTracksToMeshPeerLiveStates(emptyMap(), nowEpochMs = 1_700_000_000_000L)
+        val now = 1_700_000_000_000L
+        val mapped = mapPeerTracksToMeshPeerLiveStates(emptyMap(), nowEpochMs = now)
         assertTrue("Sin peers reales el monitor debe mostrar estado vacío", mapped.isEmpty())
-        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(mapped))
+        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(mapped, now))
     }
 
     @Test
@@ -209,9 +274,41 @@ class MeshConvoyStatusScreenTest {
         assertEquals("No disponible", peer.roleInConvoy)
         assertNull(peer.rssiDbm)
 
-        assertEquals(GlobalMeshStatus.WEAK, GlobalMeshStatus.evaluate(listOf(peer)))
+        // PLR alto sin historial RSSI no degrada el semáforo: la pérdida es solo por timeout.
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
+        assertFalse(peer.isLost)
         assertEquals("No disponible", formatConvoyRole(peer.roleInConvoy))
         assertNull(RssiSignalLevel.fromDbmOrNull(peer.rssiDbm))
+    }
+
+    @Test
+    fun testMapeoPropagaHistorialRssiParaLaVentanaDe10s() {
+        val now = 1_700_000_100_000L
+        val samples = listOf(
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 6_000L, -60),
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample(now - 2_000L, -62)
+        )
+        val track = com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack(
+            shortId = 11u,
+            lastLatitude = 19.3,
+            lastLongitude = -99.1,
+            lastSpeedKmh = 0,
+            lastBatteryPercent = 87,
+            isSos = false,
+            lastSeenEpochMs = now,
+            firstSequence = 1,
+            lastSequence = 3,
+            expectedBeats = 3,
+            receivedBeats = 3,
+            consecutiveAfterLossBeats = 0,
+            isLost = false,
+            lastHops = 0,
+            lastRssiDbm = -62,
+            rssiSamples = samples
+        )
+        val peer = mapPeerTrackToMeshPeerLiveState(track, nowEpochMs = now)
+        assertEquals(samples, peer.rssiSamples)
+        assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
     }
 
     @Test

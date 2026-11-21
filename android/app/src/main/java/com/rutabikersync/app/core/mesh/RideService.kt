@@ -664,8 +664,8 @@ class RideSessionController(
         runCatching {
             val elapsedSec = ((nowEpochMs - current.startedAtEpochMs) / 1000L).coerceAtLeast(0L)
             Log.i(
-                "RideService",
-                "HeartbeatTx rideId=${current.rideId} startedAtEpochMs=${current.startedAtEpochMs} " +
+                "HeartbeatTx",
+                "rideId=${current.rideId} startedAtEpochMs=${current.startedAtEpochMs} " +
                     "elapsedSec=${elapsedSec}s packetsEmitted=${engine.metrics.value.packetsEmitted}"
             )
         }

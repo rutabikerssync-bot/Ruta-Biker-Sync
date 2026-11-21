@@ -1,0 +1,23 @@
+﻿
+11-21 17:47:38.879 I/BleAdvTransport(16300): BleAdvTransport.send burst#=281 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:40.005 I/BleAdvTransport(16300): BleAdvTransport.send burst#=282 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:41.132 I/BleAdvTransport(16300): BleAdvTransport.send burst#=283 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:42.257 I/BleAdvTransport(16300): BleAdvTransport.send burst#=284 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:42.944 I/BleAdvTransport(16300): FragmentReassembled bytes=120 rssi=-65
+11-21 17:47:43.385 I/BleAdvTransport(16300): BleAdvTransport.send burst#=285 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:44.511 I/BleAdvTransport(16300): BleAdvTransport.send burst#=286 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:45.640 I/BleAdvTransport(16300): BleAdvTransport.send burst#=287 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:46.765 I/BleAdvTransport(16300): BleAdvTransport.send burst#=288 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:47:51.723 I/BleAdvTransport(16300): FragmentReassembled bytes=120 rssi=-60
+11-21 17:47:51.728 I/MeshRelayEngine(16300): SOS_VERIFIED: sender=11034, hops=0, sigValid=true, incident=2, blood=1
+11-21 17:47:59.608 I/BleAdvTransport(16300): FragmentReassembled bytes=120 rssi=-57
+11-21 17:48:05.917 I/BleAdvTransport(16300): FragmentTx session=31 bytes=120 fragments=8 maxBytes=24 priority=SOS
+11-21 17:48:05.919 I/BleAdvTransport(16300): BleAdvTransport.send burst#=305 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:48:07.044 I/BleAdvTransport(16300): BleAdvTransport.send burst#=306 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:48:08.170 I/BleAdvTransport(16300): BleAdvTransport.send burst#=307 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:48:09.296 I/BleAdvTransport(16300): BleAdvTransport.send burst#=308 mode=LEGACY_1M delivery=BURST priority=SOS
+11-21 17:48:09.989 I/BleAdvTransport(16300): FragmentReassembled bytes=120 rssi=-58
+11-21 17:48:09.992 I/MeshRelayEngine(16300): SOS_VERIFIED: sender=11034, hops=0, sigValid=true, incident=2, blood=1
+11-21 17:48:10.421 I/BleAdvTransport(16300): BleAdvTransport.send burst#=309 mode=LEGACY_1M delivery=BURST priority=SOS
+
+

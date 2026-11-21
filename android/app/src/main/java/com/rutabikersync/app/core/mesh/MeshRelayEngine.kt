@@ -88,6 +88,9 @@ class MeshRelayEngine(
         const val LOST_TIMEOUT_MS: Long = HEARTBEAT_INTERVAL_MS * LOST_THRESHOLD_BEATS
         const val RECONNECT_HYSTERESIS_BEATS: Int = 2    // Histéresis para evitar falsas alarmas en curvas/túneles
 
+        /** Muestras RSSI conservadas por peer; la ventana temporal la decide la UI (10 s). */
+        const val MAX_RSSI_SAMPLES: Int = 32
+
         // Constantes de Flooding Multi-Salto Hito 3
         const val MIN_RELAY_JITTER_MS = 10L
         const val MAX_RELAY_JITTER_MS = 35L
@@ -127,8 +130,13 @@ class MeshRelayEngine(
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
         val lastHops: Int,
-        val lastRssiDbm: Int? = null
+        val lastRssiDbm: Int? = null,
+        /** Historial acotado con marca de tiempo; solo alimenta el indicador visual de barras. */
+        val rssiSamples: List<RssiSample> = emptyList()
     )
+
+    /** Muestra puntual de RSSI. Nunca se usa para declarar pérdida de peer. */
+    data class RssiSample(val timestampEpochMs: Long, val rssiDbm: Int)
 
     data class PacketLogEntry(
         val timestampUtc: String,
@@ -1658,6 +1666,13 @@ class MeshRelayEngine(
                 }
             } else {
                 updatePeerTrackLocked(packet, nowEpochMs, rssi)
+                if (packet.priority == Transport.Priority.POSITION && !packet.isSos) {
+                    android.util.Log.i(
+                        "HeartbeatRx",
+                        "shortId=${packet.shortId} seq=${packet.sequenceNumber} " +
+                            "rssi=$rssi hops=${packet.hopsTaken} at=$nowEpochMs"
+                    )
+                }
             }
 
             val decremented = if (relayEnabled && !lifecycleRejected) packet.decrementTtlForRelay() else null
@@ -1882,6 +1897,15 @@ class MeshRelayEngine(
         val consecutiveRecovery = if (existing?.isLost == true) existing.consecutiveAfterLossBeats + 1 else 0
         val stillLost = if (existing?.isLost == true) consecutiveRecovery < RECONNECT_HYSTERESIS_BEATS else false
 
+        // El RSSI se conserva solo como historial para las barras visuales; la pérdida
+        // sigue gobernada exclusivamente por evaluatePeerTimeouts (15 s sin heartbeats).
+        val rssiSamples = if (rssi == null) {
+            existing?.rssiSamples.orEmpty()
+        } else {
+            (existing?.rssiSamples.orEmpty() + RssiSample(nowEpochMs, rssi))
+                .takeLast(MAX_RSSI_SAMPLES)
+        }
+
         peerMap[packet.shortId] = PeerTrack(
             shortId = packet.shortId,
             lastLatitude = packet.latitude,
@@ -1897,7 +1921,8 @@ class MeshRelayEngine(
             consecutiveAfterLossBeats = if (stillLost) consecutiveRecovery else 0,
             isLost = stillLost,
             lastHops = packet.hopsTaken,
-            lastRssiDbm = rssi ?: existing?.lastRssiDbm
+            lastRssiDbm = rssi ?: existing?.lastRssiDbm,
+            rssiSamples = rssiSamples
         )
     }
 

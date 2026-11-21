@@ -180,6 +180,37 @@ class HeartbeatBatteryPhase3Test {
     }
 
     @Test
+    fun `la perdida de peers depende solo del timeout de heartbeats no del rssi`() = runTest(UnconfinedTestDispatcher()) {
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val monitor = PeerHealthMonitor(engine = receiver)
+        val t0 = 2_000_000L
+
+        // Un heartbeat con RSSI pésimo sigue contando como presente: el RSSI no declara pérdida.
+        val pkt = MeshPacket.createSigned(
+            shortId = 2u,
+            latitude = 19.4300,
+            longitude = -99.1332,
+            speedKmh = 60,
+            bearingDegrees = 180f,
+            batteryPercent = 70,
+            sequenceNumber = 1,
+            ttl = 4,
+            rideSecretKey = secretKey
+        )
+        receiver.onRawPacketReceived(pkt.toByteArray(), nowEpochMs = t0, rssi = -105)
+        val healthy = monitor.evaluateHealth(t0)
+        assertEquals(1, healthy.onlinePeersCount)
+        assertEquals(0, healthy.lostPeersCount)
+        assertFalse(healthy.isIslandActive)
+
+        // Sin heartbeats durante 16 s: sí se declara pérdida, exclusivamente por timeout.
+        val lost = monitor.evaluateHealth(t0 + 16_000L)
+        assertEquals(0, lost.onlinePeersCount)
+        assertEquals(1, lost.lostPeersCount)
+        assertTrue(receiver.peers.value.getValue(2u).isLost)
+    }
+
+    @Test
     fun `Bloque 3_5 BatteryAwareness aplica ahorro automatico configurable a menos de 20 y modo supervivencia a 5 por ciento`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
         val controller = RideSessionController(

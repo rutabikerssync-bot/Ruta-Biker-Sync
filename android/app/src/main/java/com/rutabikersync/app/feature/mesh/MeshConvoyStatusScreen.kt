@@ -63,17 +63,30 @@ enum class GlobalMeshStatus(val label: String, val color: Color, val emoji: Stri
     DOWN("Malla caída", Color(0xFFEF4444), "🔴");
 
     companion object {
-        fun evaluate(peers: List<MeshPeerLiveState>): GlobalMeshStatus {
-            if (peers.isEmpty()) return DOWN
-            val knownRssi = peers.mapNotNull { it.rssiDbm }
-            val knownPlr = peers.mapNotNull { it.plrPercent }
-            val avgRssi = if (knownRssi.isNotEmpty()) knownRssi.average() else null
-            val maxPlr = knownPlr.maxOrNull()
-            return when {
-                avgRssi != null && avgRssi < -82 -> WEAK
-                maxPlr != null && maxPlr > 8.0 -> WEAK
-                else -> ACTIVE
+        /** Ventana de histéresis: una lectura puntual de RSSI nunca degrada la malla. */
+        const val WEAK_RSSI_WINDOW_MS: Long = 10_000L
+        const val WEAK_RSSI_THRESHOLD_DBM: Double = -85.0
+        /** Mínimo de latidos observados en la ventana para no reaccionar a una lectura aislada. */
+        const val MIN_RSSI_SAMPLES_FOR_WEAK: Int = 3
+
+        /**
+         * Evalúa el semáforo usando SOLO heartbeats (timeout) para pérdida y el promedio
+         * de RSSI de los últimos 10 s para "malla débil". El estado IP y el PLR no intervienen:
+         * el PLR sigue visible como métrica, pero no declara estado.
+         */
+        fun evaluate(peers: List<MeshPeerLiveState>, nowEpochMs: Long): GlobalMeshStatus {
+            if (peers.isEmpty() || peers.all { it.isLost }) return DOWN
+            val windowStart = nowEpochMs - WEAK_RSSI_WINDOW_MS
+            val samplesInWindow = peers
+                .flatMap { it.rssiSamples }
+                .filter { it.timestampEpochMs in windowStart..nowEpochMs }
+                .map { it.rssiDbm }
+            val avgRssi = if (samplesInWindow.size >= MIN_RSSI_SAMPLES_FOR_WEAK) {
+                samplesInWindow.average()
+            } else {
+                null
             }
+            return if (avgRssi != null && avgRssi < WEAK_RSSI_THRESHOLD_DBM) WEAK else ACTIVE
         }
     }
 }
@@ -117,7 +130,10 @@ data class MeshPeerLiveState(
     val plrPercent: Double? = null,
     val lastSeenSecondsAgo: Int = 1,
     val expectedBeats: Int? = null,
-    val receivedBeats: Int? = null
+    val receivedBeats: Int? = null,
+    /** Solo alimenta el indicador de barras; la pérdida se decide por timeout de heartbeats. */
+    val rssiSamples: List<com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample> = emptyList(),
+    val isLost: Boolean = false
 )
 
 /**
@@ -146,7 +162,7 @@ fun MeshConvoyStatusScreen(
     var isLpnState by remember { mutableStateOf(isLocalLpnActive) }
     var selectedMedicalSheetPeer by remember { mutableStateOf<MeshPeerLiveState?>(null) }
 
-    val meshStatus = GlobalMeshStatus.evaluate(peers)
+    val meshStatus = GlobalMeshStatus.evaluate(peers, nowEpochMs = System.currentTimeMillis())
 
     Scaffold(
         containerColor = DarkSlate950,
@@ -868,7 +884,9 @@ fun mapPeerTrackToMeshPeerLiveState(
         plrPercent = plrPercent,
         lastSeenSecondsAgo = lastSeenSecondsAgo,
         expectedBeats = expected,
-        receivedBeats = received
+        receivedBeats = received,
+        rssiSamples = track.rssiSamples,
+        isLost = track.isLost
     )
 }
 
