@@ -126,7 +126,15 @@ class MeshRelayEngine(
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
         val lastHops: Int,
-        val lastRssiDbm: Int? = null
+        val lastRssiDbm: Int? = null,
+        /**
+         * Instante del último fix GPS válido recibido (0L si el peer nunca reportó uno).
+         * Se conserva cuando llega un heartbeat con centinela (0,0) para que el mapa
+         * pueda mostrar la última posición real con su antigüedad, sin inventar coordenadas.
+         */
+        val lastPositionEpochMs: Long = 0L,
+        /** true cuando el último heartbeat trajo un centinela y se conservó el fix anterior. */
+        val isPositionRetained: Boolean = false
     )
 
     data class PacketLogEntry(
@@ -1692,10 +1700,36 @@ class MeshRelayEngine(
         val consecutiveRecovery = if (existing?.isLost == true) existing.consecutiveAfterLossBeats + 1 else 0
         val stillLost = if (existing?.isLost == true) consecutiveRecovery < RECONNECT_HYSTERESIS_BEATS else false
 
+        // Fix A: el centinela (0,0) que publica el emisor cuando caduca su fix GPS (30 s)
+        // no debe borrar la última coordenada real del peer. Si el paquete entrante no es
+        // renderizable y ya teníamos un fix válido, se conservan coordenadas y marca de
+        // tiempo. `lastSeenEpochMs` SÍ se refresca en cada heartbeat: la vida del peer
+        // sigue dependiendo solo del timeout de 15 s, nunca de la calidad del GPS/RSSI.
+        val incomingPositionValid = MeshTelemetry.isValidPosition(packet.latitude, packet.longitude)
+        val previousValidPosition = existing?.takeIf {
+            MeshTelemetry.isValidPosition(it.lastLatitude, it.lastLongitude)
+        }
+        val effectiveLatitude = if (incomingPositionValid) {
+            packet.latitude
+        } else {
+            previousValidPosition?.lastLatitude ?: packet.latitude
+        }
+        val effectiveLongitude = if (incomingPositionValid) {
+            packet.longitude
+        } else {
+            previousValidPosition?.lastLongitude ?: packet.longitude
+        }
+        val effectivePositionEpochMs = if (incomingPositionValid) {
+            nowEpochMs
+        } else {
+            previousValidPosition?.lastPositionEpochMs ?: 0L
+        }
+        val retainedPreviousPosition = !incomingPositionValid && previousValidPosition != null
+
         peerMap[packet.shortId] = PeerTrack(
             shortId = packet.shortId,
-            lastLatitude = packet.latitude,
-            lastLongitude = packet.longitude,
+            lastLatitude = effectiveLatitude,
+            lastLongitude = effectiveLongitude,
             lastSpeedKmh = packet.speedKmh,
             lastBatteryPercent = packet.batteryPercent,
             isSos = packet.isSos,
@@ -1707,7 +1741,9 @@ class MeshRelayEngine(
             consecutiveAfterLossBeats = if (stillLost) consecutiveRecovery else 0,
             isLost = stillLost,
             lastHops = packet.hopsTaken,
-            lastRssiDbm = rssi ?: existing?.lastRssiDbm
+            lastRssiDbm = rssi ?: existing?.lastRssiDbm,
+            lastPositionEpochMs = effectivePositionEpochMs,
+            isPositionRetained = retainedPreviousPosition
         )
     }
 

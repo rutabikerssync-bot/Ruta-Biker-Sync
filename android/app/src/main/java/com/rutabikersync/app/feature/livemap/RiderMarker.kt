@@ -106,7 +106,12 @@ data class RiderMarkerUiModel(
     /** groupId real del rider; `null` cuando no se conoce. */
     val groupId: String? = null,
     /** true cuando el perfil real se oculta por club distinto o desconocido. */
-    val profileRedacted: Boolean = false
+    val profileRedacted: Boolean = false,
+    /**
+     * Edad en segundos de una posición conservada porque el peer dejó de enviar un fix
+     * válido (centinela 0,0). `null` cuando la posición es actual: no se muestra el aviso.
+     */
+    val positionAgeSeconds: Long? = null
 ) {
     /**
      * Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (ej. "J.M."),
@@ -214,6 +219,9 @@ fun RiderMarker(
             append(marker.roleLabel)
         }
         append(", ${marker.speedKmh} km/h")
+        marker.positionAgeSeconds?.let { ageSeconds ->
+            append(", posición de hace $ageSeconds segundos")
+        }
     }
 
     Column(
@@ -285,6 +293,9 @@ fun RiderMarker(
                     text = buildString {
                         append(marker.routeStatus.symbolAndLabel)
                         append(" · ${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
+                        marker.positionAgeSeconds?.let { ageSeconds ->
+                            append(" · Posición de hace $ageSeconds s")
+                        }
                         if (!leaderDistanceText.isNullOrBlank()) {
                             append(" · Líder a ").append(leaderDistanceText)
                         }
@@ -405,6 +416,18 @@ fun RiderMarker(
                     )
                 }
             }
+        }
+
+        // Aviso honesto siempre visible cuando el pin corresponde a la última posición
+        // válida retenida tras caducar el GPS del peer (Fix A). Sin fix propio no se inventa
+        // una coordenada: solo se envejece la última real con su antigüedad.
+        marker.positionAgeSeconds?.let { ageSeconds ->
+            Text(
+                text = "⏱ hace ${ageSeconds}s",
+                color = BikerColors.PrimaryAmber,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
     }

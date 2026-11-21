@@ -639,3 +639,38 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
 - Enlace BLE bidireccional constante en `LEGACY_1M` (`AdvRx` en TECNO `rssi=-57 dBm`, `AdvRx` en Redmi `rssi=-72 dBm`).
 - Evidencia: `docs/evidence/tecno_dark_map_rendered_20261121.png`, `docs/evidence/redmi_dark_map_rendered_20261121.png`.
 
+### FIX A - Retención de última posición válida del peer cuando expira el GPS - 2026-11-21
+
+**Commit atómico**: `fix(mesh): retener última posición válida del peer cuando el GPS expira` (sin `amend`, sin `push`).
+
+**Causa real**: `RideService.emitHeartbeatNow` publica el centinela `(0,0)` cuando el fix local supera `MAX_FIX_AGE_MS = 30_000`. `MeshRelayEngine.updatePeerTrackLocked` sobrescribía la última coordenada real con ese centinela; `LiveMapController.isRenderablePeerPosition` descartaba el pin, mientras `PeerHealthMonitor` (timeout-only de 15 s) y el Monitor seguían mostrando el peer en línea. Resultado: HUD oscilando `1↔2 riders` y mapa sin el peer aunque la malla BLE estuviera viva.
+
+**Cambio**:
+- `MeshRelayEngine.PeerTrack` añade `lastPositionEpochMs` e `isPositionRetained`. Si el heartbeat entrante no es válido según `MeshTelemetry.isValidPosition` y existía un fix válido, se conservan latitud/longitud y la marca de tiempo del último fix. `lastSeenEpochMs` se refresca en **cada** heartbeat y `isLost` sigue gobernado solo por el timeout de 15 s.
+- `LiveMapController` calcula la antigüedad solo cuando `isPositionRetained` y la propaga a `RiderMarkerUiModel.positionAgeSeconds`. `RiderMarker` muestra un chip ámbar `⏱ hace Ns`, y lo añade también a la tarjeta de detalle y al `contentDescription`. El pin es la última posición **real**, nunca una coordenada inventada.
+- `PeerPositionValidityTest` reescribe sus casos: `(0,0)` tras fix válido conserva posición y marcador con aviso de antigüedad; `(0,0)` sin fix previo no se dibuja; peer online con posición retenida mantiene `ridersCount = 2` y solo se pierde por timeout; se conserva el rechazo del fallback CDMX y el caso de posición válida.
+
+**Alcance no tocado**: cifrado ChaCha20/Ed25519, `HeartbeatFrame`, wire format, GATT, PTT/voz, chat, liderazgo, cadencia del heartbeat (Fix B sigue sin autorizar) y `PeerHealthMonitor.kt`. `Ed25519SosCrypto.kt` permanece modificado en el árbol de trabajo pero **fuera de este commit** por exigir autorización explícita.
+
+| Tarea | Comando / acción | Resultado |
+| --- | --- | --- |
+| Test focalizado | `.\gradlew.bat :app:testStandardDebugUnitTest --tests '*PeerPositionValidityTest' --rerun-tasks --no-daemon` | BUILD SUCCESSFUL |
+| Suite JVM completa | `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` | **517 tests, 0 fallos, 0 errores, 0 skipped** |
+| Compilación + APK | `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --rerun-tasks --no-daemon` | BUILD SUCCESSFUL; `app-standard-debug.apk` instalado en TECNO `098813734B105395` y Redmi `b2c398bb` |
+| Aislamiento del cambio ajeno | `git checkout HEAD -- Ed25519SosCrypto.kt` antes de compilar/tests, restauración después | lo compilado/installado coincide con el commit propuesto |
+
+**Verificación hardware (35 min, dispositivos a 1 m)**: ejecutada del 18:47:26 al 19:23:40. Evidencia en `docs/evidence/fix_gps_retencion_20261121/`.
+
+| Observación | Resultado |
+| --- | --- |
+| Retención del pin tras expirar el GPS | **OK**. TECNO mostró `⏱ hace 184s` en el minuto 5 y el chip creció hasta `1484s` en el minuto 35 sobre la última coordenada real de Redmi; no apareció `(0,0)` ni CDMX. |
+| Heartbeats recibidos durante toda la rodada | **OK**. `HeartbeatTx`/`HeartbeatRx` y `FragmentReassembled` continuos en ambos dispositivos; 0 `onScanFailed`. |
+| `2 riders` estable durante toda la rodada | **No logrado**. El HUD osciló entre `2 riders` y `1 rider`; al cierre ambos muestran `1 rider`. Causa medida: `HeartbeatRx` en TECNO cada **~27 s** (`27,27,27,27`), por encima del timeout de 15 s. El monitor declaró pérdida por timeout, no por GPS. |
+| Fix B (cadencia) | **No aplicado**: no autorizado. Queda como dependencia para estabilizar `2 riders` en campo. |
+
+Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders`; las celdas vacías significan `1 rider` (singular), confirmado en `final_ui_*.xml`. Detalle en `docs/evidence/fix_gps_retencion_20261121/README.md`.
+
+**Conclusión**: el Fix A hace lo que promete — conservar y envejecer honestamente la última posición válida del peer cuando el emisor publica el centinela `(0,0)`— y no rompe chat, PTT ni SOS. La inestabilidad residual de `ridersCount` en campo procede de la cadencia de heartbeats (Fix B), no de este cambio.
+
+**Estado:** commit local atómico, sin `amend` y sin `push`.
+
