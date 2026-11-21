@@ -49,9 +49,11 @@ data class RouteDeviationState(
 object RouteDeviationDetector {
 
     const val DEVIATION_THRESHOLD_METERS = 150 // Margen de desvío para disparar alerta
+    const val DEVIATION_SUSTAIN_DURATION_MS = 10_000L // Histéresis: evita alertas ruidosas por jitter GPS
     const val AUTO_RESUME_SPEED_THRESHOLD_KMH = 18f // Velocidad para reanudar marcha tras parada voluntaria
 
     private val _deviationState = MutableStateFlow(RouteDeviationState())
+    private var deviationStartedAtMs: Long? = null
     val deviationState: StateFlow<RouteDeviationState> = _deviationState.asStateFlow()
 
     private var activePolyline: List<LatLngPoint> = emptyList()
@@ -61,20 +63,27 @@ object RouteDeviationDetector {
      */
     fun setActiveRoutePolyline(points: List<LatLngPoint>) {
         activePolyline = points
+        // Una ruta nueva inicia una ventana nueva de estudio del corredor.
+        deviationStartedAtMs = null
     }
 
     /**
      * Evalúa la posición actual del piloto frente a la polilínea activa.
      */
-    fun updateRiderLocation(location: LatLngPoint, speedKmh: Float = 0f) {
+    fun updateRiderLocation(
+        location: LatLngPoint,
+        speedKmh: Float = 0f,
+        nowEpochMs: Long = System.currentTimeMillis()
+    ) {
         val currentState = _deviationState.value
 
         // Si está en parada voluntaria, verificar si ya reanudó la marcha a velocidad de crucero
         if (currentState.status == DeviationStatus.VOLUNTARY_STOP) {
             if (speedKmh >= AUTO_RESUME_SPEED_THRESHOLD_KMH) {
                 // Auto-reanudación: el piloto arrancó la moto y reanudó la marcha
-                resumeRouteTracking()
+                resumeRouteTracking(nowEpochMs)
             } else {
+                deviationStartedAtMs = null
                 _deviationState.value = currentState.copy(
                     lastKnownLocation = location,
                     speedKmh = speedKmh
@@ -84,6 +93,7 @@ object RouteDeviationDetector {
         }
 
         if (activePolyline.size < 2) {
+            deviationStartedAtMs = null
             _deviationState.value = RouteDeviationState(
                 status = DeviationStatus.ON_TRACK,
                 distanceToRouteMeters = 0,
@@ -96,11 +106,18 @@ object RouteDeviationDetector {
 
         val minDistanceMeters = computeMinDistanceToPolylineMeters(location, activePolyline)
         val isDeviated = minDistanceMeters > DEVIATION_THRESHOLD_METERS
+        if (!isDeviated) {
+            deviationStartedAtMs = null
+        } else if (deviationStartedAtMs == null) {
+            deviationStartedAtMs = nowEpochMs
+        }
+        val sustainedDeviation = isDeviated &&
+            nowEpochMs - (deviationStartedAtMs ?: nowEpochMs) >= DEVIATION_SUSTAIN_DURATION_MS
 
         _deviationState.value = RouteDeviationState(
             status = if (isDeviated) DeviationStatus.DEVIATED else DeviationStatus.ON_TRACK,
             distanceToRouteMeters = minDistanceMeters,
-            isAlertActive = isDeviated,
+            isAlertActive = sustainedDeviation,
             stopReason = null,
             stopStartedAtMillis = null,
             lastKnownLocation = location,
@@ -113,6 +130,7 @@ object RouteDeviationDetector {
      * y notificando el motivo de la parada.
      */
     fun activateVoluntaryStop(reason: StopReason = StopReason.REST_PHOTOS) {
+        deviationStartedAtMs = null
         _deviationState.value = _deviationState.value.copy(
             status = DeviationStatus.VOLUNTARY_STOP,
             isAlertActive = false,
@@ -124,17 +142,20 @@ object RouteDeviationDetector {
     /**
      * Reanuda el monitoreo normal de ruta tras haber estado en parada voluntaria.
      */
-    fun resumeRouteTracking() {
+    fun resumeRouteTracking(nowEpochMs: Long = System.currentTimeMillis()) {
         val currentLoc = _deviationState.value.lastKnownLocation
         val speed = _deviationState.value.speedKmh
 
         if (currentLoc != null && activePolyline.size >= 2) {
             val dist = computeMinDistanceToPolylineMeters(currentLoc, activePolyline)
             val isDeviated = dist > DEVIATION_THRESHOLD_METERS
+            // Al reanudar tras una parada voluntaria, una desviación se confirma
+            // nuevamente durante 10 s; no se revive una alarma antigua de golpe.
+            deviationStartedAtMs = if (isDeviated) nowEpochMs else null
             _deviationState.value = RouteDeviationState(
                 status = if (isDeviated) DeviationStatus.DEVIATED else DeviationStatus.ON_TRACK,
                 distanceToRouteMeters = dist,
-                isAlertActive = isDeviated,
+                isAlertActive = false,
                 stopReason = null,
                 stopStartedAtMillis = null,
                 lastKnownLocation = currentLoc,
@@ -158,6 +179,7 @@ object RouteDeviationDetector {
      */
     fun reset() {
         activePolyline = emptyList()
+        deviationStartedAtMs = null
         _deviationState.value = RouteDeviationState()
     }
 
@@ -218,16 +240,20 @@ object RouteDeviationDetector {
             return sqrt(dx * dx + dy * dy)
         }
 
-        // Proyección t clamped a [0, 1]
         val apx = px - ax
         val apy = py - ay
         val t = ((apx * abx + apy * aby) / abLenSq).coerceIn(0.0, 1.0)
 
-        val projX = ax + t * abx
-        val projY = ay + t * aby
-
-        val dx = px - projX
-        val dy = py - projY
-        return sqrt(dx * dx + dy * dy)
+        val projected = LatLngPoint(
+            latitude = a.latitude + t * (b.latitude - a.latitude),
+            longitude = a.longitude + t * (b.longitude - a.longitude)
+        )
+        // Distancia geodésica al punto realmente proyectado; no se inventa un corredor.
+        return MotorcycleRoutingEngine.calculateHaversineKm(
+            p.latitude,
+            p.longitude,
+            projected.latitude,
+            projected.longitude
+        ) * 1000.0
     }
 }

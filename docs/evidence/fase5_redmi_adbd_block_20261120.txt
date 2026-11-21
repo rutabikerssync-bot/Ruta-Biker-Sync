@@ -1,0 +1,15 @@
+BLOQUEO FACTUAL ADB REDMI (2026-11-20T21:10)
+------------------------------------------------
+Dispositivo: Redmi (b2c398bb / IP 100.98.78.105)
+Estado de Red: Tailscale responde a ICMP ping (90ms RTT, 0% pérdida).
+Estado ADB:
+  Comando: adb connect 100.98.78.105:5555
+  Salida: cannot connect to 100.98.78.105:5555: No se puede establecer una conexión ya que el equipo de destino denegó expresamente dicha conexión. (10061)
+  Comando adb devices: solo lista 098813734B105395 (TECNO).
+
+Diagnóstico:
+  El daemon de depuración adbd en Redmi está detenido o el puerto TCP 5555 no está expuesto/habilitado.
+  Tailscale está activo a nivel de sistema operativo, pero adbd no acepta conexiones.
+
+Acción:
+  Conforme a docs/NEXT_AGENT_WORKPLAN.md se documenta honestamente el bloqueo de Redmi sin fabricar evidencia ni asumir aprobación bilateral en hardware mientras Redmi no esté conectado por USB directo o con adbd activo en puerto 5555.

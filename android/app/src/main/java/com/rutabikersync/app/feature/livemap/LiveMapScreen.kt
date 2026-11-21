@@ -433,6 +433,24 @@ fun LiveMapScreen(
         )
     }
 
+    // Histéresis integrada con la UI: el detector solo habilita la alerta tras
+    // >150 m sostenidos 10 s. Aquella transición dispara UNA recalculación
+    // automática, sin toque y sin reintentos por cada actualización de posición.
+    LaunchedEffect(deviationState.isAlertActive) {
+        if (!deviationState.isAlertActive || isRecalculatingRoute) return@LaunchedEffect
+        isRecalculatingRoute = true
+        val outcome = recalculateRouteUseCase(
+            currentLocation = deviationState.lastKnownLocation,
+            destination = scheduledRide?.destination
+        )
+        actionFeedback = when (outcome) {
+            RecalculateRouteOutcome.SUCCESS -> "✓ Ruta recalculada automáticamente sobre vías reales"
+            RecalculateRouteOutcome.OFFLINE -> "Sin conexión, usando ruta offline"
+            RecalculateRouteOutcome.NO_ROUTE -> "No se pudo recalcular. Sigue la ruta actual"
+        }
+        isRecalculatingRoute = false
+    }
+
     LaunchedEffect(scheduledRide) {
         scheduledRide?.selectedRoute?.waypoints?.let {
             RouteDeviationDetector.setActiveRoutePolyline(it)
@@ -506,10 +524,14 @@ fun LiveMapScreen(
     }
 
     BackHandler(enabled = true) {
-        if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
-            actionFeedback = "⚠ Para finalizar la rodada mantén presionado 3 s el botón inferior"
-        } else {
-            onStopRideHoldCompleted?.invoke()
+        when {
+            showMeshMonitor -> showMeshMonitor = false
+            showTacticalChat -> showTacticalChat = false
+            showOfflineMapsScreen -> showOfflineMapsScreen = false
+            rideServiceState.lifecycleState == RideLifecycleState.RUNNING -> {
+                actionFeedback = "⚠ Para finalizar la rodada mantén presionado 3 s el botón inferior"
+            }
+            else -> onStopRideHoldCompleted?.invoke()
         }
     }
 

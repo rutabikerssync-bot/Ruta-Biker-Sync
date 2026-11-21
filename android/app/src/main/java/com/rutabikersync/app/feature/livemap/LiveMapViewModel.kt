@@ -201,6 +201,15 @@ class LiveMapController(
         const val DEVIATION_THRESHOLD_METERS: Double = 150.0
         const val CORRIDOR_REFERENCE_LON: Double = -99.1332
 
+        private const val FALLBACK_CDMX_LATITUDE = 19.4326
+        private const val FALLBACK_CDMX_LONGITUDE = -99.1332
+
+        /** Un peer sin fix real no se dibuja sobre una coordenada centinela/CDMX. */
+        internal fun isRenderablePeerPosition(latitude: Double, longitude: Double): Boolean {
+            if (!MeshTelemetry.isValidPosition(latitude, longitude)) return false
+            return !(latitude == FALLBACK_CDMX_LATITUDE && longitude == FALLBACK_CDMX_LONGITUDE)
+        }
+
         fun defaultConvoyDirectory(): List<RiderDirectoryEntry> = listOf(
             RiderDirectoryEntry(
                 shortId = 1u,
@@ -432,8 +441,10 @@ class LiveMapController(
             )
         )
 
-        // 2. Marcadores de los peers recibidos por la mesh
+        // 2. Marcadores de los peers recibidos por la mesh. Sin fix GPS real no
+        // se coloca un pin geográfico artificial sobre CDMX u otro fallback.
         for ((peerId, track) in latestPeersFromMesh.entries.sortedBy { it.key }) {
+            if (!isRenderablePeerPosition(track.lastLatitude, track.lastLongitude)) continue
             val entry = directory[peerId] ?: RiderDirectoryEntry(
                 shortId = peerId,
                 fullName = "Piloto #${peerId.toInt()}",

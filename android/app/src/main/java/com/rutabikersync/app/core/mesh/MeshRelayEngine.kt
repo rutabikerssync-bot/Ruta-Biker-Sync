@@ -820,6 +820,9 @@ class MeshRelayEngine(
 
     private var collectJob: Job? = null
 
+    val isRunning: Boolean
+        get() = collectJob?.isActive == true
+
     private val _metrics = MutableStateFlow(buildReport())
     val metrics: StateFlow<MeshFieldReport> = _metrics.asStateFlow()
 
