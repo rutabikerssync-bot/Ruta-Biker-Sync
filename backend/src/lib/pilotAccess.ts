@@ -104,7 +104,7 @@ export function isPilotGateExempt(req: FastifyRequest): boolean {
   const path = (req.raw.url ?? '').split('?')[0];
   if (path === '/health') return true;
   if (path === '/v1/support/report') return true;
-  return !path.startsWith('/v1/') && path !== '/';
+  return !path.startsWith('/v1/');
 }
 
 export function isPilotOriginAllowed(config: PilotConfig, origin: string | undefined): boolean {
