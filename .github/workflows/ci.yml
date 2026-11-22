@@ -80,4 +80,13 @@ jobs:
             "configuration_version": "1"
           }
           EOF
-      - run: ./gradlew :app:testStandardDebugUnitTest
+      - name: Aislar clases de tests unitarios en JVMs separadas
+        run: |
+          cat > "$RUNNER_TEMP/rbs-test-isolation.gradle" <<'EOF'
+          allprojects {
+              tasks.withType(Test).configureEach {
+                  forkEvery = 1
+              }
+          }
+          EOF
+      - run: ./gradlew -I "$RUNNER_TEMP/rbs-test-isolation.gradle" :app:testStandardDebugUnitTest
