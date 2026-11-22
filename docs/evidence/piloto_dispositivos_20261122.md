@@ -46,6 +46,25 @@ secretas no aparecen en esta evidencia.
 También se verificó `POST /v1/support/device-telemetry` a través del túnel con
 respuesta 201 y `GET /health` con respuesta 200.
 
+## Correcciones posteriores (misma fecha)
+
+1. **Chat táctico ausente.** La rama piloto partía de `bceab59` y no incluía los
+   4 commits de `feat/paso-a-ui`. Se integraron mediante merge limpio
+   (`cfa6b05`): textura `biker_chat_pattern.png`, Dark Elite, avatares reales,
+   dedup, botonera auto-ocultable, 3A/3B y paneles Club/Individual. Los APKs
+   finales (105 MB) incluyen estos cambios.
+2. **Banner «Fastify offline» en el club.** Los móviles tenían guardada la URL
+   antigua del túnel (`groundwater-invited-third-originally…`) en
+   `rbs_pilot_prefs.xml`. El deep link se procesaba en `onCreate` antes de
+   `PilotTelemetry.install()`, por lo que `appContext` era null y
+   `applyRemoteConfig()` actualizaba la configuración en memoria pero no la
+   persistía; al reiniciar se restauraba la URL caída. Se invirtió el orden
+   (`3e031dd`) y se reenvió el deep link. Verificado con `run-as`:
+   ```
+   base_url = https://represents-runs-qualifications-direction.trycloudflare.com
+   ```
+   en ambos dispositivos.
+
 ## Notas operativas
 
 - La URL del quick tunnel cambia en cada arranque; al cambiar, basta reenviar el
@@ -53,5 +72,5 @@ respuesta 201 y `GET /health` con respuesta 200.
 - El backend debe arrancarse con ambas claves en `RBS_PILOT_ALLOWED_KEYS`.
 - La validación de separación real 5–50 m queda planificada: requiere mover los
   móviles físicamente.
-- Los logs temporales de diagnóstico añadidos durante la investigación se
-  revirtieron; los APKs finales están compilados desde el código limpio.
+- Los logs temporales de diagnóstico se revirtieron; los APKs finales están
+  compilados desde el código limpio con Paso A y el fix de persistencia.
