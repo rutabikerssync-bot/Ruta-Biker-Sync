@@ -178,3 +178,10 @@ Para pruebas con terceros se necesita una de estas alternativas, aún no impleme
    mientras no haya cobertura/asset válido.
 
 No se reanuda ninguna de estas opciones sin confirmación explícita.
+
+### Verificación del revert (16:03 -04:00)
+
+- Tras el revert: **88 suites / 503 tests, 0 fallos, 0 errores, 0 omitidos**.
+- `:app:assembleStandardDebug`: **BUILD SUCCESSFUL**.
+- APK revertido reinstalado con `adb install -r` en TECNO `098813734B105395` y Redmi `b2c398bb`: **Success** en ambos.
+- UUIDs y `base_url` vigente se conservaron tras la reinstalación.
