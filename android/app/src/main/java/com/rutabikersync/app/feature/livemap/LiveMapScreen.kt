@@ -354,7 +354,7 @@ fun LiveMapScreen(
             }
             RideService.dispatchStartRide(
                 context = context.applicationContext,
-                rideId = "ride-live-01",
+                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                 localShortId = shortId,
                 forceSimulated = false
             )
@@ -758,8 +758,8 @@ fun LiveMapScreen(
     LaunchedEffect(rideServiceState.rideId, localProfile?.uid) {
         val rideId = rideServiceState.rideId
         val uuidPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-        // La rodada de prueba usa "ride-live-01": el backend exige UUID, así que se omite
-        // la petición y se conservan los fallbacks locales sin lanzar errores.
+        // Solo se consulta el roster cuando la cabina usa un UUID real. Los builds sin
+        // rodada inyectada conservan el identificador local y no lanzan errores de red.
         if (rideId.isNullOrBlank() || !uuidPattern.matches(rideId)) return@LaunchedEffect
         val api = ClubApiClient.getInstance().apply { initContext(context.applicationContext) }
         val response = api.fetchRideRoster(rideId).getOrNull() ?: return@LaunchedEffect

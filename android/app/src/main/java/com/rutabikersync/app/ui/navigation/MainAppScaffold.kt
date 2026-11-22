@@ -804,7 +804,7 @@ private fun RidesReleaseHomeScreen(
         startErrorBroadcastMessage = null
         val eligibility = RideService.dispatchStartRide(
             context = context,
-            rideId = "ride-live-01",
+            rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
             localShortId = run {
                 val androidId = android.provider.Settings.Secure.getString(
                     context.contentResolver,
