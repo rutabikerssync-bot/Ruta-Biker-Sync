@@ -31,6 +31,10 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Ajustar rol PostgreSQL para RLS
+        env:
+          PGPASSWORD: rbs_dev_password
+        run: psql -h 127.0.0.1 -p 5433 -U rbs -d rbs_test -v ON_ERROR_STOP=1 -c "ALTER ROLE rbs NOSUPERUSER"
       - run: npm run typecheck
       - run: npm test --if-present
         env:
@@ -49,4 +53,4 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew assembleDebug testDebugUnitTest
+      - run: ./gradlew :app:assembleStandardDebug :app:testStandardDebugUnitTest
