@@ -21,40 +21,26 @@ class GamificationRepository(private val context: Context) {
     val profileFlow: StateFlow<GamificationProfile> = _profileFlow.asStateFlow()
 
     init {
-        // Inicializar con valores predeterminados de demostración si es primera ejecución
-        if (!prefs.contains(KEY_INITIALIZED)) {
-            seedDefaultInitialData()
+        // El piloto arranca sin métricas ni insignias inventadas. Las instalaciones
+        // anteriores sembraron valores demo; se reinician una sola vez sin borrar
+        // la configuración del túnel ni otras preferencias del dispositivo.
+        if (!prefs.contains(KEY_PILOT_CLEAN_V2)) {
+            resetToRealEmptyState()
+            prefs.edit().putBoolean(KEY_PILOT_CLEAN_V2, true).apply()
         }
         refreshProfile()
     }
 
-    private fun seedDefaultInitialData() {
+    private fun resetToRealEmptyState() {
         prefs.edit()
             .putBoolean(KEY_INITIALIZED, true)
-            .putFloat(KEY_TOTAL_KM, 1250f)
-            .putInt(KEY_XP, 320) // Nivel Rider
-            .putInt(KEY_VALID_RIDES, 12)
-            .putInt(KEY_STREAK_MONTHS, 4)
+            .putFloat(KEY_TOTAL_KM, 0f)
+            .putInt(KEY_XP, 0)
+            .putInt(KEY_VALID_RIDES, 0)
+            .putInt(KEY_STREAK_MONTHS, 0)
             .putString(KEY_LAST_RIDE_MONTH, currentMonthString())
-            .putStringSet(
-                KEY_UNLOCKED_BADGES, setOf(
-                    "primeros_pasos",
-                    "rodador",
-                    "caminante",
-                    "viajero",
-                    "explorador",
-                    "primera_rodada",
-                    "rodada_nocturna",
-                    "sin_cobertura",
-                    "racha_3"
-                )
-            )
-            .putStringSet(
-                KEY_HONOR_BADGES, setOf(
-                    "honor_hermandad|Hermandad del Asfalto|Águilas del Valle MC|1698624000000",
-                    "honor_invitado_oro|Rider Invitado Distinguido|Centauros del Norte RC|1696032000000"
-                )
-            )
+            .putStringSet(KEY_UNLOCKED_BADGES, emptySet())
+            .putStringSet(KEY_HONOR_BADGES, emptySet())
             .apply()
     }
 
@@ -520,6 +506,7 @@ class GamificationRepository(private val context: Context) {
 
     companion object {
         private const val KEY_INITIALIZED = "initialized"
+        private const val KEY_PILOT_CLEAN_V2 = "pilot_clean_v2"
         private const val KEY_TOTAL_KM = "total_km"
         private const val KEY_XP = "xp"
         private const val KEY_VALID_RIDES = "valid_rides"

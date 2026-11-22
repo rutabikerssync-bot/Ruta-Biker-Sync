@@ -94,13 +94,13 @@ fun ProfileScreen(
         mutableStateOf(
             repository.getUserProfile() ?: UserProfile(
                 uid = "pilot-local",
-                email = "piloto@rutabikersync.com",
-                aliasBiker = "Capitán Oscar",
-                motorcycleBrand = "BMW",
-                motorcycleModel = "R1250GS",
-                motorcycleDisplacement = 1254,
-                motorcycleYear = 2024,
-                motorcycleColor = "Negro",
+                email = "",
+                aliasBiker = "Piloto",
+                motorcycleBrand = "",
+                motorcycleModel = "",
+                motorcycleDisplacement = 0,
+                motorcycleYear = 0,
+                motorcycleColor = "",
                 pinColorHex = "#E5B869"
             )
         )
@@ -148,8 +148,8 @@ fun ProfileScreen(
 
     if (showGamificationProfile) {
         GamificationProfileScreen(
-            pilotName = profile.aliasBiker.replace("Capit?n", "Capitán").ifBlank { "Capitán Oscar" },
-            clubName = "Águilas del Camino MC",
+            pilotName = profile.aliasBiker.replace("Capit?n", "Capitán").ifBlank { "Piloto" },
+            clubName = "Sin club",
             currentXp = 0,
             currentRank = BikerRank.NOVATO,
             nextRank = BikerRank.RIDER,
@@ -289,7 +289,7 @@ fun ProfileScreen(
                             )
                         } else {
                             Text(
-                                text = profile.aliasBiker.replace("Capit?n", "Capitán").take(2).uppercase().ifBlank { "CO" },
+                                text = profile.aliasBiker.replace("Capit?n", "Capitán").take(2).uppercase().ifBlank { "P" },
                                 color = pinColor,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp
@@ -300,7 +300,7 @@ fun ProfileScreen(
 
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = profile.aliasBiker.replace("Capit?n", "Capitán").ifBlank { "Capitán Oscar" },
+                        text = profile.aliasBiker.replace("Capit?n", "Capitán").ifBlank { "Piloto" },
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 19.sp
@@ -309,7 +309,7 @@ fun ProfileScreen(
                         text = if (profile.motorcycleBrand.isNotBlank()) {
                             "${profile.motorcycleBrand} ${profile.motorcycleModel}"
                         } else {
-                            profile.motorcycleModel.ifBlank { "BMW R1250GS" }
+                            profile.motorcycleModel.ifBlank { "Sin motocicleta registrada" }
                         },
                         color = Color(0xFF94A3B8),
                         fontSize = 12.sp,
@@ -714,7 +714,7 @@ fun ProfileScreen(
                     Column {
                         Text(text = "Modelo", color = Color(0xFF64748B), fontSize = 11.sp)
                         Text(
-                            text = profile.motorcycleModel.ifBlank { "BMW R1250GS" },
+                            text = profile.motorcycleModel.ifBlank { "Sin motocicleta registrada" },
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
@@ -993,7 +993,7 @@ fun ProfileScreen(
                                         )
                                     } else {
                                         Text(
-                                            text = profile.aliasBiker.take(2).uppercase().ifBlank { "CO" },
+                                            text = profile.aliasBiker.take(2).uppercase().ifBlank { "P" },
                                             color = pinColor,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp
@@ -1003,13 +1003,13 @@ fun ProfileScreen(
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = profile.aliasBiker.ifBlank { "Capitán Oscar" },
+                                        text = profile.aliasBiker.ifBlank { "Piloto" },
                                         color = Color.White,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = profile.email.ifBlank { "piloto@rutabikersync.com" },
+                                        text = profile.email.ifBlank { "Sin correo registrado" },
                                         color = Color(0xFF94A3B8),
                                         fontSize = 12.sp
                                     )

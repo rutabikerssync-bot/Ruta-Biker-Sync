@@ -416,7 +416,7 @@ private fun GroupsOverviewScreenD1(
                 value = newName,
                 onValueChange = { newName = it },
                 label = { Text("Nombre del Club Motero") },
-                placeholder = { Text("Ej: Águilas de la Montaña M.C.") },
+                placeholder = { Text("Nombre real del club") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -2087,9 +2087,9 @@ private fun GroupDetailScreenD3(
         // MODAL PROYECTOR DE QR CANÓNICO (ALTO CONTRASTE)
         // =========================================================================
         if (showQrDialog) {
-            val inviteId = currentGeneratedInvite?.id ?: "RUTA-TEST-01"
+            val inviteId = currentGeneratedInvite?.id.orEmpty()
             val president = group.members.find { it.clubRole == ClubRole.PRESIDENT }
-            val leaderName = president?.displayName ?: "Capitán Oscar"
+            val leaderName = president?.displayName ?: "Sin líder registrado"
             val leaderId = president?.userId ?: group.principalLeaderId
 
             val qrPayload = remember(inviteId, activeInvitationType) {
@@ -3398,7 +3398,7 @@ fun ProfileAndAuthTabScreen(
             "Rider" -> com.rutabikersync.app.feature.badges.BikerRank.RIDER
             else -> null
         }
-        val currentClubName = viewModel.repository.groups.value.firstOrNull()?.name ?: "Águilas del Camino MC"
+        val currentClubName = viewModel.repository.groups.value.firstOrNull()?.name ?: "Sin club"
         GamificationProfileScreen(
             pilotName = user.displayName.ifBlank { "Piloto Activo" },
             clubName = currentClubName,

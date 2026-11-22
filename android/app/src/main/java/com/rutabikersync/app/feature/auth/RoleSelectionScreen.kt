@@ -50,23 +50,14 @@ import com.rutabikersync.app.ui.theme.HeritageCopper
  * Máxima simplicidad cognitiva: 2 opciones claras, excluyentes y autoexplicativas.
  */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun RoleSelectionScreen(
     userName: String,
     onRoleConfirmed: (AccountType) -> Unit,
     userEmail: String = ""
 ) {
-    val isTecnoLeader = userEmail.trim().equals("omartinezpaz@gmail.com", ignoreCase = true)
-    val isXiaomiMember = userEmail.trim().equals("ozmartinezpaz@gmail.com", ignoreCase = true)
-
-    var selectedRole by remember {
-        mutableStateOf<AccountType?>(
-            when {
-                isTecnoLeader -> AccountType.LEADER
-                isXiaomiMember -> AccountType.MEMBER
-                else -> null
-            }
-        )
-    }
+    // El rol lo elige siempre la persona; no se asigna según correos de prueba.
+    var selectedRole by remember { mutableStateOf<AccountType?>(null) }
 
     Box(
         modifier = Modifier
@@ -127,7 +118,7 @@ fun RoleSelectionScreen(
                 // OPCIÓN 1: LÍDER DE CLUB ($15 USD / mes · 14 días gratis)
                 RoleCard(
                     title = "Líder de Club",
-                    badge = if (isTecnoLeader) "Líder Asignado · TECNO" else "Fundador / Directiva",
+                    badge = "Fundador / Directiva",
                     price = "$15 USD / mes",
                     trialBadge = "14 DÍAS DE PRUEBA GRATIS",
                     description = "Crea o administra tu propio Moto Club. Convoca rodadas oficiales, gestiona rutas y emite códigos QR de admisión para nuevos miembros.",
@@ -154,7 +145,7 @@ fun RoleSelectionScreen(
                 // OPCIÓN 2: MIEMBRO DE CONVOY ($2.50 USD / mes · 14 días gratis)
                 RoleCard(
                     title = "Miembro de Convoy",
-                    badge = if (isXiaomiMember) "Miembro Asignado · Redmi Note 13" else "Rider / Piloto",
+                    badge = "Rider / Piloto",
                     price = "$2.50 USD / mes",
                     trialBadge = "14 DÍAS DE PRUEBA GRATIS",
                     description = "Únete a un Club existente escaneando el código QR del Líder o ingresando el código de pase. Rueda protegido en convoy con telemetría y SOS.",

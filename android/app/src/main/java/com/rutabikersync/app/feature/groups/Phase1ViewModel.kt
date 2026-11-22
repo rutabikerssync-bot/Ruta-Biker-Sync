@@ -1402,50 +1402,13 @@ class Phase1ViewModel(
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun ensureClubLoaded(clubId: String, currentUid: String, currentDisplayName: String, currentRole: AccountType) {
-        if (repository.groups.value.none { it.id == clubId }) {
-            val aguilasClub = ClubGroupModel(
-                id = clubId,
-                countryCode = "VE",
-                name = "Aguilas del Camino",
-                nameNormalized = "aguilas del camino",
-                logoPhashHex = "a1b2c3d4e5f60718",
-                stateRegion = "Miranda",
-                isExtension = false,
-                parentGroupId = null,
-                parentGroupName = null,
-                leaderIds = listOf("omartinezpaz@gmail.com"),
-                principalLeaderId = "omartinezpaz@gmail.com",
-                tier = ClubTier.MC,
-                foundationDate = "2018-03-15",
-                members = listOf(
-                    ClubMemberModel(
-                        userId = "omartinezpaz@gmail.com",
-                        displayName = "Capitán Oscar",
-                        bikeModel = "BMW R1250GS",
-                        statusKind = MemberStatusKind.FULL,
-                        clubRole = ClubRole.PRESIDENT,
-                        isLeader = true,
-                        isFounder = true,
-                        paymentSemaphore = PaymentSemaphore.GREEN,
-                        validRides = 14
-                    ),
-                    ClubMemberModel(
-                        userId = "f2850920-3014-3990-8d87-106a245c2365",
-                        displayName = "ozmartinezpaz",
-                        bikeModel = "Super Shadwon 250",
-                        statusKind = MemberStatusKind.GUEST,
-                        clubRole = null,
-                        isLeader = false,
-                        isFounder = false,
-                        paymentSemaphore = PaymentSemaphore.GREEN,
-                        validRides = 0
-                    )
-                )
-            )
-            repository.restoreClubIfMissing(aguilasClub)
-        }
-        if (_selectedGroupId.value == null || _selectedGroupId.value == "OVERVIEW") {
+        // No se inventan clubes ni peers: solo se selecciona un club ya cargado
+        // desde el backend. Si no existe, la UI muestra su estado vacío real.
+        if (repository.groups.value.any { it.id == clubId } &&
+            (_selectedGroupId.value == null || _selectedGroupId.value == "OVERVIEW")
+        ) {
             _selectedGroupId.value = clubId
         }
     }

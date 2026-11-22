@@ -48,16 +48,11 @@ class MainActivity : ComponentActivity() {
         val startTacticalChat = intent.getBooleanExtra("START_TACTICAL_CHAT", false)
         val startMeshMonitor = intent.getBooleanExtra("START_MESH_MONITOR", false)
         val startRideHistory = intent.getBooleanExtra("START_RIDE_HISTORY", false)
-        val loadDemoHistory = intent.getBooleanExtra("LOAD_DEMO_HISTORY", false)
         val startGamificationProfile = intent.getBooleanExtra("START_GAMIFICATION_PROFILE", false)
         val startProfileTab = intent.getBooleanExtra("START_PROFILE_TAB", false)
         val startClubTab = intent.getBooleanExtra("START_CLUB_TAB", false)
         val startValenciaRoute = intent.getBooleanExtra("START_VALENCIA_ROUTE", false)
         val focusKeyboard = intent.getBooleanExtra("FOCUS_KEYBOARD", false)
-
-        if (loadDemoHistory) {
-            com.rutabikersync.app.feature.routes.RideScheduleRepository.loadDemoHistory()
-        }
 
         requestMeshPermissions()
         // install() debe ir antes de handleDeepLink(): applyRemoteConfig() guarda la

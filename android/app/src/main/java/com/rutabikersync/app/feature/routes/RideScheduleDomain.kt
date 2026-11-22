@@ -246,7 +246,7 @@ data class RideHistoryItem(
     val meshKm: Double = 0.0,
     val xpEarned: Int = 0,
     val badgesUnlocked: List<String> = emptyList(),
-    val clubName: String = "Águilas del Camino MC",
+    val clubName: String = "",
     val roleInRide: String = "Punta",
     val relaysCount: Int = 0,
     val sosAssistsCount: Int = 0,
