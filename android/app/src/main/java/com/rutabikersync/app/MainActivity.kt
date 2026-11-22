@@ -60,9 +60,11 @@ class MainActivity : ComponentActivity() {
         }
 
         requestMeshPermissions()
+        // install() debe ir antes de handleDeepLink(): applyRemoteConfig() guarda la
+        // URL/key/build en SharedPreferences solo si appContext ya está disponible.
+        PilotTelemetry.install(applicationContext)
         handleDeepLink(intent)
         com.rutabikersync.app.core.network.ClubApiClient.getInstance().initContext(applicationContext)
-        PilotTelemetry.install(applicationContext)
         com.rutabikersync.app.feature.groups.ClubRepository.getInstance().syncWithLocalProfile(applicationContext)
         com.rutabikersync.app.core.network.RutaBikerMessagingService.syncFcmToken(applicationContext)
 
