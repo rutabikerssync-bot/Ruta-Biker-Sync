@@ -903,56 +903,36 @@ private fun RidesReleaseHomeScreen(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Botón + Crear Ruta
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFFF6CE74), Color(0xFFDF9E32), Color(0xFFB8781B))
-                            )
+            // Botón: 📖 Bitácora de Rodadas (Historial y Estadísticas de Club)
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF2E1C0C), Color(0xFF1E2129))
                         )
-                        .border(1.dp, Color(0xFFFFEEBA), RoundedCornerShape(10.dp))
-                        .clickable {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_CREATE_ROUTE", "btn_crear_ruta")
-                            showScheduleMapPlanner = true
-                        }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
+                    )
+                    .border(1.2.dp, Color(0xFFDF9E32), RoundedCornerShape(10.dp))
+                    .clickable {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_RIDE_HISTORY", "btn_bitacora_rodadas")
+                        showRideHistoryDialog = true
+                    }
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Text("📖", fontSize = 14.sp)
                     Text(
-                        text = "+ Crear Ruta",
-                        color = Color(0xFF101216),
+                        text = "Bitácora de Rodadas",
+                        color = Color(0xFFFFEEBA),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         maxLines = 1,
                         softWrap = false
-                    )
-                }
-
-                // Botón 🔍 (Historial y Búsqueda)
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E2129))
-                        .border(1.dp, Color(0xFF383D4D), CircleShape)
-                        .clickable {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_RIDE_HISTORY", "btn_historial")
-                            showRideHistoryDialog = true
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Historial y Búsqueda",
-                        tint = Color(0xFFE5B869),
-                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -1036,7 +1016,7 @@ private fun RidesReleaseHomeScreen(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                         Text(
-                            text = stringResource(id = R.string.rides_next_ride),
+                            text = "Próxima Convocatoria de Club",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
@@ -1048,7 +1028,7 @@ private fun RidesReleaseHomeScreen(
                             fontSize = 12.sp
                         )
                         Text(
-                            text = stringResource(id = R.string.rides_no_scheduled_desc),
+                            text = "Exclusivo de la directiva del club para trazar rutas oficiales y convocar a los miembros.",
                             color = Color(0xFF8E95A5),
                             fontSize = 11.sp
                         )
@@ -1073,7 +1053,7 @@ private fun RidesReleaseHomeScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 HeritageBrassButton(
-                    text = "🗺️ + Crear Ruta en Mapa",
+                    text = "🗺️ + Crear Ruta Oficial de Club",
                     onClick = { showScheduleMapPlanner = true },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1265,7 +1245,7 @@ private fun RidesReleaseHomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = stringResource(id = R.string.rides_route_title),
+                        text = "Rodada Individual / Solitaria",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
@@ -1278,7 +1258,7 @@ private fun RidesReleaseHomeScreen(
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Sin ruta",
+                            text = "Modo Libre",
                             color = Color(0xFF8E95A5),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
@@ -1289,7 +1269,7 @@ private fun RidesReleaseHomeScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Selecciona origen y destino para calcular y guardar el trazado de la ruta sobre la vía.",
+                    text = "Para usuarios simples y premium: crea y rueda en solitario sin registrar estadísticas de uso ni gamificación del club.",
                     color = Color(0xFF8E95A5),
                     fontSize = 11.sp
                 )
@@ -1303,7 +1283,7 @@ private fun RidesReleaseHomeScreen(
                 ) {
                     OutlinedButton(
                         onClick = {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_crear_ruta_mapa")
+                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_crear_ruta_solitaria")
                             showScheduleMapPlanner = true
                         },
                         modifier = Modifier.weight(1f),
@@ -1312,7 +1292,7 @@ private fun RidesReleaseHomeScreen(
                         ),
                         border = BorderStroke(1.dp, Color(0xFF38BDF8))
                     ) {
-                        Text("🗺️ + Crear Ruta", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("🗺️ Ruta Libre", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
 
                     Button(
