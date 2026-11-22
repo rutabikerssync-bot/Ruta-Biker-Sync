@@ -598,6 +598,14 @@ export async function buildApp({
     app.get('/admin/js/:filename', async (req, reply) => {
       return reply.sendFile(`js/${(req.params as any).filename}`);
     });
+    // Servicio web de soporte: se abre desde el laptop en http://localhost:3000/soporte
+    // y, durante el piloto, en la URL HTTPS del túnel.
+    app.get('/soporte', async (_req, reply) => {
+      return reply.sendFile('soporte.html');
+    });
+    app.get('/soporte/', async (_req, reply) => {
+      return reply.sendFile('soporte.html');
+    });
   }
 
   app.get('/health', async () => ({ status: 'ok' }));
