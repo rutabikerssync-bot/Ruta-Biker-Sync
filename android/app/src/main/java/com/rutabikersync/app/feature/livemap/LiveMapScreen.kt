@@ -488,7 +488,10 @@ fun LiveMapScreen(
         )
     }
     val hybridRideState by RideService.sharedState.collectAsState()
-    LaunchedEffect(hybridRideState.rideId) {
+    // El dispatcher de chat se recreate cuando cambia `selfShortId` (llega el RelayEngine).
+    // Sin incluirlo como key, el efecto anterior no volvía a arrancarlo y el uplink 4G se
+    // descartaba por falta de rodeo activo (evidencia logcat 2026-11-22).
+    LaunchedEffect(hybridRideState.rideId, hybridDispatcher, hybridChatDispatcher) {
         val rideId = hybridRideState.rideId
         android.util.Log.i("HybridChatStart", "rideId=$rideId pilot=${com.rutabikersync.app.core.mesh.PilotRideConfig.rideId}")
         if (runCatching { java.util.UUID.fromString(rideId) }.isSuccess) {
@@ -499,7 +502,7 @@ fun LiveMapScreen(
             hybridChatDispatcher.stop()
         }
     }
-    DisposableEffect(hybridDispatcher) {
+    DisposableEffect(hybridDispatcher, hybridChatDispatcher) {
         onDispose {
             hybridDispatcher.stop()
             hybridChatDispatcher.stop()
