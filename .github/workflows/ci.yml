@@ -6,6 +6,20 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rbs
+          POSTGRES_PASSWORD: rbs_dev_password
+          POSTGRES_DB: rbs_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U rbs -d rbs_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -19,6 +33,9 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test --if-present
+        env:
+          DATABASE_URL: postgres://rbs:rbs_dev_password@127.0.0.1:5433/rbs_test
+          PG_TEST_URL: postgres://rbs:rbs_dev_password@127.0.0.1:5433/rbs_test
 
   android:
     runs-on: ubuntu-latest
