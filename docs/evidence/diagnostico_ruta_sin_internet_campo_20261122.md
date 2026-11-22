@@ -125,3 +125,22 @@ Verificación local:
 - `:app:assembleStandardDebug`: **BUILD SUCCESSFUL**.
 
 Alcance respetado: sin cambios en `MapView`, zoom, pan, rotación, estilo ni attribution; sin cambios en GATT, Ed25519/ChaCha20, `HeartbeatFrame`, PTT ni liderazgo. Sin push.
+
+## 7. Instalación en hardware (2026-11-22 15:56 -04:00)
+
+APK instalado con `adb install -r` desde
+`android/app/build/outputs/apk/standard/debug/app-standard-debug.apk`:
+
+| Dispositivo | Serie | Resultado |
+|---|---|---|
+| TECNO KI5k (líder) | `098813734B105395` | `Success` |
+| Redmi Note 13 Pro (miembro) | `b2c398bb` | `Success` |
+
+Verificación posterior con `run-as`:
+
+- `versionName=0.1.0`, `versionCode=1` en ambos.
+- `base_url` vigente conservado: `https://reputation-improved-definition-absence.trycloudflare.com`.
+- TECNO: `user_id=b5d0228d-8ab9-49fd-9cc7-efa452a484f2`.
+- Redmi: `user_id=e54bb490-754a-4aa6-9b4c-8b7b043e9dff`.
+
+La reinstalación conservó la identidad real y la configuración del piloto.
