@@ -65,10 +65,11 @@ object BikerPlacesCatalog {
 }
 
 /**
- * Motor de ruteo vial real:
- * - Consulta la red vial de carreteras (OSRM / OpenStreetMap / Google Maps geometry).
- * - Garantiza trazados 100% sobre calzadas reales con todas sus curvas y desniveles.
- * - Elimina líneas rectas o interpolaciones sinusoidales artificiales.
+ * Motor de ruteo vial:
+ * - Consulta la red vial de carreteras (Mapbox Directions sobre OSM).
+ * - Prefiere trazados 100% sobre calzadas reales con todas sus curvas y desniveles.
+ * - Si no hay red ni asset offline, completa con trazados aproximados generados por
+ *   [MotorcycleRoutingEngine], etiquetados explícitamente como "no navegables".
  */
 object RoadRoutingEngine {
 
@@ -198,8 +199,40 @@ object RoadRoutingEngine {
     }
 
     /**
-     * Traza exactamente las 3 alternativas viales reales solicitadas (Ruta 1, Ruta 2 y Ruta 3)
-     * basadas en la API de Direcciones de Mapbox (driving-traffic) sobre carreteras y avenidas existentes.
+     * Genera trazados aproximados con el motor BRouter ya existente, para cuando no hay
+     * conectividad ni geometría offline para el destino. Se etiquetan como no navegables
+     * para que la UI no los confunda con rutas calculadas sobre vías reales.
+     */
+    internal fun buildApproximateAlternatives(
+        origin: LatLngPoint,
+        destination: LatLngPoint,
+        destinationName: String,
+        limit: Int = 3
+    ): List<RouteAlternative> {
+        val profiles = listOf(
+            MotorcycleRoutingProfile.FASTEST,
+            MotorcycleRoutingProfile.CURVY_SCENIC,
+            MotorcycleRoutingProfile.OFFROAD_ADVENTURE
+        )
+        return profiles.take(limit.coerceAtMost(profiles.size)).mapIndexed { index, profile ->
+            val approximated = MotorcycleRoutingEngine.planMotorcycleRoute(
+                origin = origin,
+                destination = destination,
+                destinationName = destinationName,
+                profile = profile
+            )
+            approximated.copy(
+                id = "route-${index + 1}",
+                name = "Ruta ${index + 1} · ${profile.shortLabel} (aproximada)",
+                subtitle = "Trazado aproximado sin internet · no navegable",
+                isRecommended = index == 0
+            )
+        }
+    }
+
+    /**
+     * Traza hasta 3 alternativas. Prefiere vías reales de Mapbox y assets offline;
+     * si no hay ninguna geometría disponible, completa con trazados aproximados.
      */
     suspend fun fetchThreeRouteAlternatives(
         origin: LatLngPoint,
@@ -325,6 +358,27 @@ object RoadRoutingEngine {
                     )
                     results.add(adjusted)
                 }
+            }
+        }
+
+        // 4. Último recurso: completar con el motor BRouter aproximado ya existente.
+        //    Estas alternativas se identifican en nombre/subtítulo como no navegables.
+        if (results.size < 3) {
+            val approximations = buildApproximateAlternatives(
+                origin = origin,
+                destination = destination,
+                destinationName = destinationName,
+                limit = 3 - results.size
+            )
+            for (approximation in approximations) {
+                val nextNum = results.size + 1
+                val isFirstOverall = results.isEmpty()
+                results.add(
+                    approximation.copy(
+                        id = "route-$nextNum",
+                        isRecommended = isFirstOverall
+                    )
+                )
             }
         }
         return@withContext results

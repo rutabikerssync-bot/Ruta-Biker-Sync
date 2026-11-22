@@ -115,8 +115,8 @@ object DefaultRouteCatalog {
             if (cached.isNotEmpty()) return cached
         }
 
-        // Si no hay geometría vectorial real disponible en los assets ni en línea, se devuelve lista vacía
-        // NUNCA se inventan cuerdas rectas ni trazados artificiales sobre casas o agua.
+        // Si no hay geometría vectorial real disponible en los assets ni en línea, se devuelve lista vacía.
+        // RoadRoutingEngine completa entonces con trazados aproximados etiquetados como no navegables.
         return emptyList()
     }
 }
