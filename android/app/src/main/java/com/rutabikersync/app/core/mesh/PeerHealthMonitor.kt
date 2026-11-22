@@ -7,7 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Monitor de salud de peers, histéresis de reconexión (2 latidos consecutivos) y detección de islas
  * (Bloque 3.5, DESIGN.md §3 y §11, Decisión D56):
- * - **Histéresis:** un peer marcado `LOST` (tras 4–5 latidos sin señal = 15 s) requiere 2 latidos consecutivos
+ * - **Histéresis:** un peer marcado `LOST` (tras `MeshRelayEngine.LOST_TIMEOUT_MS` = 40,5 s, derivado del
+ *   intervalo de llegada medido en campo) requiere 2 latidos consecutivos
  *   (`RECONNECT_HYSTERESIS_BEATS = 2`) para volver a `ONLINE`.
  * - **Detección de islas (Decisión 3.4 C):** cuando 2+ peers están fuera de contacto simultáneamente,
  *   se activa el estado de isla en UI/notificación inmediatamente, pero **solo se anuncia por TTS si la isla

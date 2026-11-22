@@ -76,8 +76,9 @@ class HeartbeatBatteryPhase3Test {
         assertEquals(0, initialHealth.lostPeersCount)
         assertFalse(initialHealth.isIslandActive)
 
-        // Pasan 16 s: los riders 2 y 3 envían su latido en tLoss, mientras 4 y 5 quedan en silencio -> isla de 2 nodos
-        val tLoss = t0 + 16_000L
+        // Pasan LOST_TIMEOUT_MS (40,5 s derivados de campo): riders 2 y 3 envían su latido en tLoss,
+        // mientras 4 y 5 quedan en silencio -> isla de 2 nodos.
+        val tLoss = t0 + MeshRelayEngine.LOST_TIMEOUT_MS
         for (id in listOf<UShort>(2u, 3u)) {
             val pkt = MeshPacket.createSigned(
                 shortId = id,
@@ -203,8 +204,8 @@ class HeartbeatBatteryPhase3Test {
         assertEquals(0, healthy.lostPeersCount)
         assertFalse(healthy.isIslandActive)
 
-        // Sin heartbeats durante 16 s: sí se declara pérdida, exclusivamente por timeout.
-        val lost = monitor.evaluateHealth(t0 + 16_000L)
+        // Sin heartbeats durante el timeout derivado: sí se declara pérdida, exclusivamente por timeout.
+        val lost = monitor.evaluateHealth(t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
         assertEquals(0, lost.onlinePeersCount)
         assertEquals(1, lost.lostPeersCount)
         assertTrue(receiver.peers.value.getValue(2u).isLost)

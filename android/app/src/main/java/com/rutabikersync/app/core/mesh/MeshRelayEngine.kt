@@ -84,8 +84,26 @@ class MeshRelayEngine(
     )
     companion object {
         const val HEARTBEAT_INTERVAL_MS: Long = 3_000L
-        const val LOST_THRESHOLD_BEATS: Int = 5          // 5 * 3 s = 15 s (rango 4–5 latidos de DESIGN.md §3)
-        const val LOST_TIMEOUT_MS: Long = HEARTBEAT_INTERVAL_MS * LOST_THRESHOLD_BEATS
+
+        /**
+         * Intervalo REAL entre heartbeats recibidos, medido en campo: ~27 s
+         * (`docs/evidence/fix_gps_retencion_20261121/heartbeat_gaps.txt`: 27,27,27,27).
+         * No es el tick del scheduler (3 s) ni el coste teórico de la ráfaga de 4 fragmentos
+         * × 2 repeticiones (~9 s): incluye la pérdida de paquetes en el scanner BLE.
+         */
+        const val OBSERVED_HEARTBEAT_ARRIVAL_INTERVAL_MS: Long = 27_000L
+
+        /** Regla anti-decaimiento: timeout >= intervalo efectivo × 3/2 (factor 1.5). */
+        const val LOST_TIMEOUT_TOLERANCE_NUMERATOR: Long = 3L
+        const val LOST_TIMEOUT_TOLERANCE_DENOMINATOR: Long = 2L
+
+        /** 27 s × 3/2 = 40_500 ms. Antes 3 s × 5 = 15 s < 27 s: falsa pérdida garantizada. */
+        const val LOST_TIMEOUT_MS: Long = OBSERVED_HEARTBEAT_ARRIVAL_INTERVAL_MS *
+            LOST_TIMEOUT_TOLERANCE_NUMERATOR / LOST_TIMEOUT_TOLERANCE_DENOMINATOR
+
+        /** Ticks de scheduler que caben en el timeout; derivado para no repetir el número mágico. */
+        val LOST_THRESHOLD_BEATS: Int = (LOST_TIMEOUT_MS / HEARTBEAT_INTERVAL_MS).toInt()
+
         const val RECONNECT_HYSTERESIS_BEATS: Int = 2    // Histéresis para evitar falsas alarmas en curvas/túneles
 
         /** Muestras RSSI conservadas por peer; la ventana temporal la decide la UI (10 s). */
@@ -1785,8 +1803,9 @@ class MeshRelayEngine(
     }
 
     /**
-     * Evalúa qué nodos han superado el umbral de 4–5 heartbeats sin señal (~15 s)
-     * y contabiliza eventos de partición (islas) cuando >=50% de los peers conocidos se pierden a la vez.
+     * Evalúa qué nodos han superado [LOST_TIMEOUT_MS] sin señal (40,5 s, derivado del intervalo
+     * de llegada medido en campo) y contabiliza eventos de partición (islas) cuando >=50% de los
+     * peers conocidos se pierden a la vez.
      *
      * En caso de par registrado que nunca se oye (receivedBeats == 0), calcula expectedBeats por tiempo
      * para asegurar 0.0% de entrega tras el timeout. En pares que ya han sido observados (receivedBeats > 0),
