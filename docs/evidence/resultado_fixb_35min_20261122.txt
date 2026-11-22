@@ -1,0 +1,63 @@
+Resultado de la verificación hardware de FIX B (35 min)
+Fecha: 2026-11-22
+Repo: D:\Ruta-Biker-Sync-piloto
+
+CONCLUSIÓN: la capa BLE estuvo estable durante los 35 min (sin pérdidas falsas),
+pero el criterio visible «2 riders estables» NO está cumplido: el HUD osciló
+3 → 2 → 1 → 3 por el doble identity de Corte 1, no por pérdida de peers BLE.
+Falta corregir ese duplicado y repetir la medición antes de dar FIX B por cerrado.
+
+1) Condición inicial
+- `adb devices -l`: 098813734B105395 (TECNO KI5k) y b2c398bb (Redmi 2312DRA50G), ambos `device`.
+- Ambos radios BLE encendidos: TECNO habilitado desde Ajustes (UI), Redmi con `cmd bluetooth_manager enable`.
+  `bluetooth_on=1` y `enabled: true` en los dos equipos antes de iniciar.
+- APK instalado en ambos desde HEAD 9085036, `standardDebug`, compilado con
+  `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5`. Mismo código FIX A + FIX B + Corte 2A.
+- Rodada real `2de260aa-...`, `state=active`, 2 participantes, `manifest_kid=ed25519-k1`.
+- Backend piloto :3100 y túnel Cloudflare operativos.
+- logcat limpiado en ambos al inicio.
+
+2) Protocolo y muestreo
+Inicio 18:48:36, fin 19:24:24 (35 min 48 s), 8 muestras cada 5 min.
+Capturas y dumps en `docs/evidence/fixb_verify_20261122/`:
+TECNO_min0.png / TECNO_min35.png / REDMI_min0.png / REDMI_min35.png
+TECNO_min0.xml / TECNO_min35.xml / REDMI_min0.xml / REDMI_min35.xml
+TECNO_min0_log.txt / TECNO_min35_log.txt / REDMI_min0_log.txt / REDMI_min35_log.txt
+summary.txt (serie completa de muestras)
+
+Serie del HUD (conteo de marcadores, NO de peers BLE):
+  minuto:      0  5 10 15 20 25 30 35
+  TECNO:       3  3  3  3  3  3  2  3
+  REDMI:       3  3  3  3  3  2  1  3
+
+3) Evidencia de estabilidad BLE (capa transporte)
+- Identidades de malla constantes de minuto 0 a minuto 35:
+  TECNO: `GattVoice role=CLIENT localNode=32191 peerNode=22873`
+  REDMI: `GattVoice role=SERVER localNode=22873 peerNode=32191`
+  Mismo par de shortIds en ambos extremos; no aparece otro peerNode.
+- TECNO: 65 notificaciones persistentes (`rbs_active_ride_mesh_channel`) entre
+  minuto 0 y 35, todas con `extraTitle='Rodada activa · 1 riders conectados'`.
+  Ninguna con 0 riders ni con 2 riders. Es decir: 1 peer BLE conectado de forma continua.
+- Heartbeats sin interrupción (tags `RideService: HeartbeatTx`):
+  TECNO: elapsedSec=97s packetsEmitted=33 → elapsedSec=2245s packetsEmitted=740.
+  REDMI: elapsedSec=97s packetsEmitted=33 → elapsedSec=2247s packetsEmitted=751.
+  Periodo ~3,03 s, consistente durante toda la rodada.
+- `AdvRx` presente en todas las muestras (TECNO hasta 61 y REDMI hasta 17 en el buffer de 8000 líneas).
+- `Auto-fallback BLE` = 0 en todas las muestras: no hubo degradación a 4G por pérdida BLE.
+
+4) Interpretación
+- El temporizador de pérdida (`LOST_TIMEOUT_MS = 40_500 ms`) no produjo falsos `isLost`:
+  el peer BLE permaneció conectado y con heartbeats durante los 35 min. En esa capa,
+  FIX B se comporta como fue diseñado.
+- La oscilación visible del HUD NO es inestabilidad BLE. El conteo del HUD se calcula
+  en `LiveMapViewModel.kt:619-621` sobre marcadores, y `HybridTransportDispatcher.fuse()`
+  recibe `resolveShortId = { null }` (`LiveMapScreen.kt:475`), así que cada muestra HTTP
+  obtiene un shortId sintético 60000+ aunque el mismo rider ya esté en BLE. Esos marcadores
+  [4G] extra se añaden y se retiran por TTL de 30 s, produciendo 3 → 2 → 1 → 3.
+- Por tanto NO se afirma que el criterio de usuario «2 riders estables» esté verificado.
+  Se afirma únicamente que la capa BLE estuvo estable.
+
+5) Pendiente
+Corregir el doble identity (mapeo userId ↔ shortId, o compuerta que no añada posiciones
+HTTP mientras exista un peer BLE con posición válida) y repetir los 35 min para validar
+el criterio visible. Sin push. Sin cambios en GATT, crypto, HeartbeatFrame, PTT ni liderazgo.

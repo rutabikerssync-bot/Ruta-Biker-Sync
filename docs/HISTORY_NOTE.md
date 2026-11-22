@@ -755,3 +755,22 @@ Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1
 
 **Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
 
+### Resultado de la medición hardware de FIX B (2026-11-22, 35 min)
+
+**Condición**: TECNO `098813734B105395` y Redmi `b2c398bb` conectados, radio BLE encendido en ambos, APK del HEAD `9085036` instalado en los dos equipos con `rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5`. Rodada `active` con 2 participantes y manifiesto `ed25519-k1`. Protocolo: 8 muestras cada 5 min, 18:48:36 → 19:24:24.
+
+| Señal | Resultado | Evidencia |
+| --- | --- | --- |
+| HUD TECNO (min 0→35) | `3,3,3,3,3,3,2,3` | `resultado_fixb_35min_20261122.txt`, `summary.txt` |
+| HUD Redmi (min 0→35) | `3,3,3,3,3,2,1,3` | misma evidencia |
+| shortIds de malla | TECNO `32191 ↔ 22873`, Redmi `22873 ↔ 32191`, constantes en min 0 y 35 | `GattVoice` en `TECNO_min0_log.txt`, `TECNO_min35_log.txt`, `REDMI_min0_log.txt`, `REDMI_min35_log.txt` |
+| Notificación persistente TECNO | 65 eventos, todos `1 riders conectados`; nunca 0 ni 2 | mismos logs |
+| Heartbeats | TECNO `elapsedSec=97s n=33 → 2245s n=740`; Redmi `97s n=33 → 2247s n=751` (~3,03 s) | mismos logs |
+| `Auto-fallback BLE` | 0 en las 8 muestras | `summary.txt` |
+
+**Conclusión honesta**: la capa BLE estuvo estable durante los 35 min y `LOST_TIMEOUT_MS = 40_500 ms` no generó falsos `isLost`; en esa capa FIX B se comportó como diseñado. **Pero el criterio visible «2 riders estables» NO está verificado**: el HUD osciló `3→2→1→3` por el doble identity de Corte 1, no por pérdida de peers. `LiveMapScreen.kt:475` pasa `resolveShortId = { null }`, de modo que `HybridTransportDispatcher.fuse()` asigna un `shortId` sintético 60000+ a cada muestra HTTP aunque el rider ya esté en BLE; esos marcadores `[4G]` se retiran por TTL de 30 s y producen la oscilación (`LiveMapViewModel.kt:619-621` cuenta marcadores).
+
+**Pendiente**: corregir ese duplicado y repetir la medición de 35 min antes de cerrar FIX B. Queda sin aplicar a la espera de autorización entre: (A) cablear el mapeo real `userId ↔ shortId` — el 2C diferido, sin fuente autorizada hoy— o (B) no añadir posiciones HTTP mientras exista un peer BLE con posición válida, sin claves ni manifiesto nuevos.
+
+**Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
+
