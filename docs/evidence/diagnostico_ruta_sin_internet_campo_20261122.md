@@ -185,3 +185,52 @@ No se reanuda ninguna de estas opciones sin confirmación explícita.
 - `:app:assembleStandardDebug`: **BUILD SUCCESSFUL**.
 - APK revertido reinstalado con `adb install -r` en TECNO `098813734B105395` y Redmi `b2c398bb`: **Success** en ambos.
 - UUIDs y `base_url` vigente se conservaron tras la reinstalación.
+
+## 9. Causa raíz real: token de Mapbox vacío (2026-11-22 16:12 -04:00)
+
+El usuario aclaró que **ambos móviles tenían internet** durante la prueba fallida.
+Esto descarta la falta de cobertura como causa raíz y cambia el diagnóstico.
+
+Verificación:
+
+- El workspace piloto no tenía `android/local.properties`.
+- La variable de entorno `MAPBOX_TOKEN` tampoco estaba definida.
+- `android/app/build.gradle.kts:41-52` genera `BuildConfig.MAPBOX_ACCESS_TOKEN` desde
+  esas fuentes; con ambas ausentes, el APK se compiló con:
+  `public static final String MAPBOX_ACCESS_TOKEN = "";`
+- `RoadRoutingEngine.kt:218` omite la consulta a Mapbox cuando el token está vacío
+  (`if (mapboxToken.isNotBlank()) … else emptyList()`).
+- Por tanto, **con internet pero sin token**, el motor nunca pidió vías reales: solo
+  quedaban los 3 assets offline y los puntos de prueba caían fuera de ellos.
+
+El token sí estaba disponible en el repo base (`D:\Ruta-Biker-Sync\android\local.properties`).
+Se copió ese archivo al workspace piloto. Está cubierto por `.gitignore`, así que
+**no se versionó ningún secreto**.
+
+Verificación del token y del build:
+
+- Llamada directa a Mapbox Directions con el token real:
+  `HTTP=200`, `code=Ok`, `routes=2` para Los Teques → El Jarillo.
+- `BuildConfig.MAPBOX_ACCESS_TOKEN` regenerado con valor no vacío (prefijo `pk.eyJ1I.`).
+- `:app:assembleStandardDebug`: **BUILD SUCCESSFUL**.
+- APK recompilado e instalado con `adb install -r` en TECNO y Redmi: **Success** en ambos.
+- TECNO alcanza `api.mapbox.com` (ping 0 % pérdida); Redmi responde `HTTP 200` a la API.
+
+Reproducción controlada en TECNO (16:10 -04:00 aprox.):
+
+1. Se abrieron `Rodadas` → `+ Crear Ruta Oficial de Club`.
+2. Se fijó el lugar de salida desde la ubicación cacheada (`8XX7+JW3, Los Teques`).
+3. Se eligió como destino `San Pedro de Los Altos`, **fuera de los 3 assets offline**.
+4. La app avanzó a `Paso 3A: Escoge tu Ruta`, mostró
+   `3 rutas trazadas sobre vías reales` y `Ruta 1 (8.6 km) · 19 min`.
+5. **No apareció el Toast de error**. Captura: `rbs_token_ok_TECNO_rutas_reales.png`.
+
+Conclusión corregida: el fallo de campo fue una **configuración de build incompleta en el
+workspace piloto**, no falta de internet, no backend y no geometría offline. La recta sobre
+casas era un intento de solución que ya fue revertido; la solución correcta era restaurar
+el token para que Mapbox trace sobre vías reales.
+
+### Pendiente
+
+El usuario pidió además **redundancia BLE + 4G completa**. Ese pilar sigue sin implementar
+y debe abordarse por separado, sin mezclarlo con este fix de configuración.
