@@ -30,9 +30,24 @@ backend.
   - Una corrida intermedia falló en `VaultCryptoTest.6_2 deteccion de checksum BIP-0039 corrupto o palabra alterada`: es un test aleatorio preexistente (1/16 × 1/16). Aislado pasó y la repetición completa quedó verde. No se modificó código cripto.
 - `assembleStandardDebug` → BUILD SUCCESSFUL.
 
-## Estado
+## Instalación y verificación en hardware
 
-APK compilado en
-`android/app/build/outputs/apk/standard/debug/app-standard-debug.apk`.
-**Todavía no instalado en los móviles**; instalar con `adb install -r` conserva
-las preferencias con los UUID reales ya apuntados (`b5d0228d…` y `e54bb490…`).
+APK instalado con `adb install -r` en ambos dispositivos (preferencias
+conservadas):
+
+| Dispositivo | UID antes | UID después de instalar y reiniciar |
+|---|---|---|
+| TECNO `098813734B105395` | `b5d0228d-…` | `b5d0228d-…` |
+| Redmi `b2c398bb` | `e54bb490-…` | `e54bb490-…` |
+
+Tras reiniciar, el TECNO muestra `RUTAS DEMO BIKERS`,
+`Editar Identidad y Perfil del Club` y `PRESIDENTE`; el Redmi muestra
+`RUTAS DEMO BIKERS` con `Miembros (2)`. Los logs del backend confirman
+`GET /v1/groups` con ambos UUID reales. Capturas:
+`cabina_paso4_tecno_20261122/club_tras_fix_uid.png` y
+`cabina_paso4_redmi_20261122/club_tras_fix_uid.png`.
+
+Estado final en BD: club `e3988eba-…`, líder `b5d0228d-…`, invitación
+`57a33bfa-…` aceptada y membresía activa para `e54bb490-…`. Los usuarios/groupos
+adicionales visibles en el conteo son E2E (`Centauros E2E …`) creados por
+pruebas en paralelo; no se insertaron datos manualmente.
