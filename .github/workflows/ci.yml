@@ -55,4 +55,29 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      - name: Proveer fixture de google-services.json para tests unitarios
+        run: |
+          cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "ruta-biker-sync-ci",
+              "storage_bucket": "ruta-biker-sync-ci.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.rutabikersync.app"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "ci-test-key" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
       - run: ./gradlew :app:testStandardDebugUnitTest
