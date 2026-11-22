@@ -31,6 +31,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -71,6 +72,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -1100,88 +1102,91 @@ fun LiveMapScreen(
                 .navigationBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 20.dp)
         ) {
-            // Cápsulas intermedias sobre el mapa: Convoy (izquierda) y Seguir líder (derecha)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Cápsula izquierda: Convoy + cantidad de riders (Clickable para silenciar y reportar riders R13)
+            // Cápsulas intermedias: solo en cabina expandida. En modo mínimo el asa inferior
+            // muestra Convoy y el estado de malla; el líder sigue accesible desde el HUD superior.
+            AnimatedVisibility(visible = isBottomCockpitExpanded) {
                 Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DarkCardElevated.copy(alpha = 0.95f))
-                        .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
-                        .clickable { showConvoyDialog = true }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Convoy",
-                        tint = HeritageCopper,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Convoy",
-                            color = HeritageLeatherBrown,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp
-                        )
-                        Text(
-                            text = ConvoyRiderCountFormatter.format(state.ridersCount),
-                            color = HeritageLeatherMuted,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp,
-                            lineHeight = 11.sp
-                        )
-                    }
-                }
-
-                if (!isLeader && currentLeaderPin != null) {
-                    // Cápsula derecha: Botón "Seguir líder"
-                    val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                    // Cápsula izquierda: Convoy + cantidad de riders (Clickable para silenciar y reportar riders R13)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                if (isFollowing) HeritageCopper else HeritageCardWarm.copy(alpha = 0.95f)
-                            )
-                            .border(
-                                1.2.dp,
-                                if (isFollowing) HeritageCopperDark else HeritageBorder,
-                                RoundedCornerShape(14.dp)
-                            )
-                            .clickable {
-                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                    "LIVE_MAP",
-                                    "TAP_FOLLOW_LEADER",
-                                    "btn_seguir_lider"
-                                )
-                                liveMapViewModel.controller.followLeader(
-                                    nowEpochMs = System.currentTimeMillis(),
-                                    scheduleAutoRevert = true
-                                )
-                            }
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .background(DarkCardElevated.copy(alpha = 0.95f))
+                            .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
+                            .clickable { showConvoyDialog = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.NearMe,
-                            contentDescription = "Seguir líder",
-                            tint = if (isFollowing) Color.White else HeritageLeatherBrown,
-                            modifier = Modifier.size(16.dp)
+                            imageVector = Icons.Default.Link,
+                            contentDescription = "Convoy",
+                            tint = HeritageCopper,
+                            modifier = Modifier.size(18.dp)
                         )
-                        Text(
-                            text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
-                            color = if (isFollowing) Color.White else HeritageLeatherBrown,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
+                        Column {
+                            Text(
+                                text = "Convoy",
+                                color = HeritageLeatherBrown,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                lineHeight = 12.sp
+                            )
+                            Text(
+                                text = ConvoyRiderCountFormatter.format(state.ridersCount),
+                                color = HeritageLeatherMuted,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 10.sp,
+                                lineHeight = 11.sp
+                            )
+                        }
+                    }
+
+                    if (!isLeader && currentLeaderPin != null) {
+                        // Cápsula derecha: Botón "Seguir líder"
+                        val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isFollowing) HeritageCopper else HeritageCardWarm.copy(alpha = 0.95f)
+                                )
+                                .border(
+                                    1.2.dp,
+                                    if (isFollowing) HeritageCopperDark else HeritageBorder,
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable {
+                                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                        "LIVE_MAP",
+                                        "TAP_FOLLOW_LEADER",
+                                        "btn_seguir_lider"
+                                    )
+                                    liveMapViewModel.controller.followLeader(
+                                        nowEpochMs = System.currentTimeMillis(),
+                                        scheduleAutoRevert = true
+                                    )
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NearMe,
+                                contentDescription = "Seguir líder",
+                                tint = if (isFollowing) Color.White else HeritageLeatherBrown,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
+                                color = if (isFollowing) Color.White else HeritageLeatherBrown,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
@@ -1646,7 +1651,9 @@ fun LiveMapScreen(
                 }
             }
 
-            // Control visual interactivo: Toca para subir/ocultar la botonera
+            // Asa mínima de cabina: Convoy + estado de malla. Toque o arrastre vertical
+            // (arriba abre / abajo cierra) aislado del mapa para no robar zoom/rotación.
+            val swipeThresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { 24.dp.toPx() }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -1657,12 +1664,48 @@ fun LiveMapScreen(
                         RoundedCornerShape(12.dp)
                     )
                     .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
+                    .pointerInput(Unit) {
+                        var dragYPx = 0f
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                when {
+                                    CockpitGestureResolver.shouldExpand(dragYPx, swipeThresholdPx) ->
+                                        isBottomCockpitExpanded = true
+                                    CockpitGestureResolver.shouldCollapse(dragYPx, swipeThresholdPx) ->
+                                        isBottomCockpitExpanded = false
+                                }
+                                dragYPx = 0f
+                            },
+                            onDragCancel = { dragYPx = 0f }
+                        ) { _, dragAmount ->
+                            dragYPx += dragAmount
+                        }
+                    }
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (activeRelayEngine != null) EmeraldMesh else Color(0xFF9CA3AF))
+                    )
+                    Text(
+                        text = ConvoyRiderCountFormatter.format(state.ridersCount),
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                    Text(
+                        text = if (activeRelayEngine != null) "MALLA ACTIVA" else "SIN MALLA",
+                        color = if (activeRelayEngine != null) EmeraldMesh else Color(0xFF9CA3AF),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
                     Icon(
                         imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                         contentDescription = null,
@@ -1670,7 +1713,7 @@ fun LiveMapScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
+                        text = if (isBottomCockpitExpanded) "Ocultar" else "Controles (desliza arriba)",
                         color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
