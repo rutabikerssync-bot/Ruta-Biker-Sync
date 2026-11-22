@@ -6,6 +6,20 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_password
+          POSTGRES_DB: rbs_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d rbs_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -17,8 +31,17 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Crear rol PostgreSQL no-superuser para RLS
+        env:
+          PGPASSWORD: postgres_password
+        run: |
+          psql -h 127.0.0.1 -p 5433 -U postgres -d rbs_test -v ON_ERROR_STOP=1 -c "CREATE ROLE rbs LOGIN PASSWORD 'rbs_dev_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS"
+          psql -h 127.0.0.1 -p 5433 -U postgres -d rbs_test -v ON_ERROR_STOP=1 -c "ALTER DATABASE rbs_test OWNER TO rbs"
       - run: npm run typecheck
       - run: npm test --if-present
+        env:
+          DATABASE_URL: postgres://rbs:rbs_dev_password@127.0.0.1:5433/rbs_test
+          PG_TEST_URL: postgres://rbs:rbs_dev_password@127.0.0.1:5433/rbs_test
 
   android:
     runs-on: ubuntu-latest
@@ -32,4 +55,38 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew assembleDebug testDebugUnitTest
+      - name: Proveer fixture de google-services.json para tests unitarios
+        run: |
+          cat > app/google-services.json <<'EOF'
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "ruta-biker-sync-ci",
+              "storage_bucket": "ruta-biker-sync-ci.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.rutabikersync.app"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [{ "current_key": "ci-test-key" }],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+      - name: Aislar clases de tests unitarios en JVMs separadas
+        run: |
+          cat > "$RUNNER_TEMP/rbs-test-isolation.gradle" <<'EOF'
+          allprojects {
+              tasks.withType(Test).configureEach {
+                  forkEvery = 1
+              }
+          }
+          EOF
+      - run: ./gradlew -I "$RUNNER_TEMP/rbs-test-isolation.gradle" :app:testStandardDebugUnitTest
