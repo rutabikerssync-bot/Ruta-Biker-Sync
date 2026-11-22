@@ -736,3 +736,22 @@ Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1
 
 **Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
 
+### Revisión del entorno de manifiesto para FIX B (2026-11-22)
+
+**Motivo**: se intentó reanudar la verificación hardware de FIX B (`LOST_TIMEOUT_MS = 40_500 ms`, derivado de la llegada de heartbeats cada ~27 s en campo), que esta nota marcaba «PENDIENTE DE REINTENTO» por un supuesto entorno de manifiesto inválido (`memberRes rows count: 0`).
+
+**Diagnóstico corregido**: el entorno está sano. No falta siembra de miembros, rodada de prueba, endpoint ni migración. El log `memberRes rows count: 0` corresponde únicamente al líder TECNO, porque `app.ts:1576` consulta solo `memberships`; el líder se resuelve por `group_leaders` (`ledRes`) y el miembro por `memberships` (`memberRes`). Es un log informativo, no un fallo: la inferencia anterior de «manifiesto no válido» era incorrecta.
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| `GET /v1/groups` con UID TECNO | Club resuelto | `200`, `ledGroups=1`, club `e3988eba-26e8-425a-80ac-2a65aeda8484` | `diagnostico_manifiesto_fixb_20261122.txt` |
+| `GET /v1/groups` con UID Redmi | Club resuelto | `200`, `memberGroups=1`, mismo club | misma evidencia |
+| BD: club y membresía | Líder + miembro aceptado | `group_leaders` TECNO=`t`; `memberships` Redmi=`accepted` | misma evidencia |
+| BD: rodada `2de260aa-…` | Activa con 2 participantes | `state=active`, `manifest_kid=ed25519-k1`, 2 participantes (TECNO `capitan_rodada`, Redmi `participante`) | misma evidencia |
+| `GET /v1/rides/:id/manifest` | Payload firmado | `200`, `kid=ed25519-k1`, `participants=2`, `publicKeys=1` para ambos UIDs | misma evidencia |
+| `adb devices -l` | TECNO y Redmi conectados | Solo `b2c398bb` (Redmi); **TECNO `098813734B105395` ausente** | misma evidencia |
+
+**Bloqueo real y único**: sin el TECNO no hay dos peers y no puede ejecutarse la rodada de 35–40 min que validaría el criterio «2 riders estables». No se ejecutó esa prueba y no se afirma su resultado. La acción pendiente es conectar el TECNO por USB y confirmar `adb devices -l`; no se requiere ningún comando de siembra ni migración en la BD.
+
+**Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
+
