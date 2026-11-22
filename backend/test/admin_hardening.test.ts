@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { newDb } from 'pg-mem';
 import { buildApp } from '../src/app.js';
+import type { DbExecutor } from '../src/db/pool.js';
+
+const TEST_ADMIN_KEY = 'admin-hardening-test-key-1234567890';
 
 async function makeApp() {
   const mem = newDb();
@@ -37,5 +40,47 @@ describe('Backoffice sin secretos ni datos demo', () => {
 
     await app.close();
     await pool.end();
+  });
+
+  it('devuelve listados vacíos y métricas en cero con la base vacía', async () => {
+    const emptyDb = {
+      async query() {
+        return { rows: [], command: '', rowCount: 0, oid: 0, fields: [] };
+      },
+      async end() {}
+    } as unknown as DbExecutor;
+
+    const app = await buildApp({
+      db: emptyDb,
+      logger: false,
+      env: { ...process.env, ADMIN_API_KEY: TEST_ADMIN_KEY, RBS_PILOT_MODE: 'false' }
+    });
+    const headers = { 'x-admin-key': TEST_ADMIN_KEY };
+
+    const emptyLists: Array<[string, string]> = [
+      ['/v1/admin/users', 'users'],
+      ['/v1/admin/groups', 'groups'],
+      ['/v1/admin/support/reports', 'reports'],
+      ['/v1/admin/support/tickets', 'tickets'],
+      ['/v1/admin/audit/sos', 'logs']
+    ];
+    for (const [url, key] of emptyLists) {
+      const res = await app.inject({ method: 'GET', url, headers });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()[key]).toEqual([]);
+    }
+
+    const overview = await app.inject({ method: 'GET', url: '/v1/admin/analytics/overview', headers });
+    expect(overview.statusCode).toBe(200);
+    const data = overview.json();
+    expect(data.users.total).toBe(0);
+    expect(data.groups.total).toBe(0);
+    expect(data.rides.total).toBe(0);
+    expect(data.safetySos.totalAlerts).toBe(0);
+    expect(data.meshOffline.ridesOfflineCount).toBe(0);
+    for (const value of Object.values(data.users.ranks)) expect(value).toBe(0);
+    for (const value of Object.values(data.groups.byTier)) expect(value).toBe(0);
+
+    await app.close();
   });
 });
