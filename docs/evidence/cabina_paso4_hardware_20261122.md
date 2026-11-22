@@ -63,11 +63,20 @@ gesto es reversible y no se registró en el `MapView`.
 
 ## 4. Condición de red (no fabricada)
 
-- `http://127.0.0.1:3100/health` → conexión rechazada.
+Estado durante la captura original:
+
+- `http://127.0.0.1:3100/health` → conexión rechazada (puerto equivocado; el
+  backend real escucha en `3000`).
 - `https://coding-earl-derby-windsor.trycloudflare.com/health` → DNS no resuelve.
-- No se reenvió el deep link `rbs://debug/set-base-url` ni se promovió rol alguno.
-- Por ello **no se afirma** banner `🟢 Fastify online` en esta validación; la
+- No se había reenviado el deep link `rbs://debug/set-base-url` ni se promovió
+  rol alguno.
+- Por ello **no se afirmó** banner `🟢 Fastify online` en esa validación; la
   captura corresponde al estado real offline.
+
+**Actualización posterior (mismo día):** el backend y el túnel se restauraron y
+la URL se reenvió a ambos móviles. Ver
+`docs/evidence/url_tunel_vigente_fastify_20261122.md`. Las capturas de esta
+sección no se han reescrito: documentan el estado offline original.
 
 ## 5. Pendiente
 
