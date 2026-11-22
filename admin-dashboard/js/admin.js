@@ -10,7 +10,7 @@
 function startApp() {
   initNavigation();
   initSettings();
-  loadOverviewAnalytics();
+  if (api.isConfigured()) loadOverviewAnalytics();
 
   let resizeTimeout;
   window.addEventListener('resize', () => {
@@ -33,6 +33,7 @@ if (document.readyState === 'loading') {
     if (targetTab === 'users') loadUsersTable();
     if (targetTab === 'support') loadSupportSection();
     if (targetTab === 'audit') loadSosAuditTable();
+    if (targetTab === 'devices') loadDeviceTelemetry();
   };
 
   /**
@@ -64,25 +65,30 @@ function initSettings() {
   if (saveKeyBtn) {
     saveKeyBtn.addEventListener('click', () => {
       api.setAdminKey(keyInput.value.trim());
-      alert('Clave de administrador guardada con éxito.');
-      loadOverviewAnalytics();
+      showNotice('Clave de administrador guardada para esta sesión.');
+      if (api.isConfigured()) loadOverviewAnalytics();
+      if (connStatus) connStatus.textContent = 'Clave guardada. Prueba el enlace para verificarla.';
     });
   }
 
   if (testConnBtn) {
     testConnBtn.addEventListener('click', async () => {
+      if (!api.isConfigured()) {
+        setConnectionStatus(connStatus, '🟠 Introduce la clave de administrador antes de probar.', 'var(--gold-primary)');
+        return;
+      }
       if (connStatus) connStatus.textContent = 'Verificando enlace...';
-      const res = await api.getAnalyticsOverview();
-      if (res && res.users) {
-        if (connStatus) {
-          connStatus.innerHTML = '🟢 Conectado con éxito a la API del servidor.';
-          connStatus.style.color = 'var(--emerald-success)';
-        }
-      } else {
-        if (connStatus) {
-          connStatus.innerHTML = '🟡 Modo de Demostración Activo (Backend en reposo).';
-          connStatus.style.color = 'var(--gold-primary)';
-        }
+      try {
+        await api.getAnalyticsOverview();
+        setConnectionStatus(connStatus, '🟢 Conectado con éxito a la API del servidor.', 'var(--emerald-success)');
+      } catch (err) {
+        setConnectionStatus(
+          connStatus,
+          err.message === 'UNAUTHORIZED_ADMIN'
+            ? '🔴 Clave rechazada por el servidor.'
+            : '🔴 Sin conexión con el backend. Revisa la URL y el túnel.',
+          'var(--crimson-danger)'
+        );
       }
     });
   }
@@ -127,15 +133,26 @@ async function loadOverviewAnalytics() {
 
     renderCharts();
   } catch (err) {
-    console.warn('[Admin] Error cargando analytics overview:', err);
+    showLoadError('analytics', err);
   }
 }
 
 function renderCharts() {
   if (!currentOverviewData || !window.BikerCharts) return;
 
-  // Gráfica 1: Actividad de Rodadas
-  window.BikerCharts.renderRidesActivityChart('chart-rides-activity', [14, 28, 22, 45, 68, 112, 134]);
+  // La serie semanal de rodadas no forma parte del payload actual: no se inventa.
+  const activityCanvas = document.getElementById('chart-rides-activity');
+  if (activityCanvas) {
+    const ctx = activityCanvas.getContext('2d');
+    if (ctx) {
+      activityCanvas.width = activityCanvas.clientWidth || 300;
+      activityCanvas.height = activityCanvas.clientHeight || 160;
+      ctx.clearRect(0, 0, activityCanvas.width, activityCanvas.height);
+      ctx.fillStyle = '#64748B';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillText('Serie semanal no disponible en la API', 12, 24);
+    }
+  }
 
   // Gráfica 2: Embudo de Rangos Comunitarios
   if (currentOverviewData?.users?.ranks) {
@@ -145,8 +162,8 @@ function renderCharts() {
   // Gráfica 3: Efectividad SOS
   if (currentOverviewData?.safetySos) {
     window.BikerCharts.renderSosMetricsChart('chart-sos-metrics', {
-      confirmed: currentOverviewData.safetySos.confirmedEmergencies || 4,
-      cancelled: currentOverviewData.safetySos.cancelledIn20s || 11
+      confirmed: currentOverviewData.safetySos.confirmedEmergencies || 0,
+      cancelled: currentOverviewData.safetySos.cancelledIn20s || 0
     });
   }
 }
@@ -166,7 +183,13 @@ async function loadGroupsTable() {
   if (searchInput && searchInput.value.trim()) query.search = searchInput.value.trim();
   if (tierFilter && tierFilter.value) query.tier = tierFilter.value;
 
-  const data = await api.getGroups(query);
+  let data;
+  try {
+    data = await api.getGroups(query);
+  } catch (err) {
+    showLoadError('groups', err, tableBody, 6);
+    return;
+  }
   tableBody.innerHTML = '';
 
   if (!data?.groups || data.groups.length === 0) {
@@ -225,12 +248,26 @@ async function loadGroupsTable() {
   document.querySelectorAll('.btn-grace').forEach((b) => {
     b.addEventListener('click', async (e) => {
       const gid = e.target.dataset.id;
-      const days = prompt('¿Cuántos días de prórroga deseas otorgar a este club?', '7');
-      if (days) {
-        await api.extendGroupGrace(gid, parseInt(days, 10), 'Prórroga administrativa');
-        alert(`Prórroga de ${days} días otorgada exitosamente.`);
-        loadGroupsTable();
-      }
+      openPromptModal({
+        title: 'Otorgar prórroga',
+        label: '¿Cuántos días de prórroga deseas otorgar a este club?',
+        defaultValue: '7',
+        inputType: 'number',
+        onConfirm: async (daysText) => {
+          const days = Number(daysText);
+          if (!Number.isInteger(days) || days < 1 || days > 365) {
+            showNotice('Introduce un número entero entre 1 y 365.');
+            return;
+          }
+          try {
+            await api.extendGroupGrace(gid, days, 'Prórroga administrativa');
+            showNotice(`Prórroga de ${days} días otorgada exitosamente.`);
+            loadGroupsTable();
+          } catch (err) {
+            showNotice(`No se pudo otorgar la prórroga: ${friendlyError(err)}`, true);
+          }
+        }
+      });
     });
   });
 
@@ -269,7 +306,13 @@ async function loadUsersTable() {
   const query = {};
   if (searchInput && searchInput.value.trim()) query.search = searchInput.value.trim();
 
-  const data = await api.getUsers(query);
+  let data;
+  try {
+    data = await api.getUsers(query);
+  } catch (err) {
+    showLoadError('users', err, tableBody, 6);
+    return;
+  }
   tableBody.innerHTML = '';
 
   if (!data?.users || data.users.length === 0) {
@@ -333,7 +376,13 @@ async function loadEscalatedReports() {
   const container = document.getElementById('escalated-reports-list');
   if (!container) return;
 
-  const data = await api.getEscalatedReports();
+  let data;
+  try {
+    data = await api.getEscalatedReports();
+  } catch (err) {
+    showLoadError('reportes escalados', err, container);
+    return;
+  }
   container.innerHTML = '';
 
   if (!data?.reports || data.reports.length === 0) {
@@ -370,12 +419,20 @@ async function loadEscalatedReports() {
     b.addEventListener('click', async (e) => {
       const repId = e.target.dataset.id;
       const action = e.target.dataset.action;
-      const notes = prompt('Escribe el motivo o nota de resolución oficial:', 'Resolución de convivencia emitida');
-      if (notes !== null) {
-        await api.resolveReport(repId, action, notes);
-        alert('Reporte resuelto y archivado en auditoría.');
-        loadEscalatedReports();
-      }
+      openPromptModal({
+        title: 'Resolución oficial',
+        label: 'Escribe el motivo o nota de resolución oficial:',
+        defaultValue: 'Resolución de convivencia emitida',
+        onConfirm: async (notes) => {
+          try {
+            await api.resolveReport(repId, action, notes);
+            showNotice('Reporte resuelto y archivado en auditoría.');
+            loadEscalatedReports();
+          } catch (err) {
+            showNotice(`No se pudo resolver el reporte: ${friendlyError(err)}`, true);
+          }
+        }
+      });
     });
   });
 }
@@ -386,7 +443,13 @@ async function loadTicketsList() {
   const listContainer = document.getElementById('support-tickets-list');
   if (!listContainer) return;
 
-  const data = await api.getSupportTickets();
+  let data;
+  try {
+    data = await api.getSupportTickets();
+  } catch (err) {
+    showLoadError('tickets', err, listContainer);
+    return;
+  }
   listContainer.innerHTML = '';
 
   if (!data?.tickets || data.tickets.length === 0) {
@@ -433,7 +496,13 @@ async function openTicketChat(ticketId) {
 
   if (!chatSubject || !messagesBox) return;
 
-  const data = await api.getTicketDetails(ticketId);
+  let data;
+  try {
+    data = await api.getTicketDetails(ticketId);
+  } catch (err) {
+    showLoadError('detalle del ticket', err, messagesBox);
+    return;
+  }
   if (!data || !data.ticket) return;
 
   chatSubject.textContent = data.ticket.subject;
@@ -475,7 +544,13 @@ async function loadSosAuditTable() {
 
   tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-subtle);">Cargando registros forenses de SOS...</td></tr>`;
 
-  const data = await api.getSosAuditLogs();
+  let data;
+  try {
+    data = await api.getSosAuditLogs();
+  } catch (err) {
+    showLoadError('auditoría SOS', err, tableBody, 5);
+    return;
+  }
   tableBody.innerHTML = '';
 
   if (!data?.logs || data.logs.length === 0) {
@@ -496,7 +571,158 @@ async function loadSosAuditTable() {
   });
 }
 
+/**
+ * 6. Monitoreo completo de dispositivos del piloto.
+ */
+async function loadDeviceTelemetry() {
+  const devicesBody = document.getElementById('pilot-devices-body');
+  const eventsBody = document.getElementById('pilot-events-body');
+  const status = document.getElementById('pilot-devices-status');
+  if (!devicesBody || !eventsBody) return;
+
+  if (!api.isConfigured()) {
+    showLoadError('dispositivos', new Error('ADMIN_KEY_REQUIRED'), devicesBody, 6);
+    return;
+  }
+
+  devicesBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;">Consultando dispositivos…</td></tr>`;
+  eventsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;">Consultando eventos…</td></tr>`;
+
+  try {
+    const data = await api.getDeviceTelemetry();
+    const devices = data.devices || [];
+    const events = data.events || [];
+
+    devicesBody.innerHTML = '';
+    if (!devices.length) {
+      devicesBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle);">Aún no hay dispositivos reportados.</td></tr>`;
+    }
+    devices.forEach((d) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family:monospace;">${escapeHtml(d.pilot_key_fp)}</td>
+        <td>${escapeHtml(d.pilot_build || '—')}</td>
+        <td>${escapeHtml([d.device_brand, d.device_model].filter(Boolean).join(' ') || '—')}</td>
+        <td>${d.battery_pct == null ? '—' : escapeHtml(d.battery_pct + '%')} ${d.is_charging ? '⚡' : ''}</td>
+        <td>${d.peer_count == null ? '—' : escapeHtml(d.peer_count)}</td>
+        <td>${d.last_seen_at ? escapeHtml(new Date(d.last_seen_at).toLocaleString()) : '—'}</td>
+        <td style="max-width:280px;overflow-wrap:anywhere;">${escapeHtml(d.last_error || '—')}</td>
+      `;
+      devicesBody.appendChild(tr);
+    });
+
+    eventsBody.innerHTML = '';
+    if (!events.length) {
+      eventsBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle);">Aún no hay eventos registrados.</td></tr>`;
+    }
+    events.slice(0, 100).forEach((ev) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ev.created_at ? escapeHtml(new Date(ev.created_at).toLocaleString()) : '—'}</td>
+        <td>${escapeHtml(ev.pilot_key_fp)}</td>
+        <td>${escapeHtml(ev.kind)}</td>
+        <td>${escapeHtml(ev.severity)}</td>
+        <td style="max-width:420px;overflow-wrap:anywhere;">${escapeHtml(ev.message || ev.stack || '—')}</td>
+      `;
+      eventsBody.appendChild(tr);
+    });
+
+    if (status) {
+      status.textContent = `${devices.length} dispositivo(s) · ${events.length} evento(s) · ${new Date().toLocaleTimeString()}`;
+      status.style.color = 'var(--emerald-success)';
+    }
+  } catch (err) {
+    showLoadError('dispositivos', err, devicesBody, 7);
+    if (eventsBody) eventsBody.innerHTML = '';
+    if (status) status.textContent = '';
+  }
+}
+
 // Utilidades
+function friendlyError(err) {
+  const code = err && err.message ? err.message : 'ERROR';
+  const messages = {
+    ADMIN_KEY_REQUIRED: 'Falta la clave de administrador',
+    UNAUTHORIZED_ADMIN: 'Clave de administrador inválida o revocada',
+    TOO_MANY_REQUESTS: 'Demasiadas peticiones; espera un momento',
+    PILOT_KEY_REQUIRED: 'Falta la clave de piloto en la solicitud'
+  };
+  return messages[code] || code;
+}
+
+function setConnectionStatus(element, text, color) {
+  if (!element) return;
+  element.textContent = text;
+  element.style.color = color || '';
+}
+
+function showLoadError(label, err, container, colspan = 6) {
+  const message = friendlyError(err);
+  console.warn(`[Admin] No se pudo cargar ${label}:`, err);
+  if (container && container.tagName === 'TBODY') {
+    container.innerHTML = `<tr><td colspan="${colspan}" style="text-align:center;padding:24px;color:var(--crimson-danger);">No se pudieron cargar datos reales: ${escapeHtml(message)}.</td></tr>`;
+  } else if (container) {
+    container.innerHTML = `<div style="padding:20px;color:var(--crimson-danger);background:rgba(239,68,68,0.08);border-radius:8px;">No se pudieron cargar datos reales: ${escapeHtml(message)}.</div>`;
+  }
+}
+
+let modalHost = null;
+function ensureModalHost() {
+  if (modalHost && document.body.contains(modalHost)) return modalHost;
+  modalHost = document.createElement('div');
+  modalHost.className = 'rbs-modal-host';
+  document.body.appendChild(modalHost);
+  return modalHost;
+}
+
+function closeModal() {
+  const host = ensureModalHost();
+  host.innerHTML = '';
+}
+
+function openNoticeModal(message, isError = false) {
+  const host = ensureModalHost();
+  host.innerHTML = `
+    <div class="rbs-modal-backdrop">
+      <div class="rbs-modal" role="alertdialog" aria-modal="true">
+        <h3>${isError ? 'No se pudo completar' : 'Operación completada'}</h3>
+        <p>${escapeHtml(message)}</p>
+        <div class="rbs-modal-actions"><button type="button" class="btn-primary" data-modal-close>Aceptar</button></div>
+      </div>
+    </div>`;
+  host.querySelector('[data-modal-close]').addEventListener('click', closeModal);
+}
+
+function showNotice(message, isError = false) {
+  openNoticeModal(message, isError);
+}
+
+function openPromptModal({ title, label, defaultValue = '', inputType = 'text', onConfirm }) {
+  const host = ensureModalHost();
+  host.innerHTML = `
+    <div class="rbs-modal-backdrop">
+      <form class="rbs-modal" role="dialog" aria-modal="true">
+        <h3>${escapeHtml(title)}</h3>
+        <label>${escapeHtml(label)}
+          <input name="value" type="${inputType}" value="${escapeHtml(defaultValue)}" required>
+        </label>
+        <div class="rbs-modal-actions">
+          <button type="button" class="btn-secondary" data-modal-cancel>Cancelar</button>
+          <button type="submit" class="btn-primary">Confirmar</button>
+        </div>
+      </form>
+    </div>`;
+  const form = host.querySelector('form');
+  host.querySelector('[data-modal-cancel]').addEventListener('click', closeModal);
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = form.elements.value.value.trim();
+    closeModal();
+    onConfirm(value);
+  });
+  form.elements.value.focus();
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
