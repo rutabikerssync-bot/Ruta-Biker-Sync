@@ -434,6 +434,42 @@ fun LiveMapScreen(
         } catch (_: Exception) {}
     }
 
+    // Corte 1 de redundancia BLE ↔ 4G: el dispatcher solo lee HTTP; BLE sigue siendo
+    // la fuente de verdad. Se activa únicamente con un UUID de rodada real.
+    val hybridDispatcher = remember {
+        com.rutabikersync.app.core.mesh.HybridTransportDispatcher(
+            http = { rideId ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance()
+                    .fetchRideTelemetry(rideId)
+            },
+            pollIntervalMs = 5_000L,
+            ttlMs = 30_000L,
+            resolveShortId = { null }
+        )
+    }
+    val hybridRideState by RideService.sharedState.collectAsState()
+    LaunchedEffect(hybridRideState.rideId) {
+        val rideId = hybridRideState.rideId
+        if (runCatching { java.util.UUID.fromString(rideId) }.isSuccess) {
+            hybridDispatcher.start(rideId, this)
+        } else {
+            hybridDispatcher.stop()
+        }
+    }
+    DisposableEffect(hybridDispatcher) {
+        onDispose { hybridDispatcher.stop() }
+    }
+    LaunchedEffect(hybridDispatcher) {
+        while (true) {
+            liveMapViewModel.controller.setHybridPositions(
+                hybridDispatcher.fuse(
+                    blePeers = liveMapViewModel.controller.currentBlePeerSnapshots()
+                )
+            )
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+
     // Monitoreo del Radar SOS de proximidad (telemetría + radar 5 km)
     LaunchedEffect(Unit) {
         val client = com.rutabikersync.app.core.network.ClubApiClient.getInstance()
@@ -442,9 +478,29 @@ fun LiveMapScreen(
                 val currentLat = liveMapViewModel.uiState.value.cameraLatitude
                 val currentLng = liveMapViewModel.uiState.value.cameraLongitude
 
-                // 1. Emitir telemetría efímera si el usuario está autenticado
-                if (currentLat != 0.0 && currentLng != 0.0 && (client.accessToken != null || client.currentUserId != null)) {
-                    client.sendTelemetryHeartbeat(currentLat, currentLng)
+                // 1. Emitir telemetría efímera solo desde un fix GPS real y reciente.
+                //    La cámara puede estar desplazada por el usuario: nunca se envía como posición.
+                val geoCache = context.getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE)
+                val cachedLat = geoCache.getFloat("last_known_lat", 0f).toDouble()
+                val cachedLng = geoCache.getFloat("last_known_lon", 0f).toDouble()
+                val cachedTime = geoCache.getLong("last_known_time_epoch_ms", 0L)
+                val hasFreshCachedFix = cachedTime > 0L &&
+                    com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy.isUsableFix(
+                        latitude = cachedLat,
+                        longitude = cachedLng,
+                        accuracyMeters = geoCache.getFloat("last_known_accuracy", 50f),
+                        fixTimeEpochMs = cachedTime,
+                        nowEpochMs = System.currentTimeMillis()
+                    )
+                val telemetryRideId = RideService.sharedState.value.rideId
+                    .takeIf { runCatching { java.util.UUID.fromString(it) }.isSuccess }
+
+                if (hasFreshCachedFix && (client.accessToken != null || client.currentUserId != null)) {
+                    client.sendTelemetryHeartbeat(
+                        lat = cachedLat,
+                        lng = cachedLng,
+                        rideId = telemetryRideId
+                    )
                 }
 
                 // 2. Consultar alertas SOS cercanas activas (< 5 km)

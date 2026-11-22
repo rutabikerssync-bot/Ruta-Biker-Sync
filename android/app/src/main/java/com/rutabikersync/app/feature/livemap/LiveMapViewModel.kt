@@ -331,8 +331,8 @@ class LiveMapController(
      * el motor BLE sigue siendo la fuente de verdad para los peers que ya están en malla.
      */
     fun setHybridPositions(positions: List<FusedPeerPosition>) {
+        // No fuerza frame: el bucle de cadencia de 1 s del mapa ya recoge este estado.
         latestHybridPositions = positions
-        flushMapFrame(System.currentTimeMillis(), force = true)
     }
 
     /** Instantánea mínima de la malla para que el dispatcher pueda evitar duplicados. */
