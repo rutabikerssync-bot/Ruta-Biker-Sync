@@ -191,4 +191,26 @@ class TacticalChatScreenTest {
         assertEquals(DeliveryStatus.ACK_RECEIVED, updatedMsg.deliveryStatus)
         assertTrue(updatedMsg.ackReceived)
     }
+
+    @Test
+    fun `Test 6 - Deduplicacion automatica de rafagas RF repetidas en TacticalChatStore`() {
+        val incoming1 = TacticalChatMessage(
+            senderShortId = peerShortId,
+            senderName = "El Búfalo",
+            targetShortId = TextMessagePacket.BROADCAST_TARGET,
+            text = "hola",
+            isOutgoing = false
+        )
+        val incomingDuplicate = TacticalChatMessage(
+            senderShortId = peerShortId,
+            senderName = "El Búfalo",
+            targetShortId = TextMessagePacket.BROADCAST_TARGET,
+            text = "hola",
+            isOutgoing = false
+        )
+        TacticalChatStore.addMessage(incoming1)
+        TacticalChatStore.addMessage(incomingDuplicate)
+
+        assertEquals("El mensaje duplicado por ráfaga RF debe ser descartado", 1, TacticalChatStore.messages.value.size)
+    }
 }
