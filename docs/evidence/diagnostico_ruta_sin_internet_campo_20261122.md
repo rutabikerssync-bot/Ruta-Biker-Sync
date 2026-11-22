@@ -92,7 +92,7 @@ El flujo es determinista y explica exactamente el síntoma:
 
 No fue un fallo de backend, autenticación, club, membresía ni base de datos. Fue el comportamiento previsto del código ante **sin internet + puntos fuera de las tres zonas con geometría offline**: el motor se niega a dibujar una línea inventada, muestra el único mensaje de error existente y bloquea el avance al paso de selección/guardado.
 
-El mensaje es técnicamente correcto, pero la UX no ofrece una salida cuando el usuario está en campo y no tiene cobertura: no permite guardar un borrador sin geometría ni explica que el destino específico no está cubierto por los assets offline.
+El mensaje era técnicamente correcto, pero la UX no ofrecía salida cuando el usuario estaba en campo sin cobertura: no permitía dibujar ni guardar, y no explicaba que el destino específico no estaba cubierto por los assets offline.
 
 ## 5. Limitaciones de esta evidencia
 
@@ -101,13 +101,27 @@ El mensaje es técnicamente correcto, pero la UX no ofrece una salida cuando el 
 - No hay logs de app después de `13:42:53` por la muerte de los grabadores internos.
 - No se replicó el intento con internet para comparar, para no alterar el estado de la prueba de campo.
 
-## 6. Fix propuesto (NO implementado; requiere autorización)
+## 6. Investigación del trabajo previo y fix aplicado
 
-No se modificó código. Si se autoriza un pilar de corrección, la opción mínima y coherente con la regla «nunca dibujar líneas rectas» sería:
+El usuario observó que el dibujo de polilíneas estilo Google Maps con varias alternativas «ya estaba hecho». Efectivamente:
 
-1. Distinguir en la UI entre «sin internet» y «destino sin cobertura offline», reutilizando el resultado real de `DefaultRouteCatalog.getRoutesFor()`.
-2. Permitir guardar un **borrador de ruta sin geometría** (`status=draft`) solo con origen/destino y una bandera `geometry_pending`, sin dibujar ninguna línea falsa; el backend ya admite `draft` en `club_routes_status_check`.
-3. Recalcular la geometría automáticamente cuando vuelva la conectividad y el destino tenga cobertura, manteniendo el `route_ref` existente.
-4. Añadir pruebas JVM para `RoadRoutingEngine`/`DefaultRouteCatalog` cubriendo: sin red + destino no cubierto, sin red + destino cubierto, y con red.
+- `BRouterDomain.kt:261-315` contiene `MotorcycleRoutingEngine.planMotorcycleRoute()`, que ya generaba 3 perfiles aproximados (`FASTEST`, `CURVY_SCENIC`, `OFFROAD_ADVENTURE`) con waypoints interpolados.
+- `RouteEnginePhase4Test.kt:31-70` ya probaba ese generador (≥10 waypoints, distancia, elevación, hash y POIs).
+- `ScheduleRideMapScreen.kt:354-386` ya dibujaba las polilíneas y los chips de tiempo, con selección al tocar la línea en `:912-914`.
 
-Quedan fuera de este alcance, salvo autorización explícita: GATT, cifrado Ed25519/ChaCha20, `HeartbeatFrame`, PTT, liderazgo, `MapView`, zoom, pan, rotación, estilo y attribution.
+Lo que **nunca estuvo conectado** era ese generador con la pantalla de creación de ruta. `git log -S planMotorcycleRoute --all -- android/app/src/main/java` solo muestra el commit inicial `766fe86`, donde se define pero no se llama desde la UI. La pantalla siempre invocó `RoadRoutingEngine.fetchThreeRouteAlternatives()`. Con internet, Mapbox entregaba las 3 rutas y ocultaba el hueco; sin internet en campo, el hueco quedó expuesto. No hay un commit posterior que haya «roto» el dibujo: `e647a7c` corrigió Chaikin/deduplicación y `4aa464e` solo separó el paso 3 en 3A/3B.
+
+Tras autorización explícita del usuario, se aplicó el fix mínimo:
+
+1. `RoadRoutingEngine.buildApproximateAlternatives()` reutiliza `MotorcycleRoutingEngine.planMotorcycleRoute()` para completar hasta 3 alternativas cuando no hay Mapbox ni assets offline.
+2. Se etiquetan como `Ruta N · <perfil> (aproximada)` y `Trazado aproximado sin internet · no navegable`.
+3. `ScheduleRideMapScreen` pasa de «3 rutas trazadas sobre vías reales» a «3 alternativas de ruta», texto válido para ambos orígenes de geometría.
+4. Se actualizaron los comentarios que afirmaban que nunca se generaban trazados aproximados.
+5. `RoadRoutingFallbackTest.kt` verifica 3 alternativas, IDs `route-1..3`, ≥6 waypoints, extremos exactos y etiquetado no navegable, además del respeto al `limit`.
+
+Verificación local:
+
+- `:app:testStandardDebugUnitTest`: **89 suites / 505 tests, 0 fallos, 0 errores, 0 omitidos** (dos tests nuevos).
+- `:app:assembleStandardDebug`: **BUILD SUCCESSFUL**.
+
+Alcance respetado: sin cambios en `MapView`, zoom, pan, rotación, estilo ni attribution; sin cambios en GATT, Ed25519/ChaCha20, `HeartbeatFrame`, PTT ni liderazgo. Sin push.
