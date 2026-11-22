@@ -5,8 +5,6 @@
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DbExecutor } from '../db/pool.js';
 
-export const DEFAULT_ADMIN_KEY = 'rbs-dev-admin-secret-key-2026';
-
 export interface AdminAnalyticsOverview {
   users: {
     total: number;
@@ -370,8 +368,10 @@ export function verifyAdminAccess(
   providedKey: string | undefined,
   envKey: string | undefined = process.env.ADMIN_API_KEY
 ): boolean {
-  const expectedKey = envKey || DEFAULT_ADMIN_KEY;
-  if (!providedKey) return false;
+  // Fail closed: no existe clave por defecto. Sin ADMIN_API_KEY configurada,
+  // ninguna petición de backoffice puede autenticarse.
+  if (!providedKey || !envKey) return false;
+  const expectedKey = envKey;
   const providedDigest = createHash('sha256').update(providedKey, 'utf8').digest();
   const expectedDigest = createHash('sha256').update(expectedKey, 'utf8').digest();
   return timingSafeEqual(providedDigest, expectedDigest);

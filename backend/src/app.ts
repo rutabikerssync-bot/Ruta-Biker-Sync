@@ -79,7 +79,6 @@ import {
   type SubscriptionState
 } from './lib/subscriptions.js';
 import {
-  DEFAULT_ADMIN_KEY,
   verifyAdminAccess,
   logAdminAction,
   getAdminAnalyticsOverview,
