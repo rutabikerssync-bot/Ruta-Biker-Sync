@@ -313,13 +313,13 @@ class RideServicePhase3Test {
         assertEquals(0.0f, reportAt3s.heartbeatsDeliveredPct!!, 0.001f)
         assertEquals(0, controller.state.value.connectedRidersCount)
 
-        // A los 15 s (5 latidos perdidos por cada par = 10 esperados, 0 recibidos):
+        // Tras el timeout derivado (40,5 s > 27 s medidos): 13 latidos esperados por par = 26, 0 recibidos.
         // ambos pares silenciosos pasan a isLost = true y la entrega sigue en 0.0 %
-        controller.emitHeartbeatNow(nowEpochMs = t0 + 15_000L)
-        val reportAt15s = controller.metrics.value!!
-        assertEquals(10, reportAt15s.heartbeatsExpected)
-        assertEquals(0, reportAt15s.heartbeatsReceived)
-        assertEquals(0.0f, reportAt15s.heartbeatsDeliveredPct!!, 0.001f)
+        controller.emitHeartbeatNow(nowEpochMs = t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
+        val reportAtTimeout = controller.metrics.value!!
+        assertEquals(2 * MeshRelayEngine.LOST_THRESHOLD_BEATS, reportAtTimeout.heartbeatsExpected)
+        assertEquals(0, reportAtTimeout.heartbeatsReceived)
+        assertEquals(0.0f, reportAtTimeout.heartbeatsDeliveredPct!!, 0.001f)
         assertEquals(2, controller.state.value.lostRidersCount)
         assertEquals(0, controller.state.value.connectedRidersCount)
 

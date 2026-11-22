@@ -38,3 +38,7 @@ de datos. Los volcados `final_ui_*.xml` confirman el estado final `1 rider`.
 - `logcat_tecno.txt`, `logcat_redmi.txt`: logcat filtrado al cierre.
 - `final_ui_tecno.xml`, `final_ui_redmi.xml`, `final_logcat_*.txt`: estado final.
 - `heartbeat_gaps.txt`: intervalos observados de `HeartbeatRx` en TECNO.
+
+## Uso posterior (FIX B fase 1)
+
+Este `heartbeat_gaps.txt` es la fuente de `MeshRelayEngine.OBSERVED_HEARTBEAT_ARRIVAL_INTERVAL_MS = 27_000L`. El timeout de pérdida se deriva ahora como `27 s × 3/2 = 40,5 s` (antes 15 s), con `LOST_THRESHOLD_BEATS` calculado a partir de ese timeout. Como esta fase **no modifica la radio** (`FRAGMENT_REPEATS`, ráfagas ni scheduler), la medición sigue siendo representativa.

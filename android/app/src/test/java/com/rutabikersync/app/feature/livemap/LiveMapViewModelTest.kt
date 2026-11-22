@@ -166,11 +166,11 @@ class LiveMapViewModelTest {
         assertEquals(RiderRouteStatus.OFF_ROUTE_DEVIATED, rider3.routeStatus)
         assertEquals("⚠ Desviado", rider3.routeStatus.symbolAndLabel)
 
-        // Rider 4 emite un paquete y luego pierde señal por >15 s -> OFF_MESH_LOST ("✕ Sin señal")
-        val nowMs = System.currentTimeMillis()
+        // Rider 4 emite un paquete y luego guarda silencio hasta superar el timeout derivado -> OFF_MESH_LOST ("✕ Sin señal")
         engines.getValue(4u).emitLocalPosition(19.4250, -99.1332, 60, 180f, 80, ttl = 4)
-        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + 20_000L)
-        val afterTimeoutFrame = mapController.flushMapFrame(nowEpochMs = nowMs + 20_000L, force = true)
+        val lossAtMs = System.currentTimeMillis() + MeshRelayEngine.LOST_TIMEOUT_MS + 1_000L
+        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
+        val afterTimeoutFrame = mapController.flushMapFrame(nowEpochMs = lossAtMs, force = true)
         val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
         assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
         assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
@@ -334,8 +334,8 @@ class LiveMapViewModelTest {
 
         // El peer se pierde: su marcador fantasma sigue visible, pero el HUD baja a 1.
         val nowMs = System.currentTimeMillis()
-        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + 20_000L)
-        val lostPeer = controller.flushMapFrame(nowEpochMs = nowMs + 20_000L, force = true)
+        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS)
+        val lostPeer = controller.flushMapFrame(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS, force = true)
         assertEquals(2, lostPeer.markers.size)
         assertEquals(1, lostPeer.ridersCount)
         assertEquals("1 rider", ConvoyRiderCountFormatter.format(lostPeer.ridersCount))

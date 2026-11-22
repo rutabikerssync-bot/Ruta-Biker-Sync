@@ -186,9 +186,9 @@ class MeshValidationPhase0Test {
         val lostAt9s = engine.evaluatePeerTimeouts(nowEpochMs = t0 + 9_000L)
         assertTrue(lostAt9s.isEmpty())
 
-        // A los 15 segundos (5 latidos perdidos) los 3 peers pasan a estado perdido y se registra 1 evento de isla
-        val lostAt15s = engine.evaluatePeerTimeouts(nowEpochMs = t0 + 15_000L)
-        assertEquals(3, lostAt15s.size)
+        // Con el timeout derivado (40,5 s > 27 s medidos) los 3 peers pasan a perdido y se registra 1 isla
+        val lostAtTimeout = engine.evaluatePeerTimeouts(nowEpochMs = t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
+        assertEquals(3, lostAtTimeout.size)
         assertEquals(1, engine.metrics.value.islandEvents)
 
         // Histéresis: el primer latido de regreso del nodo 2 aún no limpia isLost (evita falsos regresos)
@@ -203,7 +203,7 @@ class MeshValidationPhase0Test {
             ttl = 3,
             rideSecretKey = secretKey
         )
-        engine.onRawPacketReceived(recoveryBeat1.toByteArray(), nowEpochMs = t0 + 16_000L)
+        engine.onRawPacketReceived(recoveryBeat1.toByteArray(), nowEpochMs = t0 + MeshRelayEngine.LOST_TIMEOUT_MS + 1_000L)
         assertTrue(engine.peers.value.getValue(2u).isLost)
 
         // El segundo latido consecutivo limpia isLost y confirma la reconexión estable
@@ -221,7 +221,7 @@ class MeshValidationPhase0Test {
                 rideSecretKey = secretKey
             ).authTag
         )
-        engine.onRawPacketReceived(recoveryBeat2.toByteArray(), nowEpochMs = t0 + 19_000L)
+        engine.onRawPacketReceived(recoveryBeat2.toByteArray(), nowEpochMs = t0 + MeshRelayEngine.LOST_TIMEOUT_MS + 4_000L)
         assertFalse(engine.peers.value.getValue(2u).isLost)
     }
 
@@ -273,13 +273,13 @@ class MeshValidationPhase0Test {
 
         val t0 = 10_000L
         engine.registerExpectedPeer(shortId = 2u, nowEpochMs = t0, initialExpectedBeats = 0)
-        // Tras 15 s (5 latidos perdidos) sin recibir nada del par 2: expectedBeats = 5, receivedBeats = 0
-        val newlyLost = engine.evaluatePeerTimeouts(nowEpochMs = t0 + 15_000L)
+        // Tras el timeout derivado sin recibir nada del par 2: expectedBeats = 13, receivedBeats = 0
+        val newlyLost = engine.evaluatePeerTimeouts(nowEpochMs = t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
         assertEquals(listOf(2u.toUShort()), newlyLost)
 
         val report = engine.metrics.value
         assertEquals(2, report.participants)
-        assertEquals(5, report.heartbeatsExpected)
+        assertEquals(MeshRelayEngine.LOST_THRESHOLD_BEATS, report.heartbeatsExpected)
         assertEquals(0, report.heartbeatsReceived)
         assertNotNull(report.heartbeatsDeliveredPct)
         assertEquals(0.0f, report.heartbeatsDeliveredPct!!, 0.001f)

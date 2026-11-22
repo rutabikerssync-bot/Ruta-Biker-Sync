@@ -68,8 +68,8 @@ class UniqueAnnouncerPhase3Test {
         assertEquals(3, engines.getValue(2u).peers.value.getValue(5u).lastHops)
         assertEquals(4, engines.getValue(1u).peers.value.getValue(5u).lastHops)
 
-        // Simular que pasan 20 s sin señal del Rider 5 -> los nodos 1, 2, 3 y 4 detectan PEER_LOST(5u) a la vez
-        val lossTimeMs = System.currentTimeMillis() + 20_000L
+        // Simular silencio superior al timeout derivado -> los nodos 1, 2, 3 y 4 detectan PEER_LOST(5u) a la vez
+        val lossTimeMs = System.currentTimeMillis() + MeshRelayEngine.LOST_TIMEOUT_MS
         for (id in listOf<UShort>(1u, 2u, 3u, 4u)) {
             engines.getValue(id).evaluatePeerTimeouts(lossTimeMs)
         }

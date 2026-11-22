@@ -674,3 +674,31 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Estado:** commit local atómico, sin `amend` y sin `push`.
 
+### FIX B fase 1 - Timeout de peers derivado del intervalo de llegada medido en campo - 2026-11-21
+
+**Alcance autorizado**: "fase 1 de C (timeout derivado, sin radio)". Sin `amend` y sin `push`.
+
+**Corrección aritmética**: la propuesta verbal estimaba "30–35 s" con factor 1,5 sobre un intervalo de 27 s; 27 × 1,5 = **40,5 s**. Se aplica el valor derivado, no la estimación verbal. El timeout real no reside en `PeerHealthMonitor` (que solo delega en `engine.evaluatePeerTimeouts`), sino en `MeshRelayEngine.LOST_TIMEOUT_MS`: ahí está la única fuente de verdad.
+
+**Causa**: el timeout era `HEARTBEAT_INTERVAL_MS (3 s) × LOST_THRESHOLD_BEATS (5) = 15 s`, es decir, derivado del tick ideal del scheduler. En campo, `HeartbeatRx` llega cada **~27 s** (`docs/evidence/fix_gps_retencion_20261121/heartbeat_gaps.txt`: 27,27,27,27) por pérdida de paquetes en el scanner BLE. Como 15 s < 27 s, el peer se declaraba perdido antes de cada llegada, con independencia del GPS.
+
+**Cambio**:
+- `MeshRelayEngine` añade `OBSERVED_HEARTBEAT_ARRIVAL_INTERVAL_MS = 27_000L` (medición de campo, documentada), los términos de la tolerancia `3/2` y `LOST_TIMEOUT_MS = 27_000 × 3 / 2 = 40_500 ms`. `LOST_THRESHOLD_BEATS` pasa a derivarse del timeout (13 ticks de 3 s) en lugar de ser un literal. La regla anti-decaimiento queda escrita en `PeerHealthMonitorTest`.
+- `PeerHealthMonitor.kt`: solo se actualiza el KDoc (sigue siendo timeout-only; ni RSSI, ni PLR, ni IP).
+- Tests: nuevo `PeerHealthMonitorTest` (invariante ×1,5, 4 llegadas separadas 27 s sin pérdida, silencio de 45 s con RSSI -105 sí marca pérdida). Los tests que asumían 15/16/20 s pasan a referenciar `MeshRelayEngine.LOST_TIMEOUT_MS` en lugar de literales.
+
+**Alcance no tocado**: `FRAGMENT_REPEATS`, `FRAGMENT_BURST_MS`, cadencia del scheduler, cifrado ChaCha20/Ed25519, GATT, `HeartbeatFrame`, PTT/voz, chat, liderazgo y `BleAdvTransport.kt`. `Ed25519SosCrypto.kt` permanece modificado en el árbol de trabajo pero **fuera de este commit**.
+
+| Tarea | Comando / acción | Resultado |
+| --- | --- | --- |
+| Test focalizado | `.\gradlew.bat :app:testStandardDebugUnitTest --tests '*PeerHealthMonitorTest' --tests '*PeerPositionValidityTest' --tests '*MeshValidationPhase0Test' --tests '*HeartbeatBatteryPhase3Test' --tests '*LiveMapViewModelTest' --tests '*UniqueAnnouncerPhase3Test' --rerun-tasks --no-daemon` | BUILD SUCCESSFUL (31 tests) |
+| Suite JVM completa | `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` | BUILD SUCCESSFUL — **520 tests, 0 fallos** |
+| Compilación + APK | `.\gradlew.bat :app:assembleStandardDebug --no-daemon` | BUILD SUCCESSFUL; `app-standard-debug.apk` instalado en TECNO `098813734B105395` y Redmi `b2c398bb` |
+| Aislamiento del cambio ajeno | backup + `git checkout HEAD -- Ed25519SosCrypto.kt` para compilar, restauración inmediata después | lo compilado/installado coincide con el commit propuesto; el archivo sigue sin stagear |
+
+**Verificación hardware — PENDIENTE DE REINTENTO**: no se pudo reproducir la rodada de 35 min en este turno. Tras reinstalar el APK y reiniciar backend `:3001`, proxy `:3002` y `adb reverse tcp:3000 tcp:3002`, el backend responde las encuestas (`GET /v1/groups`) pero con `memberRes rows count: 0` para ambos UIDs. En consecuencia `RideManifestKeyProvider.resolve` no obtiene un manifiesto válido, `RideService` no entra en primer plano y no hay `HeartbeatTx`/`HeartbeatRx`/`FragmentReassembled` en ningún dispositivo: ambos HUD muestran `1 rider` local, sin mallaBLE activa. No es una regresión del timeout; es el entorno de manifiesto/datos de la rodada el que no está restaurado.
+
+**Criterio de cierre de campo (sin cumplir aún)**: repetir el protocolo de 35 min con el manifiesto válido y confirmar HUD estable en `2 riders` durante ≥30 min, sin oscilaciones. La medición de 27 s que justifica el nuevo timeout procede de la rodada FIX A ya documentada y es válida porque esta fase no modifica la radio.
+
+**Estado:** commit local atómico, sin `amend` y sin `push`.
+

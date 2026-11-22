@@ -132,8 +132,8 @@ class PeerPositionValidityTest {
             assertFalse(localEngine.peers.value.getValue(2u).isLost)
         }
 
-        // Regresión: sin heartbeats durante >15 s el peer sí se declara perdido.
-        localEngine.evaluatePeerTimeouts(System.currentTimeMillis() + 20_000L)
+        // Regresión: sin heartbeats durante el timeout derivado el peer sí se declara perdido.
+        localEngine.evaluatePeerTimeouts(System.currentTimeMillis() + MeshRelayEngine.LOST_TIMEOUT_MS)
         val lostFrame = controller.flushMapFrame(nowEpochMs = 60_000L, force = true)
         assertTrue(localEngine.peers.value.getValue(2u).isLost)
         assertEquals(1, lostFrame.ridersCount)
