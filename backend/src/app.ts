@@ -22,6 +22,7 @@ import {
   type RsvpWritableStatus
 } from './lib/rsvpTransitions.js';
 import { registerRideLifecycleRoutes, validateRsvpLifecycle } from './lib/rideLifecycleRoutes.js';
+import { purgeRideComms, registerRideCommsRoutes } from './lib/rideCommsRoutes.js';
 import {
   checkGroupNameCollision,
   normalizeGroupName
@@ -1883,6 +1884,10 @@ export async function buildApp({
   }
 
   registerRideLifecycleRoutes(app, db, getRlsPool);
+  registerRideCommsRoutes(app, {
+    getUserId: requireUserId,
+    checkAccess: checkRideTelemetryAccess
+  });
 
   app.post('/v1/groups/:id/routes', async (req, reply) => {
     const uid = requireUserId(req, reply);
@@ -5431,6 +5436,7 @@ export async function buildApp({
 
     const finalState = rideMeetsR66 && countedUsers.length > 0 ? 'validated' : 'closed';
     await db.query(`UPDATE rides SET state = $1 WHERE id = $2`, [finalState, rideId]);
+    purgeRideComms(rideId);
 
     await appendAudit(db, uid, 'RIDE_CLOSED', 'ride', rideId, {
       finalState,
