@@ -24,8 +24,11 @@ $backendDir = Join-Path $repoRoot 'backend'
 $logsDir = Join-Path $repoRoot 'logs'
 $evidenceDir = Join-Path $repoRoot 'docs\evidence'
 $urlFile = Join-Path $evidenceDir 'piloto_tunnel_url.txt'
-$backendLog = Join-Path $logsDir 'piloto_backend.log'
+$backendLog = Join-Path $logsDir 'piloto_backend.out.log'
+$backendErrorLog = Join-Path $logsDir 'piloto_backend.err.log'
 $tunnelLog = Join-Path $logsDir 'piloto_cloudflared.log'
+$tunnelOutLog = Join-Path $logsDir 'piloto_cloudflared.out.log'
+$tunnelErrorLog = Join-Path $logsDir 'piloto_cloudflared.err.log'
 
 New-Item -ItemType Directory -Force -Path $logsDir, $evidenceDir | Out-Null
 
@@ -78,12 +81,12 @@ function Restore-PilotEnv {
     }
   }
 }
-trap { Restore-PilotEnv; throw }
+trap { Write-Error $_; Restore-PilotEnv; throw }
 
 $backendArgs = @('tsx', 'src/index.ts')
 $backendProc = Start-Process -FilePath 'npx.cmd' -ArgumentList $backendArgs `
   -WorkingDirectory $backendDir `
-  -RedirectStandardOutput $backendLog -RedirectStandardError $backendLog `
+  -RedirectStandardOutput $backendLog -RedirectStandardError $backendErrorLog `
   -PassThru -WindowStyle Hidden
 
 Write-Host "Backend iniciado (PID $($backendProc.Id)). Esperando /health…"
@@ -102,18 +105,21 @@ Write-Host 'Backend OK.'
 Write-Host 'Abriendo Cloudflare quick tunnel…'
 $tunnelProc = Start-Process -FilePath $cloudflared.Source `
   -ArgumentList @('tunnel', '--url', "http://127.0.0.1:$Port", '--logfile', $tunnelLog) `
-  -WorkingDirectory $repoRoot -RedirectStandardOutput $tunnelLog `
-  -RedirectStandardError $tunnelLog -PassThru -WindowStyle Hidden
+  -WorkingDirectory $repoRoot -RedirectStandardOutput $tunnelOutLog `
+  -RedirectStandardError $tunnelErrorLog -PassThru -WindowStyle Hidden
 
 $deadline = (Get-Date).AddSeconds($WaitSeconds)
 $tunnelUrl = $null
 while ((Get-Date) -lt $deadline) {
   if ($tunnelProc.HasExited) { throw "cloudflared terminó. Revisa $tunnelLog" }
-  if (Test-Path -LiteralPath $tunnelLog) {
-    $text = Get-Content -LiteralPath $tunnelLog -Raw -ErrorAction SilentlyContinue
+  foreach ($log in @($tunnelLog, $tunnelOutLog, $tunnelErrorLog)) {
+    if (-not (Test-Path -LiteralPath $log)) { continue }
+    $text = Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrEmpty($text)) { continue }
     $match = [regex]::Match($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
     if ($match.Success) { $tunnelUrl = $match.Value; break }
   }
+  if ($tunnelUrl) { break }
   Start-Sleep -Seconds 1
 }
 if (-not $tunnelUrl) { throw "cloudflared no publicó URL en $WaitSeconds s. Revisa $tunnelLog" }
