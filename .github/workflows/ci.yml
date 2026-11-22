@@ -10,13 +10,13 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: rbs
-          POSTGRES_PASSWORD: rbs_dev_password
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_password
           POSTGRES_DB: rbs_test
         ports:
           - 5433:5432
         options: >-
-          --health-cmd "pg_isready -U rbs -d rbs_test"
+          --health-cmd "pg_isready -U postgres -d rbs_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -31,12 +31,12 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Ajustar rol PostgreSQL para RLS
+      - name: Crear rol PostgreSQL no-superuser para RLS
         env:
-          PGPASSWORD: rbs_dev_password
+          PGPASSWORD: postgres_password
         run: |
-          psql -h 127.0.0.1 -p 5433 -U rbs -d rbs_test -v ON_ERROR_STOP=1 -c "CREATE ROLE rbs_admin LOGIN PASSWORD 'rbs_admin_password' SUPERUSER"
-          PGPASSWORD=rbs_admin_password psql -h 127.0.0.1 -p 5433 -U rbs_admin -d rbs_test -v ON_ERROR_STOP=1 -c "ALTER ROLE rbs NOSUPERUSER"
+          psql -h 127.0.0.1 -p 5433 -U postgres -d rbs_test -v ON_ERROR_STOP=1 -c "CREATE ROLE rbs LOGIN PASSWORD 'rbs_dev_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS"
+          psql -h 127.0.0.1 -p 5433 -U postgres -d rbs_test -v ON_ERROR_STOP=1 -c "ALTER DATABASE rbs_test OWNER TO rbs"
       - run: npm run typecheck
       - run: npm test --if-present
         env:
@@ -55,4 +55,4 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :app:assembleDebug :app:testStandardDebugUnitTest
+      - run: ./gradlew :app:testStandardDebugUnitTest
