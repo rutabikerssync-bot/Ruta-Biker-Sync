@@ -68,7 +68,10 @@
       <div class="nav-item" data-tab="support" onclick="switchTab('support')">
         <span class="nav-icon">🎧</span>
         <span>Soporte & Moderación</span>
-        <span class="nav-badge" id="badge-escalated-count">2</span>
+      </div>
+      <div class="nav-item" data-tab="devices" onclick="switchTab('devices')">
+        <span class="nav-icon">📡</span>
+        <span>Dispositivos del Piloto</span>
       </div>
       <div class="nav-item" data-tab="audit" onclick="switchTab('audit')">
         <span class="nav-icon">🚨</span>
@@ -353,6 +356,31 @@
             <tbody id="sos-audit-table-body">
               <!-- Se puebla dinámicamente con JavaScript -->
             </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PESTAÑA: DISPOSITIVOS DEL PILOTO -->
+      <section id="tab-devices" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">📡 Monitoreo de Dispositivos del Piloto</h2>
+            <p class="section-desc">Latidos, errores y cola de logs recibidos por los APK de piloto. Incluye datos sensibles: solo con clave de administrador.</p>
+          </div>
+          <button class="btn-secondary" onclick="loadTabContent('devices')">↻ Actualizar</button>
+        </div>
+        <p id="pilot-devices-status" style="font-size:0.85rem;color:var(--text-subtle);margin-bottom:12px;"></p>
+        <div class="table-responsive">
+          <table>
+            <thead><tr><th>Huella</th><th>Build</th><th>Dispositivo</th><th>Batería</th><th>Peers</th><th>Último latido</th><th>Último error</th></tr></thead>
+            <tbody id="pilot-devices-body"><tr><td colspan="7" style="text-align:center;padding:24px;">Selecciona esta pestaña para consultar.</td></tr></tbody>
+          </table>
+        </div>
+        <h3 style="font-size:1rem;color:var(--gold-primary);margin:24px 0 12px;">Eventos recientes</h3>
+        <div class="table-responsive">
+          <table>
+            <thead><tr><th>Fecha</th><th>Huella</th><th>Tipo</th><th>Severidad</th><th>Detalle</th></tr></thead>
+            <tbody id="pilot-events-body"><tr><td colspan="5" style="text-align:center;padding:24px;">Selecciona esta pestaña para consultar.</td></tr></tbody>
           </table>
         </div>
       </section>

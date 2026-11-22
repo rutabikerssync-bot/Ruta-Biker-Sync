@@ -172,44 +172,10 @@ class ClubRepository(
         return Result.success(true)
     }
 
-    private val _moderationReports = MutableStateFlow<List<ModerationReportItem>>(
-        listOf(
-            ModerationReportItem(
-                id = "rep-demo-01",
-                reporterId = "usr-victim",
-                reportedId = "usr-demo-bad",
-                groupId = "grp-lobos",
-                reason = "dangerous",
-                state = "open",
-                reporterName = "Rider Testigo",
-                reportedName = "Rider Temerario",
-                createdAt = "2026-10-31T05:00:00Z"
-            )
-        )
-    )
+    private val _moderationReports = MutableStateFlow<List<ModerationReportItem>>(emptyList())
     val moderationReports: StateFlow<List<ModerationReportItem>> = _moderationReports.asStateFlow()
 
-    private val _leaderVotes = MutableStateFlow<List<LeaderVoteItem>>(
-        listOf(
-            LeaderVoteItem(
-                id = "vote-demo-01",
-                groupId = "grp-lobos",
-                proposal = "remove_member",
-                targetId = "usr-demo-bad",
-                proposedBy = "usr-presi",
-                state = "open",
-                proposedByName = "Presidente Lobo",
-                targetName = "Rider Temerario",
-                ballots = listOf(
-                    LeaderVoteBallotItem(
-                        leaderId = "usr-presi",
-                        leaderName = "Presidente Lobo",
-                        approve = true
-                    )
-                )
-            )
-        )
-    )
+    private val _leaderVotes = MutableStateFlow<List<LeaderVoteItem>>(emptyList())
     val leaderVotes: StateFlow<List<LeaderVoteItem>> = _leaderVotes.asStateFlow()
 
     suspend fun fileModerationReport(

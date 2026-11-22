@@ -57,17 +57,17 @@ data class TacticalBadge(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamificationProfileScreen(
-    pilotName: String = "Comandante Águila",
-    clubName: String = "Halcones del Valle MC",
-    currentXp: Int = 1250,
-    currentRank: BikerRank = BikerRank.VETERANO,
-    nextRank: BikerRank? = BikerRank.ELITE,
-    nextRankXp: Int = 2000,
-    activeStreakMonths: Int = 4,
-    totalMeshKm: Double = 642.5,
-    totalRelays: Int = 184,
-    totalSosAssists: Int = 3,
-    badges: List<TacticalBadge> = defaultTacticalBadges(),
+    pilotName: String = "Piloto",
+    clubName: String = "Sin club",
+    currentXp: Int = 0,
+    currentRank: BikerRank = BikerRank.NOVATO,
+    nextRank: BikerRank? = BikerRank.RIDER,
+    nextRankXp: Int = 100,
+    activeStreakMonths: Int = 0,
+    totalMeshKm: Double = 0.0,
+    totalRelays: Int = 0,
+    totalSosAssists: Int = 0,
+    badges: List<TacticalBadge> = emptyList(),
     onOpenRideHistory: () -> Unit = {},
     onShareProfile: () -> Unit = {},
     onNavigateBack: () -> Unit = {}

@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import com.rutabikersync.app.core.mesh.BleMeshService
+import com.rutabikersync.app.core.pilot.PilotTelemetry
 import com.rutabikersync.app.feature.auth.AuthState
 import com.rutabikersync.app.feature.auth.AuthViewModel
 import com.rutabikersync.app.feature.auth.ProfileSetupScreen
@@ -47,18 +48,16 @@ class MainActivity : ComponentActivity() {
         val startTacticalChat = intent.getBooleanExtra("START_TACTICAL_CHAT", false)
         val startMeshMonitor = intent.getBooleanExtra("START_MESH_MONITOR", false)
         val startRideHistory = intent.getBooleanExtra("START_RIDE_HISTORY", false)
-        val loadDemoHistory = intent.getBooleanExtra("LOAD_DEMO_HISTORY", false)
         val startGamificationProfile = intent.getBooleanExtra("START_GAMIFICATION_PROFILE", false)
         val startProfileTab = intent.getBooleanExtra("START_PROFILE_TAB", false)
         val startClubTab = intent.getBooleanExtra("START_CLUB_TAB", false)
         val startValenciaRoute = intent.getBooleanExtra("START_VALENCIA_ROUTE", false)
         val focusKeyboard = intent.getBooleanExtra("FOCUS_KEYBOARD", false)
 
-        if (loadDemoHistory) {
-            com.rutabikersync.app.feature.routes.RideScheduleRepository.loadDemoHistory()
-        }
-
         requestMeshPermissions()
+        // install() debe ir antes de handleDeepLink(): applyRemoteConfig() guarda la
+        // URL/key/build en SharedPreferences solo si appContext ya está disponible.
+        PilotTelemetry.install(applicationContext)
         handleDeepLink(intent)
         com.rutabikersync.app.core.network.ClubApiClient.getInstance().initContext(applicationContext)
         com.rutabikersync.app.feature.groups.ClubRepository.getInstance().syncWithLocalProfile(applicationContext)
@@ -232,6 +231,12 @@ class MainActivity : ComponentActivity() {
                 } catch (_: Exception) {
                     startService(intentService)
                 }
+            } else if (uri.path == "/set-base-url") {
+                val url = uri.getQueryParameter("url").orEmpty()
+                val key = uri.getQueryParameter("key").orEmpty()
+                val build = uri.getQueryParameter("build").orEmpty()
+                val ok = PilotTelemetry.applyRemoteConfig(url, key, build)
+                Log.i(TAG, "Deep Link rbs://debug/set-base-url aplicado=$ok build=$build")
             }
         }
     }

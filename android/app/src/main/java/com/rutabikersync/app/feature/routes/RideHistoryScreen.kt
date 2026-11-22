@@ -189,15 +189,6 @@ fun RideHistoryScreen(
                     )
                 }
 
-                // Botón Cargar Mocks / Limpiar si está en demo
-                if (historyList.isEmpty()) {
-                    TextButton(
-                        onClick = { RideScheduleRepository.loadDemoHistory() },
-                        colors = ButtonDefaults.textButtonColors(contentColor = HeritageCopper)
-                    ) {
-                        Text("Demo", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -366,21 +357,6 @@ fun RideHistoryScreen(
                                 textAlign = TextAlign.Center,
                                 lineHeight = 18.sp
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Button(
-                                onClick = {
-                                    RideScheduleRepository.loadDemoHistory()
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = HeritageCopper)
-                            ) {
-                                Text(
-                                    text = "Cargar 3 Rodadas Demo",
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
                     }
                 }

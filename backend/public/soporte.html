@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro de Soporte — Ruta Biker Sync</title>
+  <meta name="description" content="Soporte técnico de Ruta Biker Sync: reporta un problema, consulta el FAQ y revisa el estado de los dispositivos del piloto.">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/landing.css?v=20261102_2">
+  <link rel="stylesheet" href="./css/soporte.css?v=20261122_1">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-container">
+      <a href="/" class="brand-link">
+        <img src="./images/logo-patch.webp" alt="Ruta Biker Sync" class="brand-logo-img">
+        <div class="brand-text">
+          <h1>RUTA BIKER <span>SYNC</span></h1>
+          <div class="brand-badge">SOPORTE OFICIAL</div>
+        </div>
+      </a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="/">Inicio</a></li>
+          <li><a href="#reportar">Reportar</a></li>
+          <li><a href="#faq">Preguntas</a></li>
+          <li><a href="#sos">Seguridad & SOS</a></li>
+          <li><a href="#dispositivos">Dispositivos</a></li>
+        </ul>
+      </nav>
+      <div class="nav-actions">
+        <a href="/admin" class="btn btn-glass">🛡️ Backoffice</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="support-hero">
+      <div class="container">
+        <div class="section-tag">ESTAMOS CONTIGO EN LA RUTA</div>
+        <h1>Centro de Soporte</h1>
+        <p class="hero-subtitle">
+          Reporta un fallo de la malla, del mapa o de tu cuenta. Tu mensaje llega
+          directamente al backoffice; no necesitas cuenta para escribirnos.
+        </p>
+        <div class="support-contact">
+          <a href="mailto:soporte@rutabikersync.com">✉️ soporte@rutabikersync.com</a>
+          <span>·</span>
+          <span>Respuesta en el plazo del piloto (labores 09:00–19:00)</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="support-main container" id="reportar">
+      <div class="support-card">
+        <h2>Enviar un reporte</h2>
+        <p class="card-hint">Los campos marcados con * son obligatorios.</p>
+
+        <form id="supportForm" novalidate>
+          <div class="form-grid">
+            <label class="field">
+              <span>Asunto *</span>
+              <input id="subject" name="subject" type="text" minlength="3" maxlength="200"
+                     placeholder="Ej.: La malla no reconoce a otro rider" required>
+            </label>
+
+            <label class="field">
+              <span>Categoría</span>
+              <select id="category" name="category">
+                <option value="mesh_sync">Malla BLE / sincronización</option>
+                <option value="routes">Rutas y mapas offline</option>
+                <option value="account">Cuenta y club</option>
+                <option value="safety_sos">SOS / seguridad vial</option>
+                <option value="billing">Licencias y pagos</option>
+                <option value="other">Otro</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Mensaje *</span>
+            <textarea id="message" name="message" rows="7" minlength="5" maxlength="5000"
+                      placeholder="Cuéntanos qué pasó, en qué dispositivo y cómo lo reprodujimos. Si quieres respuesta por correo, inclúyelo aquí." required></textarea>
+          </label>
+
+          <label class="field">
+            <span>Captura (opcional, máx. 2 MB)</span>
+            <input id="screenshot" name="screenshot" type="file" accept="image/png,image/jpeg,image/webp">
+            <small id="screenshotInfo">PNG, JPEG o WebP. Se comprime automáticamente en tu navegador.</small>
+          </label>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="submitReport">Enviar reporte</button>
+            <span id="formStatus" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+
+      <aside class="support-side">
+        <div class="side-card">
+          <h3>Antes de escribirnos</h3>
+          <ol>
+            <li>Confirma que Bluetooth y Ubicación están encendidos.</li>
+            <li>Acércate a menos de 50 m del piloto más cercano.</li>
+            <li>Revisa que el mapa offline de la zona esté descargado.</li>
+            <li>Anota la marca/modelo y la versión de la app.</li>
+          </ol>
+        </div>
+        <div class="side-card" id="sos">
+          <h3>🆘 Bóveda SOS</h3>
+          <p>
+            Los datos médicos sensibles solo se comparten durante una emergencia
+            real y con rescatistas autorizados. Si el botón SOS no responde,
+            escribe <strong>SOS URGENTE</strong> en el asunto y llama al 112/911.
+          </p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="support-faq container" id="faq">
+      <div class="section-header">
+        <div class="section-tag">RESPUESTAS RÁPIDAS</div>
+        <h2 class="section-title">Preguntas Frecuentes</h2>
+      </div>
+      <div class="faq-list" id="faqList">
+        <div class="faq-item active">
+          <div class="faq-question"><span>¿Cómo funciona la malla BLE sin internet?</span><span class="faq-toggle-icon">−</span></div>
+          <div class="faq-answer">La red mesh BLE enlaza los teléfonos de los pilotos de moto a moto en saltos de radio de corto alcance. Posiciones, señales y alertas SOS se retransmiten de nodo a nodo sin señal celular ni datos móviles.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question"><span>¿Mis datos médicos son privados?</span><span class="faq-toggle-icon">+</span></div>
+          <div class="faq-answer">Sí. Los datos sensibles se sellan con cifrado de extremo a extremo en tu dispositivo y solo se transmiten de forma efímera durante una emergencia vial SOS real.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question"><span>¿Cómo descargo mapas para rodar offline?</span><span class="faq-toggle-icon">+</span></div>
+          <div class="faq-answer">En Rodadas o Bóveda, abre Mapas Offline, elige el corredor vial de tu ruta y descárgalo con antelación en formato vectorial PMTiles.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question"><span>¿Cómo invito a companeros a mi club?</span><span class="faq-toggle-icon">+</span></div>
+          <div class="faq-answer">Desde Mi Club, el Líder o Capitán de Ruta puede generar un código QR o enlace de invitación para que los integrantes se unan al convoy.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question"><span>¿Qué hago si se interrumpe la conexión del convoy?</span><span class="faq-toggle-icon">+</span></div>
+          <div class="faq-answer">Verifica Bluetooth y Ubicación, y acércate a menos de 50 metros del piloto más cercano para que la malla vuelva a asociar tu nodo automáticamente.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="support-devices container" id="dispositivos">
+      <div class="section-header">
+        <div class="section-tag">PILOTO REMOTO</div>
+        <h2 class="section-title">Estado de dispositivos</h2>
+      </div>
+      <p class="card-hint">
+        Vista ligera: número de build, modelo, batería y último error. Sin stacks
+        ni logs; para el detalle completo usa el
+        <a href="/admin">Centro de Comando</a>.
+      </p>
+      <div class="device-auth">
+        <input id="pilotKey" type="password" autocomplete="off" placeholder="Clave de piloto" maxlength="256">
+        <button type="button" class="btn btn-glass" id="loadDevices">Consultar estado</button>
+      </div>
+      <p id="deviceStatus" role="status" aria-live="polite"></p>
+      <div class="device-table-wrap">
+        <table id="deviceTable" hidden>
+          <thead>
+            <tr><th>Build</th><th>Dispositivo</th><th>Batería</th><th>Peers</th><th>Último latido</th><th>Último error</th></tr>
+          </thead>
+          <tbody id="deviceTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-bottom">
+      <div>&copy; 2026 Ruta Biker Sync. Soporte oficial.</div>
+      <div><a href="/">Volver al inicio</a> · <a href="/admin">Backoffice</a></div>
+    </div>
+  </footer>
+
+  <script src="./js/soporte.js?v=20261122_1"></script>
+</body>
+</html>

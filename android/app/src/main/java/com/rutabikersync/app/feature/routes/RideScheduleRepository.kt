@@ -194,7 +194,7 @@ object RideScheduleRepository {
         durationMinutes: Int,
         xpEarned: Int,
         badgesUnlocked: List<String> = emptyList(),
-        clubName: String = "Águilas del Camino MC",
+        clubName: String = "",
         roleInRide: String = "Punta",
         relaysCount: Int = 0,
         sosAssistsCount: Int = 0,
@@ -228,7 +228,9 @@ object RideScheduleRepository {
     }
 
     /**
-     * Genera datos de bitácora de muestra para verificación visual e inspección analítica.
+     * Genera datos de bitácora de muestra exclusivamente para las pruebas unitarias.
+     * La UI del piloto no expone este generador: la bitácora arranca vacía y solo
+     * se llena con rodadas reales.
      */
     fun loadDemoHistory() {
         val now = System.currentTimeMillis()

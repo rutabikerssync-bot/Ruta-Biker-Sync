@@ -3,8 +3,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildApp } from '../src/app.js';
 import { createPgPool, readInitMigrationSql, type DbExecutor } from '../src/db/pool.js';
-import { verifyAdminAccess, DEFAULT_ADMIN_KEY } from '../src/lib/admin.js';
+import { verifyAdminAccess } from '../src/lib/admin.js';
 import type { FastifyInstance } from 'fastify';
+
+const TEST_ADMIN_KEY = 'test-admin-key-1234567890';
+process.env.ADMIN_API_KEY = TEST_ADMIN_KEY;
 
 function resolveTestDatabaseUrl(): string | undefined {
   if (process.env.PG_TEST_URL || process.env.DATABASE_URL) {
@@ -38,7 +41,7 @@ async function createTestDb(): Promise<{ db: DbExecutor; usingRealPostgres: bool
 
 describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
   it('valida correctamente la autenticación de administrador por clave', () => {
-    expect(verifyAdminAccess(DEFAULT_ADMIN_KEY)).toBe(true);
+    expect(verifyAdminAccess(TEST_ADMIN_KEY)).toBe(true);
     expect(verifyAdminAccess('clave-incorrecta')).toBe(false);
     expect(verifyAdminAccess(undefined)).toBe(false);
     expect(verifyAdminAccess('mi-clave-custom', 'mi-clave-custom')).toBe(true);
@@ -125,7 +128,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/analytics/overview',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -144,7 +147,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/groups?search=halcones',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -157,7 +160,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/support/reports',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -169,7 +172,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/support/tickets',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -181,7 +184,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/audit/sos',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);

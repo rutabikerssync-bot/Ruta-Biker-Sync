@@ -179,17 +179,36 @@ android {
             debugBaseUrl.startsWith("https://", ignoreCase = true)
     ) { "BASE_URL debug inválida: $debugBaseUrl" }
 
+    // Clave de piloto por probador. Solo se inyecta en debug; release la deja vacía.
+    val pilotKeyProp = (providers.gradleProperty("rbs.pilot.key").orNull ?: "").trim()
+    val pilotKeyEnv = (System.getenv("RBS_PILOT_KEY") ?: "").trim()
+    val pilotKey = pilotKeyProp.ifBlank { pilotKeyEnv }
+    require(Regex("^[A-Za-z0-9._-]*$").matches(pilotKey)) {
+        "RBS_PILOT_KEY solo admite letras, números, punto, guion y guion bajo"
+    }
+    val pilotBuild = (
+        providers.gradleProperty("rbs.pilot.build").orNull ?: System.getenv("RBS_PILOT_BUILD") ?: ""
+    ).trim().ifBlank { "debug-sin-etiqueta" }
+    require(Regex("^[A-Za-z0-9._-]{1,40}$").matches(pilotBuild)) {
+        "RBS_PILOT_BUILD debe tener 1-40 caracteres alfanuméricos, punto, guion o guion bajo"
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
             // T-02 (B1-4): localhost/HTTP solo en debug (overlay cleartext habilitado en src/debug).
             buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+            buildConfigField("String", "PILOT_KEY", "\"$pilotKey\"")
+            buildConfigField("String", "PILOT_BUILD", "\"$pilotBuild\"")
         }
         release {
             signingConfig = signingConfigs.getByName("release")
             // T-02/B1-4: BASE_URL release (prop rbs.prod.url > env RBS_PROD_URL > fallback .invalid que bloquea release).
             buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
+            // Nunca se distribuye una clave de piloto en release.
+            buildConfigField("String", "PILOT_KEY", "\"\"")
+            buildConfigField("String", "PILOT_BUILD", "\"\"")
             isMinifyEnabled = true       // ofuscaci?n R8 (app de c?digo cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")

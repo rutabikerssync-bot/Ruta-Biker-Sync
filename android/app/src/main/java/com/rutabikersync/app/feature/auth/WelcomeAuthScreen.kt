@@ -352,49 +352,6 @@ fun WelcomeAuthScreen(
                                 Text("Verificar y Continuar", color = Color(0xFF0F1117), fontWeight = FontWeight.Bold)
                             }
 
-                            // Accesos rápidos para cuentas de prueba autorizadas
-                            Text(
-                                text = "Cuentas de prueba oficiales:",
-                                color = Color(0xFF64748B),
-                                fontSize = 11.sp
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    onClick = {
-                                        manualEmailInput = "ozmartinezpaz@gmail.com"
-                                        onGoogleAuthSuccess("ozmartinezpaz@gmail.com", "Rider Ozmar")
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF1E293B),
-                                    border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                                ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        Text("Xiaomi Note 13", color = Color(0xFF38BDF8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        Text("ozmartinezpaz...", color = Color.White, fontSize = 10.sp)
-                                    }
-                                }
-
-                                Surface(
-                                    onClick = {
-                                        manualEmailInput = "omartinezpaz@gmail.com"
-                                        onGoogleAuthSuccess("omartinezpaz@gmail.com", "Capitán Oscar")
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFF1E293B),
-                                    border = BorderStroke(1.dp, Color(0xFFE5B869))
-                                ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        Text("TECNO (Líder)", color = Color(0xFFE5B869), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                        Text("omartinezpaz...", color = Color.White, fontSize = 10.sp)
-                                    }
-                                }
-                            }
                         }
                     }
                 }

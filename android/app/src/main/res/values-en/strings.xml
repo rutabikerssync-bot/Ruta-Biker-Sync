@@ -82,7 +82,7 @@
     <string name="profile_open_auth">Login / Onboarding</string>
     <string name="dev_panel_btn">DEV</string>
     <string name="dev_panel_title">Developer Panel (Debug Only)</string>
-    <string name="dev_load_demo">Load demo data (3 groups, 10 members)</string>
+    <string name="dev_load_demo">Reset to real view (no demo data)</string>
     <string name="dev_export_logs">Export logs (ZIP)</string>
 
     <!-- Phase 7: Privacy, Consents and Moderation (RULES R13, R14, R15) -->

@@ -79,7 +79,6 @@ import {
   type SubscriptionState
 } from './lib/subscriptions.js';
 import {
-  DEFAULT_ADMIN_KEY,
   verifyAdminAccess,
   logAdminAction,
   getAdminAnalyticsOverview,
@@ -112,8 +111,18 @@ import {
   DEFAULT_DEBUG_LOG_LINES,
   MAX_DEBUG_LOG_LINES,
   readRedactedLogTail,
+  redactBackendLogLine,
   resolveDebugLogPath
 } from './lib/debugLogs.js';
+import {
+  isPilotGateExempt,
+  isPilotKeyAllowed,
+  isPilotKeyRevoked,
+  isPilotOriginAllowed,
+  parsePilotConfig,
+  pilotKeyFingerprint,
+  pilotRateLimitKey
+} from './lib/pilotAccess.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
@@ -173,6 +182,27 @@ const SupportReportSchema = z.object({
   subject: z.string().min(3).max(200),
   message: z.string().min(5).max(5000),
   screenshotBase64: z.string().max(3_000_000).optional().nullable()
+});
+
+/** Telemetría del piloto: solo estado del terminal y errores, sin PII. */
+const DeviceTelemetrySchema = z.object({
+  deviceModel: z.string().max(80).optional(),
+  deviceBrand: z.string().max(80).optional(),
+  androidVersion: z.string().max(40).optional(),
+  appVersion: z.string().max(40).optional(),
+  gitCommit: z.string().max(64).optional(),
+  gitDirty: z.boolean().optional(),
+  batteryPct: z.number().int().min(0).max(100).optional(),
+  isCharging: z.boolean().optional(),
+  peerCount: z.number().int().min(0).max(1000).optional(),
+  meshState: z.string().max(40).optional(),
+  kind: z.enum(['heartbeat', 'error', 'log_tail']).default('heartbeat'),
+  severity: z
+    .enum(['debug', 'info', 'warning', 'error', 'fatal'])
+    .default('info'),
+  message: z.string().max(4000).optional(),
+  stack: z.string().max(12000).optional(),
+  logsTail: z.string().max(16000).optional()
 });
 
 const UpdateProfileSchema = z.object({
@@ -451,7 +481,24 @@ export async function buildApp({
     bodyLimit: 10 * 1024 * 1024 // 10 MB para soportar imágenes de perfil y reportes
   };
   const app = Fastify(fastifyOpts);
+  const pilot = parsePilotConfig(env);
   const loginTracker = new LoginAttemptTracker();
+
+  // Gate del piloto: si hay claves configuradas, todo /v1/* exige una clave vigente.
+  // Se registra antes que las rutas para que ni siquiera se evalúen si está revocada.
+  app.addHook('onRequest', async (req, reply) => {
+    if (!pilot.enabled || isPilotGateExempt(req)) return;
+    const header = req.headers['x-rbs-pilot-key'];
+    const key = typeof header === 'string' ? header : '';
+    if (isPilotKeyAllowed(pilot, key)) return;
+    const revoked = isPilotKeyRevoked(pilot, key);
+    return reply.code(revoked ? 403 : 401).send({
+      error: revoked ? 'PILOT_KEY_REVOKED' : 'PILOT_KEY_REQUIRED',
+      message: revoked
+        ? 'Esta clave de piloto fue revocada'
+        : 'Se requiere una clave de piloto vigente'
+    });
+  });
 
   async function checkAndEnforceAuthRateLimit(
     ip: string,
@@ -513,7 +560,10 @@ export async function buildApp({
     crossOriginResourcePolicy: false
   });
   await app.register(cors, {
-    origin: (_origin, cb) => cb(null, true),
+    origin: (origin, cb) => {
+      if (!pilot.enabled) return cb(null, true);
+      return cb(null, isPilotOriginAllowed(pilot, origin));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   });
@@ -523,7 +573,8 @@ export async function buildApp({
   await app.register(rateLimit, {
     max: 10000,
     timeWindow: '1 minute',
-    keyGenerator: (req) => (req.headers['x-user-id'] as string) || req.ip
+    keyGenerator: (req) =>
+      pilotRateLimitKey(pilot, req, (r) => (r.headers['x-user-id'] as string) || r.ip)
   });
 
   const __appFilename = fileURLToPath(import.meta.url);
@@ -545,6 +596,14 @@ export async function buildApp({
     });
     app.get('/admin/js/:filename', async (req, reply) => {
       return reply.sendFile(`js/${(req.params as any).filename}`);
+    });
+    // Servicio web de soporte: se abre desde el laptop en http://localhost:3000/soporte
+    // y, durante el piloto, en la URL HTTPS del túnel.
+    app.get('/soporte', async (_req, reply) => {
+      return reply.sendFile('soporte.html');
+    });
+    app.get('/soporte/', async (_req, reply) => {
+      return reply.sendFile('soporte.html');
     });
   }
 
@@ -1282,6 +1341,95 @@ export async function buildApp({
     );
 
     return { reports: res.rows };
+  });
+
+  // ---------------------------------------------------------------------------
+  // 2b. Telemetría del piloto (latidos, errores y cola de logs por dispositivo)
+  // ---------------------------------------------------------------------------
+  app.post('/v1/support/device-telemetry', async (req, reply) => {
+    const parsed = DeviceTelemetrySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const data = parsed.data;
+    const rawKey = req.headers['x-rbs-pilot-key'];
+    const keyFp = pilotKeyFingerprint(typeof rawKey === 'string' ? rawKey : '');
+    const rawBuild = req.headers['x-rbs-pilot-build'];
+    const pilotBuild =
+      (typeof rawBuild === 'string' && rawBuild.trim() ? rawBuild.trim() : 'sin-etiqueta').slice(0, 40);
+
+    const message = data.message ? redactBackendLogLine(data.message).slice(0, 4000) : null;
+    const stack = data.stack ? redactBackendLogLine(data.stack).slice(0, 12000) : null;
+    const logsTail = data.logsTail ? redactBackendLogLine(data.logsTail).slice(0, 16000) : null;
+    const isError = data.kind === 'error';
+
+    await db.query(
+      `INSERT INTO pilot_devices (
+         pilot_key_fp, pilot_build, device_model, device_brand, android_version, app_version,
+         git_commit, git_dirty, battery_pct, is_charging, peer_count, mesh_state,
+         last_error, last_error_stack, last_seen_at
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now())
+       ON CONFLICT (pilot_key_fp) DO UPDATE SET
+         pilot_build = EXCLUDED.pilot_build,
+         device_model = COALESCE(EXCLUDED.device_model, pilot_devices.device_model),
+         device_brand = COALESCE(EXCLUDED.device_brand, pilot_devices.device_brand),
+         android_version = COALESCE(EXCLUDED.android_version, pilot_devices.android_version),
+         app_version = COALESCE(EXCLUDED.app_version, pilot_devices.app_version),
+         git_commit = COALESCE(EXCLUDED.git_commit, pilot_devices.git_commit),
+         git_dirty = COALESCE(EXCLUDED.git_dirty, pilot_devices.git_dirty),
+         battery_pct = COALESCE(EXCLUDED.battery_pct, pilot_devices.battery_pct),
+         is_charging = COALESCE(EXCLUDED.is_charging, pilot_devices.is_charging),
+         peer_count = COALESCE(EXCLUDED.peer_count, pilot_devices.peer_count),
+         mesh_state = COALESCE(EXCLUDED.mesh_state, pilot_devices.mesh_state),
+         last_error = CASE WHEN EXCLUDED.last_error IS NOT NULL
+                           THEN EXCLUDED.last_error ELSE pilot_devices.last_error END,
+         last_error_stack = CASE WHEN EXCLUDED.last_error_stack IS NOT NULL
+                           THEN EXCLUDED.last_error_stack ELSE pilot_devices.last_error_stack END,
+         last_seen_at = now()`,
+      [
+        keyFp,
+        pilotBuild,
+        data.deviceModel ?? null,
+        data.deviceBrand ?? null,
+        data.androidVersion ?? null,
+        data.appVersion ?? null,
+        data.gitCommit ?? null,
+        data.gitDirty ?? false,
+        data.batteryPct ?? null,
+        data.isCharging ?? null,
+        data.peerCount ?? null,
+        data.meshState ?? null,
+        isError ? message : null,
+        isError ? stack : null
+      ]
+    );
+
+    await db.query(
+      `INSERT INTO pilot_device_events (id, pilot_key_fp, kind, severity, message, stack, logs_tail)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [randomUUID(), keyFp, data.kind, data.severity, message, stack, logsTail]
+    );
+
+    return reply.code(201).send({ ok: true, pilotKeyFp: keyFp });
+  });
+
+  /** Vista ligera para la página pública: sin stacks ni logs, solo estado. */
+  app.get('/v1/support/devices/light', async () => {
+    const res = await db.query(
+      `SELECT pilot_key_fp, pilot_build, device_model, device_brand, battery_pct, is_charging,
+              peer_count, mesh_state, last_seen_at, last_error
+       FROM pilot_devices
+       ORDER BY last_seen_at DESC
+       LIMIT 50`
+    );
+    const devices = res.rows.map((row: Record<string, unknown>) => {
+      const { last_error, ...safe } = row;
+      return {
+        ...safe,
+        last_error_short: typeof last_error === 'string' ? last_error.slice(0, 160) : null
+      };
+    });
+    return { devices, generatedAt: new Date().toISOString() };
   });
 
   // ---------------------------------------------------------------------------
@@ -5356,6 +5504,13 @@ export async function buildApp({
   // 17. Módulo de Administración, Soporte y Analítica (Backoffice / Helpdesk / KPIs)
   // ---------------------------------------------------------------------------
   const requireAdminAuth = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (pilot.enabled && !env.ADMIN_API_KEY) {
+      reply.code(503).send({
+        error: 'ADMIN_KEY_NOT_CONFIGURED',
+        message: 'El panel de administración requiere ADMIN_API_KEY en modo piloto'
+      });
+      return;
+    }
     const key =
       (req.headers['x-admin-key'] as string | undefined) ??
       (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : undefined);
@@ -5364,6 +5519,37 @@ export async function buildApp({
       return;
     }
   };
+
+  // 17.0b Monitoreo completo del piloto (solo backoffice con clave admin real).
+  app.get('/v1/support/devices', { preHandler: requireAdminAuth }, async (req) => {
+    const q = req.query as { build?: string; limit?: string };
+    const limit = Math.min(200, Math.max(1, Number(q.limit ?? 50) || 50));
+    const rows = q.build
+      ? await db.query(
+          `SELECT * FROM pilot_devices WHERE pilot_build = $1 ORDER BY last_seen_at DESC LIMIT $2`,
+          [q.build.slice(0, 40), limit]
+        )
+      : await db.query(`SELECT * FROM pilot_devices ORDER BY last_seen_at DESC LIMIT $1`, [limit]);
+    const events = await db.query(
+      `SELECT * FROM pilot_device_events ORDER BY created_at DESC LIMIT $1`,
+      [Math.min(500, limit * 5)]
+    );
+    return { devices: rows.rows, events: events.rows };
+  });
+
+  app.get('/v1/support/devices/:fp/events', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const fp = (req.params as { fp?: string }).fp ?? '';
+    if (!/^[0-9a-f]{12}$/.test(fp)) {
+      return reply.code(400).send({ error: 'INVALID_DEVICE_FINGERPRINT' });
+    }
+    const q = req.query as { limit?: string };
+    const limit = Math.min(500, Math.max(1, Number(q.limit ?? 100) || 100));
+    const res = await db.query(
+      `SELECT * FROM pilot_device_events WHERE pilot_key_fp = $1 ORDER BY created_at DESC LIMIT $2`,
+      [fp, limit]
+    );
+    return { events: res.rows };
+  });
 
   // 17.0 Logs de desarrollo (Bloque D): nunca en producción y sólo con opt-in
   // explícito. Se devuelven como text/plain y con PII redactada.
