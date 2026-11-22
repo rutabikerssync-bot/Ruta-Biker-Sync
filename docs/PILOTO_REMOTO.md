@@ -43,3 +43,21 @@ público de soporte.
 | 401 | `PILOT_KEY_REQUIRED` | Falta la cabecera o la clave no está en la lista blanca |
 | 403 | `PILOT_KEY_REVOKED` | La clave fue revocada explícitamente |
 | 503 | `ADMIN_KEY_NOT_CONFIGURED` | Falta `ADMIN_API_KEY` en modo piloto |
+
+## 3. Monitoreo por dispositivo
+
+Cada APK de piloto envía a `POST /v1/support/device-telemetry` su etiqueta de
+build (cabecera `x-rbs-pilot-build`), modelo, versión, batería, número de peers
+y, cuando ocurre, excepciones con stack trace y las últimas líneas de log.
+La identidad del dispositivo es la huella SHA-256 truncada de su clave de
+piloto; no se envían UIDs, coordenadas GPS ni datos médicos. El backend vuelve
+a redactar correos, tokens, UUIDs y coordenadas antes de almacenar.
+
+- `GET /v1/support/devices/light`: vista resumida para la página pública,
+  protegida con la clave de piloto; no incluye stacks ni logs.
+- `GET /v1/support/devices`: vista completa del backoffice; exige
+  `x-admin-key` además de la clave de piloto.
+- `GET /v1/support/devices/:fp/events`: historial de un dispositivo.
+
+La tabla `pilot_devices` conserva el último error hasta que llega uno nuevo;
+los latidos solo actualizan estado y `last_seen_at`.
