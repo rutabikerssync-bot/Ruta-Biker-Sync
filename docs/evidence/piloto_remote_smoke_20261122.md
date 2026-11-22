@@ -27,6 +27,14 @@ Conclusión: el servicio `/soporte` queda accesible desde el laptop por HTTPS si
 Tailscale; el gate de piloto, la clave admin fail-closed, la telemetría y la
 redacción funcionan de extremo a extremo con base de datos real.
 
+Además, con el mismo PostgreSQL 16 de WSL se ejecutó la suite backend completa:
+
+```
+npx vitest run --no-file-parallelism
+Test Files  29 passed (29)
+     Tests  176 passed (176)
+```
+
 Nota: la URL del quick tunnel cambia en cada arranque. Para reutilizarla sin
 recompilar, actualizar los móviles con el deep link debug descrito en
 `docs/PILOTO_REMOTO.md`.
