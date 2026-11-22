@@ -1053,11 +1053,20 @@ private fun RidesReleaseHomeScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                HeritageBrassButton(
-                    text = "🗺️ + Crear Ruta Oficial de Club",
-                    onClick = { showScheduleMapPlanner = true },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (canPublishClubRoute) {
+                    HeritageBrassButton(
+                        text = "🗺️ + Crear Ruta Oficial de Club",
+                        onClick = { showScheduleMapPlanner = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Text(
+                        text = "Solo la directiva del club puede trazar y publicar rutas oficiales.",
+                        color = Color(0xFF8E95A5),
+                        fontSize = 11.sp,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 
@@ -1355,41 +1364,83 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // La puerta real de inicio vive en el roster para líderes; miembros no líderes
-        // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
-        if (rideRoster == null || !canPublishClubRoute) {
-            HeritageBrassButton(
-                text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-                onClick = {
-                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
-                    onStartLiveMapPreview()
-                    startRideServiceNow(useSimulated = forceSimulated)
-                },
-                icon = Icons.Default.PlayArrow
+        // Tercera tarjeta canónica: cabina activa y corredor sin señal.
+        HeritageBevelCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Iniciar Rodada (Cabina Activa)",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF242732))
+                        .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "En vivo",
+                        color = Color(0xFF34D399),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = "Radar de convoy, telemetría táctica y mapa offline del corredor.",
+                color = Color(0xFF8E95A5),
+                fontSize = 11.sp
             )
-        }
 
-        Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        // Botón Rutas y Corredor sin señal
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1E2129))
-                .border(1.dp, Color(0xFFC99A45).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable {
+            // La puerta real de inicio vive en el roster para líderes; miembros no líderes
+            // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
+            if (rideRoster == null || !canPublishClubRoute) {
+                HeritageBrassButton(
+                    text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
+                        onStartLiveMapPreview()
+                        startRideServiceNow(useSimulated = forceSimulated)
+                    },
+                    icon = Icons.Default.PlayArrow,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            OutlinedButton(
+                onClick = {
+                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_rutas_corredor_sin_senal")
                     showScheduleMapPlanner = true
                 },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🗺️ Rutas y Corredor sin señal",
-                color = Color(0xFFE5B869),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFE5B869)),
+                border = BorderStroke(1.dp, Color(0xFFC99A45).copy(alpha = 0.5f))
+            ) {
+                Text(
+                    text = "🗺️ Rutas y Corredor sin señal",
+                    color = Color(0xFFE5B869),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(80.dp))
