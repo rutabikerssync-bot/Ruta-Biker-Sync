@@ -114,6 +114,14 @@ import {
   readRedactedLogTail,
   resolveDebugLogPath
 } from './lib/debugLogs.js';
+import {
+  isPilotGateExempt,
+  isPilotKeyAllowed,
+  isPilotKeyRevoked,
+  isPilotOriginAllowed,
+  parsePilotConfig,
+  pilotRateLimitKey
+} from './lib/pilotAccess.js';
 
 export interface BuildAppOptions {
   db: DbExecutor;
@@ -451,7 +459,24 @@ export async function buildApp({
     bodyLimit: 10 * 1024 * 1024 // 10 MB para soportar imágenes de perfil y reportes
   };
   const app = Fastify(fastifyOpts);
+  const pilot = parsePilotConfig(env);
   const loginTracker = new LoginAttemptTracker();
+
+  // Gate del piloto: si hay claves configuradas, todo /v1/* exige una clave vigente.
+  // Se registra antes que las rutas para que ni siquiera se evalúen si está revocada.
+  app.addHook('onRequest', async (req, reply) => {
+    if (!pilot.enabled || isPilotGateExempt(req)) return;
+    const header = req.headers['x-rbs-pilot-key'];
+    const key = typeof header === 'string' ? header : '';
+    if (isPilotKeyAllowed(pilot, key)) return;
+    const revoked = isPilotKeyRevoked(pilot, key);
+    return reply.code(revoked ? 403 : 401).send({
+      error: revoked ? 'PILOT_KEY_REVOKED' : 'PILOT_KEY_REQUIRED',
+      message: revoked
+        ? 'Esta clave de piloto fue revocada'
+        : 'Se requiere una clave de piloto vigente'
+    });
+  });
 
   async function checkAndEnforceAuthRateLimit(
     ip: string,
@@ -513,7 +538,10 @@ export async function buildApp({
     crossOriginResourcePolicy: false
   });
   await app.register(cors, {
-    origin: (_origin, cb) => cb(null, true),
+    origin: (origin, cb) => {
+      if (!pilot.enabled) return cb(null, true);
+      return cb(null, isPilotOriginAllowed(pilot, origin));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   });
@@ -523,7 +551,8 @@ export async function buildApp({
   await app.register(rateLimit, {
     max: 10000,
     timeWindow: '1 minute',
-    keyGenerator: (req) => (req.headers['x-user-id'] as string) || req.ip
+    keyGenerator: (req) =>
+      pilotRateLimitKey(pilot, req, (r) => (r.headers['x-user-id'] as string) || r.ip)
   });
 
   const __appFilename = fileURLToPath(import.meta.url);
@@ -5356,6 +5385,13 @@ export async function buildApp({
   // 17. Módulo de Administración, Soporte y Analítica (Backoffice / Helpdesk / KPIs)
   // ---------------------------------------------------------------------------
   const requireAdminAuth = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (pilot.enabled && !env.ADMIN_API_KEY) {
+      reply.code(503).send({
+        error: 'ADMIN_KEY_NOT_CONFIGURED',
+        message: 'El panel de administración requiere ADMIN_API_KEY en modo piloto'
+      });
+      return;
+    }
     const key =
       (req.headers['x-admin-key'] as string | undefined) ??
       (req.headers['authorization']?.startsWith('Bearer ') ? req.headers['authorization'].slice(7) : undefined);

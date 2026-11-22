@@ -2,7 +2,7 @@
  * RBS Admin, Support & Analytics Service
  * Módulo de lógica de negocio para administración, moderación, soporte y métricas.
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { DbExecutor } from '../db/pool.js';
 
 export const DEFAULT_ADMIN_KEY = 'rbs-dev-admin-secret-key-2026';
@@ -372,7 +372,9 @@ export function verifyAdminAccess(
 ): boolean {
   const expectedKey = envKey || DEFAULT_ADMIN_KEY;
   if (!providedKey) return false;
-  return providedKey === expectedKey;
+  const providedDigest = createHash('sha256').update(providedKey, 'utf8').digest();
+  const expectedDigest = createHash('sha256').update(expectedKey, 'utf8').digest();
+  return timingSafeEqual(providedDigest, expectedDigest);
 }
 
 /**
