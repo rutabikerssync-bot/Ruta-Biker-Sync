@@ -24,6 +24,8 @@ import java.util.UUID
  * - Cero persistencia: dedupe en RAM con ventana de 10 s y purga al detener la rodada (R12).
  * - Todo mensaje entrante se etiqueta con `[4G]` para no confundirlo con tráfico de malla.
  */
+private const val TAG = "HybridChatDispatcher"
+
 class HybridChatDispatcher(
     private val selfShortId: UShort = 65_535u,
     private val fetch: suspend (rideId: String, since: Long) -> Result<List<ClubApiClient.RideCommsItem>>,
@@ -122,7 +124,12 @@ class HybridChatDispatcher(
 
     /** Uplink de chat: solo se llama cuando `dispatchSendTextMessage` devolvió `false`. */
     suspend fun publishChat(targetShortId: UShort, text: String) {
-        val rideId = activeRideId ?: return
+        val rideId = activeRideId
+        if (rideId == null) {
+            android.util.Log.w(TAG, "publishChat sin rodada activa; se descarta fallback 4G")
+            return
+        }
+        android.util.Log.i(TAG, "publishChat 4G rideId=$rideId from=$selfShortId text=$text")
         val draft = ClubApiClient.RideCommsDraft(
             id = UUID.randomUUID().toString(),
             kind = "chat",
@@ -132,6 +139,15 @@ class HybridChatDispatcher(
             ttlSeconds = DEFAULT_TTL_SECONDS
         )
         runCatching { post(rideId, draft) }
+            .onFailure { android.util.Log.w(TAG, "publishChat POST fallido rideId=$rideId", it) }
+            .onSuccess { wrapped ->
+                val api = wrapped.getOrNull()
+                if (api == null || !api.isSuccess) {
+                    android.util.Log.w(TAG, "publishChat POST rechazado status=${api?.statusCode} rideId=$rideId")
+                } else {
+                    android.util.Log.i(TAG, "publishChat POST ok status=${api.statusCode}")
+                }
+            }
     }
 
     /** Uplink de señal rápida: mismo contrato efímero, sin tocar el motor BLE. */

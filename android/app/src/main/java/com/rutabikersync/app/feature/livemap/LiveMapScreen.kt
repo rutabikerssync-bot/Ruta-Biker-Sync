@@ -152,12 +152,15 @@ import kotlin.math.roundToInt
 internal fun isBleRadioEnabled(context: Context): Boolean = try {
     // BluetoothAdapter.isEnabled() puede seguir reportando BLE_ONLY en algunos equipos;
     // el valor global de BLUETOOTH_ON es el que refleja el apagón del radio del piloto.
-    android.provider.Settings.Global.getInt(
+    val bluetoothOn = android.provider.Settings.Global.getInt(
         context.contentResolver,
         android.provider.Settings.Global.BLUETOOTH_ON,
         0
-    ) > 0
-} catch (_: Exception) {
+    )
+    android.util.Log.i("BleRadioGate", "BLUETOOTH_ON=$bluetoothOn")
+    bluetoothOn > 0
+} catch (e: Exception) {
+    android.util.Log.w("BleRadioGate", "No se pudo leer BLUETOOTH_ON; asumimos BLE activo", e)
     true
 }
 
