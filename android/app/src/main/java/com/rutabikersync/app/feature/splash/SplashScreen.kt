@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -141,7 +142,8 @@ fun SplashScreen(
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
-                    contentDescription = "Logo Ruta Biker Sync",
+                    contentDescription = "Logo oficial Ruta Biker Sync",
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier.size(118.dp)
                 )
             }

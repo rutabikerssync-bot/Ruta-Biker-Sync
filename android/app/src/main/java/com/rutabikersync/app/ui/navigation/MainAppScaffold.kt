@@ -882,10 +882,11 @@ private fun RidesReleaseHomeScreen(
             ) {
                 HeritageEmblemBadge(
                     painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
-                    contentDescription = "Club",
-                    badgeSize = 46.dp,
-                    iconSize = 34.dp,
-                    glowColor = Color(0xFFF3C766)
+                    contentDescription = "Logo oficial Ruta Biker Sync",
+                    badgeSize = 58.dp,
+                    iconSize = 46.dp,
+                    glowColor = Color(0xFFC5A059),
+                    borderGold = Color(0xFFC5A059)
                 )
                 Column {
                     Text(

@@ -262,7 +262,8 @@ fun HeritageEmblemBadge(
     modifier: Modifier = Modifier,
     badgeSize: Dp = 44.dp,
     iconSize: Dp = 22.dp,
-    glowColor: Color = Color(0xFFF3C766)
+    glowColor: Color = Color(0xFFF3C766),
+    borderGold: Color? = null
 ) {
     val isBright = HeritageTheme.isBrightRider
     Box(
@@ -303,6 +304,16 @@ fun HeritageEmblemBadge(
                             Color(0xFF93C5FD),
                             Color(0xFF2563EB),
                             Color(0xFF93C5FD)
+                        )
+                    )
+                } else if (borderGold != null) {
+                    Brush.sweepGradient(
+                        colors = listOf(
+                            borderGold,
+                            borderGold.copy(alpha = 0.55f),
+                            borderGold,
+                            borderGold.copy(alpha = 0.72f),
+                            borderGold
                         )
                     )
                 } else {
