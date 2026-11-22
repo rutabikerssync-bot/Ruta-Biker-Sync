@@ -2,9 +2,12 @@ package com.rutabikersync.app.feature.livemap
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rutabikersync.app.core.mesh.BlePeerSnapshot
+import com.rutabikersync.app.core.mesh.FusedPeerPosition
 import com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.mesh.MeshTelemetry
+import com.rutabikersync.app.core.mesh.TelemetrySource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -272,6 +275,7 @@ class LiveMapController(
 
     private val directory = initialDirectory.associateBy { it.shortId }.toMutableMap()
     private var latestPeersFromMesh: Map<UShort, MeshRelayEngine.PeerTrack> = emptyMap()
+    private var latestHybridPositions: List<FusedPeerPosition> = emptyList()
     // Posición local del dispositivo: inicia en 0,0 hasta recibir GPS real (UI_AUDIT M2)
     private var localLat: Double = 0.0
     private var localLon: Double = 0.0
@@ -320,6 +324,31 @@ class LiveMapController(
                 }
             }
         }
+    }
+
+    /**
+     * Posiciones ya consolidadas por [HybridTransportDispatcher]. Solo se consumen aquí;
+     * el motor BLE sigue siendo la fuente de verdad para los peers que ya están en malla.
+     */
+    fun setHybridPositions(positions: List<FusedPeerPosition>) {
+        latestHybridPositions = positions
+        flushMapFrame(System.currentTimeMillis(), force = true)
+    }
+
+    /** Instantánea mínima de la malla para que el dispatcher pueda evitar duplicados. */
+    fun currentBlePeerSnapshots(): List<BlePeerSnapshot> = latestPeersFromMesh.map { (shortId, track) ->
+        BlePeerSnapshot(
+            shortId = shortId,
+            latitude = track.lastLatitude,
+            longitude = track.lastLongitude,
+            observedAtMillis = if (track.lastPositionEpochMs > 0L) {
+                track.lastPositionEpochMs
+            } else {
+                track.lastSeenEpochMs
+            },
+            speedKmh = track.lastSpeedKmh.toDouble(),
+            userId = directory[shortId]?.userId
+        )
     }
 
     fun updateLocalRiderPose(
@@ -527,6 +556,56 @@ class LiveMapController(
                     groupId = entry.groupId,
                     profileRedacted = !canShowReal,
                     positionAgeSeconds = positionAgeSeconds
+                )
+            )
+        }
+
+        // Pines [4G]: solo posiciones HTTP que no tienen un par BLE equivalente.
+        // El dispatcher ya aplicó TTL y precedencia BLE; aquí solo se convierten a UI.
+        for (fused in latestHybridPositions.filter { it.source == TelemetrySource.HTTP_4G }) {
+            val entry = fused.userId?.let { id -> directory.values.firstOrNull { it.userId == id } }
+                ?: directory[fused.shortId]
+                ?: RiderDirectoryEntry(
+                    shortId = fused.shortId,
+                    fullName = "Piloto #${fused.shortId.toInt()}",
+                    relation = RiderRelation.ALLIED_STRANGER,
+                    markerColorHex = 0xFF29B6F6,
+                    roleLabel = "Desconocido"
+                )
+            val canShowReal = !fused.profileRedacted && PeerProfilePrivacy.canShowRealProfile(
+                isSelf = false,
+                peerGroupId = entry.groupId,
+                localGroupId = localGroupId
+            )
+            val prev = previousByShortId[fused.shortId]
+            updatedMarkers.add(
+                RiderMarkerUiModel(
+                    shortId = fused.shortId,
+                    fullName = PeerProfilePrivacy.visibleName(fused.shortId, entry.fullName, canShowReal),
+                    nickname = if (canShowReal) entry.nickname else null,
+                    relation = if (canShowReal) entry.relation else RiderRelation.ALLIED_STRANGER,
+                    rideRole = if (canShowReal) entry.rideRole else RiderRideRole.NONE,
+                    routeStatus = RiderRouteStatus.ON_ROUTE,
+                    markerColorHex = entry.markerColorHex,
+                    prevLatitude = prev?.displayLatitude ?: fused.latitude,
+                    prevLongitude = prev?.displayLongitude ?: fused.longitude,
+                    targetLatitude = fused.latitude,
+                    targetLongitude = fused.longitude,
+                    displayLatitude = fused.latitude,
+                    displayLongitude = fused.longitude,
+                    speedKmh = fused.speedKmh.roundToInt(),
+                    bearingDegrees = if (fused.heading != 0.0) fused.heading.toFloat() else 180f,
+                    batteryPercent = 0,
+                    distanceToLeaderMeters = null,
+                    lastHops = 0,
+                    isSelf = false,
+                    avatarUrl = if (canShowReal) entry.avatarUrl else null,
+                    avatarBase64 = if (canShowReal) entry.avatarBase64 else null,
+                    roleLabel = if (canShowReal) entry.roleLabel else "Desconocido",
+                    groupId = entry.groupId,
+                    profileRedacted = !canShowReal,
+                    positionAgeSeconds = null,
+                    telemetrySource = TelemetrySource.HTTP_4G
                 )
             )
         }

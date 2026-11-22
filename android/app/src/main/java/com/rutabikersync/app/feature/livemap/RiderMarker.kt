@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rutabikersync.app.core.mesh.TelemetrySource
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.BikerDimens
@@ -111,7 +112,9 @@ data class RiderMarkerUiModel(
      * Edad en segundos de una posición conservada porque el peer dejó de enviar un fix
      * válido (centinela 0,0). `null` cuando la posición es actual: no se muestra el aviso.
      */
-    val positionAgeSeconds: Long? = null
+    val positionAgeSeconds: Long? = null,
+    /** Origen de la posición. BLE por defecto para no alterar los marcadores existentes. */
+    val telemetrySource: TelemetrySource = TelemetrySource.BLE
 ) {
     /**
      * Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (ej. "J.M."),
@@ -424,6 +427,17 @@ fun RiderMarker(
         marker.positionAgeSeconds?.let { ageSeconds ->
             Text(
                 text = "⏱ hace ${ageSeconds}s",
+                color = BikerColors.PrimaryAmber,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Corte 1 de redundancia: distingue visualmente una posición recibida por 4G
+        // de una recibida por la malla BLE. No cambia avatar, anillo, icono ni estilo del mapa.
+        if (marker.telemetrySource == TelemetrySource.HTTP_4G) {
+            Text(
+                text = "[4G]",
                 color = BikerColors.PrimaryAmber,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold

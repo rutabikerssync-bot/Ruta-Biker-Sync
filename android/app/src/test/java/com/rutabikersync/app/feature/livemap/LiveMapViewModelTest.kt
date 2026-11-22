@@ -1,6 +1,8 @@
 package com.rutabikersync.app.feature.livemap
 
+import com.rutabikersync.app.core.mesh.FusedPeerPosition
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.TelemetrySource
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -369,5 +371,38 @@ class LiveMapViewModelTest {
         // Tocar el mapa vacío también cierra el detalle (onSelectRider(null)).
         controller.selectRiderMarker(1u)
         assertNull(controller.selectRiderMarker(null).selectedRiderShortId)
+    }
+
+    @Test
+    fun `Corte 1 una posicion 4G añade marcador con origen HTTP y perfil redactado`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.updateLocalRiderPose(latitude = 10.3538, longitude = -67.0425, speedKmh = 60)
+
+        controller.setHybridPositions(
+            listOf(
+                FusedPeerPosition(
+                    shortId = 60_000.toUShort(),
+                    userId = "e54bb490-754a-4aa6-9b4c-8b7b043e9dff",
+                    latitude = 10.3600,
+                    longitude = -67.0500,
+                    heading = 90.0,
+                    speedKmh = 48.0,
+                    observedAtMillis = 1_000L,
+                    source = TelemetrySource.HTTP_4G,
+                    profileRedacted = true
+                )
+            )
+        )
+
+        val frame = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
+        val marker = frame.markers.first { it.shortId == 60_000.toUShort() }
+        assertEquals(TelemetrySource.HTTP_4G, marker.telemetrySource)
+        assertTrue(marker.profileRedacted)
+        assertEquals(10.36, marker.displayLatitude, 0.000001)
     }
 }
