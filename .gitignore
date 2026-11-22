@@ -48,6 +48,8 @@ _tmp_log_inventory.txt
 # Mapas offline generados en pruebas
 public/maps/*.pmtiles
 
-# Piloto remoto / túnel (URL efímera y logs)
+# Piloto remoto / túnel (URL efímera, claves y logs)
 docs/evidence/piloto_tunnel_url.txt
+docs/evidence/piloto_keys_local.txt
+artifacts/
 logs/
