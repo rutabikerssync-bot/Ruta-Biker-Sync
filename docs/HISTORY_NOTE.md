@@ -702,3 +702,37 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Estado:** commit local atómico, sin `amend` y sin `push`.
 
+### CORTE 2A — Redundancia efímera BLE ↔ 4G para chat y señales (2026-11-22)
+
+**Alcance autorizado**: HTTP efímero sin FCM ni mapeo de identidades. BLE sigue siendo la fuente de verdad; HTTP solo publica lo que no tiene equivalente BLE y nunca marca peers como `isLost`. Sin persistencia nueva: buffer en RAM de ≤200 items, TTL ≤120 s y purga al cerrar la rodada (R12). Sin tocar GATT, Ed25519/ChaCha20, `HeartbeatFrame`, PTT, liderazgo, `TacticalChatStore`, `TacticalChatScreen`, `MapView`, zoom, pan, rotación, estilo ni attribution. Sin `push`, `amend` ni publicación de commits.
+
+**Commits atómicos locales (sin publicar)**: `8db4002`, `b7fbe62`, `61baf8a`, `c2c10ee`, `0b9729e`, `f2f2dca`, `3b2aee9`, `7e94c8f`, `02b739d`.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| 1. Contrato HTTP efímero | `backend/src/lib/rideCommsRoutes.ts`, `backend/src/app.ts` | `POST/GET /v1/rides/:id/comms` con ACL piloto, `x-user-id`, dedupe por `messageId`, TTL y límite; purga al cerrar rodada | integrado en la suite backend |
+| 2. Cobertura backend | `backend/test/ride_comms_routes.test.ts` | ACL, TTL, dedupe, límite y respuesta `source: "4g"` | `npx vitest run --no-file-parallelism test/ride_comms_routes.test.ts` — 6/6 verdes con `PG_TEST_URL` aislado |
+| 3. Cliente y dispatcher Android | `ClubApiClient.kt`, `HybridChatDispatcher.kt`, `LiveMapScreen.kt` | `postRideComms`/`fetchRideComms`; dedupe LRU, poll de 5 s, TTL ≤120 s y etiqueta `[4G]` solo en tráfico HTTP | `gradlew :app:testStandardDebugUnitTest --no-daemon` — BUILD SUCCESSFUL |
+| 4. Tests del dispatcher | `HybridChatDispatcherTest.kt` | dedupe, poll 5 s, expiración y etiquetado `[4G]` | suite JVM verde |
+| 5. Compuerta BLE-off y fallback automático | `LiveMapScreen.kt`, `BleDeliveryGateTest.kt` | `isBleRadioEnabled()` lee `Settings.Global.BLUETOOTH_ON`; `tryBleDelivery`/`tryBleSuspendDelivery` solo con radio activa; reinicio del dispatcher al cambiar `selfShortId` | `BleDeliveryGateTest.kt` — 3 tests; suite final **92 suites / 517 tests, 0 fallos, 0 errores, 0 skipped** |
+
+**Diagnóstico y cierre del fallback automático**: los primeros envíos desde la UI con BLE apagado no publicaban por HTTP. La instrumentación (`3b2aee9`, `7e94c8f`) mostró `BleRadioGate: BLUETOOTH_ON=0` pero `HybridChatDispatcher: publishChat sin rodada activa; se descarta fallback 4G`: el `LaunchedEffect` que arranca el dispatcher no se re-ejecutaba cuando `selfShortId` cambiaba al llegar el `RelayEngine`, por lo que `activeRideId` seguía nulo. El commit `02b739d` añade el dispatcher como key del efecto y actualiza el `DisposableEffect`, sin tocar store, chat ni malla.
+
+**Verificación en campo (TECNO `098813734B105395` y Redmi `b2c398bb`, rodada real `2de260aa-3e24-493b-b9b8-0846366ba1c5`)**:
+
+| Comprobación | Resultado | Evidencia |
+| --- | --- | --- |
+| Uplink HTTP manual desde TECNO con radio apagada | Redmi mostró `Piloto #14410 [4G]` / `Mensaje 4G desde TECNO`; `POST` 200, `messageId=cad49bab-d2cd-43ae-b523-4d9e8cb1caf2` | `chat_4g_redmi_corte2a_20261122.png`, `logcat_redmi_corte2a_20261122.txt` |
+| Retorno a BLE tras reactivar radio y relanzar apps | Redmi mostró `RETORNO_BLE_SIN_4G` de `Piloto #32191` **sin `[4G]`** | `chat_ble_retorno_redmi_corte2a_20261122.png`, `logcat_redmi_ble_retorno_corte2a_20261122.txt` |
+| Fallback **automático** desde la UI de Redmi con BLE apagado (APK v5) | `BleRadioGate: BLUETOOTH_ON=0` → `publishChat 4G rideId=... from=22873 text=FALLBACK_REDMI_V5` → `publishChat POST ok status=200`; `GET .../comms` devuelve el item con `source: "4g"` y `expiresAt` | `fallback_4g_automatico_redmi_v5_20261122.png`, `logcat_fallback_4g_automatico_redmi_v5_resumen.txt`, `backend_comms_fallback_automatico_v5_20261122.json` |
+
+Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5` y se instalaron en ambos equipos; el backend piloto sigue en `:3100` y el túnel Cloudflare conserva su URL. El mensaje HTTP se entrega al store existente únicamente como mensaje entrante con remitente etiquetado `[4G]`; el store y la pantalla de chat no se modificaron. Los dumps/XML temporarios de depuración (`v2_*`, `v3_*`, `*_tmp_*` y `corte2a_*_ui.xml`) se retiraron; solo permanece la evidencia final listada arriba.
+
+### Diferidos del Corte 2 (sin implementar, sin commits de código)
+
+**2B — FCM (bloqueado)**: `backend/service_account.json` no existe en el piloto; `FcmService.isLive() === false` y las respuestas usan `mock-msg-id-*`, por lo que no hay entrega real. Quedan documentadas tres discrepancias de contrato: los `type` de `fcm.ts` van en `RIDE_INVITATION`/`CLUB_INVITATION`/`DIRECT_MESSAGE` mientras Android espera `ride_invitation`/`club_invitation`/`direct_message` (solo `sos` coincide); `/v1/notifications/send` no restringe `recipientUserIds`, no tiene rate limit propio, idempotencia ni `messageId`; faltan los tipos `TACTICAL_CHAT`/`CONVOY_SIGNAL` y los tests de deep-link. No se leyó ni copió la cuenta real del backend base.
+
+**2C — mapeo `userId ↔ shortId` (diferido)**: no se tocaron claves ni manifiesto. Antes de cualquier cambio debe verificarse la discrepancia entre `LEGACY_RIDE_ID = "ride-live-01"` y el UUID real inyectado (`2de260aa-3e24-493b-b9b8-0846366ba1c5`), confirmada en campo por `HybridChatStart: rideId=... pilot=...`. El manifiesto firmado no se consume actualmente en hardware, así que no se afirma identidad remota real.
+
+**Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
+
