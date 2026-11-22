@@ -144,3 +144,37 @@ Verificación posterior con `run-as`:
 - Redmi: `user_id=e54bb490-754a-4aa6-9b4c-8b7b043e9dff`.
 
 La reinstalación conservó la identidad real y la configuración del piloto.
+
+## 8. Rechazo del fallback aproximado y revert (2026-11-22 16:01 -04:00)
+
+Tras instalar y probar el build, el usuario reportó que el trazado aproximado dibuja
+**una línea recta sobre casas, sin seguir ninguna vía**, y concluyó:
+
+> «un producto así no se puede utilizar para hacer pruebas de campo con terceros»
+
+Ese resultado es incompatible con la regla del proyecto de no presentar geometría falsa,
+aunque el usuario hubiera autorizado previamente «geometría no perfecta». La diferencia
+importante es que *aproximada* no puede significar *atravesar edificios*.
+
+Se aplicó un `git revert` atómico del commit `50476e5`:
+
+- `2f0182b Revert "fix(routes): conectar fallback aproximado sin internet"`
+
+Sin `amend` y sin `push`. El comportamiento vuelve al diagnóstico original: sin red y
+sin asset offline, la app muestra el Toast y no dibuja ninguna línea inventada.
+
+Las secciones 6 y 7 quedan como registro histórico de la decisión que fue revertida;
+**no representan el estado actual del código**.
+
+### Siguiente decisión pendiente
+
+Para pruebas con terceros se necesita una de estas alternativas, aún no implementadas:
+
+1. **Grafo vial offline real** para el área de prueba (OSM/BRouter/PMTiles con calles),
+   de modo que las 3 alternativas sigan calles existentes.
+2. **Trazado manual asistido**: el piloto toca puntos sobre la vía real y la app une
+   solo esos puntos; no se inventa geometría.
+3. **Bloqueo honesto hasta tener red**: mantener el Toast actual y no guardar ruta
+   mientras no haya cobertura/asset válido.
+
+No se reanuda ninguna de estas opciones sin confirmación explícita.
