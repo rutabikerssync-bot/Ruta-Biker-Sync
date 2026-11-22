@@ -101,4 +101,47 @@ class HybridTransportDispatcherTest {
         assertEquals(TelemetrySource.HTTP_4G, fused.single().source)
         assertTrue(fused.single().profileRedacted)
     }
+
+    @Test
+    fun ` compuerta BLE descarta HTTP aunque no haya mapeo userId shortId`() {
+        // resolveShortId por defecto = null: antes del fix cada muestra HTTP creaba un pin sintético.
+        val dispatcher = HybridTransportDispatcher(http = { Result.success(emptyList()) }, clock = { now })
+
+        val fused = dispatcher.fuse(
+            blePeers = listOf(
+                BlePeerSnapshot(
+                    shortId = 123u,
+                    latitude = 10.4000,
+                    longitude = -67.0000,
+                    observedAtMillis = now
+                )
+            ),
+            httpSamples = listOf(sample(), sample(id = "otro-usuario"))
+        )
+
+        assertEquals(1, fused.size)
+        assertEquals(TelemetrySource.BLE, fused.single().source)
+        assertEquals(123.toUShort(), fused.single().shortId)
+    }
+
+    @Test
+    fun ` peer BLE sin posicion valida no bloquea el fallback HTTP`() {
+        val dispatcher = HybridTransportDispatcher(http = { Result.success(emptyList()) }, clock = { now })
+
+        val fused = dispatcher.fuse(
+            blePeers = listOf(
+                BlePeerSnapshot(
+                    shortId = 123u,
+                    latitude = 0.0,
+                    longitude = 0.0,
+                    observedAtMillis = now
+                )
+            ),
+            httpSamples = listOf(sample())
+        )
+
+        assertEquals(1, fused.size)
+        assertEquals(TelemetrySource.HTTP_4G, fused.single().source)
+        assertEquals(userId, fused.single().userId)
+    }
 }

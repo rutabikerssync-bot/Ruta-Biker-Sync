@@ -115,6 +115,11 @@ class HybridTransportDispatcher(
             )
         }
 
+        // Compuerta BLE: si ya hay un peer con posición renderizable, BLE manda y no se
+        // añaden pines HTTP. Evita el doble identity mientras no exista el mapeo
+        // userId ↔ shortId (2C). No toca el motor BLE, GATT, cifrado ni el store de chat.
+        if (blePeers.any(::isRenderablePeerPosition)) return merged
+
         var nextSyntheticShortId = SYNTHETIC_SHORT_ID_START
         httpSamples.forEach { sample ->
             val age = nowEpochMs - sample.observedAtMillis
@@ -153,6 +158,10 @@ class HybridTransportDispatcher(
 
         return merged
     }
+
+    /** Un peer BLE solo cuenta como equivalente si su posición se puede pintar. */
+    private fun isRenderablePeerPosition(peer: BlePeerSnapshot): Boolean =
+        isRenderable(peer.latitude, peer.longitude)
 
     private fun isRenderable(latitude: Double, longitude: Double): Boolean {
         if (latitude !in -90.0..90.0 || longitude !in -180.0..180.0) return false
