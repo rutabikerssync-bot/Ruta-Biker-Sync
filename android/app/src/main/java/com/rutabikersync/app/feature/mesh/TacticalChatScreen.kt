@@ -43,6 +43,13 @@ import com.rutabikersync.app.core.mesh.text.DeliveryStatus
 import com.rutabikersync.app.core.mesh.text.TacticalChatMessage
 import com.rutabikersync.app.core.mesh.text.TacticalChatStore
 import com.rutabikersync.app.core.mesh.text.TextMessagePacket
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import com.rutabikersync.app.R
 import com.rutabikersync.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,6 +66,8 @@ import java.util.Locale
 fun TacticalChatScreen(
     localShortId: UShort = 1u,
     peers: List<Pair<UShort, String>> = emptyList(),
+    peerAvatars: Map<UShort, String?> = emptyMap(),
+    peerFullNames: Map<UShort, String> = emptyMap(),
     initialFocusKeyboard: Boolean = false,
     onSendMessage: (targetShortId: UShort, text: String) -> Unit = { _, _ -> },
     onNavigateBack: () -> Unit = {}
@@ -282,6 +291,15 @@ fun TacticalChatScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
+                // Fondo con textura temática Biker (Dark Elite con contraste y detalles visibles 0.30f)
+                Image(
+                    painter = painterResource(id = R.drawable.biker_chat_pattern),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.30f
+                )
+
                 if (messages.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -332,7 +350,11 @@ fun TacticalChatScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(messages, key = { it.id }) { msg ->
-                            TacticalMessageBubble(msg = msg)
+                            TacticalMessageBubble(
+                                msg = msg,
+                                peerAvatar = peerAvatars[msg.senderShortId],
+                                peerFullName = peerFullNames[msg.senderShortId]
+                            )
                         }
                     }
                 }
@@ -489,11 +511,38 @@ fun TacticalChatScreen(
  * Distingue visualmente mensajes salientes (acento Cobre Heritage #C86D44) de entrantes (DarkCardElevated con avatar y rol).
  */
 @Composable
-fun TacticalMessageBubble(msg: TacticalChatMessage) {
+fun TacticalMessageBubble(
+    msg: TacticalChatMessage,
+    peerAvatar: String? = null,
+    peerFullName: String? = null
+) {
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val formattedTime = remember(msg.timestampMs) { timeFormat.format(Date(msg.timestampMs)) }
     val alignment = if (msg.isOutgoing) Alignment.End else Alignment.Start
     val palette = chatBubblePalette(msg.isOutgoing, msg.isBroadcast)
+
+    val resolvedName = remember(peerFullName, msg.senderName) {
+        peerFullName?.takeIf { it.isNotBlank() } ?: msg.senderName
+    }
+
+    val avatarBitmap = remember(peerAvatar) {
+        val raw = peerAvatar?.takeIf { it.isNotBlank() } ?: return@remember null
+        try {
+            val bytes = Base64.decode(raw, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    val initials = remember(resolvedName) {
+        val parts = resolvedName.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }
+        if (parts.size >= 2) {
+            "${parts[0].first().uppercaseChar()}${parts[1].first().uppercaseChar()}"
+        } else {
+            resolvedName.trim().take(2).uppercase().ifBlank { "P" }
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -504,22 +553,33 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
             horizontalArrangement = if (msg.isOutgoing) Arrangement.End else Arrangement.Start,
             modifier = Modifier.fillMaxWidth(0.8f)
         ) {
-            // Avatar para mensajes entrantes
+            // Avatar para mensajes entrantes (Foto real o iniciales reales calculadas)
             if (!msg.isOutgoing) {
                 Box(
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
                         .background(DarkCardElevated)
-                        .border(1.dp, HeritageBrassGold, CircleShape),
+                        .border(1.2.dp, HeritageBrassGold, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = msg.senderName.take(2).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        color = HeritageBrassGold
-                    )
+                    if (avatarBitmap != null) {
+                        Image(
+                            bitmap = avatarBitmap,
+                            contentDescription = resolvedName,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = initials,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = HeritageBrassGold
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(6.dp))
             }
@@ -547,7 +607,7 @@ fun TacticalMessageBubble(msg: TacticalChatMessage) {
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (msg.isOutgoing) "TÚ" else msg.senderName,
+                                text = if (msg.isOutgoing) "TÚ" else resolvedName,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                                 color = palette.headerText

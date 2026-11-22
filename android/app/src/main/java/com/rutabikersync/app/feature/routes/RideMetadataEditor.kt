@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,28 +62,30 @@ fun RideMetadataEditor(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("EEE dd/MM/yyyy", Locale.getDefault()) }
     val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()) }
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = HeritageCopper,
-        unfocusedBorderColor = HeritageBorder,
-        focusedLabelColor = HeritageCopperDark,
-        unfocusedLabelColor = HeritageLeatherMuted,
-        focusedTextColor = HeritageLeatherBrown,
-        unfocusedTextColor = HeritageLeatherBrown,
-        cursorColor = HeritageCopper
+        focusedBorderColor = Color(0xFFF59E0B),
+        unfocusedBorderColor = Color(0xFFC86D44),
+        focusedLabelColor = Color(0xFFFCD34D),
+        unfocusedLabelColor = Color(0xFFE5B869),
+        focusedTextColor = Color(0xFFF8FAFC),
+        unfocusedTextColor = Color(0xFFE2E8F0),
+        focusedContainerColor = Color(0xFF161A23),
+        unfocusedContainerColor = Color(0xFF12151C),
+        cursorColor = Color(0xFFF59E0B)
     )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(HeritageCardWarm.copy(alpha = 0.72f))
-            .border(1.dp, HeritageBorder.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF161A23))
+            .border(1.2.dp, Color(0xFFE58B2A), RoundedCornerShape(14.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
-            text = "DATOS DE LA RODADA",
-            color = HeritageCopperDark,
-            fontSize = 11.sp,
+            text = "DATOS DE LA CONVOCATORIA",
+            color = Color(0xFFF6CE74),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 0.5.sp
         )
@@ -92,7 +95,7 @@ fun RideMetadataEditor(
                 onTitleChange(it)
                 onClearError()
             },
-            label = { Text("Nombre de la rodada *") },
+            label = { Text("Nombre de la rodada *", fontWeight = FontWeight.SemiBold) },
             singleLine = true,
             colors = fieldColors,
             modifier = Modifier.fillMaxWidth()
@@ -117,22 +120,27 @@ fun RideMetadataEditor(
                         startsAt.dayOfMonth
                     ).show()
                 },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = HeritageLeatherBrown),
-                border = BorderStroke(1.dp, HeritageCopper.copy(alpha = 0.65f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color(0xFF1E2430),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.2.dp, Color(0xFFE58B2A)),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                modifier = Modifier.weight(1f).height(42.dp)
+                modifier = Modifier.weight(1f).height(44.dp)
             ) {
                 Icon(
                     Icons.Default.CalendarToday,
                     contentDescription = null,
-                    tint = HeritageCopper,
+                    tint = Color(0xFFF59E0B),
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
                     text = startsAt.format(dateFormatter),
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
                     maxLines = 1,
-                    modifier = Modifier.padding(start = 5.dp)
+                    modifier = Modifier.padding(start = 6.dp)
                 )
             }
 
@@ -151,21 +159,26 @@ fun RideMetadataEditor(
                         android.text.format.DateFormat.is24HourFormat(context)
                     ).show()
                 },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = HeritageLeatherBrown),
-                border = BorderStroke(1.dp, HeritageCopper.copy(alpha = 0.65f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color(0xFF1E2430),
+                    contentColor = Color.White
+                ),
+                border = BorderStroke(1.2.dp, Color(0xFFE58B2A)),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
-                modifier = Modifier.weight(0.65f).height(42.dp)
+                modifier = Modifier.weight(0.7f).height(44.dp)
             ) {
                 Icon(
                     Icons.Default.Schedule,
                     contentDescription = null,
-                    tint = HeritageCopper,
+                    tint = Color(0xFFF59E0B),
                     modifier = Modifier.size(15.dp)
                 )
                 Text(
                     text = startsAt.format(timeFormatter),
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(start = 5.dp)
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.padding(start = 6.dp)
                 )
             }
         }

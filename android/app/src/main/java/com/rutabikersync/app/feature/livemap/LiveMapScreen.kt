@@ -71,6 +71,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import com.rutabikersync.app.feature.mesh.TacticalChatScreen
 import com.rutabikersync.app.feature.mesh.MeshConvoyStatusScreen
 import androidx.compose.ui.text.font.FontWeight
@@ -531,6 +539,16 @@ fun LiveMapScreen(
     var showStopReasonDialog by remember { mutableStateOf(false) }
     var showOfflineMapsScreen by remember { mutableStateOf(false) }
     var isRecalculatingRoute by remember { mutableStateOf(false) }
+    var isBottomCockpitExpanded by remember { mutableStateOf(false) }
+
+    // Conectar resolver de perfil para que los mensajes del chat táctico muestren el nombre real del piloto
+    LaunchedEffect(state.markers) {
+        com.rutabikersync.app.core.mesh.text.TacticalChatStore.peerProfileResolver = { shortId ->
+            state.markers.firstOrNull { it.shortId == shortId }?.let {
+                Pair(it.fullName, it.avatarBase64)
+            }
+        }
+    }
 
     // Recalcular ruta desde el banner de desvío: la red se consulta al pulsar para no
     // confiar en un estado cacheado, y el motor vial se inyecta sin tocar malla/GATT.
@@ -884,6 +902,9 @@ fun LiveMapScreen(
             state = state,
             selfShortId = selfShortId,
             onSelectRider = { shortId -> liveMapViewModel.controller.selectRiderMarker(shortId) },
+            onMapClick = {
+                isBottomCockpitExpanded = !isBottomCockpitExpanded
+            },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -894,8 +915,9 @@ fun LiveMapScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(
-                    top = if (BuildConfig.UX_TEST_MODE) 46.dp else 16.dp,
+                    top = 8.dp,
                     start = 12.dp,
                     end = 12.dp
                 )
@@ -1063,13 +1085,18 @@ fun LiveMapScreen(
                 HeritageSand
             )
         }
+        val effectiveCockpitBg = if (isBottomCockpitExpanded) {
+            Brush.verticalGradient(cockpitBgColors)
+        } else {
+            Brush.verticalGradient(listOf(Color.Transparent, Color(0x33000000)))
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Brush.verticalGradient(cockpitBgColors))
+                .background(effectiveCockpitBg)
                 .navigationBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 20.dp)
         ) {
@@ -1619,127 +1646,172 @@ fun LiveMapScreen(
                 }
             }
 
-            // 4.5. Botón flotante Monitor de Malla (esquina inferior derecha, encima del botón SOS)
-            Row(
+            // Control visual interactivo: Toca para subir/ocultar la botonera
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = 4.dp),
-                horizontalArrangement = Arrangement.End
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DarkCardElevated.copy(alpha = 0.92f))
+                    .border(
+                        1.dp,
+                        if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
+                        RoundedCornerShape(12.dp)
+                    )
+                    .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(HeritageCardWarm.copy(alpha = 0.95f))
-                        .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
-                        .clickable { showMeshMonitor = true }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("📡", fontSize = 14.sp)
+                    Icon(
+                        imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                        contentDescription = null,
+                        tint = HeritageBrassGold,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Text(
-                        text = "MONITOR MALLA",
-                        color = EmeraldMesh,
+                        text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
+                        color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp
+                        fontSize = 11.sp
                     )
                 }
             }
 
-            // 5. Las 3 acciones circulares de cabina Heritage (≥ 72 dp)
-            GlovesPrimaryActionBar(
-                isSosActive = rideServiceState.isSosActive,
-                isPttActive = isRecording,
-                pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
-                onTalkPttClick = {
-                    if (isRecording) {
-                        stopCabinaPtt()
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            "LIVE_MAP",
-                            "PTT_TRANSMIT_STOP",
-                            "btn_hablar"
-                        )
-                        val frames = (pttState as? PttState.Transmitting)?.packetsSent
-                            ?: pttEngine.voicePacketsSent.get()
-                        actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
-                    } else if (RideService.getActiveRelayEngine() == null) {
-                        actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
-                    } else {
-                        val hasMicPermission = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO
-                        ) == PackageManager.PERMISSION_GRANTED
+            // Sección auto-ocultable de acciones de cabina (despeja 100% el mapa)
+            AnimatedVisibility(
+                visible = isBottomCockpitExpanded,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // 4.5. Botón flotante Monitor de Malla (esquina inferior derecha, encima del botón SOS)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(HeritageCardWarm.copy(alpha = 0.95f))
+                                .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
+                                .clickable { showMeshMonitor = true }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text("📡", fontSize = 14.sp)
+                            Text(
+                                text = "MONITOR MALLA",
+                                color = EmeraldMesh,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
 
-                        if (hasMicPermission) {
-                            RideService.beginPttVoiceStream()
-                            pttEngine.startTalking()
+                    // 5. Las 3 acciones circulares de cabina Heritage (≥ 72 dp)
+                    GlovesPrimaryActionBar(
+                        isSosActive = rideServiceState.isSosActive,
+                        isPttActive = isRecording,
+                        pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
+                        onTalkPttClick = {
+                            if (isRecording) {
+                                stopCabinaPtt()
+                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                    "LIVE_MAP",
+                                    "PTT_TRANSMIT_STOP",
+                                    "btn_hablar"
+                                )
+                                val frames = (pttState as? PttState.Transmitting)?.packetsSent
+                                    ?: pttEngine.voicePacketsSent.get()
+                                actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
+                            } else if (RideService.getActiveRelayEngine() == null) {
+                                actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
+                            } else {
+                                val hasMicPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasMicPermission) {
+                                    RideService.beginPttVoiceStream()
+                                    pttEngine.startTalking()
+                                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                        "LIVE_MAP",
+                                        "PTT_TRANSMIT_START",
+                                        "btn_hablar"
+                                    )
+                                    actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
+                                } else {
+                                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        },
+                        onSosClick = {
+                            val selfId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
+                            val isCurrentlyActive = rideServiceState.isSosActive || activeSosAlerts.any { it.senderShortId == selfId }
+
+                            if (isCurrentlyActive) {
+                                activeSosAlerts.firstOrNull { it.senderShortId == selfId }?.let {
+                                    sosRepository.resolveSos(it.sosId)
+                                }
+                                RideService.dispatchTriggerSos(context, false)
+                                bleMeshService?.stopSosBroadcaster()
+                                com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
+                                liveMapViewModel.controller.updateLocalRiderPose(
+                                    latitude = liveMapViewModel.uiState.value.cameraLatitude,
+                                    longitude = liveMapViewModel.uiState.value.cameraLongitude,
+                                    speedKmh = 48,
+                                    batteryPercent = realBatteryLevel,
+                                    isSos = false
+                                )
+                                liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
+                                actionFeedback = "✓ Emergencia SOS desactivada"
+                            } else {
+                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                    screen = "LIVE_MAP",
+                                    action = "START_SOS_COUNTDOWN",
+                                    target = "btn_sos"
+                                )
+                                sosCountdownManager.startCountdown(SosTriggerType.MANUAL)
+                            }
+                        },
+                        onQuickSignalsClick = {
                             com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                                 "LIVE_MAP",
-                                "PTT_TRANSMIT_START",
-                                "btn_hablar"
+                                "TAP_SIGNALS",
+                                "btn_senales"
                             )
-                            actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
-                        } else {
-                            audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            showSignalsDialog = true
                         }
-                    }
-                },
-                onSosClick = {
-                    val selfId = state.markers.firstOrNull { it.isSelf }?.shortId ?: 1u
-                    val isCurrentlyActive = rideServiceState.isSosActive || activeSosAlerts.any { it.senderShortId == selfId }
-
-                    if (isCurrentlyActive) {
-                        activeSosAlerts.firstOrNull { it.senderShortId == selfId }?.let {
-                            sosRepository.resolveSos(it.sosId)
-                        }
-                        RideService.dispatchTriggerSos(context, false)
-                        bleMeshService?.stopSosBroadcaster()
-                        com.rutabikersync.app.core.audio.SosToneHub.setLocalActive(false)
-                        liveMapViewModel.controller.updateLocalRiderPose(
-                            latitude = liveMapViewModel.uiState.value.cameraLatitude,
-                            longitude = liveMapViewModel.uiState.value.cameraLongitude,
-                            speedKmh = 48,
-                            batteryPercent = realBatteryLevel,
-                            isSos = false
-                        )
-                        liveMapViewModel.controller.flushMapFrame(System.currentTimeMillis(), force = true)
-                        actionFeedback = "✓ Emergencia SOS desactivada"
-                    } else {
-                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                            screen = "LIVE_MAP",
-                            action = "START_SOS_COUNTDOWN",
-                            target = "btn_sos"
-                        )
-                        sosCountdownManager.startCountdown(SosTriggerType.MANUAL)
-                    }
-                },
-                onQuickSignalsClick = {
-                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                        "LIVE_MAP",
-                        "TAP_SIGNALS",
-                        "btn_senales"
                     )
-                    showSignalsDialog = true
+
+                    // 6. Control de parada protegida de 3 segundos (cápsula con botón circular rojo y chevron '>')
+                    HeritageStopRideHoldButton(
+                        onHoldCompleted = {
+                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                "LIVE_MAP",
+                                "STOP_RIDE_HOLD_3S",
+                                "btn_detener_rodada_3s"
+                            )
+                            RideService.dispatchImmediateStopRide(context)
+                            onStopRideHoldCompleted?.invoke()
+                            actionFeedback = "Rodada finalizada. Guardando métricas..."
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                    )
                 }
-            )
-
-            // 6. Control de parada protegida de 3 segundos (cápsula con botón circular rojo y chevron '>')
-            HeritageStopRideHoldButton(
-                onHoldCompleted = {
-                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                        "LIVE_MAP",
-                        "STOP_RIDE_HOLD_3S",
-                        "btn_detener_rodada_3s"
-                    )
-                    RideService.dispatchImmediateStopRide(context)
-                    onStopRideHoldCompleted?.invoke()
-                    actionFeedback = "Rodada finalizada. Guardando métricas..."
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
-            )
+            }
 
         }
 
@@ -2246,9 +2318,17 @@ fun LiveMapScreen(
                     .fillMaxSize()
                     .background(DarkSlate950)
             ) {
+                val peerAvatars = remember(state.markers) {
+                    state.markers.associate { it.shortId to it.avatarBase64 }
+                }
+                val peerFullNames = remember(state.markers) {
+                    state.markers.associate { it.shortId to it.fullName }
+                }
                 TacticalChatScreen(
                     localShortId = localShortId,
                     peers = state.markers.filter { !it.isSelf }.map { Pair(it.shortId, it.fullName) },
+                    peerAvatars = peerAvatars,
+                    peerFullNames = peerFullNames,
                     initialFocusKeyboard = initialFocusKeyboard,
                     onSendMessage = { targetId, text ->
                         RideService.dispatchSendTextMessage(context, targetId, text)
@@ -2407,6 +2487,7 @@ private fun MapLibreCorridorSurface(
     state: LiveMapUiState,
     selfShortId: UShort,
     onSelectRider: (UShort?) -> Unit,
+    onMapClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2469,7 +2550,11 @@ private fun MapLibreCorridorSurface(
                         // Tocar el mapa vacío cierra el detalle; los listeners se registran una vez.
                         if (mapLibreMap !== map) {
                             mapLibreMap = map
-                            map.addOnMapClickListener { onSelectRider(null); true }
+                            map.addOnMapClickListener {
+                                onSelectRider(null)
+                                onMapClick()
+                                true
+                            }
                             map.addOnCameraIdleListener { cameraProjectionRevision++ }
                         }
                         map.setStyle(state.styleAssetUri) {
