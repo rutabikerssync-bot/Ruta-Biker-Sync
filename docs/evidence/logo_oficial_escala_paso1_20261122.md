@@ -56,7 +56,22 @@ el contenedor circular existente actúa como máscara.
 - Compilación de recursos y Kotlin de `standardDebug` correcta; el WebP con alfa
   se empaqueta sin errores de `aapt`.
 
-## 4. Pendiente
+## 4. Instalación en TECNO
+
+```
+RBS_PILOT_KEY=<clave local del probador> RBS_PILOT_BUILD=PILOTO-TECNO-2026 \
+  .\gradlew.bat :app:assembleStandardDebug --no-daemon
+adb -s 098813734B105395 install -r artifacts/pilotos/piloto-tecno-logo-paso1.apk
+```
+
+`BUILD SUCCESSFUL`, APK de 105 187 832 bytes, `Success` en la instalación.
+Capturas y volcado UI en `docs/evidence/logo_paso1_tecno_20261122/`:
+`splash.png`, `pantalla.png` y `ui.xml`. El volcado confirma el nuevo
+`content-desc="Logo oficial Ruta Biker Sync"` en la pantalla de acceso; el TECNO
+no tiene sesión iniciada, por lo que la cabecera RODADAS aún no es alcanzable
+en ese dispositivo.
+
+## 5. Pendiente
 
 - Revisión visual en el TECNO: logo grande, nítido, sin halo oscuro y con bisel oro
   Heritage en la cabecera RODADAS; splash y acceso usando el mismo emblema.
