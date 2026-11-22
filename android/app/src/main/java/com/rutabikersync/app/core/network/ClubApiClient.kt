@@ -5,6 +5,7 @@ import com.rutabikersync.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -17,6 +18,8 @@ import java.io.BufferedReader
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.Instant
+import java.util.UUID
 
 /**
  * Cliente HTTP nativo para comunicar la app Android con el backend Fastify + PostgreSQL (BACKEND_LICENSING.md §8).
@@ -169,6 +172,40 @@ class ClubApiClient(
         val retryAfterSeconds: Long? = null
     ) {
         val isSuccess: Boolean get() = statusCode in 200..299
+    }
+
+    /** Muestra puntual recibida por HTTP para una rodada (Corte 1 de redundancia). */
+    data class RemoteTelemetrySample(
+        val userId: String,
+        val latitude: Double,
+        val longitude: Double,
+        val heading: Double,
+        val speedKmh: Double,
+        val observedAtMillis: Long
+    )
+
+    /** Parser puro para poder probar el contrato sin red. */
+    internal fun parseRideTelemetry(body: JsonObject): List<RemoteTelemetrySample> {
+        val riders = body["riders"] as? JsonArray ?: return emptyList()
+        return riders.mapNotNull { element ->
+            val obj = element as? JsonObject ?: return@mapNotNull null
+            fun text(key: String): String? = (obj[key] as? JsonPrimitive)?.contentOrNull
+            fun number(key: String): Double? = text(key)?.toDoubleOrNull()
+            val userId = text("userId") ?: return@mapNotNull null
+            val latitude = number("latitude") ?: return@mapNotNull null
+            val longitude = number("longitude") ?: return@mapNotNull null
+            val observedAt = text("observedAt")?.let { raw ->
+                runCatching { Instant.parse(raw).toEpochMilli() }.getOrNull()
+            } ?: return@mapNotNull null
+            RemoteTelemetrySample(
+                userId = userId,
+                latitude = latitude,
+                longitude = longitude,
+                heading = number("heading") ?: 0.0,
+                speedKmh = number("speedKmh") ?: 0.0,
+                observedAtMillis = observedAt
+            )
+        }
     }
 
     suspend fun login(
@@ -764,15 +801,42 @@ class ClubApiClient(
         lat: Double,
         lng: Double,
         heading: Double = 0.0,
-        speedKmh: Double = 0.0
+        speedKmh: Double = 0.0,
+        rideId: String? = null
     ): Result<ApiResponse> = withContext(Dispatchers.IO) {
         val body = buildJsonObject {
             put("latitude", lat)
             put("longitude", lng)
             put("heading", heading)
             put("speedKmh", speedKmh)
+            rideId?.takeIf { it.isNotBlank() }?.let { put("rideId", it) }
         }
         executeRequest("POST", "/v1/telemetry/heartbeat", body)
+    }
+
+    /** Downlink HTTP de posiciones de la rodada. Requiere UUID válido. */
+    suspend fun fetchRideTelemetry(
+        rideId: String,
+        maxAgeSeconds: Int = 30,
+        limit: Int = 50
+    ): Result<List<RemoteTelemetrySample>> {
+        if (runCatching { UUID.fromString(rideId) }.isFailure) {
+            return Result.failure(IllegalArgumentException("rideId debe ser un UUID válido"))
+        }
+        return withContext(Dispatchers.IO) {
+            val response = executeRequest(
+                "GET",
+                "/v1/rides/$rideId/telemetry?maxAgeSeconds=$maxAgeSeconds&limit=$limit",
+                null
+            )
+            response.mapCatching { api ->
+                if (!api.isSuccess) {
+                    throw IllegalStateException("HTTP ${api.statusCode} al leer telemetría de rodada")
+                }
+                val body = api.body ?: return@mapCatching emptyList()
+                parseRideTelemetry(body)
+            }
+        }
     }
 
     suspend fun getNearbySosAlerts(
