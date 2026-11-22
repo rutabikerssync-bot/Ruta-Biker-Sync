@@ -2622,6 +2622,31 @@ export async function buildApp({
     return typeof id === 'string' && UUID_REGEX.test(id);
   }
 
+  /**
+   * ACL mínima para telemetría de rodada: solo participantes o directivos anfitriones.
+   * No modifica liderazgo ni miembros; únicamente autoriza lectura/escritura de posiciones.
+   */
+  async function checkRideTelemetryAccess(
+    rideId: string,
+    uid: string
+  ): Promise<'ok' | 'not_found' | 'forbidden'> {
+    const res = await db.query(
+      `SELECT r.host_leader, r.cohost_leader,
+              EXISTS (
+                SELECT 1 FROM ride_participants rp
+                WHERE rp.ride_id = r.id AND rp.user_id = $2
+              ) AS is_participant
+       FROM rides r WHERE r.id = $1`,
+      [rideId, uid]
+    );
+    const ride = res.rows[0];
+    if (!ride) return 'not_found';
+    const isHostOrCohost =
+      String(ride.host_leader) === uid ||
+      (ride.cohost_leader != null && String(ride.cohost_leader) === uid);
+    return ride.is_participant === true || isHostOrCohost ? 'ok' : 'forbidden';
+  }
+
   app.post('/v1/invitations/:id/accept', async (req, reply) => {
     const uid = requireUserId(req, reply);
     if (!uid) return;
@@ -3574,7 +3599,9 @@ export async function buildApp({
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
     heading: z.number().min(0).max(360).optional().default(0.0),
-    speedKmh: z.number().min(0).max(350).optional().default(0.0)
+    speedKmh: z.number().min(0).max(350).optional().default(0.0),
+    /** Opcional y retrocompatible: permite asociar la posición a una rodada real. */
+    rideId: z.string().uuid().optional()
   });
 
   app.post('/v1/telemetry/heartbeat', async (req, reply) => {
@@ -3601,12 +3628,22 @@ export async function buildApp({
       });
     }
 
-    const { latitude, longitude, heading = 0.0, speedKmh = 0.0 } = parsed.data;
+    const { latitude, longitude, heading = 0.0, speedKmh = 0.0, rideId } = parsed.data;
+
+    if (rideId) {
+      const access = await checkRideTelemetryAccess(rideId, uid);
+      if (access === 'not_found') {
+        return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+      }
+      if (access === 'forbidden') {
+        return reply.code(403).send({ error: 'NOT_IN_RIDE' });
+      }
+    }
 
     await db.query(
-      `INSERT INTO ephemeral_telemetry (user_id, lat, lng, heading, speed, recorded_at, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
-      [uid, latitude, longitude, heading, speedKmh]
+      `INSERT INTO ephemeral_telemetry (ride_id, user_id, lat, lng, heading, speed, recorded_at, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
+      [rideId ?? null, uid, latitude, longitude, heading, speedKmh]
     );
 
     return reply.code(200).send({
@@ -4995,6 +5032,64 @@ export async function buildApp({
       rideId,
       participants: mapRideRosterRows(partRes.rows),
       note: 'El shortId de malla se deriva localmente; el backend no lo conoce.'
+    });
+  });
+
+  /**
+   * Corte 1 de redundancia BLE ↔ 4G: downlink de posiciones efímeras por rodada.
+   * Solo lectura, solo participantes/directivos de la rodada, ventana corta de frescura.
+   */
+  app.get('/v1/rides/:id/telemetry', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+
+    const { id: rideId } = req.params as { id: string };
+    if (!isUuid(rideId)) {
+      return reply.code(400).send({ error: 'INVALID_RIDE_ID' });
+    }
+
+    const access = await checkRideTelemetryAccess(rideId, uid);
+    if (access === 'not_found') {
+      return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+    }
+    if (access === 'forbidden') {
+      return reply.code(403).send({ error: 'NOT_IN_RIDE' });
+    }
+
+    const query = req.query as { maxAgeSeconds?: string; limit?: string };
+    const maxAgeSeconds = Math.min(
+      120,
+      Math.max(5, Number.parseInt(query.maxAgeSeconds ?? '30', 10) || 30)
+    );
+    const limit = Math.min(200, Math.max(1, Number.parseInt(query.limit ?? '50', 10) || 50));
+
+    const teleRes = await db.query(
+      `SELECT user_id, lat, lng, heading, speed, recorded_at
+       FROM (
+         SELECT DISTINCT ON (user_id)
+                user_id, lat, lng, heading, speed, recorded_at
+         FROM ephemeral_telemetry
+         WHERE ride_id = $1
+           AND recorded_at >= now() - ($2::int * interval '1 second')
+         ORDER BY user_id, recorded_at DESC
+       ) latest
+       ORDER BY recorded_at DESC
+       LIMIT $3`,
+      [rideId, maxAgeSeconds, limit]
+    );
+
+    return reply.code(200).send({
+      rideId,
+      sampledAt: new Date().toISOString(),
+      maxAgeSeconds,
+      riders: teleRes.rows.map((row: any) => ({
+        userId: String(row.user_id),
+        latitude: Number(row.lat),
+        longitude: Number(row.lng),
+        heading: Number(row.heading ?? 0),
+        speedKmh: Number(row.speed ?? 0),
+        observedAt: row.recorded_at
+      }))
     });
   });
 
