@@ -69,11 +69,33 @@ TECNO y volver a entrar con la cuenta del piloto para que `/v1/auth/login`
 registre ese usuario real con `activateLeaderDemo=true`, y reintentar la
 creación. No se ha simulado ni fabricado ese alta.
 
+## 3.1 Por qué el re-login no bastó
+
+Tras cerrar sesión y volver a entrar en el TECNO, `user_display_name` pasó de
+`Rutero` a `Omartinezpaz`, pero `user_id` siguió siendo
+`1ec5e592-5b2d-3737-9820-1107fa43bcf8` y **no se creó ningún usuario real** en
+`users` (los 10 existentes son `Centauros E2E …` de pruebas).
+
+Causa: `ClubApiClient.attemptSilentReauth()` —que llama a `/v1/auth/login` con
+`activateLeaderDemo=true` cuando `account_type=LEADER`— sólo se invoca desde
+`executeRequest()` cuando la respuesta es **401**. Nuestro `POST /v1/groups`
+responde **403**, así que el alta nunca se dispara. El login de Google actualiza
+el perfil local pero no registra al usuario en Fastify.
+
+Verificación de la alternativa (sólo lectura): `GET /v1/groups` con
+`x-user-id: u-force-reauth` devuelve **401**, mientras que con el UUID actual
+devuelve `200 {"ledGroups":[],"memberGroups":[]}`. Por tanto, forzar
+temporalmente un `user_id` inválido y reiniciar la app provoca el 401 que sí
+dispara `attemptSilentReauth()`, el backend crea al usuario `leader` con el
+email/nombre reales ya guardados y la app reemplaza `user_id` por el UUID
+devuelto. No requiere inventar datos ni insertar filas a mano.
+
 ## 4. Estado
 
 - Backend y túnel: operativos.
 - Banner Fastify online: confirmado en Redmi; en TECNO el último banner es el
   error 403 porque fue el mensaje más reciente.
-- Creación de club real: **PENDIENTE** de re-login del líder.
+- Creación de club real: **PENDIENTE** de registrar al líder en Fastify; el
+  re-login por sí solo no lo logró (ver §3.1).
 - Validación física 5–50 m: **NO EJECUTADA / PENDIENTE**.
 - Sin push de los commits locales: `e647a7c`, `9cb1c00`, `7c6970e`, `cf22141`.
