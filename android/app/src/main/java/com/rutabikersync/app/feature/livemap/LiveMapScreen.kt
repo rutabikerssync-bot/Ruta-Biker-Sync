@@ -447,17 +447,34 @@ fun LiveMapScreen(
             resolveShortId = { null }
         )
     }
+    // Corte 2A de redundancia BLE ↔ 4G: chat/señales efímeros. BLE sigue siendo primario.
+    val hybridChatDispatcher = remember(selfShortId) {
+        com.rutabikersync.app.core.mesh.HybridChatDispatcher(
+            selfShortId = selfShortId,
+            fetch = { id, since ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance().fetchRideComms(id, since)
+            },
+            post = { id, draft ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance().postRideComms(id, draft)
+            }
+        )
+    }
     val hybridRideState by RideService.sharedState.collectAsState()
     LaunchedEffect(hybridRideState.rideId) {
         val rideId = hybridRideState.rideId
         if (runCatching { java.util.UUID.fromString(rideId) }.isSuccess) {
             hybridDispatcher.start(rideId, this)
+            hybridChatDispatcher.start(rideId, this)
         } else {
             hybridDispatcher.stop()
+            hybridChatDispatcher.stop()
         }
     }
     DisposableEffect(hybridDispatcher) {
-        onDispose { hybridDispatcher.stop() }
+        onDispose {
+            hybridDispatcher.stop()
+            hybridChatDispatcher.stop()
+        }
     }
     LaunchedEffect(hybridDispatcher) {
         while (true) {
@@ -2008,7 +2025,9 @@ fun LiveMapScreen(
                                         )
                                         com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(signal)
                                         coroutineScope.launch {
-                                            RideService.dispatchSendConvoySignal(signal)
+                                            if (!RideService.dispatchSendConvoySignal(signal)) {
+                                                hybridChatDispatcher.publishSignal(signal)
+                                            }
                                         }
                                         actionFeedback = "📢 Señal emitida: ¡${signal.fullLabel}!"
                                         showSignalsDialog = false
@@ -2430,8 +2449,11 @@ fun LiveMapScreen(
                     peerFullNames = peerFullNames,
                     initialFocusKeyboard = initialFocusKeyboard,
                     onSendMessage = { targetId, text ->
-                        RideService.dispatchSendTextMessage(context, targetId, text)
-                        actionFeedback = "💬 Mensaje enviado: $text"
+                        val bleSent = RideService.dispatchSendTextMessage(context, targetId, text)
+                        if (!bleSent) {
+                            coroutineScope.launch { hybridChatDispatcher.publishChat(targetId, text) }
+                        }
+                        actionFeedback = if (bleSent) "💬 Mensaje enviado: $text" else "💬 Mensaje enviado por 4G: $text"
                     },
                     onNavigateBack = { showTacticalChat = false }
                 )

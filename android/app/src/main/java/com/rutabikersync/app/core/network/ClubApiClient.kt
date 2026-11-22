@@ -208,6 +208,55 @@ class ClubApiClient(
         }
     }
 
+    /** Mensaje efímero de chat/señal recibido por HTTP (Corte 2A de redundancia). */
+    data class RideCommsItem(
+        val id: String,
+        val kind: String,
+        val senderShortId: UShort,
+        val targetShortId: UShort?,
+        val text: String?,
+        val signalKind: Int?,
+        val sequence: Int?,
+        val createdAtMillis: Long
+    )
+
+    /** Borrador de envío: el identificador lo genera la capa de malla existente. */
+    data class RideCommsDraft(
+        val id: String,
+        val kind: String,
+        val senderShortId: UShort,
+        val targetShortId: UShort = 65_535u,
+        val text: String? = null,
+        val signalKind: Int? = null,
+        val sequence: Int? = null,
+        val ttlSeconds: Int = 60
+    )
+
+    /** Parser puro del contrato efímero, sin tocar la malla ni el cifrado. */
+    internal fun parseRideComms(body: JsonObject): List<RideCommsItem> {
+        val items = body["items"] as? JsonArray ?: return emptyList()
+        return items.mapNotNull { element ->
+            val obj = element as? JsonObject ?: return@mapNotNull null
+            fun text(key: String): String? = (obj[key] as? JsonPrimitive)?.contentOrNull
+            fun int(key: String): Int? = text(key)?.toIntOrNull()
+            fun long(key: String): Long? = text(key)?.toLongOrNull()
+            val id = text("id") ?: return@mapNotNull null
+            val kind = text("kind") ?: return@mapNotNull null
+            val sender = int("senderShortId") ?: return@mapNotNull null
+            val createdAt = long("createdAt") ?: return@mapNotNull null
+            RideCommsItem(
+                id = id,
+                kind = kind,
+                senderShortId = sender.toUShort(),
+                targetShortId = int("targetShortId")?.toUShort(),
+                text = text("text"),
+                signalKind = int("signalKind"),
+                sequence = int("sequence"),
+                createdAtMillis = createdAt
+            )
+        }
+    }
+
     suspend fun login(
         email: String,
         password: String?,
@@ -835,6 +884,57 @@ class ClubApiClient(
                 }
                 val body = api.body ?: return@mapCatching emptyList()
                 parseRideTelemetry(body)
+            }
+        }
+    }
+
+    /** Uplink efímero de chat/señal cuando la malla BLE no alcanza al destinatario. */
+    suspend fun postRideComms(
+        rideId: String,
+        draft: RideCommsDraft
+    ): Result<ApiResponse> {
+        if (runCatching { UUID.fromString(rideId) }.isFailure) {
+            return Result.failure(IllegalArgumentException("rideId debe ser un UUID válido"))
+        }
+        return withContext(Dispatchers.IO) {
+            val body = buildJsonObject {
+                put("kind", draft.kind)
+                put("messageId", draft.id)
+                put("senderShortId", draft.senderShortId.toInt())
+                put("targetShortId", draft.targetShortId.toInt())
+                put("ttlSeconds", draft.ttlSeconds)
+                if (draft.kind == "chat") {
+                    put("text", draft.text ?: "")
+                } else {
+                    put("signalKind", draft.signalKind ?: 1)
+                    put("sequence", draft.sequence ?: 0)
+                }
+            }
+            executeRequest("POST", "/v1/rides/$rideId/comms", body)
+        }
+    }
+
+    /** Downlink efímero de chat/señal, acotado por `since` (epoch millis). */
+    suspend fun fetchRideComms(
+        rideId: String,
+        since: Long = 0L,
+        limit: Int = 100
+    ): Result<List<RideCommsItem>> {
+        if (runCatching { UUID.fromString(rideId) }.isFailure) {
+            return Result.failure(IllegalArgumentException("rideId debe ser un UUID válido"))
+        }
+        return withContext(Dispatchers.IO) {
+            val response = executeRequest(
+                "GET",
+                "/v1/rides/$rideId/comms?since=$since&limit=$limit",
+                null
+            )
+            response.mapCatching { api ->
+                if (!api.isSuccess) {
+                    throw IllegalStateException("HTTP ${api.statusCode} al leer comms de rodada")
+                }
+                val body = api.body ?: return@mapCatching emptyList()
+                parseRideComms(body)
             }
         }
     }
