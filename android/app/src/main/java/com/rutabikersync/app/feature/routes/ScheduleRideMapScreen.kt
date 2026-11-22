@@ -585,7 +585,7 @@ fun ScheduleRideMapScreen(
             isCalculatingRoutes = false
 
             if (sanitized.isEmpty()) {
-                // Último recurso: ni el trazado aproximado superó el filtrado; no dibujar geometría falsa
+                // Fallback explícito: Si Mapbox falla y no hay asset para este destino, mostrar error sin dibujar líneas rectas
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         context,
@@ -1057,7 +1057,7 @@ fun ScheduleRideMapScreen(
                                 Text(
                                     text = if (currentStep == RoutePlanningStep.ROUTES_SELECTION) {
                                         if (routeSelectionPhase == RouteSelectionPhase.CHOOSE_TRACK)
-                                            "3 alternativas de ruta"
+                                            "3 rutas trazadas sobre vías reales"
                                         else
                                             "Define los datos oficiales para compartir con el club"
                                     } else "Toca el mapa o escribe para ubicar el punto",
