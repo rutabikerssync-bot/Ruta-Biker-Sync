@@ -145,6 +145,26 @@ import com.rutabikersync.app.core.mesh.sos.SosProximityAlert
 import kotlin.math.roundToInt
 
 /**
+ * Corte 2A: el despacho BLE puede devolver `true` aunque el radio esté apagado a nivel de
+ * sistema (el RelayEngine sigue vivo). En ese caso el mensaje se perdería sin activar el
+ * fallback HTTP, así que el estado real del adaptador manda antes que el resultado BLE.
+ */
+internal fun isBleRadioEnabled(context: Context): Boolean = try {
+    (context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager)
+        ?.adapter?.isEnabled ?: true
+} catch (_: SecurityException) {
+    true
+}
+
+/** Compuerta pura para poder probar la decisión sin depender del framework Android. */
+internal fun tryBleDelivery(radioEnabled: Boolean, dispatch: () -> Boolean): Boolean =
+    radioEnabled && dispatch()
+
+/** Variante suspendida para el despacho de señales, que ocurre dentro de `coroutineScope.launch`. */
+internal suspend fun tryBleSuspendDelivery(radioEnabled: Boolean, dispatch: suspend () -> Boolean): Boolean =
+    radioEnabled && dispatch()
+
+/**
  * Pantalla `C1. Cabina de Rodada Activa` (SCREENS.md C1, DESIGN.md §2).
  * Fiel al diseño oficial Heritage Premium:
  * - Mapa satelital/topográfico dominante con trazo de convoy en azul eléctrico.
@@ -2025,7 +2045,9 @@ fun LiveMapScreen(
                                         )
                                         com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(signal)
                                         coroutineScope.launch {
-                                            if (!RideService.dispatchSendConvoySignal(signal)) {
+                                            if (!tryBleSuspendDelivery(isBleRadioEnabled(context)) {
+                                                    RideService.dispatchSendConvoySignal(signal)
+                                                }) {
                                                 hybridChatDispatcher.publishSignal(signal)
                                             }
                                         }
@@ -2449,7 +2471,9 @@ fun LiveMapScreen(
                     peerFullNames = peerFullNames,
                     initialFocusKeyboard = initialFocusKeyboard,
                     onSendMessage = { targetId, text ->
-                        val bleSent = RideService.dispatchSendTextMessage(context, targetId, text)
+                        val bleSent = tryBleDelivery(isBleRadioEnabled(context)) {
+                            RideService.dispatchSendTextMessage(context, targetId, text)
+                        }
                         if (!bleSent) {
                             coroutineScope.launch { hybridChatDispatcher.publishChat(targetId, text) }
                         }
