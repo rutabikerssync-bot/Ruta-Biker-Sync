@@ -1411,7 +1411,7 @@ private fun RidesReleaseHomeScreen(
             // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
             if (rideRoster == null || !canPublishClubRoute) {
                 HeritageBrassButton(
-                    text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                    text = "Iniciar cabina y malla",
                     onClick = {
                         UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
                         onStartLiveMapPreview()

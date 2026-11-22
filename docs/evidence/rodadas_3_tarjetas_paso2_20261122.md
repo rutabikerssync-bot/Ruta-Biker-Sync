@@ -39,7 +39,16 @@ para no reactivar el error de los miembros no líderes sin cabina.
   `--rerun-tasks` terminó limpia, confirmando que no es regressions del cambio.
 - Sin cambios en backend, BD ni datos demo.
 
-## 4. Pendiente
+## 4. Verificación en hardware
 
-- Validación visual en hardware del Redmi con la nueva tercera tarjeta.
+APK `PILOTO-REDMI-2026` instalado en `b2c398bb` (105 776 189 bytes). El volcado
+UI `docs/evidence/rodadas_paso2_redmi_20261122/ui_rodadas.xml` confirma las
+tres tarjetas y sus textos: «Próxima Convocatoria de Club», «Rodada Individual /
+Solitaria» e «Iniciar Rodada (Cabina Activa)», además del gate «Solo la
+directiva del club puede trazar y publicar rutas oficiales.» y los accesos
+«Iniciar cabina y malla» y «🗺️ Rutas y Corredor sin señal». Captura:
+`docs/evidence/rodadas_paso2_redmi_20261122/rodadas_3_tarjetas.png`.
+
+## 5. Pendiente
+
 - Pasos 3 y 4 del plan maestro (geometría vial y cabina/gestos).
