@@ -116,8 +116,10 @@ while ((Get-Date) -lt $deadline) {
     if (-not (Test-Path -LiteralPath $log)) { continue }
     $text = Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
     if ([string]::IsNullOrEmpty($text)) { continue }
-    $match = [regex]::Match($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
-    if ($match.Success) { $tunnelUrl = $match.Value; break }
+    # El log se conserva entre arranques: tomar la última URL publicada evita
+    # reutilizar un túnel caído de una ejecución anterior.
+    $matches = [regex]::Matches($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
+    if ($matches.Count -gt 0) { $tunnelUrl = $matches[$matches.Count - 1].Value }
   }
   if ($tunnelUrl) { break }
   Start-Sleep -Seconds 1
