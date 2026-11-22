@@ -490,6 +490,7 @@ fun LiveMapScreen(
     val hybridRideState by RideService.sharedState.collectAsState()
     LaunchedEffect(hybridRideState.rideId) {
         val rideId = hybridRideState.rideId
+        android.util.Log.i("HybridChatStart", "rideId=$rideId pilot=${com.rutabikersync.app.core.mesh.PilotRideConfig.rideId}")
         if (runCatching { java.util.UUID.fromString(rideId) }.isSuccess) {
             hybridDispatcher.start(rideId, this)
             hybridChatDispatcher.start(rideId, this)
