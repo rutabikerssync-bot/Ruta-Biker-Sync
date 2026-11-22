@@ -103,6 +103,11 @@ if (-not $healthy) { throw "El backend no respondió /health en $WaitSeconds s. 
 Write-Host 'Backend OK.'
 
 Write-Host 'Abriendo Cloudflare quick tunnel…'
+# El log es acumulativo: si no se trunca, el regex puede capturar la URL de una
+# ejecución anterior, que ya no resuelve y deja los móviles en "Fastify offline".
+foreach ($log in @($tunnelLog, $tunnelOutLog, $tunnelErrorLog)) {
+  Set-Content -LiteralPath $log -Value '' -Encoding UTF8 -ErrorAction SilentlyContinue
+}
 $tunnelProc = Start-Process -FilePath $cloudflared.Source `
   -ArgumentList @('tunnel', '--url', "http://127.0.0.1:$Port", '--logfile', $tunnelLog) `
   -WorkingDirectory $repoRoot -RedirectStandardOutput $tunnelOutLog `
@@ -116,8 +121,11 @@ while ((Get-Date) -lt $deadline) {
     if (-not (Test-Path -LiteralPath $log)) { continue }
     $text = Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
     if ([string]::IsNullOrEmpty($text)) { continue }
-    $match = [regex]::Match($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
-    if ($match.Success) { $tunnelUrl = $match.Value; break }
+    $matches = [regex]::Matches($text, 'https://[a-z0-9-]+\.trycloudflare\.com')
+    if ($matches.Count -gt 0) {
+      $tunnelUrl = $matches[$matches.Count - 1].Value
+      break
+    }
   }
   if ($tunnelUrl) { break }
   Start-Sleep -Seconds 1
