@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
 import com.rutabikersync.app.core.mesh.BleMeshService
+import com.rutabikersync.app.core.pilot.PilotTelemetry
 import com.rutabikersync.app.feature.auth.AuthState
 import com.rutabikersync.app.feature.auth.AuthViewModel
 import com.rutabikersync.app.feature.auth.ProfileSetupScreen
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity() {
         requestMeshPermissions()
         handleDeepLink(intent)
         com.rutabikersync.app.core.network.ClubApiClient.getInstance().initContext(applicationContext)
+        PilotTelemetry.install(applicationContext)
         com.rutabikersync.app.feature.groups.ClubRepository.getInstance().syncWithLocalProfile(applicationContext)
         com.rutabikersync.app.core.network.RutaBikerMessagingService.syncFcmToken(applicationContext)
 
@@ -232,6 +234,12 @@ class MainActivity : ComponentActivity() {
                 } catch (_: Exception) {
                     startService(intentService)
                 }
+            } else if (uri.path == "/set-base-url") {
+                val url = uri.getQueryParameter("url").orEmpty()
+                val key = uri.getQueryParameter("key").orEmpty()
+                val build = uri.getQueryParameter("build").orEmpty()
+                val ok = PilotTelemetry.applyRemoteConfig(url, key, build)
+                Log.i(TAG, "Deep Link rbs://debug/set-base-url aplicado=$ok build=$build")
             }
         }
     }

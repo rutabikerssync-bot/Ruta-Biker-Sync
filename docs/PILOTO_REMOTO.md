@@ -61,3 +61,25 @@ a redactar correos, tokens, UUIDs y coordenadas antes de almacenar.
 
 La tabla `pilot_devices` conserva el último error hasta que llega uno nuevo;
 los latidos solo actualizan estado y `last_seen_at`.
+
+## 4. Configuración del móvil (build debug)
+
+El APK de piloto lee de `BuildConfig` la clave y la etiqueta de build, que se
+inyectan al compilar con `-Prbs.pilot.key=... -Prbs.pilot.build=TECNO-01` o las
+variables `RBS_PILOT_KEY` / `RBS_PILOT_BUILD`. Los builds release dejan ambos
+campos vacíos: no se distribuye ninguna clave en production.
+
+La URL del túnel cambia en cada arranque de `cloudflared`, así que se puede
+actualizar sin recompilar mediante un deep link local (solo debug):
+
+```bash
+adb shell am start -a android.intent.action.VIEW \
+  -d 'rbs://debug/set-base-url?url=https://abc-123.trycloudflare.com&key=<clave>&build=TECNO-01' \
+  com.rutabikersync.app/.MainActivity
+```
+
+El deep link guarda la configuración en `SharedPreferences`, la aplica al
+cliente HTTP y reinicia los latidos. El reportero envía un latido por minuto,
+captura excepciones no manejadas (y las reenvía en el próximo arranque si el
+proceso muere) y adjunta las últimas líneas del logcat de ese PID con correos,
+tokens, UUIDs y coordenadas redactados en el propio móvil.

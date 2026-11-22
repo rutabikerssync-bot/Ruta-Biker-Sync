@@ -31,6 +31,13 @@ class ClubApiClient(
             field = normalizeAndValidateBaseUrl(value)
         }
 
+    /** Credenciales del build de piloto. Nunca se envían desde un build release. */
+    @Volatile
+    var pilotKey: String = if (BuildConfig.DEBUG) BuildConfig.PILOT_KEY else ""
+
+    @Volatile
+    var pilotBuild: String = if (BuildConfig.DEBUG) BuildConfig.PILOT_BUILD else ""
+
     init {
         this.baseUrl = baseUrl
     }
@@ -288,6 +295,12 @@ class ClubApiClient(
         }
         executeRequest("POST", "/v1/support/report", payload)
     }
+
+    /** Telemetría del piloto: latidos, errores y cola de logs (solo builds de piloto). */
+    suspend fun reportDeviceTelemetry(payload: JsonObject): Result<ApiResponse> =
+        withContext(Dispatchers.IO) {
+            executeRequest("POST", "/v1/support/device-telemetry", payload)
+        }
 
     suspend fun updateMyProfile(
         displayName: String?,
@@ -570,6 +583,8 @@ class ClubApiClient(
                 setRequestProperty("Accept", "application/json")
                 accessToken?.let { setRequestProperty("Authorization", "Bearer $it") }
                 currentUserId?.let { setRequestProperty("x-user-id", it) }
+                if (pilotKey.isNotBlank()) setRequestProperty("x-rbs-pilot-key", pilotKey)
+                if (pilotBuild.isNotBlank()) setRequestProperty("x-rbs-pilot-build", pilotBuild)
             }
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
@@ -814,6 +829,8 @@ class ClubApiClient(
                 setRequestProperty("Accept", "application/json")
                 accessToken?.let { setRequestProperty("Authorization", "Bearer $it") }
                 currentUserId?.let { setRequestProperty("x-user-id", it) }
+                if (pilotKey.isNotBlank()) setRequestProperty("x-rbs-pilot-key", pilotKey)
+                if (pilotBuild.isNotBlank()) setRequestProperty("x-rbs-pilot-build", pilotBuild)
                 extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
                 if (body != null) {
                     doOutput = true
