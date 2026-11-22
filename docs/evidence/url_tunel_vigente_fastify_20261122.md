@@ -90,12 +90,39 @@ dispara `attemptSilentReauth()`, el backend crea al usuario `leader` con el
 email/nombre reales ya guardados y la app reemplaza `user_id` por el UUID
 devuelto. No requiere inventar datos ni insertar filas a mano.
 
+## 3.2 Alta real del líder y desaparición del 403
+
+El intento de forzar un 401 con un `user_id` centinela no funcionó:
+`setAuthenticated()` normaliza cualquier uid no-UUID al UUID determinista del
+email, así que el centinela se restauraba al arrancar. No se insistió con esa vía.
+
+Se dio de alta al líder usando el endpoint oficial del backend con los datos
+reales ya guardados en el TECNO: `POST /v1/auth/login` con email
+`omartinezpaz@gmail.com`, `displayName=Omartinezpaz`, `countryCode=VE`,
+`acceptedTermsAndConvivencia=true`, `activateLeaderDemo=true` y sin password
+(cuenta Google). Resultado:
+
+- `user_id` `b5d0228d-8ab9-49fd-9cc7-efa452a484f2`
+- `account_type=leader`, `status=active`
+- `users` pasó de 10 a 11; los 10 anteriores (`Centauros E2E …`) quedaron intactos.
+
+Se actualizó `user_id` en `rbs_auth_prefs.xml` del TECNO (con copia de seguridad
+temporal, luego eliminada) y se reinició la app. El UUID se mantuvo y los logs
+confirman `GET /v1/groups called for UID: b5d0228d-8ab9-49fd-9cc7-efa452a484f2`.
+En `Mis Grupos y Clubes` el banner pasó a
+`🟢 Fastify online (status: ok) · PostgreSQL 16` y el error 403 desapareció.
+
+El formulario de fundación queda listo con `VE` / `Miranda` / `MC`, pendiente de
+que el tester escriba el nombre real del club y pulse
+`Registrar y Fundar Club (MC)`. No se insertaron filas manualmente en PostgreSQL:
+el alta la hizo el endpoint oficial. El Redmi sigue como `MEMBER`.
+
 ## 4. Estado
 
 - Backend y túnel: operativos.
 - Banner Fastify online: confirmado en Redmi; en TECNO el último banner es el
   error 403 porque fue el mensaje más reciente.
-- Creación de club real: **PENDIENTE** de registrar al líder en Fastify; el
-  re-login por sí solo no lo logró (ver §3.1).
+- Creación de club real: **PENDIENTE** de que el tester escriba el nombre y
+  confirme; el líder ya está registrado en Fastify (ver §3.2).
 - Validación física 5–50 m: **NO EJECUTADA / PENDIENTE**.
 - Sin push de los commits locales: `e647a7c`, `9cb1c00`, `7c6970e`, `cf22141`.
