@@ -56,7 +56,8 @@ a redactar correos, tokens, UUIDs y coordenadas antes de almacenar.
 - `GET /v1/support/devices/light`: vista resumida para la página pública,
   protegida con la clave de piloto; no incluye stacks ni logs.
 - `GET /v1/support/devices`: vista completa del backoffice; exige
-  `x-admin-key` además de la clave de piloto.
+  `x-admin-key` (no hay clave admin por defecto: sin `ADMIN_API_KEY` responde
+  503).
 - `GET /v1/support/devices/:fp/events`: historial de un dispositivo.
 
 La tabla `pilot_devices` conserva el último error hasta que llega uno nuevo;
@@ -83,3 +84,49 @@ cliente HTTP y reinicia los latidos. El reportero envía un latido por minuto,
 captura excepciones no manejadas (y las reenvía en el próximo arranque si el
 proceso muere) y adjunta las últimas líneas del logcat de ese PID con correos,
 tokens, UUIDs y coordenadas redactados en el propio móvil.
+
+## 5. Servicio web de soporte
+
+`/soporte` está servido por el propio backend, así que funciona igual en
+`http://localhost:3000/soporte` (laptop) que en la URL HTTPS del túnel. Incluye:
+
+- formulario de reporte anónimo (asunto, mensaje y captura ≤2 MB) que escribe
+  en `support_reports` y aparece en el backoffice;
+- FAQ y contacto `soporte@rutabikersync.com`;
+- vista ligera de dispositivos: pide la clave de piloto en el navegador y
+  muestra build, dispositivo, batería, peers, último latido y último error;
+  nunca muestra stacks ni logs.
+
+El backoffice `/admin` ya no contiene claves ni datos de demostración: la clave
+admin se introduce en la pestaña Ajustes y se conserva solo en `sessionStorage`.
+Si el backend no responde, los paneles muestran el error en claro en vez de
+datos falsos. La pestaña «Dispositivos del Piloto» muestra el detalle completo
+de dispositivos y eventos (solo con `x-admin-key`).
+
+## 6. Arranque operativo desde la laptop
+
+```powershell
+$env:RBS_PILOT_MODE='true'
+$env:RBS_PILOT_ALLOWED_KEYS='TECNO-01-<secreto>,REDMI-01-<secreto>'
+$env:ADMIN_API_KEY='<clave-admin-larga-y-aleatoria>'
+$env:AUTH_TOKEN_SECRET='<secreto-hmac-largo>'
+$env:DATABASE_URL='postgres://rbs:rbs_dev_password@localhost:5432/rbs'
+
+.\\scripts\\start-cloudflared-piloto.ps1
+```
+
+El script valida que no falten secretos, levanta el backend, espera a `/health`,
+abre el quick tunnel y guarda la URL efímera en
+`docs/evidence/piloto_tunnel_url.txt` (ignorado por git). Los procesos quedan
+en segundo plano y se detienen con `Stop-Process -Id …`.
+
+Smoke test mínimo desde la laptop:
+
+```bash
+curl http://127.0.0.1:3000/health
+curl http://127.0.0.1:3000/soporte
+curl -H "x-rbs-pilot-key: <clave>" https://<url>/v1/support/devices/light
+```
+
+Para revocar un probador, mueve su clave a `RBS_PILOT_REVOKED_KEYS` y reinicia
+el backend: las peticiones de ese móvil pasan a `403 PILOT_KEY_REVOKED`.
