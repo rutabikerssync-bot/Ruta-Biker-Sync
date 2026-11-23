@@ -968,3 +968,39 @@ señal BLE** con `isLost` legítimo. FIX B queda con la lógica validada pero su
 para esta distribución de gaps**; la compuerta BLE sigue **validada**. Sin cambios de código, sin `amend` y
 sin `push`. Detalle y tabla completa en `docs/evidence/fixb_descenso_redmi_20261123/RESULTADO.md`.
 
+### Fix de FIX B aplicado: gracia visual + timeout por percentil (2026-11-23)
+
+**Autorización del usuario:** ejecutar el fix propuesto sin tocar GATT, crypto, `HeartbeatFrame` ni PTT;
+crear archivos nuevos en lugar de inflar los existentes; tests verdes; commit atómico sin `amend` ni `push`.
+
+**Cambios** (4 archivos nuevos + cableado mínimo en 3 existentes):
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| 1 · Gracia visual | `feature/livemap/PeerSignalGraceTracker.kt` (nuevo) | 60 s de gracia por peer; el recién perdido sigue contando y se muestra con `SIGNAL_GRACE` | `PeerSignalGraceTrackerTest.kt` (3/3) |
+| 1 · Cableado UI | `feature/livemap/LiveMapViewModel.kt`, `RiderMarker.kt` | `routeStatus = SIGNAL_GRACE` mientras hay gracia; se excluye del HUD solo `OFF_MESH_LOST`; icono y color de «sin señal» | `LiveMapViewModelTest.kt`, `PeerPositionValidityTest.kt` ajustados |
+| 2 · Calibración | `core/mesh/PeerTimeoutCalibrator.kt` (nuevo) | ventana de 20 gaps, percentil 95 *upper*, suelo 40,5 s, techo 90 s, mínimo 5 muestras | `PeerTimeoutCalibratorTest.kt` (5/5: 80→80, 30→40,5, 120→90) |
+| 2 · Cableado motor | `core/mesh/MeshRelayEngine.kt` | registra el gap real por peer y compara `evaluatePeerTimeouts` contra el timeout efectivo | suite JVM completa |
+| 3 · Hardware | `docs/evidence/fixb_timeout_gracia_20261123/` | APK `92E5CE96…C54DB7`, 36 muestras Redmi + 8 controles TECNO, PNG/XML/notificación y logcat continuo | ver tabla abajo |
+| 4 · Documentación | este archivo + `RESULTADO.md` | cierre del fix y evidencia | commit atómico `fix(mesh): gracia visual y recalibración del timeout de peer` |
+
+**Verificación hardware** (01:49:42 → 02:24:41, rodada `2de260aa-…`, shortIds `22873`/`32191`):
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| HUD Redmi | `2 riders` en 36/36 | `2` en 35/36; `1` solo en min 13 → **mejora de 5 descensos a 1**, pero no 100 % estable | `summary.txt`, `REDMI_min00.xml`…`min35.xml` |
+| Gracia visible | `sin señal` sin bajar a 1 | `GRACIA=SI` en min 12, 22 y 34; en min 12 la notificación ya era `0 conectados · 1 sin señal` y el HUD siguió en 2 | `summary.txt`, `REDMI_min12.xml` |
+| Gaps BLE | Cubiertos por timeout + gracia | 13 gaps > 40,5 s, 2 > 90 s, máx. 147,8 s; el descenso de min 13 sigue a un gap de 75,8 s registrado demasiado tarde para la calibración | `ANALISIS_adv_minuto.txt`, `REDMI_full_log.txt` |
+| TECNO (control) | `2 riders` | 2 en 7/7 muestras legibles; en min 20 el diálogo de SOS ocupó la pantalla | `summary.txt`, `TECNO_min20.xml` |
+| GATT / fallback | Sin eventos | `GattDisc=0`, `Fallback=0` en 36/36; `peerNode=32191` constante | `summary.txt` |
+| Suite JVM | Verde | `BUILD SUCCESSFUL` — 108 suites / 569 tests / 0 fallos | Gradle 2026-11-23 |
+
+**Resultado:** la gracia funciona y el descenso pasa de 5/36 a 1/36. El único descenso (min 13) ocurre porque
+la cobertura de parámetros autorizados es 40,5 s + 60 s = 100,5 s y el silencio acumulado fue mayor;
+el calibrador aún no había registrado el gap grande. En min 22 y 34, con gaps de 147,8 s y 104,9 s,
+el HUD se mantuvo en 2 durante la gracia. No se instrumentó el valor exacto del timeout efectivo, por lo
+que la subida del umbral se infiere del comportamiento, no se afirma como cifra medida.
+
+**Sin cambios** en GATT, crypto, `HeartbeatFrame` ni PTT. Sin `amend` y sin `push`. Detalle completo en
+`docs/evidence/fixb_timeout_gracia_20261123/RESULTADO.md`.
+

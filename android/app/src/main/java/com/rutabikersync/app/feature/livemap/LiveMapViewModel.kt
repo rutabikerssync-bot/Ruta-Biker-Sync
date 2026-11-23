@@ -117,6 +117,12 @@ class LiveMapController(
     /** groupId del usuario local (perfil/roster). null = privacidad por defecto. */
     private var localGroupId: String? = null
 
+    /**
+     * FIX 2026-11-23: gracia visual de 60 s. Un peer que el motor marca `isLost` sigue contando
+     * en el HUD con estado [RiderRouteStatus.SIGNAL_GRACE] hasta que se agota la ventana.
+     */
+    private val signalGraceTracker = PeerSignalGraceTracker()
+
     fun setLocalGroupId(groupId: String?) {
         localGroupId = groupId?.trim()?.takeIf { it.isNotBlank() }
         flushMapFrame(System.currentTimeMillis(), force = true)
@@ -504,8 +510,10 @@ class LiveMapController(
             } else {
                 null
             }
+            val inSignalGrace = signalGraceTracker.isInGrace(peerId, track.isLost, nowEpochMs)
             val routeStatus = when {
                 track.isSos -> RiderRouteStatus.SOS_ACTIVE
+                inSignalGrace -> RiderRouteStatus.SIGNAL_GRACE
                 track.isLost -> RiderRouteStatus.OFF_MESH_LOST
                 isDeviatedFromCorridor(track.lastLatitude, track.lastLongitude) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
                 else -> RiderRouteStatus.ON_ROUTE

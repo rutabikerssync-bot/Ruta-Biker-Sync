@@ -1,0 +1,45 @@
+﻿=== VERIFICACION HARDWARE FIX DE FIX B - GRACIA VISUAL + TIMEOUT POR PERCENTIL - 35 MIN ===
+INICIO: 2026-11-23 01:49:42
+APK SHA256=92E5CE96EC9F8E70D1AA00F8BDB40DD8F4DB765559F17907930A227B62C54DB7
+rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5 shortIds TECNO=32191 REDMI=22873
+Criterio: HUD=2 riders en 36/36 muestras; si aparece "Sin senal (gracia)", el contador NO baja a 1.
+Logcat continuo + snapshot por minuto; UI XML/PNG por minuto en Redmi y cada 5 min en TECNO.
+LOGCAT_CONTINUO redmi_pid=27476 tecno_pid=16696
+MIN=00 HORA=01:49:42 REDMI HUD=2 GRACIA=NO AdvRx=8 HBtx=5 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=51 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=01 HORA=01:50:42 REDMI HUD=2 GRACIA=NO AdvRx=6 HBtx=5 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=02 HORA=01:51:42 REDMI HUD=2 GRACIA=NO AdvRx=12 HBtx=6 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=03 HORA=01:52:42 REDMI HUD=2 GRACIA=NO AdvRx=16 HBtx=6 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=04 HORA=01:53:41 REDMI HUD=2 GRACIA=NO AdvRx=17 HBtx=5 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=05 HORA=01:54:41 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=24 HBtx=11 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=06 HORA=01:55:41 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=11 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=07 HORA=01:56:41 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=08 HORA=01:57:42 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=09 HORA=01:58:42 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=7 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=10 HORA=01:59:41 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=29 HBtx=11 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=11 HORA=02:00:41 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=12 HORA=02:01:41 REDMI HUD=2 GRACIA=SI AdvRx=2 HBtx=3 GattDisc=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real)
+MIN=13 HORA=02:02:42 REDMI HUD=1 GRACIA=NO AdvRx=0 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real)
+MIN=14 HORA=02:03:41 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=15 HORA=02:04:41 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=28 HBtx=11 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=16 HORA=02:05:41 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=17 HORA=02:06:42 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=18 HORA=02:07:42 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=19 HORA=02:08:41 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=20 HORA=02:09:41 REDMI HUD=2 GRACIA=NO AdvRx=1 HBtx=0 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=SIN_HUD GRACIA=NO AdvRx=0 HBtx=2 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=21 HORA=02:10:41 REDMI HUD=2 GRACIA=NO AdvRx=0 HBtx=8 GattDisc=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real)
+MIN=22 HORA=02:11:42 REDMI HUD=2 GRACIA=SI AdvRx=1 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real)
+MIN=23 HORA=02:12:42 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=11 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=24 HORA=02:13:41 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=25 HORA=02:14:41 REDMI HUD=2 GRACIA=NO AdvRx=6 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=25 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=26 HORA=02:15:41 REDMI HUD=2 GRACIA=NO AdvRx=4 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=27 HORA=02:16:41 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=28 HORA=02:17:42 REDMI HUD=2 GRACIA=NO AdvRx=5 HBtx=8 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=29 HORA=02:18:42 REDMI HUD=2 GRACIA=NO AdvRx=2 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=30 HORA=02:19:42 REDMI HUD=2 GRACIA=NO AdvRx=0 HBtx=5 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=31 HBtx=12 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=31 HORA=02:20:42 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=5 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=32 HORA=02:21:42 REDMI HUD=2 GRACIA=NO AdvRx=2 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=33 HORA=02:22:42 REDMI HUD=2 GRACIA=NO AdvRx=1 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+MIN=34 HORA=02:23:41 REDMI HUD=2 GRACIA=SI AdvRx=1 HBtx=4 GattDisc=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real)
+MIN=35 HORA=02:24:41 REDMI HUD=2 GRACIA=NO AdvRx=3 HBtx=9 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) | TECNO HUD=2 GRACIA=NO AdvRx=35 HBtx=10 GattDisc=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+FIN: 2026-11-23 02:24:50
+LOGCAT_CONTINUO detenido

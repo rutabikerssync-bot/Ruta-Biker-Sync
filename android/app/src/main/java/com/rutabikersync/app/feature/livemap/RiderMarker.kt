@@ -73,6 +73,8 @@ enum class RiderRideRole(val badgeLabel: String) {
 enum class RiderRouteStatus(val symbolAndLabel: String) {
     ON_ROUTE("✓ En ruta"),
     OFF_ROUTE_DEVIATED("⚠ Desviado"),
+    /** Gracia visual de 60 s: el peer sigue contando como rider aunque el motor ya marcó `isLost`. */
+    SIGNAL_GRACE("◌ Sin señal (gracia)"),
     OFF_MESH_LOST("✕ Sin señal"),
     SOS_ACTIVE("SOS ACTIVO")
 }
@@ -186,6 +188,7 @@ fun RiderMarker(
     val ringColor = when (marker.routeStatus) {
         RiderRouteStatus.SOS_ACTIVE -> BikerColors.StatusRed
         RiderRouteStatus.OFF_MESH_LOST -> BikerColors.TextSecondary
+        RiderRouteStatus.SIGNAL_GRACE -> BikerColors.StatusYellow
         RiderRouteStatus.OFF_ROUTE_DEVIATED -> BikerColors.StatusYellow
         RiderRouteStatus.ON_ROUTE -> Color(marker.markerColorHex)
     }
@@ -357,7 +360,8 @@ fun RiderMarker(
                             )
                         }
                     }
-                    marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST -> {
+                    marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST ||
+                        marker.routeStatus == RiderRouteStatus.SIGNAL_GRACE -> {
                         Icon(
                             imageVector = AppIcons.RiderOffMesh,
                             contentDescription = "Fuera de mesh",

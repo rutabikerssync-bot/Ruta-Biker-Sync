@@ -275,6 +275,18 @@ class MeshRelayEngine(
     private val deviceModels = mutableMapOf(localDeviceModel to 1)
 
     /**
+     * FIX 2026-11-23: timeout de pérdida recalibrado con la distribución real de llegadas.
+     * [LOST_TIMEOUT_MS] sigue siendo el suelo (40,5 s) y el techo es 90 s.
+     */
+    private val timeoutCalibrator = PeerTimeoutCalibrator()
+
+    /** Timeout efectivo usado por [evaluatePeerTimeouts] en este instante. */
+    fun effectiveLostTimeoutMs(): Long = timeoutCalibrator.effectiveTimeoutMs()
+
+    /** Registra un gap observado entre llegadas; el motor ya lo hace por cada peer. */
+    fun recordArrivalGapForCalibration(gapMs: Long) = timeoutCalibrator.recordGap(gapMs)
+
+    /**
      * Veredicto de procesamiento y retransmisión para tramas de la Fase 6.
      */
     sealed class RelayDecision {
@@ -1598,8 +1610,8 @@ class MeshRelayEngine(
     }
 
     /**
-     * Evalúa qué nodos han superado [LOST_TIMEOUT_MS] sin señal (40,5 s, derivado del intervalo
-     * de llegada medido en campo) y contabiliza eventos de partición (islas) cuando >=50% de los
+     * Evalúa qué nodos han superado el timeout efectivo calibrado (suelo [LOST_TIMEOUT_MS] =
+     * 40,5 s, techo 90 s) sin señal, y contabiliza eventos de partición (islas) cuando >=50% de los
      * peers conocidos se pierden a la vez.
      *
      * En caso de par registrado que nunca se oye (receivedBeats == 0), calcula expectedBeats por tiempo
@@ -1609,12 +1621,13 @@ class MeshRelayEngine(
      */
     fun evaluatePeerTimeouts(nowEpochMs: Long = System.currentTimeMillis()): List<UShort> {
         val newlyLost = mutableListOf<UShort>()
+        val timeoutMs = effectiveLostTimeoutMs()
         synchronized(this) {
             for ((id, track) in peerMap.entries) {
                 val elapsed = (nowEpochMs - track.lastSeenEpochMs).coerceAtLeast(0L)
                 if (track.receivedBeats == 0) {
                     val beatsSinceStart = (elapsed / HEARTBEAT_INTERVAL_MS).toInt()
-                    val lostNow = elapsed >= LOST_TIMEOUT_MS
+                    val lostNow = elapsed >= timeoutMs
                     peerMap[id] = track.copy(
                         expectedBeats = maxOf(track.expectedBeats, beatsSinceStart),
                         isLost = track.isLost || lostNow,
@@ -1623,7 +1636,7 @@ class MeshRelayEngine(
                     if (lostNow && !track.isLost) {
                         newlyLost.add(id)
                     }
-                } else if (!track.isLost && elapsed >= LOST_TIMEOUT_MS) {
+                } else if (!track.isLost && elapsed >= timeoutMs) {
                     peerMap[id] = track.copy(
                         isLost = true,
                         consecutiveAfterLossBeats = 0
@@ -1700,6 +1713,11 @@ class MeshRelayEngine(
 
     private fun updatePeerTrackLocked(packet: MeshPacket, nowEpochMs: Long, rssi: Int? = null) {
         val existing = peerMap[packet.shortId]
+        // FIX 2026-11-23: alimentar la calibración con el gap REAL entre llegadas de este peer.
+        // Se mide por peer (no global) para no confundir la alternancia de dos nodos con pérdida.
+        if (existing != null) {
+            timeoutCalibrator.recordGap(nowEpochMs - existing.lastSeenEpochMs)
+        }
         val firstSeq = if (existing == null || existing.receivedBeats == 0 || existing.firstSequence < 0) {
             packet.sequenceNumber
         } else {
