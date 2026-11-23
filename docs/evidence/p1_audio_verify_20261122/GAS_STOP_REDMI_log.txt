@@ -1,0 +1,6 @@
+﻿
+11-22 21:17:52.754 13260 23342 I RideService: ConvoySignalRx recibido por BLE Mesh: from=32191 kind=GAS_STOP
+11-22 21:17:52.759 13260 13260 I LiveMapScreen: ConvoySignalRx recibido de Piloto #32191 por malla: GAS_STOP
+11-22 21:17:52.785 13260 23236 I SosTonePlayer: ToneOn toneType=25 durationMs=6000 result=true stream=4
+
+

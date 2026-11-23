@@ -1,0 +1,3 @@
+--------- beginning of main
+11-22 21:28:57.898 13260 23213 I ConvoySignalAudioHub: hub inicializado con alcance de aplicacion
+11-22 21:28:57.966 13260 23212 I SosTonePlayer: ToneOn toneType=26 durationMs=6000 result=true stream=4

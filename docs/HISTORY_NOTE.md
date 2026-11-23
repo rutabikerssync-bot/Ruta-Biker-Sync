@@ -810,3 +810,38 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 
 **Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
 
+### P1 — Audio: hub único, señales únicas y liberación (2026-11-22)
+
+**Autorización y alcance**: se autorizó únicamente el cableado de audio. No se tocó GATT, crypto, `HeartbeatFrame`, wire format ni PTT de audio. La activación de audio se **mantiene en 15 s con carácter informativo**; ese valor no es la duración de un tono y no se modificó.
+
+**Cambios atómicos** (sin `amend`, sin `push`):
+
+| Tarea | Commit | Archivo principal | Cambio | Test |
+| --- | --- | --- | --- | --- |
+| T1 Hub en `App.kt` | `dfdedeb` | `App.kt`, `AppAudioBootstrap.kt` | `AppAudioBootstrap.initialize(...)` instala el hub de SOS y de señales con alcance de aplicación; la cabina solo publica el proveedor de PTT | `AppAudioBootstrapTest` |
+| T2 Tuplas únicas | `631a89d` | `ConvoySignalToneCatalog.kt` | 11 tuplas únicas (tono, pulsos, duración, gap); pares antes casi idénticos diferenciados | `ConvoySignalToneCatalogTest` (unicidad de tupla completa + códigos de wire) |
+| T3 Dispose | `17b9183` | `ConvoySignalAudioPlayer.kt`, `RideService.kt`, `App.kt` | `ToneGenerator.release()` en `ConvoySignalAudioHub.release()`, invocado en `RideService.onDestroy()` y `App.onTerminate()`; el siguiente sonido reconstruye el hub desde `appContext` | `ConvoySignalAudioReleaseTest` |
+| T4 Sin replay | `3de79e7` | `NonReplayingEventBus.kt`, `RideService.kt` | `SharedFlow(replay=0)` para RX/TX de eventos de malla: recrear la cabina no re-ejecuta señales antiguas | `NonReplayingEventBusTest` |
+| T5 Traza de arranque | `8b42006` | `ConvoySignalAudioPlayer.kt` | log `hub inicializado con alcance de aplicacion` | suite de audio |
+| T6 Duraciones | `48e007f` | `ConvoySignalAudioPlayer.kt`, `ConvoySignalToneCatalog.kt` | los 10 tonos de mensaje duran exactamente 6000 ms (pulsos + gaps); SOS en bucle mientras esté activo | `ConvoySignalToneCatalogTest`, `SosIndefiniteCycleTest` |
+| T7 Traza de liberación | `c6fb852` | `ConvoySignalAudioPlayer.kt` | log `hub liberado (ToneGenerator release)` | suite de audio |
+
+**Catálogo verificado (10 mensajes, total 6000 ms)**: OBSTACLE `NACK 1×6000/0`; REDUCE_SPEED `BEEP2 2×2900/200`; REGROUP `BEEP 2×2800/400`; GAS_STOP `ACK 1×6000/0`; POLICE_CHECKPOINT `PROMPT 3×1900/150`; START_OUTBOUND `BEEP 3×1800/300`; ARRIVE_DESTINATION `ACK 2×2800/400`; START_RETURN `BEEP2 3×1800/300`; COMPLETE_RIDE `PROMPT 2×2600/800`; SAFE_HOME `ACK 2×2700/600`. SOS: Morse `· — ·` en bucle continuo, solo se detiene al cancelar/resolver.
+
+**Suite Android**: 96 suites / 528 tests antes del cambio de duraciones; **97 suites / 530 tests, 0 fallos, 0 errores, 0 omitidos** en `48e007f`.
+
+**Verificación hardware** (APK `standardDebug` `c6fb852` instalado en TECNO `098813734B105395` y Redmi `b2c398bb`; rodada real `2de260aa-3e24-493b-b9b8-0846366ba1c5`):
+
+| Prueba | Resultado | Evidencia |
+| --- | --- | --- |
+| Arranque del hub | `ConvoySignalAudioHub: hub inicializado con alcance de aplicacion` en el `onCreate` de `App`, en ambos equipos | `TECNO_hub_boot_live.txt` |
+| 5 señales rápidas emitidas en TECNO | `ToneOn` con duraciones 6000 / 2×2900 / 2×2800 / 6000 / 3×1900 ms y `toneType` distinto | `*_TECNO_log.txt`, `retry_tecno.txt` |
+| 5 señales rápidas recibidas en Redmi | mismos patrones, uno por señal: OBSTACLE `26/6000`, REDUCE_SPEED `28/2900×2`, REGROUP `24/2800×2`, GAS_STOP `25/6000`, POLICE `27/1900×3` | `GAS_STOP_REDMI_log.txt`, `POLICE_CHECKPOINT_REDMI_log.txt`, `RETRY3_*_REDMI_live.txt`, capturas PNG |
+| SOS | `SosTone START` y múltiples ciclos Morse en 13 s (indefinido); Redmi mostró `SOS RECIBIDO POR MESH` y reprodujo el mismo tono | `TECNO_SOS_live.txt`, `SOS_REDMI_log.txt` |
+| Liberación al cerrar la rodada | `SosTone STOP immediate` → `ConvoySignalAudioHub: hub liberado (ToneGenerator release)`; `dumpsys activity services` sin `RideService` | `TECNO_release_live.txt`, `REDMI_release_live.txt` |
+| Capturas | pantalla de cada señal en ambos equipos | `docs/evidence/p1_audio_verify_20261122/*.png` |
+
+**Observaciones honestas**: en la primera pasada OBSTACLE y REGROUP no cruzaron a Redmi y GAS_STOP llegó con un solo pulso; la malla estaba con PLR 54,1 % (TECNO) y 38,3 % (Redmi). Tras reincorporar Redmi a la rodada, los 3 tonos cruzaron con el patrón completo, por lo que se atribuye a pérdida radioeléctrica transitoria y no al hub de audio. Las 5 señales de ciclo de vida (START_OUTBOUND, ARRIVE_DESTINATION, START_RETURN, COMPLETE_RIDE, SAFE_HOME) quedan verificadas por tests de unicidad/duración; su disparo manual no fue posible porque `dispatchSendRideLifecycleEvent` exige `relayEngine` activo y los botones que lo invocan solo están disponibles fuera de la rodada (`RideLifecycleEventTx abortado: no hay relayEngine activo`). No se modificó ese comportamiento por estar fuera de P1.
+
+**Estado:** commits locales atómicos, sin `amend` y sin `push`.
+
