@@ -737,5 +737,23 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 89 suites / 512 tests / 0 fallos.
 
+**Estado:** commit `ed2a2cc`, pusheado a `origin/feat/paso-a-ui`.
+
+## 2026-11-23 — Bóveda vacía con cabecera blindada Dark Slate / Heritage Brass
+
+**Contexto:** el estado vacío de Documentos era un `Box` plano con `padding(28.dp)`. Se alineó con el estándar premium de Rodadas sin tocar el texto ni el botón existentes.
+
+**Cambios:**
+- `VaultScreen.kt`: eliminado el `padding(28.dp)` exterior; la `Image` con `painterResource(R.drawable.card_boveda_vacia)` ocupa **toda la tarjeta** (`Modifier.matchParentSize()`, `ContentScale.Crop`, `Alignment.Center`); degradado `Brush.verticalGradient` de `Color.Transparent` → `Color(0xFF0F172A).copy(alpha = 0.55f)` → `Color(0xFF0F172A)`; texto y botón anclados abajo con `padding(horizontal = 16.dp, vertical = 12.dp)`.
+- El bloque inferior conserva el escudo, `Tu Bóveda está vacía`, la descripción y `Registrar Primer Documento` (abre `Agregar Documento a la Bóveda`).
+- Drawable nuevo `card_boveda_vacia.webp`: convertido desde `C:\Users\ozmar\Downloads\card-boveda.png` a 1280×715 WebP (67 KB), misma convención que `card_participantes.webp`.
+- `VaultEmptyCardContractTest.kt` (nuevo): exige imagen a sangre, degradado, padding, drawable optimizado y permanencia del texto y del botón.
+
+**No tocado:** liderazgo, `canPublishClubRoute`, GATT, crypto, `HeartbeatFrame`, PTT, RSVP offline, transporte BLE, Rodadas ni el flujo de cifrado de documentos.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 90 suites / 514 tests / 0 fallos.
+
+**Hardware:** APK `AB346F666C32BCB068687F7EE463EE15BC9D18597C7A4CCA91848B6AE4756C11` en TECNO `098813734B105395`. La imagen ocupa toda la tarjeta con fundido inferior a `#0F172A`; texto y `Registrar Primer Documento` siguen presentes y el botón abre el diálogo de alta. Evidencia en `docs/evidence/ux_boveda_vacia_20261123/`.
+
 **Estado:** pendiente de commit; sin `amend` y sin `push`.
 

@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.app.DatePickerDialog
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.rutabikersync.app.R
 import com.rutabikersync.app.core.mesh.RideService
@@ -549,10 +550,34 @@ fun VaultScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color(0xFF0F172A))
                             .border(1.dp, Color(0xFF334155), RoundedCornerShape(14.dp))
-                            .padding(28.dp),
-                        contentAlignment = Alignment.Center
                     ) {
+                        // Imagen a sangre en toda la tarjeta: blindaje, hermandad y documentos.
+                        Image(
+                            painter = painterResource(id = R.drawable.card_boveda_vacia),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            alignment = Alignment.Center,
+                            contentScale = ContentScale.Crop
+                        )
+                        // Degradado inferior: respeta la imagen y asegura la lectura del texto.
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color(0xFF0F172A).copy(alpha = 0.55f),
+                                            Color(0xFF0F172A)
+                                        )
+                                    )
+                                )
+                        )
                         Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
