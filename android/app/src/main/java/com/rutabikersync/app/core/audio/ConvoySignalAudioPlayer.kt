@@ -242,6 +242,8 @@ class DefaultConvoySignalPlayer(
  * Hub singleton para coordinar la reproducción de señales desde Composable o background.
  */
 object ConvoySignalAudioHub {
+    private const val TAG_HUB = "ConvoySignalAudioHub"
+
     @Volatile
     private var player: ConvoySignalAudioPlayer? = null
     private var appContext: Context? = null
@@ -272,6 +274,7 @@ object ConvoySignalAudioHub {
                 coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
                 audibilityProvider = audibility::isAudible
             )
+            Log.i(TAG_HUB, "hub inicializado con alcance de aplicacion")
         }
     }
 
