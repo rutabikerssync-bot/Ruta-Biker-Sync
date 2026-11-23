@@ -961,3 +961,26 @@ Los 4 commits se aplicaron desde `feat/logo-oficial-escala` en orden: `a529909` 
 
 **Hardware:** APK SHA-256 `326E002B036034AC88040D77D1A091CC2DBF70305F2E1C04C746EF073ED68159`. Ambos dispositivos con cockpit abierto mostraron "2 riders". A las 18:23:13 se detuvo la app en Redmi (`am force-stop`); a las 18:24:52 (+99 s) TECNO seguía mostrando **2 riders** y a las 18:26:01 (+168 s) mostró **1 rider**. Sin `FATAL`/`AndroidRuntime` del app en logcat. Capturas, dumps UI y comandos en `docs/evidence/fixb_hud_gracia_20261123/README.md`.
 
+### P2 — Ciclo de rodada: outbox H3, inversión M5 y replay cero M4 — 2026-11-23
+
+Los seis cambios ya verificados en `feat/logo-oficial-escala` se incorporaron a `feat/paso-a-ui` mediante cherry-pick (sin reimplementación): `d0d6608` (outbox de transiciones), `e91b40b` (índice Room por `routeId`), `ee871ba` (bus sin replay en `RideService`), `43939f9` (inversión de retorno en malla y recálculo), `7f0dcf6` (disparador DEV `complete`) y `b013d7d` (test de replay cero + documentación). El único conflicto fue en `HISTORY_NOTE.md`; se conservaron Fase 5/FIX B y la nota P1 de `replay=0`. FIX B (`2ae3e30`) ya estaba en la rama destino.
+
+| Tarea | Archivo principal | Cambio | Test |
+| --- | --- | --- | --- |
+| H3 · Outbox real | `RideLifecycleOutboxCoordinator.kt`, `RideLifecycleOutboxWorker.kt`, `ClubRoutesRepository.kt`, `Phase1ViewModel.kt`, `AppDatabase.kt` | `start / arrive / arrive-destination / return / complete` pasan por outbox Room; sin mutación de roster antes del ACK; reintento al volver la red; 403/409 no mutan estado (`RideLifecycleStatePolicy.shouldMutateRoster` solo con `Applied`). Índice `index_ride_lifecycle_outbox_routeId`. | `RideLifecycleOutboxCoordinatorTest`, `RideLifecycleStatePolicyTest`, migración Room v6 |
+| M5 · Inversión de retorno | `RouteOrientation.kt`, `RideScheduleRepository.kt`, `RecalculateRouteUseCase.kt`, `RoutePolylineMeshRelay.kt` | La inversión se resuelve en lectura; la ruta recibida por malla y la recalculada por desvío apuntan al origen en retorno sin mutar la caché. | `RouteOrientationTest`, `RecalculateRouteUseCaseTest`, tests de malla |
+| M4 · Replay cero | `NonReplayingEventBus.kt`, `RideService.kt`, `MainAppScaffold.kt` | `SharedFlow(replay=0)` para eventos de ciclo; recrear la UI no re-ejecuta transiciones. | `NonReplayingEventBusTest`, `RideServiceLifecycleReplayRegressionTest`, test de recreación |
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, **103 suites / 552 tests / 0 fallos / 0 errores / 0 omitidos**. `.\gradlew.bat :app:assembleStandardDebug --console=plain` → **BUILD SUCCESSFUL**.
+
+**Verificación hardware controlada** (en vez de rodada literal de 10 min): TECNO `098813734B105395` con usuario líder `b5d0228d-…484f2`; Redmi `b2c398bb` solo observado, **sin reincorporarlo al club**. Backend Fastify local, `adb reverse tcp:3000 tcp:3000`, APK `app-standard-debug.apk` con debug keystore. Ruta `d03593b8-a5ae-4e56-a8d2-56bdc474d1f1`. Ciclo completo `start → arrive-destination → return → complete` con caída de red controlada (`kill -STOP` del proceso backend WSL, ya que `adb reverse --remove` no basta por conexión HTTP reutilizada):
+
+- Sin red: banner `⏳ ARRIVE_DESTINATION pendiente de sincronizar.`, fila en `ride_lifecycle_outbox` con `synced=0`, backend **sin** `destination_reached_at` → sin mutación optimista.
+- Restaurado el backend: reintento automático, `destination_reached_at=2026-11-23T23:07:57.952Z`, outbox drenado.
+- `return_started_at=2026-11-23T23:08:58.850Z`; cabina con orientación invertida; tras `am force-stop` + `am start` no hubo nuevos eventos ni filas en outbox (M4).
+- `complete` disparado desde el panel DEV: `completed_at=2026-11-23T23:11:51.454Z`.
+
+Capturas, dumps XML, respuestas del backend, logcat y comandos: `docs/evidence/p2_ciclo_20261123/README.md`.
+
+**Restricciones cumplidas:** no se tocó GATT, crypto, `HeartbeatFrame` ni PTT; no se inflaron archivos existentes; commits atómicos sin `amend`; push final autorizado.
+
