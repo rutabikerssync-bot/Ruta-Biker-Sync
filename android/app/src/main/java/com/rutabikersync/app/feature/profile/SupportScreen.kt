@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,11 +51,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rutabikersync.app.R
 import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.core.util.ImageCompressor
 import kotlinx.coroutines.launch
@@ -134,6 +138,26 @@ fun SupportScreen(
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // Escudo oficial sin fondo, compacto y centrado para apreciar el detalle.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(220.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xFF0F172A))
+                    .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo_rbs_transparent),
+                    contentDescription = "Logo Ruta Biker Sync",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
             // Tarjeta de Formulario de Reporte
             Surface(
                 modifier = Modifier.fillMaxWidth(),

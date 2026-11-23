@@ -774,5 +774,24 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Hardware:** APK `92082FA6950B9CB184FA881B98F90C9F2622DC32DDBA6D4D95D8A799DA1B59CA` en TECNO `098813734B105395`. Foto nítida arriba (media ~95, desviación ~55) y badges sin fondo que la dejan ver (media ~42 por el degradado inferior). Visibles `GRUPO SANGUÍNEO`, `O+`, `DONANTE ÓRGANOS` y `Registrado`. Evidencia en `docs/evidence/ux_ficha_medica_20261123/`.
 
+**Estado:** commit `1635f41`, pusheado a `origin/feat/paso-a-ui`.
+
+## 2026-11-23 - Logo RBS 1.2 en todos los assets y hero centrado en Soporte
+
+**Contexto:** el usuario pidió reemplazar todas las imágenes de logo predefinidas por `C:\Users\ozmar\Downloads\logo_RBS-1.2.png` y cerrar la parte visual. Después pidió que el escudo también se viera grande en Soporte y, al detectar que el WebP principal aportaba un fondo oliva/marrón y que el cuadro era demasiado ancho, pidió una versión sin fondo, compacta y perfectamente centrada.
+
+**Cambios:**
+- `assets_branding/logo_RBS_master.png` (nuevo): maestra copiada del source del usuario. Recorte content-aware `(40, 0, 810, 960)`; emblema en `x=66..786`, `y=27..936`.
+- `scripts/adapt_logo.py`: reescrito para usar solo esa maestra. Genera el WebP principal (512²), el logo de login (330×200), el crest legacy (640×360), los 10 mipmaps (48/72/96/144/192) y los 5 assets web (256/32/64/192). Añade `transparent_hero()`, que usa GrabCut + recorte al bounding box + canvas cuadrado para producir `ic_logo_rbs_transparent.png` sin fondo.
+- `SupportScreen.kt`: hero del escudo con `Box` de `220.dp` centrado (`align(Alignment.CenterHorizontally)`), fondo `#0F172A`, borde `#D4AF37`, `Image` con el drawable transparente, `ContentScale.Fit`, `Alignment.Center` y `padding(12.dp)`. Sin opacidades ni overlays.
+- `LogoAssetsContractTest.kt` (nuevo, renombrado `ZZ...` para estabilizar el orden de ejecución): exige la maestra, los 19 assets, el hero transparente, el tamaño, el centrado y las dimensiones de los PNG. No depende de `java.desktop`.
+- `android/app/src/test/resources/META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory` (nuevo): fija el factory de test para JVM y elimina el `UncaughtExceptionsBeforeTest` latente de `LiveMapViewModelTest` provocado por `ClubApiClient.checkHealth` y `UniqueAnnouncerPhase3Test`. No toca lógica de mapa, GATT ni transporte.
+
+**No tocado:** `ic_google_logo.xml`, rangos/insignias/logros, logos de club dinámicos, `backend/clean_logo.jpg`, liderazgo, `canPublishClubRoute`, GATT, crypto, `HeartbeatFrame`, PTT, RSVP offline ni transporte BLE.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 92 suites / 520 tests / 0 fallos / 0 errores.
+
+**Hardware:** APK `62AB7AE741D4CEBE540C00F20F50B1D2B47720CAA4EB3B4E06F23174F9591C80` en TECNO `098813734B105395`. Splash, Rodadas y Soporte con el logo nuevo. El hero mide 392×392 px (220 dp), va de `x=164` a `x=556` y queda centrado exacto en `x=360` de 720 px, sin el fondo oliva del WebP. Evidencia en `docs/evidence/ux_logo_rbs_20261123/`.
+
 **Estado:** pendiente de commit; sin `amend` y sin `push`.
 
