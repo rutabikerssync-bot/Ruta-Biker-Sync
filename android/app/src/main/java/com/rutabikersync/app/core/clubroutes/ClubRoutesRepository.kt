@@ -79,6 +79,13 @@ class ClubRoutesRepository(
                 updatedAt = o["updated_at"]?.asText()
             )
         }
+        // El backend es la fuente de verdad: si una ruta se publicó, se canceló
+        // o se borró, la caché debe dejar de ofrecerla como "próxima rodada".
+        if (fresh.isEmpty()) {
+            routeDao.deleteAllRoutesForGroup(groupId)
+        } else {
+            routeDao.deleteStaleRoutes(groupId, fresh.map { it.id })
+        }
         routeDao.upsertRoutes(fresh)
         return routeDao.getRoutes(groupId)
     }
