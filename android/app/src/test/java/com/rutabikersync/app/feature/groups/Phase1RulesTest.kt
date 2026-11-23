@@ -1,7 +1,9 @@
 package com.rutabikersync.app.feature.groups
 
+import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.ui.components.skeleton.SkeletonTimingRules
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -17,6 +19,7 @@ import org.junit.Test
 class Phase1RulesTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
+    private val createdViewModels = mutableListOf<Phase1ViewModel>()
 
     @Before
     fun setUp() {
@@ -25,8 +28,15 @@ class Phase1RulesTest {
 
     @After
     fun tearDown() {
+        // Los ViewModel de estos tests lanzan corrutinas en viewModelScope (Dispatchers.Main)
+        // que siguen vivas tras el aserto: cancelarlas evita excepciones huérfanas que
+        // kotlinx-coroutines-test reporta como UncaughtExceptionsBeforeTest en el test siguiente.
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
         Dispatchers.resetMain()
     }
+
+    private fun Phase1ViewModel.trackForCleanup(): Phase1ViewModel = also { createdViewModels.add(it) }
 
     @Test
     fun `R5_1 normalizes group names and detects leet speak and near duplicate collisions per country`() {
@@ -365,7 +375,7 @@ class Phase1RulesTest {
     fun `R2_2 prevents cross membership when user already belongs to a club`() {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         val user = repo.currentUser.value
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).trackForCleanup()
 
         // 1. Intentar unirse a un segundo club (Lobos del Asfalto) mediante QR de miembro
         val qrPayloadSecondClub = GroupInviteQrHelper.encodePayload(
@@ -437,7 +447,7 @@ class Phase1RulesTest {
     @Test
     fun `Hito 2 hermandad invitation enforces synchronous precheck and blocks dual membership immediately`() {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).trackForCleanup()
         val user = repo.currentUser.value
         val myClub = repo.groups.value.first { g -> g.members.any { it.userId == user.id } }
 
@@ -474,7 +484,7 @@ class Phase1RulesTest {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         repo.apiClient.baseUrl = "http://invalid.test"
         repo.updateDevOverrides { it.copy(useFakeBackend = false) } // Simula backend real conectado
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).trackForCleanup()
         val group = repo.groups.value.first { it.id == "grp-halcones-mx" }
         val memberId = "u-member-1"
 
@@ -503,7 +513,7 @@ class Phase1RulesTest {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         repo.apiClient.baseUrl = "http://invalid.test"
         repo.updateDevOverrides { it.copy(useFakeBackend = false) }
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).trackForCleanup()
 
         val initialGroupsCount = repo.groups.value.size
 
