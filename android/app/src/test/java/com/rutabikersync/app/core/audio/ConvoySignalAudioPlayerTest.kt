@@ -290,6 +290,9 @@ class ConvoySignalAudioPlayerTest {
             override fun stop() {
                 stopped = true
             }
+            override fun release() {
+                stopped = true
+            }
         }
 
         ConvoySignalAudioHub.setCustomPlayerForTesting(dummyPlayer)

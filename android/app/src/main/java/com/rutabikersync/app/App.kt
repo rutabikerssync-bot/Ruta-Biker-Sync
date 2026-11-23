@@ -37,4 +37,11 @@ class App : Application() {
         }
         RutaBikerMessagingService.createNotificationChannels(this)
     }
+
+    override fun onTerminate() {
+        // Android no garantiza esta callback en dispositivos reales; además se
+        // libera al terminar el servicio de rodada (ver RideService.onDestroy).
+        ConvoySignalAudioHub.release()
+        super.onTerminate()
+    }
 }

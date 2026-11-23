@@ -20,6 +20,7 @@ class AppAudioBootstrapTest {
         override fun playTone(toneType: Int, durationMs: Long) = Unit
         override fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long) = Unit
         override fun stop() = Unit
+        override fun release() = Unit
     }
 
     @After

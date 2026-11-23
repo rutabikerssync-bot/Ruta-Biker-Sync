@@ -1757,6 +1757,8 @@ class RideService : Service() {
     override fun onDestroy() {
         instance = null
         com.rutabikersync.app.core.audio.SosToneHub.stopAll()
+        // P1/T3: el hub se libera al cerrar la rodada; el próximo sonido lo reconstruye.
+        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.release()
         autoFallbackJob?.cancel()
         autoFallbackJob = null
         runCatching {

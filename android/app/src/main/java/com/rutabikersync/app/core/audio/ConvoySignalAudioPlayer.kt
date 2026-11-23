@@ -92,6 +92,9 @@ interface ConvoySignalAudioPlayer {
     fun playTone(toneType: Int, durationMs: Long)
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L)
     fun stop()
+
+    /** Libera el ToneGenerator y el foco; el reproductor queda inactivo. */
+    fun release()
 }
 
 /**
@@ -201,6 +204,14 @@ class DefaultConvoySignalPlayer(
         }
     }
 
+    override fun release() {
+        synchronized(stateLock) {
+            stopInternal()
+            runCatching { toneEmitter.release() }
+            focusDelegate.releaseFocus()
+        }
+    }
+
     private fun stopInternal() {
         if (!playing && playbackJob == null) return
         val ownedJob = playbackJob
@@ -233,6 +244,7 @@ class DefaultConvoySignalPlayer(
 object ConvoySignalAudioHub {
     @Volatile
     private var player: ConvoySignalAudioPlayer? = null
+    private var appContext: Context? = null
     private val lock = Any()
 
     @Volatile
@@ -249,6 +261,7 @@ object ConvoySignalAudioHub {
         synchronized(lock) {
             if (player != null) return
             val appContext = context.applicationContext
+            this.appContext = appContext
             val focusDelegate = DuckingFocusDelegate(AudioDuckingManager(appContext))
             val audibility = AndroidSosAudibilityPolicy(appContext)
             player = DefaultConvoySignalPlayer(
@@ -268,20 +281,34 @@ object ConvoySignalAudioHub {
         player = customPlayer
     }
 
+    /** Tras un `release()` (fin de rodada), el siguiente sonido reconstruye el hub. */
+    private fun activePlayer(): ConvoySignalAudioPlayer? {
+        if (player == null) appContext?.let { ensureInitialized(it) }
+        return player
+    }
+
     fun playSignal(kind: ConvoySignalKind) {
-        player?.playSignal(kind)
+        activePlayer()?.playSignal(kind)
     }
 
     fun playTone(toneType: Int, durationMs: Long) {
-        player?.playTone(toneType, durationMs)
+        activePlayer()?.playTone(toneType, durationMs)
     }
 
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L) {
-        player?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
+        activePlayer()?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
     }
 
     fun stop() {
         player?.stop()
+    }
+
+    /** Libera el ToneGenerator; idempotente. */
+    fun release() {
+        synchronized(lock) {
+            player?.release()
+            player = null
+        }
     }
 
     val isPlaying: Boolean
