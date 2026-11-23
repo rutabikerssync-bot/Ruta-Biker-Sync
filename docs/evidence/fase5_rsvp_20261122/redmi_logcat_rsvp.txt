@@ -1,0 +1,9 @@
+﻿
+11-23 00:04:08.635 D/WM-WorkerWrapper(22424): Starting work for com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker
+11-23 00:04:08.660 I/WM-WorkerWrapper(22424): Worker result SUCCESS for Work [ 
+id=36cd26d1-10b3-4953-9156-0f52c88a87b4, tags={ com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker } ]
+11-23 00:04:10.185 I/WM-WorkerWrapper(28620): Worker result FAILURE for Work [ 
+id=c41f8779-fc0e-46a8-956f-aef6f30ff73e, class=com.google.android.apps.translate.history.geller.GellerSyncWorker, 
+tags={ com.google.android.apps.translate.history.geller.GellerSyncWorker } ]
+
+

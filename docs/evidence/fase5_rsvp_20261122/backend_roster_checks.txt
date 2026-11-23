@@ -1,0 +1,22 @@
+Backend http://127.0.0.1:3000 — GET /v1/routes/:id/roster
+Header: x-user-id: b5d0228d-8ab9-49fd-9cc7-efa452a484f2
+
+# 23:41 — RSVP con red en TECNO (asistire)
+6935451a-86e7-40c8-b245-5a298cf74500
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2: confirmed (responded_at 2026-11-22 23:41:15.335739-04)
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff: confirmed
+
+# 23:53 — RSVP offline en TECNO (no ire): backend sigue pendiente
+6935451a-86e7-40c8-b245-5a298cf74500
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2: pending
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff: confirmed
+
+# 23:56 — reconexion y sincronizacion del outbox
+6935451a-86e7-40c8-b245-5a298cf74500
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2: no_go (responded_at 2026-11-22 23:55:16.351302-04)
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff: confirmed
+
+# 00:05 — RSVP con red en Redmi b2c398bb (asistire)
+26678aee-73df-402c-9493-1e663f70289e
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2: pending
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff: confirmed
