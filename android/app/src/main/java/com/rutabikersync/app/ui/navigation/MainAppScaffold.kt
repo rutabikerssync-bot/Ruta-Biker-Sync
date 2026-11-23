@@ -954,13 +954,23 @@ private fun RidesReleaseHomeScreen(
             }
             Box(modifier = Modifier.fillMaxWidth().heightIn(min = 250.dp)) {
                 CardBackdropImage(imageRes = R.drawable.card_convocatoria_club)
-                Text(
-                    text = tituloConvocatoria,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopStart).padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = tituloConvocatoria,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CardStatusBadge(
+                        text = if (currentRide != null) "✓ Convocada" else "Sin programar"
+                    )
+                }
                 Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
                     if (currentRide != null) {
                         val ride = currentRide!!
@@ -1006,20 +1016,6 @@ private fun RidesReleaseHomeScreen(
                                 }
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF10B981).copy(alpha = 0.2f))
-                                    .border(1.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "✓ Convocada",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
                     } else {
                         Row(
@@ -1041,32 +1037,21 @@ private fun RidesReleaseHomeScreen(
                                 )
                             }
 
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF242732))
-                                    .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Sin programar",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        HeritageBrassButton(
-                            text = "🗺️ + Crear Ruta Oficial de Club",
-                            onClick = { showScheduleMapPlanner = true },
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
                 }
             }
+        }
+
+        // Botón fuera de la tarjeta con imagen.
+        if (currentRide == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HeritageBrassButton(
+                text = "🗺️ + Crear Ruta Oficial de Club",
+                onClick = { showScheduleMapPlanner = true },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         // Tarjeta: Participantes Convocados (Biselada) - Solo si hay rodada convocada
@@ -1170,17 +1155,32 @@ private fun RidesReleaseHomeScreen(
         if (rideRoster == null || !canPublishClubRoute) {
             Box(modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp)) {
                 CardBackdropImage(imageRes = R.drawable.card_iniciar_cabina)
-                HeritageBrassButton(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-                    onClick = {
-                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
-                        onStartLiveMapPreview()
-                        startRideServiceNow(useSimulated = forceSimulated)
-                    },
-                    icon = Icons.Default.PlayArrow
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopStart).padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CardStatusBadge(text = "Cabina + Malla")
+                }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            HeritageBrassButton(
+                text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                onClick = {
+                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
+                    onStartLiveMapPreview()
+                    startRideServiceNow(useSimulated = forceSimulated)
+                },
+                icon = Icons.Default.PlayArrow
+            )
         }
 
         // Tarjeta: Ruta y Corredor Vial (Biselada)
@@ -1219,136 +1219,124 @@ private fun RidesReleaseHomeScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_VIEW_MAP", "btn_ver_mapa")
-                                    onStartLiveMapPreview()
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.White
-                                ),
-                                border = BorderStroke(1.dp, Color(0xFFC99A45))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.NearMe,
-                                    contentDescription = "Ver Mapa",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Ver Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            OutlinedButton(
-                                onClick = {
-                                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_trazar_ruta")
-                                    showScheduleMapPlanner = true
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.White
-                                ),
-                                border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Trazar",
-                                    modifier = Modifier.size(16.dp),
-                                    tint = Color.White
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Trazar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
                     }
                 } else {
                     CardBackdropImage(imageRes = R.drawable.card_rodada_solitaria)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().align(Alignment.TopStart).padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "Rodada Individual / Solitaria",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        CardStatusBadge(text = "Modo Libre")
+                    }
                     Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Rodada Individual / Solitaria",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFF242732))
-                                    .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Modo Libre",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(6.dp))
-
                         Text(
                             text = "Para usuarios simples y premium: crea y rueda en solitario sin registrar estadísticas de uso ni gamificación del club.",
                             color = Color.White,
                             fontSize = 11.sp
                         )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_crear_ruta_solitaria")
-                                    showScheduleMapPlanner = true
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color.White
-                                ),
-                                border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                            ) {
-                                Text("🗺️ Ruta Libre", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                            }
-
-                            Button(
-                                onClick = {
-                                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_recorrido")
-                                    onStartLiveMapPreview()
-                                    startRideServiceNow(useSimulated = forceSimulated)
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFDF6E32),
-                                    contentColor = Color.White
-                                )
-                            ) {
-                                Text(
-                                    text = stringResource(id = R.string.rides_btn_start_ride_preview),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                            }
-                        }
                     }
+                }
+            }
+        }
+
+        // Botones fuera de la tarjeta con imagen.
+        if (currentRide != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_VIEW_MAP", "btn_ver_mapa")
+                        onStartLiveMapPreview()
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFC99A45))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NearMe,
+                        contentDescription = "Ver Mapa",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Ver Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_trazar_ruta")
+                        showScheduleMapPlanner = true
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Trazar",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Trazar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_crear_ruta_solitaria")
+                        showScheduleMapPlanner = true
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFF38BDF8))
+                ) {
+                    Text("🗺️ Ruta Libre", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+
+                Button(
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_recorrido")
+                        onStartLiveMapPreview()
+                        startRideServiceNow(useSimulated = forceSimulated)
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFDF6E32),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.rides_btn_start_ride_preview),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
                 }
             }
         }
@@ -1413,6 +1401,25 @@ private fun RidesReleaseHomeScreen(
         }
 
         Spacer(modifier = Modifier.height(80.dp))
+    }
+}
+
+/** Etiqueta negra alineada al título en negrita de cada tarjeta de rodadas. */
+@Composable
+private fun CardStatusBadge(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black)
+            .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
