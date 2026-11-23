@@ -874,3 +874,34 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 
 **Estado:** 5 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
 
+### Fase 5 — RSVP offline: UI de participantes y cola de RSVP (2026-11-22/23)
+
+**Alcance**: Plan Mínimo acordado: 4 commits atómicos, sin `amend` y sin `push`. No se tocó GATT, crypto, `HeartbeatFrame` ni PTT; no se modificó `Phase1ViewModel` y no se creó `RsvpOutboxCoordinator`. Suite final: **105 suites / 555 tests / 0 fallos / 0 errores / 0 omitidos**.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| T1 · Contrato UI y cola (`3da31aa`) | `RideParticipantsScreenTest.kt`, `RsvpOutboxFase5QueueTest.kt` | Contrato de roster real, botones por fila y regla de reconsideración a T-1h; flujo offline → encola → online → sincroniza | `testStandardDebugUnitTest`: 195 líneas nuevas, verdes |
+| T2 · Fix localizado del outbox (`4546ee1`) | `RsvpOutboxDao.kt`, `RsvpOutboxSyncEngine.kt`, `RsvpOutboxFase5RegressionTest.kt` | `upsert` transaccional que conserva `createdAt`/`attempts` y default válido de `sendArrival`; regresión 403/409 y contrato de fuente | suite completa (`105/555/0`) |
+| T3 · Verificación hardware (`e5d9cc7`) | `docs/evidence/fase5_rsvp_20261122/` | Capturas, dumps UI XML, logcat del worker, snapshots de `rsvp_outbox` y respuestas `/v1/routes/:id/roster` de TECNO y Redmi | RSVP con red, offline con banner y resincronización en hardware real |
+| T4 · Documentación (este commit) | `docs/HISTORY_NOTE.md` | Cierre de Fase 5, tabla de entregable, hallazgos y estado final | suite completa (`105/555/0`) |
+
+**Regla 1 h**: se respeta el backend. `no_go → confirmed` solo se permite cuando `now() <= starts_at - interval '1 hour'`; en `[startsAt-1h, startsAt)` queda bloqueado. La UI pura `RideParticipantsUi.canReconsider` y el test de contrato replican ese criterio sin inventar una regla propia.
+
+**Verificación hardware** (APK `standardDebug` firmada con debug keystore, instalada en TECNO `098813734B105395` y Redmi `b2c398bb`; backend real Fastify+PostgreSQL; túnel `adb reverse tcp:3000 tcp:3000`):
+
+| Prueba | Resultado | Evidencia |
+| --- | --- | --- |
+| Instalación y deep link piloto | `base_url=http://127.0.0.1:3000`, claves y builds correctos en ambos móviles | `tecno_00_installed.png`, `tecno_00_installed.xml` |
+| Roster real y fila propia | `PARTICIPANTES (2)`, botones `Asistiré`/`No asistiré`/`En el sitio`; fila ajena solo lectura | `tecno_01_pending_roster.xml`, `tecno_02_participants_pending.png` |
+| RSVP con red en TECNO | UI `En el sitio ✓`; backend `confirmed` en `6935451a-…4500` | `tecno_03_rsvp_online.png`, `backend_roster_checks.txt` |
+| RSVP sin red en TECNO | Banner `⏳ Pendiente de sincronizar (1 RSVP)`; outbox `no_go, synced=0, attempts=0`; backend sigue `pending` | `tecno_04_offline_banner.png`, `tecno_outbox_states.txt` |
+| Red restaurada sin túnel | `RsvpOutboxWorker` → `RETRY`; `attempts=2`; `lastError=Failed to connect to /127.0.0.1:3000`; banner permanece | `tecno_05_network_back_pending.xml`, `tecno_worker_resync.log` |
+| Reconexión completa | Worker → `SUCCESS`; outbox vacío; banner ausente; backend `no_go` | `tecno_06_resynced.png`, `tecno_06_resynced.xml`, `backend_roster_checks.txt` |
+| Redmi con red | RSVP `Asistiré` en `26678aee-…0289e`; worker `SUCCESS`; backend `confirmed` para `e54bb490-…9dff` | `redmi_02_rsvp_online.png`, `redmi_logcat_rsvp.txt` |
+
+**Hallazgos**: el primer intento de aserción esperaba un único envío del transporte, pero el reintento fallido más el suceso son dos llamadas; se corrigió la aserción, no el outbox. La UI de RSVP mantiene una mutación optimista preexistente en `Phase1ViewModel.requestRsvp`, documentada aquí como **fix separado** y deliberadamente no incluida en este ciclo por instrucción explícita. El panel principal sigue mostrando "No hay rodadas programadas" para convocatorias futuras; la navegación "Mis Clubes → Ver Rutas" sí expone las tres rutas publicadas y fue el flujo usado en la verificación hardware.
+
+**Capturas, comandos y detalle**: `docs/evidence/fase5_rsvp_20261122/README.md`.
+
+**Estado:** 4 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
+
