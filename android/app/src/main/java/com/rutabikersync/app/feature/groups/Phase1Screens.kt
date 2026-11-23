@@ -109,7 +109,10 @@ import com.rutabikersync.app.core.uxtest.UxTestTracker
  * Pestaña Grupo (SCREENS.md D1–D9) con soporte completo para StateHost y Skeletons (SKELETONS.md §7).
  */
 @Composable
-fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
+fun GroupsMainTabScreen(
+    viewModel: Phase1ViewModel,
+    onOpenParticipants: (routeId: String) -> Unit = {}
+) {
     val groups by viewModel.repository.groups.collectAsState()
     val invitations by viewModel.repository.pendingInvitations.collectAsState()
     val currentUser by viewModel.repository.currentUser.collectAsState()
@@ -122,7 +125,7 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
     val showClubRoutes by viewModel.showClubRoutes.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Fase 5 · Hito 3: sustituye la pestaña mientras se consultan/firmas rutas.
+    // Fase 5: vista informativa de convocatorias; la respuesta se da en PARTICIPANTES.
     if (showClubRoutes) {
         val routes by viewModel.clubRoutes.collectAsState()
         val nextRoute by viewModel.nextClubRoute.collectAsState()
@@ -133,7 +136,7 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
             nextRoute = nextRoute,
             rsvpByRoute = rsvpByRoute,
             pendingCount = rsvpPendingCount,
-            onRsvp = { routeId, status -> viewModel.requestRsvp(routeId, status) },
+            onOpenParticipants = onOpenParticipants,
             onBack = { viewModel.closeClubRoutes() }
         )
         return

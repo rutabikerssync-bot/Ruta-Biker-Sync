@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -89,7 +88,7 @@ fun RouteDetailBottomSheet(
     route: ClubRouteEntity,
     rsvpStatus: String?,
     onDismiss: () -> Unit,
-    onActionClick: (RsvpAction) -> Unit = {}
+    onOpenParticipants: (routeId: String) -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val scrollState = rememberScrollState()
@@ -99,7 +98,6 @@ fun RouteDetailBottomSheet(
         "Sin respuesta"
     }
     val description = route.description?.trim().takeUnless { it.isNullOrEmpty() } ?: "Sin descripción/concepto"
-    val actions = ClubRsvpUi.getAvailableRsvpActions(rsvpStatus, route.startsAt)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -150,30 +148,20 @@ fun RouteDetailBottomSheet(
                 fontWeight = FontWeight.SemiBold
             )
 
-            if (actions.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    actions.forEach { action ->
-                        val isPositive = action != RsvpAction.NO_GO
-                        Button(
-                            onClick = {
-                                onActionClick(action)
-                                onDismiss()
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isPositive) BikerColors.PrimaryAmber else Color(0xFF3A2A24),
-                                contentColor = if (isPositive) Color(0xFF1F1A16) else Color(0xFFF5E6C8)
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(action.label, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    onOpenParticipants(route.id)
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = BikerColors.PrimaryAmber,
+                    contentColor = Color(0xFF1F1A16)
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ver participantes", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
