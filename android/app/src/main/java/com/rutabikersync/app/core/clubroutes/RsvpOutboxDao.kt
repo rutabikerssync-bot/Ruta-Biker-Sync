@@ -4,14 +4,29 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 
 /** DAO del outbox de RSVP. Una sola fila pendiente por (routeId, userId). */
 @Dao
 interface RsvpOutboxDao {
 
-    /** REPLACE implementa la coalescencia de estado: la última intención gana. */
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun enqueue(item: RsvpOutboxEntity)
+    /** Inserta la intención solo si es nueva; no toca createdAt/attempts de una fila previa. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertNew(item: RsvpOutboxEntity)
+
+    /** Coalescencia: gana la última intención, conservando orden y número de reintentos. */
+    @Query(
+        "UPDATE rsvp_outbox SET targetStatus = :targetStatus, synced = 0, lastError = NULL " +
+            "WHERE routeId = :routeId AND userId = :userId"
+    )
+    suspend fun updateIntent(routeId: String, userId: String, targetStatus: String)
+
+    /** REPLACE reiniciaba createdAt/attempts; este upsert transaccional los preserva. */
+    @Transaction
+    suspend fun enqueue(item: RsvpOutboxEntity) {
+        insertNew(item)
+        updateIntent(item.routeId, item.userId, item.targetStatus)
+    }
 
     @Query("SELECT * FROM rsvp_outbox WHERE synced = 0 ORDER BY createdAt ASC")
     suspend fun getUnsynced(): List<RsvpOutboxEntity>
@@ -43,13 +58,18 @@ class InMemoryRsvpOutboxDao : RsvpOutboxDao {
 
     private val storage = linkedMapOf<String, RsvpOutboxEntity>()
 
-    override suspend fun enqueue(item: RsvpOutboxEntity) {
-        // REPLACE conserva el createdAt original para no reordenar la cola.
-        val previous = storage[item.key]
-        storage[item.key] = if (previous != null) {
-            item.copy(createdAt = previous.createdAt, attempts = previous.attempts)
-        } else {
-            item
+    override suspend fun insertNew(item: RsvpOutboxEntity) {
+        storage.putIfAbsent(item.key, item)
+    }
+
+    override suspend fun updateIntent(routeId: String, userId: String, targetStatus: String) {
+        val key = "$routeId:$userId"
+        storage[key]?.let {
+            storage[key] = it.copy(
+                targetStatus = targetStatus,
+                synced = false,
+                lastError = null
+            )
         }
     }
 

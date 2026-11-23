@@ -15,8 +15,9 @@ sealed class RsvpSendResult {
 interface RsvpTransport {
     suspend fun sendRsvp(routeId: String, userId: String, status: String): RsvpSendResult
 
+    /** La llegada confirma de nuevo (idempotente) si el transporte no tiene endpoint propio. */
     suspend fun sendArrival(routeId: String, userId: String): RsvpSendResult =
-        sendRsvp(routeId, userId, RsvpOutboxEntity.OPERATION_ARRIVE)
+        sendRsvp(routeId, userId, "confirmed")
 }
 
 /**
