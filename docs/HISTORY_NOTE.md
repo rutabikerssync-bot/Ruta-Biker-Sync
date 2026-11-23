@@ -783,14 +783,30 @@ Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1
 | Prueba | Resultado esperado | Resultado obtenido | Evidencia |
 | --- | --- | --- | --- |
 | HUD TECNO (0→35 min) | `2 riders` estable | `2,2,2,2,2,2,2,2` (8/8) | `resultado_compuerta_ble_fixb_20261122.txt`, `summary.txt` |
-| HUD Redmi (0→35 min) | `2 riders` estable | `2,2,2,2,2,1,2,2` (7/8; descenso en +25 min) | misma evidencia |
+| HUD Redmi (0→35 min) | `2 riders` estable | `2,2,2,2,2,1,2,2` (7/8; descenso transitorio en +25 min, recuperado solo en +30 min; no atribuido a FIX B) | misma evidencia |
 | Notificación TECNO min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `TECNO_min0_notification.txt`, `TECNO_min35_notification.txt` |
 | Notificación Redmi min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `REDMI_min0_notification.txt`, `REDMI_min35_notification.txt` |
 | shortIds de malla | constantes | TECNO `22873`, Redmi `32191` en 8/8 | `summary.txt` |
 | Heartbeats / fallback | latidos continuos, sin degradación | `HeartbeatTx` y `AdvRx` en 8/8; `Auto-fallback BLE` = 0 | `*_log.txt` |
 | Suite Android | verde | 92 suites, 519 tests, 0 fallos | salida de Gradle |
 
-**Conclusión**: la compuerta eliminó el doble identity (el HUD pasó de `3/4` a `2`). FIX B queda **validado en TECNO** (8/8) y **no estrictamente validado en Redmi** (7/8, un descenso a `1` en +25 min sin XML ni logcat en ese minuto). No se atribuye ese descenso a FIX B ni se descarta: la notificación y los shortIds muestran que el peer BLE siguió conexo; en min 35 Redmi muestra `⏱ hace 278s` (posición retenida, comportamiento FIX A). Para validación estricta 8/8 hace falta repetir una observación enfocada capturando UI y logcat cada minuto.
+**Conclusión aceptada**: la compuerta eliminó el doble identity (el HUD pasó de `3/4` a `2` con peer BLE activo) y queda **validada**. FIX B queda **validado en TECNO** (8/8, estable) y **parcial en Redmi** (7/8, descenso transitorio en +25 min recuperado solo en +30 min). El descenso **no se atribuye a FIX B**: en toda la serie el peer BLE siguió conexo (notificación `1 riders conectados en la mesh · BLE Real` en min 0 y 35), los shortIds fueron constantes (`22873` / `32191`) y no hubo `Auto-fallback BLE`; en min 35 Redmi muestra `⏱ hace 278s` (posición retenida, comportamiento FIX A). No se repitió la observación de 35 min: el descenso se documenta como transitorio y no bloqueante.
 
 **Estado:** commit funcional `da7cadb` y commits de evidencia/documentación separados, sin `amend` y sin `push`.
+
+### Cierre de la compuerta BLE y siguiente paso propuesto (2026-11-22)
+
+**Cierre**: la compuerta BLE de `HybridTransportDispatcher` queda **validada**; el doble identity está resuelto (HUD `2` con peer BLE, frente a `3/4` antes). FIX B queda registrado como **validado en TECNO (8/8) y parcial en Redmi (7/8, descenso transitorio en +25 min, recuperado en +30 min, no atribuido a FIX B)**. Evidencia: `docs/evidence/fixb_gate_verify_20261122/summary.txt`, capturas `TECNO_min0/35.png` y `REDMI_min0/35.png`, dumps de notificación y logcat de ambos equipos.
+
+**Siguiente paso recomendado: P1 (audio)** — hub único en `App.kt`, señales únicas y `dispose` explícito. Motivo: es el único candidato con una falla funcional dura ya demostrada en hardware (el audio no cruzó en ninguna dirección; tres rutas desconectadas documentadas en esta nota), y afecta directamente la comunicación del convoy. Requiere autorización explícita para trabajar el cableado de voz/PTT, hoy fuera de alcance; no se tocaría GATT ni crypto sin permiso nuevo.
+
+**Alternativas, en orden**:
+- **P2 (estado/mapa)**: outbox de ciclo, `replay=0` y retorno completo; continuidad natural tras la compuerta BLE, sin credenciales nuevas.
+- **Fase 5 (RSVP offline)**: UI de participantes + outbox; útil si se quiere reforzar la participación antes de audio.
+- **2B (FCM)**: bloqueado por `service_account.json` ausente y contratos de notificación sin cerrar.
+- **2C (`userId ↔ shortId`)**: diferido; requiere autorización de claves/manifiesto y resolver la discrepancia `LEGACY_RIDE_ID` frente al UUID real.
+
+El descenso puntual de Redmi puede investigarse en una sesión futura (captura de UI y logcat cada minuto durante 35 min) si se desea, pero **no es bloqueante** y no se repetirá la medición en este ciclo.
+
+**Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
 
