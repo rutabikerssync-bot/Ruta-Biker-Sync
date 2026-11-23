@@ -702,3 +702,25 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Estado:** commit local atómico, sin `amend` y sin `push`.
 
+## 2026-11-23 — Normalización de Rodadas: Cabina Activa eliminada y Ruta Libre para todos
+
+**Contexto:** el usuario sin club veía una convocatoria vacía y un botón de ruta oficial de club. Se normalizó la pantalla de Rodadas sin tocar las utilidades del motociclista ni el ciclo BLE.
+
+**Cambios:**
+- `MainAppScaffold.kt`: eliminados `CockpitStartCard()`, su invocación, el badge `Cabina + Malla`, la tarjeta legacy y el guard de UI `if (!canPublishClubRoute)` asociado. Se conservaron la definición y la lógica de `canPublishClubRoute`.
+- `RodadasSections.kt` (nuevo): `ParticipantsHeaderBanner()` usa `card_participantes.webp` como cabecera decorativa de `PARTICIPANTES` (sin `onClick`), y `RutaLibreCard(onPlan, onStart)` concentra `Ruta Libre` / `Modo Libre` / `Iniciar Ruta Libre`.
+- Visibilidad: `Próxima Convocatoria de Club` y `+ Crear Ruta Oficial de Club` solo con `primaryGroup != null`; `Rodada de Club` solo con `primaryGroup != null && rideRoster != null`; `Ruta Libre` incondicional.
+- `RideParticipantsScreen.kt`: `Llegamos` solo para el líder; los demás ven `El líder confirma la llegada` (el endpoint `/arrive-destination` es leader-only en `backend/src/lib/rideLifecycleRoutes.ts`).
+- `strings.xml` ×3: eliminados `rides_btn_start_active_cockpit` y `rides_btn_start_ride_preview`; `rides_btn_start_free_ride` pasa a `Iniciar Ruta Libre` / `Start Free Ride` / `Iniciar Rota Livre`.
+- Drawables: eliminado `card_iniciar_cabina.webp`; añadido `card_participantes.webp` convertido desde `card3.2.png`.
+
+**No tocado:** `canPublishClubRoute`, liderazgo, GATT, crypto, `HeartbeatFrame`, PTT, RSVP offline, `BleAdvTransport.kt`, transporte BLE, `Bitácora de Rodadas` y `Rutas y Corredor sin señal`. La bitácora pertenece al motociclista con o sin club; el corredor offline permite descargar por Wi-Fi y rodar con datos BLE.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain` y repetición con `--rerun-tasks`: **BUILD SUCCESSFUL**, 89 suites / 511 tests / 0 fallos. `RodadasCockpitCardContractTest.kt` cubre la ausencia de Cabina, el banner decorativo, el gate sin club, la visibilidad incondicional de Ruta Libre y el ciclo de club con `Llegamos` solo del líder.
+
+**Hardware:** APK `8F6F992B2C100B5FFD036DB755008E70871440363371222A5831424203B32BAC` instalada en TECNO y Redmi. Sin club: solo Ruta Libre (más Bitácora y corredor offline), sin convocatoria ni roster. Con club: Próxima Convocatoria, Rodada de Club y Ruta Libre; el líder conserva `Iniciar Ruta` y `Llegamos`, el miembro ve `El líder confirma la llegada`. Evidencia en `docs/evidence/ux_ruta_libre_20261123/`.
+
+**Nota de campo:** el miembro del Redmi quedó expulsado del club (`members: []`, `memberGroups: []`) para el caso sin club; no se reincorporó.
+
+**Estado:** cambios listos para commit atómico; sin `amend` y sin `push`.
+
