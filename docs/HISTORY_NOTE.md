@@ -755,5 +755,24 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Hardware:** APK `AB346F666C32BCB068687F7EE463EE15BC9D18597C7A4CCA91848B6AE4756C11` en TECNO `098813734B105395`. La imagen ocupa toda la tarjeta con fundido inferior a `#0F172A`; texto y `Registrar Primer Documento` siguen presentes y el botón abre el diálogo de alta. Evidencia en `docs/evidence/ux_boveda_vacia_20261123/`.
 
+**Estado:** commit `741a077`, pusheado a `origin/feat/paso-a-ui`.
+
+## 2026-11-23 — Franja de Ficha Médica con imagen nítida y degradado Heritage
+
+**Contexto:** el encabezado de atención médica era un `Row` plano. Se convirtió en una franja de rescate en carretera (cruz médica, chapa/grupo sanguíneo, IFAK) manteniendo Dark Slate, oro y rojo emergencia.
+
+**Cambios:**
+- `VaultScreen.kt`: el `Row` del encabezado sigue dentro de un `Box` de `height(85.dp)` con `clip(RoundedCornerShape(12.dp))`; un `Box` contenedor mayor con `clip(12.dp)` sostiene la imagen `card_ficha_medica_emergencia.webp` (`matchParentSize()`, `ContentScale.Crop`) y el **mismo degradado de la tarjeta anterior**: `Color.Transparent` → `Color(0xFF0F172A).copy(alpha = 0.55f)` → `Color(0xFF0F172A)`.
+- Sin overlay negro ni alfas en los badges: eliminados `Color.Black.copy(alpha = 0.55f)` y los fondos translúcidos de grupo sanguíneo/donante. Ambos badges van sin fondo y con borde oro sólido `Color(0xFFD4AF37)`, de modo que la foto se ve nítida también detrás de ellos.
+- Título en `Color.White`, subtítulo en `Color.White.copy(alpha = 0.85f)`; valores de sangre y donante en `Color.White`. Pastilla verde/ámbar y glow rojo `0xFFEF4444` intactos.
+- Drawable nuevo `card_ficha_medica_emergencia.webp`: convertido desde `C:\Users\ozmar\Downloads\Gemini_Generated_Image_fcf2zdfcf2zdfcf2.png` a 1280×714 WebP (104 KB).
+- `VaultMedicalHeaderContractTest.kt` (nuevo): exige altura, esquinas, imagen, degradado Heritage, padding, texto blanco, pastillas, badges sin fondo y ausencia de opacidades.
+
+**No tocado:** validación médica, Shamir / RULES R10.2-R10.5, cifrado, destinos SOS, liderazgo, GATT, PTT, BLE ni el estado vacío de la Bóveda.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 91 suites / 516 tests / 0 fallos.
+
+**Hardware:** APK `92082FA6950B9CB184FA881B98F90C9F2622DC32DDBA6D4D95D8A799DA1B59CA` en TECNO `098813734B105395`. Foto nítida arriba (media ~95, desviación ~55) y badges sin fondo que la dejan ver (media ~42 por el degradado inferior). Visibles `GRUPO SANGUÍNEO`, `O+`, `DONANTE ÓRGANOS` y `Registrado`. Evidencia en `docs/evidence/ux_ficha_medica_20261123/`.
+
 **Estado:** pendiente de commit; sin `amend` y sin `push`.
 
