@@ -78,6 +78,11 @@ fun RideParticipantsScreen(
                 fontWeight = FontWeight.Black
             )
             Text(
+                text = "Ruta ${roster.routeId.take(8)}… · Salida: ${ClubRsvpUi.formatRouteDateTime(roster.startsAt, full = false)}",
+                color = BikerColors.TextSecondary,
+                fontSize = 11.sp
+            )
+            Text(
                 text = "Solo tu fila es interactiva; las demás muestran el estado real del club.",
                 color = BikerColors.TextSecondary,
                 fontSize = 11.sp
