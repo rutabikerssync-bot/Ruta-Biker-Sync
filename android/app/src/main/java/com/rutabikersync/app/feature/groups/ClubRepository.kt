@@ -367,6 +367,7 @@ class ClubRepository(
                 countryCode = country,
                 accountType = acct
             )
+            directoryUsers[_currentUser.value.id] = _currentUser.value
         }
         return Result.success(Unit)
     }
