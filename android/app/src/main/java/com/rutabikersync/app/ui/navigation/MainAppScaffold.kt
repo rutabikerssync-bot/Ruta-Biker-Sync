@@ -147,6 +147,9 @@ fun MainAppScaffold(
     }
 
     var selectedTab by remember { mutableIntStateOf(initialSelectedTab) }
+    // Ruta elegida en RUTAS DEL CLUB: se fija antes de navegar a PARTICIPANTES
+    // para que el efecto de Rodadas no la sustituya por la "próxima" al entrar.
+    var requestedRosterRouteId by remember { mutableStateOf<String?>(null) }
     var showLiveMapPreview by remember { mutableStateOf(initialStartRidePreview) }
     var showDevPanel by remember { mutableStateOf(false) }
     var showModeratorDialog by remember { mutableStateOf(false) }
@@ -215,9 +218,17 @@ fun MainAppScaffold(
                     0 -> RidesReleaseHomeScreen(
                         phase1ViewModel = phase1ViewModel,
                         onStartLiveMapPreview = { showLiveMapPreview = true },
-                        initialOpenRideHistory = initialStartRideHistory
+                        initialOpenRideHistory = initialStartRideHistory,
+                        requestedRosterRouteId = requestedRosterRouteId
                     )
-                    1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
+                    1 -> GroupsMainTabScreen(
+                        viewModel = phase1ViewModel,
+                        onOpenParticipants = { routeId ->
+                            requestedRosterRouteId = routeId
+                            phase1ViewModel.loadRideRoster(routeId)
+                            selectedTab = 0
+                        }
+                    )
                     2 -> VaultScreen(phase1ViewModel = phase1ViewModel)
                     else -> com.rutabikersync.app.feature.profile.ProfileScreen(onLogout = onLogout)
                 }
@@ -688,7 +699,8 @@ private fun VaultDocBevelCard(
 private fun RidesReleaseHomeScreen(
     phase1ViewModel: Phase1ViewModel,
     onStartLiveMapPreview: () -> Unit,
-    initialOpenRideHistory: Boolean = false
+    initialOpenRideHistory: Boolean = false,
+    requestedRosterRouteId: String? = null
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -710,10 +722,12 @@ private fun RidesReleaseHomeScreen(
         group.principalLeaderId == currentUser.id || group.leaderIds.contains(currentUser.id)
     } == true
 
-    LaunchedEffect(currentRide?.clubRouteId, primaryGroup?.id) {
-        val publishedRouteId = currentRide?.clubRouteId
-        if (publishedRouteId != null) {
-            phase1ViewModel.loadRideRoster(publishedRouteId)
+    LaunchedEffect(currentRide?.clubRouteId, requestedRosterRouteId, primaryGroup?.id) {
+        // La rodada activa manda; si no hay rodada activa, respeta la ruta
+        // elegida en RUTAS DEL CLUB antes de caer en la próxima convocatoria.
+        val routeId = currentRide?.clubRouteId ?: requestedRosterRouteId
+        if (routeId != null) {
+            phase1ViewModel.loadRideRoster(routeId)
         } else if (primaryGroup != null) {
             phase1ViewModel.loadUpcomingRideRoster(primaryGroup.id)
         }

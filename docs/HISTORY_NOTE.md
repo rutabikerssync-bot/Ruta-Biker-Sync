@@ -905,3 +905,16 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 
 **Estado:** 4 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
 
+### Ajuste UX — RUTAS DEL CLUB queda informativo (2026-11-23)
+
+Decisión del usuario: los botones de respuesta dentro de **RUTAS DEL CLUB** no tienen sentido ahí. Ese espacio es solo informativo; la respuesta RSVP se registra en **PARTICIPANTES** y el registro/estadísticas en **BITÁCORA**.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| Quitar acciones RSVP del listado | `ClubRoutesScreen.kt` | Se eliminan los botones `Asistiré / En casa / No iré` de cada tarjeta; conservan título, salida, descripción, “Tu respuesta” y el banner de pendientes | `ClubRoutesInformationalTest` |
+| Detalle informativo con un CTA | `RouteDetailComponents.kt` | El bottom sheet ya no calcula acciones; queda un único botón **“Ver participantes”** | `ClubRoutesInformationalTest` |
+| Cableado del CTA | `Phase1Screens.kt`, `MainAppScaffold.kt` | `onOpenParticipants(routeId)` fija `requestedRosterRouteId`, carga `loadRideRoster(routeId)` y cambia a la pestaña Rodadas. El efecto respeta esa ruta antes de caer en la “próxima”; la rodada activa sigue teniendo prioridad. No se tocó `Phase1ViewModel` | `ClubRoutesInformationalTest` |
+| Contrato de separación | `ClubRoutesInformationalTest.kt` | Fija que RUTAS DEL CLUB no contiene `requestRsvp`/`onRsvp`/`RsvpAction`, que PARTICIPANTES conserva las acciones y que BITÁCORA sigue accesible | suite completa (`106/559/0`) |
+
+Suite final: **106 suites / 559 tests / 0 fallos / 0 errores / 0 omitidos**. Un commit local atómico, sin `amend` y sin `push`.
+
