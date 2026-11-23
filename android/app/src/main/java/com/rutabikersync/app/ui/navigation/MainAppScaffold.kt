@@ -887,8 +887,8 @@ private fun RidesReleaseHomeScreen(
                 HeritageEmblemBadge(
                     painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
                     contentDescription = "Club",
-                    badgeSize = 46.dp,
-                    iconSize = 34.dp,
+                    badgeSize = 58.dp,
+                    iconSize = 44.dp,
                     glowColor = Color(0xFFF3C766)
                 )
                 Column {
@@ -947,8 +947,20 @@ private fun RidesReleaseHomeScreen(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(0.dp)
         ) {
+            val tituloConvocatoria = if (currentRide != null) {
+                stringResource(id = R.string.rides_next_ride)
+            } else {
+                "Próxima Convocatoria de Club"
+            }
             Box(modifier = Modifier.fillMaxWidth().heightIn(min = 250.dp)) {
                 CardBackdropImage(imageRes = R.drawable.card_convocatoria_club)
+                Text(
+                    text = tituloConvocatoria,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp,
+                    modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
+                )
                 Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
                     if (currentRide != null) {
                         val ride = currentRide!!
@@ -959,12 +971,6 @@ private fun RidesReleaseHomeScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = stringResource(id = R.string.rides_next_ride),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Text(
                                     text = ride.title,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
@@ -974,7 +980,7 @@ private fun RidesReleaseHomeScreen(
                                 )
                                 Text(
                                     text = "${ride.dateSchedule} · ${ride.departureTime}",
-                                    color = Color(0xFFE5B869),
+                                    color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp
                                 )
@@ -986,13 +992,13 @@ private fun RidesReleaseHomeScreen(
                                 )
                                 Text(
                                     text = "${ride.distanceKm} km · ${ride.estimatedMinutes} min",
-                                    color = Color(0xFF9CA3AF),
+                                    color = Color.White,
                                     fontSize = 12.sp
                                 )
                                 if (!ride.description.isNullOrBlank()) {
                                     Text(
                                         text = ride.description,
-                                        color = Color(0xFF9CA3AF),
+                                        color = Color.White,
                                         fontSize = 11.sp,
                                         maxLines = 2,
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -1009,7 +1015,7 @@ private fun RidesReleaseHomeScreen(
                             ) {
                                 Text(
                                     text = "✓ Convocada",
-                                    color = Color(0xFF34D399),
+                                    color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1023,20 +1029,14 @@ private fun RidesReleaseHomeScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Próxima Convocatoria de Club",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Text(
                                     text = stringResource(id = R.string.rides_no_scheduled),
-                                    color = Color(0xFFE5B869),
+                                    color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp
                                 )
                                 Text(
                                     text = "Exclusivo de la directiva del club para trazar rutas oficiales y convocar a los miembros.",
-                                    color = Color(0xFF8E95A5),
+                                    color = Color.White,
                                     fontSize = 11.sp
                                 )
                             }
@@ -1050,7 +1050,7 @@ private fun RidesReleaseHomeScreen(
                             ) {
                                 Text(
                                     text = "Sin programar",
-                                    color = Color(0xFF8E95A5),
+                                    color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1164,6 +1164,25 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
+        // Puerta de inicio de cabina/malla, agrupada con los participantes.
+        // La puerta real de inicio vive en el roster para líderes; miembros no líderes
+        // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
+        if (rideRoster == null || !canPublishClubRoute) {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp)) {
+                CardBackdropImage(imageRes = R.drawable.card_iniciar_cabina)
+                HeritageBrassButton(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    text = stringResource(id = R.string.rides_btn_start_active_cockpit),
+                    onClick = {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
+                        onStartLiveMapPreview()
+                        startRideServiceNow(useSimulated = forceSimulated)
+                    },
+                    icon = Icons.Default.PlayArrow
+                )
+            }
+        }
+
         // Tarjeta: Ruta y Corredor Vial (Biselada)
         HeritageBevelCard(
             modifier = Modifier.fillMaxWidth(),
@@ -1214,7 +1233,7 @@ private fun RidesReleaseHomeScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFFE5B869)
+                                    contentColor = Color.White
                                 ),
                                 border = BorderStroke(1.dp, Color(0xFFC99A45))
                             ) {
@@ -1222,7 +1241,7 @@ private fun RidesReleaseHomeScreen(
                                     imageVector = Icons.Default.NearMe,
                                     contentDescription = "Ver Mapa",
                                     modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFFE5B869)
+                                    tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Ver Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1235,7 +1254,7 @@ private fun RidesReleaseHomeScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFF38BDF8)
+                                    contentColor = Color.White
                                 ),
                                 border = BorderStroke(1.dp, Color(0xFF38BDF8))
                             ) {
@@ -1243,7 +1262,7 @@ private fun RidesReleaseHomeScreen(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "Trazar",
                                     modifier = Modifier.size(16.dp),
-                                    tint = Color(0xFF38BDF8)
+                                    tint = Color.White
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Trazar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1273,7 +1292,7 @@ private fun RidesReleaseHomeScreen(
                             ) {
                                 Text(
                                     text = "Modo Libre",
-                                    color = Color(0xFF8E95A5),
+                                    color = Color.White,
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1284,7 +1303,7 @@ private fun RidesReleaseHomeScreen(
 
                         Text(
                             text = "Para usuarios simples y premium: crea y rueda en solitario sin registrar estadísticas de uso ni gamificación del club.",
-                            color = Color(0xFF8E95A5),
+                            color = Color.White,
                             fontSize = 11.sp
                         )
 
@@ -1302,7 +1321,7 @@ private fun RidesReleaseHomeScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = Color(0xFF38BDF8)
+                                    contentColor = Color.White
                                 ),
                                 border = BorderStroke(1.dp, Color(0xFF38BDF8))
                             ) {
@@ -1370,24 +1389,6 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // La puerta real de inicio vive en el roster para líderes; miembros no líderes
-        // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
-        if (rideRoster == null || !canPublishClubRoute) {
-            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp)) {
-                CardBackdropImage(imageRes = R.drawable.card_iniciar_cabina)
-                HeritageBrassButton(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-                    onClick = {
-                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
-                        onStartLiveMapPreview()
-                        startRideServiceNow(useSimulated = forceSimulated)
-                    },
-                    icon = Icons.Default.PlayArrow
-                )
-            }
-        }
-
         Spacer(modifier = Modifier.height(10.dp))
 
         // Botón Rutas y Corredor sin señal
@@ -1415,24 +1416,15 @@ private fun RidesReleaseHomeScreen(
     }
 }
 
-/** Fondo decorativo de las tarjetas de rodadas; el texto se monta encima con velo oscuro. */
+/** Fondo decorativo de las tarjetas de rodadas: imagen nítida, recortada desde el borde superior. */
 @Composable
 private fun BoxScope.CardBackdropImage(imageRes: Int) {
     Image(
         painter = painterResource(id = imageRes),
         contentDescription = null,
         modifier = Modifier.matchParentSize(),
-        contentScale = ContentScale.Crop,
-        alpha = 0.88f
-    )
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0x330F1115), Color(0xD90F1115))
-                )
-            )
+        alignment = Alignment.TopCenter,
+        contentScale = ContentScale.Crop
     )
 }
 
