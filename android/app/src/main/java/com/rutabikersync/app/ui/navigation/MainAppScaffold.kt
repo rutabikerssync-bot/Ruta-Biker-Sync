@@ -947,9 +947,9 @@ private fun RidesReleaseHomeScreen(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(0.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 250.dp)) {
                 CardBackdropImage(imageRes = R.drawable.card_convocatoria_club)
-                Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
                     if (currentRide != null) {
                         val ride = currentRide!!
                         Row(
@@ -1169,9 +1169,9 @@ private fun RidesReleaseHomeScreen(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(0.dp)
         ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 230.dp)) {
                 if (currentRide != null) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
                         val isOfflineDownloaded = remember(currentRide) {
                             val routeId = currentRide?.selectedRoute?.id ?: "route-tovar-directa"
                             CorridorOfflineManager.isCorridorDownloaded(context, routeId) ||
@@ -1252,7 +1252,7 @@ private fun RidesReleaseHomeScreen(
                     }
                 } else {
                     CardBackdropImage(imageRes = R.drawable.card_rodada_solitaria)
-                    Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1373,9 +1373,10 @@ private fun RidesReleaseHomeScreen(
         // La puerta real de inicio vive en el roster para líderes; miembros no líderes
         // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
         if (rideRoster == null || !canPublishClubRoute) {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp)) {
                 CardBackdropImage(imageRes = R.drawable.card_iniciar_cabina)
                 HeritageBrassButton(
+                    modifier = Modifier.align(Alignment.BottomCenter),
                     text = stringResource(id = R.string.rides_btn_start_active_cockpit),
                     onClick = {
                         UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
@@ -1429,7 +1430,7 @@ private fun BoxScope.CardBackdropImage(imageRes: Int) {
             .matchParentSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0x590F1115), Color(0xBF0F1115))
+                    listOf(Color(0x330F1115), Color(0xD90F1115))
                 )
             )
     )
