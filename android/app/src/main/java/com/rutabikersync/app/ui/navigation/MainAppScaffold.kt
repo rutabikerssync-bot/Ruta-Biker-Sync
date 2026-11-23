@@ -1422,14 +1422,14 @@ private fun BoxScope.CardBackdropImage(imageRes: Int) {
         contentDescription = null,
         modifier = Modifier.matchParentSize(),
         contentScale = ContentScale.Crop,
-        alpha = 0.42f
+        alpha = 0.88f
     )
     Box(
         modifier = Modifier
             .matchParentSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0x990F1115), Color(0xE60F1115))
+                    listOf(Color(0x590F1115), Color(0xBF0F1115))
                 )
             )
     )
