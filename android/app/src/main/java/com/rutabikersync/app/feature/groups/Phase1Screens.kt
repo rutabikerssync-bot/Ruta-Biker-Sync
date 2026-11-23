@@ -4240,6 +4240,9 @@ fun DevPanelDialog(
                     Text(stringResource(id = R.string.dev_load_demo), fontWeight = FontWeight.Bold)
                 }
 
+                // Cierre DEV del ciclo: válido solo en builds con panel de desarrollador.
+                RideLifecycleDevTrigger(viewModel = viewModel)
+
                 // Bloque D: exportar logs sin adb. Doble guardia: el panel ya está detrás
                 // de BuildConfig.DEV_PANEL_ENABLED y aquí se vuelve a comprobar.
                 Button(
