@@ -17,7 +17,7 @@ describe('Fase 5: Bóveda Biker Avanzada (E2EE, Recuperación y Ficha Médica)',
   const rideId = randomUUID();
 
   beforeAll(async () => {
-    const connectionString = process.env.PG_TEST_URL ?? 'postgres://rbs:rbs_dev_password@localhost:5433/rbs';
+    const connectionString = process.env.PG_TEST_URL ?? 'postgres://rbs:rbs_dev_password@localhost:5433/rbs_test';
     db = createPgPool(connectionString);
     await db.query('SELECT 1');
     const sql = readInitMigrationSql();

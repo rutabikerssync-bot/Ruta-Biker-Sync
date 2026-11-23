@@ -13,7 +13,7 @@ import {
 } from '../src/lib/geo.js';
 
 function resolveTestDatabaseUrl(): string {
-  return process.env.PG_TEST_URL || process.env.DATABASE_URL || 'postgres://rbs:rbs_dev_password@localhost:5433/rbs';
+  return process.env.PG_TEST_URL || process.env.DATABASE_URL || 'postgres://rbs:rbs_dev_password@localhost:5433/rbs_test';
 }
 
 async function createTestDb(): Promise<{ db: DbExecutor; pool: any }> {

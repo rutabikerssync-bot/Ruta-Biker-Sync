@@ -33,11 +33,37 @@ function resolveDefaultConnectionString(): string {
   return 'postgres://rbs:rbs_dev_password@localhost:5433/rbs';
 }
 
+function resolveTestDefaultConnectionString(): string {
+  if (process.env.PG_TEST_URL) return process.env.PG_TEST_URL;
+  for (const filename of ['.env', '.env.example']) {
+    const filePath = path.join(process.cwd(), filename);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const pgTestMatch = content.match(/^PG_TEST_URL=(.+)$/m);
+      if (pgTestMatch?.[1]) return pgTestMatch[1].trim();
+    }
+  }
+  return 'postgres://rbs:rbs_dev_password@localhost:5433/rbs_test';
+}
+
 export function createPgPool(connectionString?: string): Pool {
+
+  const resolvedConnectionString = connectionString
+    ?? (process.env.VITEST ? resolveTestDefaultConnectionString() : resolveDefaultConnectionString());
+  // Salvaguarda: las suites de tests no deben truncar nunca la BD principal.
+  // Vitest define VITEST=true; si la URL resuelta apunta a `rbs`, fallamos en vez
+  // de borrar datos reales (PG_TEST_URL debe apuntar a `rbs_test`).
+  if (process.env.VITEST) {
+    let dbName = '';
+    try { dbName = new URL(resolvedConnectionString).pathname.replace(/^\//, ''); } catch { /* URL inválida: pg la validará */ }
+    if (dbName === 'rbs') {
+      throw new Error('[db.pool] VITEST no puede usar la BD principal "rbs"; configura PG_TEST_URL=.../rbs_test');
+    }
+  }
 
   const createdPool = new pg.Pool({
 
-    connectionString: connectionString ?? resolveDefaultConnectionString(),
+    connectionString: resolvedConnectionString,
 
     max: 50,                      // Máximo de conexiones simultáneas
 
