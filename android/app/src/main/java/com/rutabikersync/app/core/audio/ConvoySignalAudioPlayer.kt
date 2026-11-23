@@ -286,4 +286,8 @@ object ConvoySignalAudioHub {
 
     val isPlaying: Boolean
         get() = player?.isPlaying == true
+
+    /** True cuando el hub ya fue instalado por [AppAudioBootstrap]. */
+    val isInitialized: Boolean
+        get() = player != null
 }

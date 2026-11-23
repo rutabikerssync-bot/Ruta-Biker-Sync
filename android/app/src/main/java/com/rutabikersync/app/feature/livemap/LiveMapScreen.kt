@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.rutabikersync.app.core.audio.AudioDuckingManager
+import com.rutabikersync.app.core.audio.ConvoySignalAudioHub
+import com.rutabikersync.app.core.audio.PttStateProvider
 import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
 import com.rutabikersync.app.core.mesh.audio.PttState
@@ -243,7 +245,10 @@ fun LiveMapScreen(
         )
     }
     DisposableEffect(pttEngine) {
-        onDispose { pttEngine.release() }
+        onDispose {
+            ConvoySignalAudioHub.pttStateProvider = PttStateProvider { false }
+            pttEngine.release()
+        }
     }
     // El engine puede sustituirse al reiniciar BLE: re-suscribir la recepción de voz.
     DisposableEffect(rideServiceState.lifecycleState, rideServiceState.isUsingSimulatedTransport, pttEngine) {
@@ -387,12 +392,11 @@ fun LiveMapScreen(
                 forceSimulated = false
             )
         }
-        // El alcance real pertenece a App; cabina solo observa PTT y el estado SOS.
+        // El hub pertenece a App (alcance de aplicación). La cabina solo publica
+        // el estado de su PTT local para que las señales informativas se supriman.
         com.rutabikersync.app.core.audio.SosToneHub.ensureInitialized(context.applicationContext)
-        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.ensureInitialized(
-            context = context.applicationContext,
-            externalPttStateProvider = { pttEngine.pttState.value !is PttState.Idle }
-        )
+        ConvoySignalAudioHub.pttStateProvider =
+            PttStateProvider { pttEngine.pttState.value !is PttState.Idle }
     }
     LaunchedEffect(pttEngine) {
         com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
