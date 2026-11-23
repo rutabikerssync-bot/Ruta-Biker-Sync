@@ -124,6 +124,7 @@ import com.rutabikersync.app.feature.routes.RecalculateRouteUseCase
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.feature.routes.RoadRoutingEngine
 import com.rutabikersync.app.feature.routes.RouteDeviationDetector
+import com.rutabikersync.app.feature.routes.RouteOrientation
 import com.rutabikersync.app.feature.routes.RoutePolylineMeshRelay
 import com.rutabikersync.app.feature.routes.StopReason
 import com.rutabikersync.app.feature.sos.EmergencyRescuePacketDialog
@@ -678,7 +679,8 @@ fun LiveMapScreen(
             isOnline = isOnline,
             fetchRoadRoute = { origin, destination, destinationName ->
                 RoadRoutingEngine.fetchRealRoadRoute(origin, destination, destinationName)
-            }
+            },
+            isReturnPhase = { RideScheduleRepository.isReturnPhase.value }
         )
     }
 
@@ -688,9 +690,16 @@ fun LiveMapScreen(
     LaunchedEffect(deviationState.isAlertActive) {
         if (!deviationState.isAlertActive || isRecalculatingRoute) return@LaunchedEffect
         isRecalculatingRoute = true
+        val activeRide = scheduledRide
+        val returnPhaseForRecalc = RideScheduleRepository.isReturnPhase.value
+        val recalcDestination = when {
+            activeRide == null -> null
+            returnPhaseForRecalc -> RouteOrientation.effectiveDestination(activeRide, true)
+            else -> activeRide.destination
+        }
         val outcome = recalculateRouteUseCase(
             currentLocation = deviationState.lastKnownLocation,
-            destination = scheduledRide?.destination
+            destination = recalcDestination
         )
         actionFeedback = when (outcome) {
             RecalculateRouteOutcome.SUCCESS -> "✓ Ruta recalculada automáticamente sobre vías reales"
@@ -703,8 +712,9 @@ fun LiveMapScreen(
     val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
     LaunchedEffect(scheduledRide, isReturnPhase) {
         scheduledRide?.selectedRoute?.waypoints?.let { pts ->
-            val effective = if (isReturnPhase) pts.reversed() else pts
-            RouteDeviationDetector.setActiveRoutePolyline(effective)
+            RouteDeviationDetector.setActiveRoutePolyline(
+                RouteOrientation.effectiveWaypoints(pts, isReturnPhase)
+            )
         }
     }
 
@@ -940,8 +950,12 @@ fun LiveMapScreen(
         } else {
             // Posición inicial segura en caso de primera instalación sin fix previo
             val activeRoute = RideScheduleRepository.currentRide.value?.selectedRoute
-            val initLat = activeRoute?.waypoints?.firstOrNull()?.latitude ?: 10.3444
-            val initLon = activeRoute?.waypoints?.firstOrNull()?.longitude ?: -67.0422
+            val orientedStart = RouteOrientation.effectiveWaypoints(
+                activeRoute?.waypoints.orEmpty(),
+                RideScheduleRepository.isReturnPhase.value
+            ).firstOrNull()
+            val initLat = orientedStart?.latitude ?: 10.3444
+            val initLon = orientedStart?.longitude ?: -67.0422
             liveMapViewModel.controller.updateLocalRiderPose(
                 latitude = initLat,
                 longitude = initLon,
@@ -1732,7 +1746,11 @@ fun LiveMapScreen(
                             Text("📡", fontSize = 18.sp)
                             Column {
                                 Text(
-                                    text = "Ruta por Malla (Hash verificado)",
+                                    text = if (meshRoute.isHashVerified) {
+                                        "Ruta por Malla (Hash verificado)"
+                                    } else {
+                                        "Ruta por Malla (hash NO verificado)"
+                                    },
                                     color = Color(0xFF38BDF8),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -1747,8 +1765,12 @@ fun LiveMapScreen(
                         }
                         androidx.compose.material3.Button(
                             onClick = {
-                                RouteDeviationDetector.setActiveRoutePolyline(meshRoute.route.waypoints)
-                                actionFeedback = "✓ Ruta de malla cargada en cabina: ${meshRoute.route.name}"
+                                val activated = RideScheduleRepository.activateMeshRoute(meshRoute)
+                                actionFeedback = if (activated) {
+                                    "✓ Ruta de malla cargada en cabina: ${meshRoute.route.name}"
+                                } else {
+                                    "✗ Ruta de malla rechazada: hash no verificado"
+                                }
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8)),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
@@ -2699,8 +2721,7 @@ private fun MapLibreCorridorSurface(
         val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
         val activeRoute = scheduledRide?.selectedRoute
         val activeWaypoints = remember(activeRoute?.waypoints, isReturnPhase) {
-            val pts = activeRoute?.waypoints.orEmpty()
-            if (isReturnPhase) pts.reversed() else pts
+            RouteOrientation.effectiveWaypoints(activeRoute?.waypoints.orEmpty(), isReturnPhase)
         }
 
         // MapLibre nativo conectado a capas cartográficas
