@@ -49,10 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -1286,26 +1283,18 @@ class RideService : Service() {
         @Volatile
         var globalLastPacketsCsv: String? = null
 
-        private val _incomingConvoySignals = MutableSharedFlow<MeshRelayEngine.IncomingConvoySignal>(
-            replay = 1,
-            extraBufferCapacity = 64,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-        val incomingConvoySignals: SharedFlow<MeshRelayEngine.IncomingConvoySignal> = _incomingConvoySignals.asSharedFlow()
+        private val incomingConvoySignalBus = NonReplayingEventBus<MeshRelayEngine.IncomingConvoySignal>()
+        val incomingConvoySignals: SharedFlow<MeshRelayEngine.IncomingConvoySignal> = incomingConvoySignalBus.events
 
         internal fun notifyIncomingConvoySignal(incoming: MeshRelayEngine.IncomingConvoySignal) {
-            _incomingConvoySignals.tryEmit(incoming)
+            incomingConvoySignalBus.publish(incoming)
         }
 
-        private val _incomingRideLifecycleEvents = MutableSharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent>(
-            replay = 1,
-            extraBufferCapacity = 64,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-        val incomingRideLifecycleEvents: SharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent> = _incomingRideLifecycleEvents.asSharedFlow()
+        private val incomingRideLifecycleEventBus = NonReplayingEventBus<MeshRelayEngine.IncomingRideLifecycleEvent>()
+        val incomingRideLifecycleEvents: SharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent> = incomingRideLifecycleEventBus.events
 
         internal fun notifyIncomingRideLifecycleEvent(incoming: MeshRelayEngine.IncomingRideLifecycleEvent) {
-            _incomingRideLifecycleEvents.tryEmit(incoming)
+            incomingRideLifecycleEventBus.publish(incoming)
         }
 
         @Volatile
