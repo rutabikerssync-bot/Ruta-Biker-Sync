@@ -54,8 +54,8 @@ enum class ConvoySignalKind(
         icon = "🔁",
         toneType = ToneGenerator.TONE_PROP_BEEP,
         pulseCount = 2,
-        pulseDurationMs = 180L,
-        gapMs = 120L
+        pulseDurationMs = 220L,
+        gapMs = 140L
     ),
     GAS_STOP(
         code = 4,
@@ -64,8 +64,8 @@ enum class ConvoySignalKind(
         icon = "⛽",
         toneType = ToneGenerator.TONE_PROP_ACK,
         pulseCount = 1,
-        pulseDurationMs = 450L,
-        gapMs = 100L
+        pulseDurationMs = 520L,
+        gapMs = 120L
     ),
     POLICE_CHECKPOINT(
         code = 5,
