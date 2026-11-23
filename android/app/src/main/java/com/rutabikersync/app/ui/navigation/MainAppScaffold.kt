@@ -723,9 +723,10 @@ private fun RidesReleaseHomeScreen(
     } == true
 
     LaunchedEffect(currentRide?.clubRouteId, requestedRosterRouteId, primaryGroup?.id) {
-        // La rodada activa manda; si no hay rodada activa, respeta la ruta
-        // elegida en RUTAS DEL CLUB antes de caer en la próxima convocatoria.
-        val routeId = currentRide?.clubRouteId ?: requestedRosterRouteId
+        // La ruta elegida explícitamente en RUTAS DEL CLUB gana: abrir el roster
+        // de una rodada vieja no debe llevar a la última convocada. La rodada
+        // vigente solo se usa cuando no hubo una selección explícita.
+        val routeId = requestedRosterRouteId ?: currentRide?.clubRouteId
         if (routeId != null) {
             phase1ViewModel.loadRideRoster(routeId)
         } else if (primaryGroup != null) {

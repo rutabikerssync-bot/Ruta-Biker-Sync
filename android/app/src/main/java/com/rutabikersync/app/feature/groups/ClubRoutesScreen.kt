@@ -2,7 +2,6 @@ package com.rutabikersync.app.feature.groups
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,8 +31,9 @@ import com.rutabikersync.app.ui.theme.BikerColors
  * UI mínima de rutas y RSVP del club (Fase 5 · Hito 3).
  *
  * Pinta la caché Room primero: con o sin red el piloto ve las rutas publicadas
- * y su estado. Este espacio es solo informativo: la respuesta RSVP se registra
- * en PARTICIPANTES y las estadísticas en BITÁCORA.
+ * y su estado. Solo la próxima convocatoria abre PARTICIPANTES; las rodadas
+ * viejas únicamente informan del número de participantes. La respuesta RSVP se
+ * registra en PARTICIPANTES y las estadísticas en BITÁCORA.
  */
 @Composable
 fun ClubRoutesScreen(
@@ -41,13 +41,15 @@ fun ClubRoutesScreen(
     routes: List<ClubRouteEntity>,
     nextRoute: ClubRouteEntity?,
     rsvpByRoute: Map<String, String>,
+    participantCounts: Map<String, Int?>,
     pendingCount: Int,
     onOpenParticipants: (routeId: String) -> Unit,
     onBack: () -> Unit
 ) {
     val pendingBanner = ClubRsvpUi.bannerMessage(null, pendingCount)
     var selectedRouteId by remember { mutableStateOf<String?>(null) }
-    val selectedRoute = selectedRouteId?.let { id -> routes.firstOrNull { it.id == id } ?: if (nextRoute?.id == id) nextRoute else null }
+    // Solo la nueva convocatoria abre el detalle con el botón PARTICIPANTES.
+    val selectedRoute = nextRoute?.takeIf { it.id == selectedRouteId }
 
     if (selectedRoute != null) {
         RouteDetailBottomSheet(
@@ -117,31 +119,32 @@ fun ClubRoutesScreen(
                 }
             } else {
                 items(routes, key = { it.id }) { route ->
-                    val status = ClubRsvpUi.resolveRouteStatus(null, rsvpByRoute[route.id])
+                    val countText = participantCounts[route.id]?.toString() ?: "—"
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(BikerColors.SurfaceDark, RoundedCornerShape(12.dp))
                             .border(1.dp, Color(0xFF8B6B3D), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedRouteId = route.id }
-                        ) {
-                            Text(
-                                text = route.title,
-                                color = Color(0xFFF5E6C8),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = ClubRsvpUi.routeSubtitle(route.startsAt, status),
-                                color = BikerColors.TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
+                        Text(
+                            text = route.title,
+                            color = Color(0xFFF5E6C8),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = ClubRsvpUi.routeSubtitle(route.startsAt, null),
+                            color = BikerColors.TextSecondary,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "Participantes: $countText",
+                            color = BikerColors.PrimaryAmber,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }

@@ -133,6 +133,33 @@ class RideParticipantsScreenTest {
     }
 
     @Test
+    fun `la tarjeta identifica la ruta cuyo roster se esta viendo`() {
+        assertTrue(screen.contains("Ruta \${roster.routeId.take(8)}…"))
+        assertTrue(
+            screen.contains("ClubRsvpUi.formatRouteDateTime(roster.startsAt, full = false)")
+        )
+
+        val roster = com.rutabikersync.app.core.clubroutes.RideRoster(
+            routeId = "6321ca67-fff0-47d6-ba80-f7153cbb30fe",
+            startsAt = "2026-11-25T12:00:00Z",
+            outboundStartedAt = null,
+            destinationReachedAt = null,
+            returnStartedAt = null,
+            completedAt = null,
+            participants = listOf(participant())
+        )
+        assertEquals("6321ca67", roster.routeId.take(8))
+        assertTrue(
+            com.rutabikersync.app.feature.groups.ClubRsvpUi.formatRouteDateTime(
+                roster.startsAt,
+                full = false,
+                locale = java.util.Locale.US,
+                zoneId = java.time.ZoneId.of("America/Caracas")
+            ).contains("25")
+        )
+    }
+
+    @Test
     fun `el roster viene del endpoint real del backend`() {
         val client = source(
             "app/src/main/java/com/rutabikersync/app/core/network/ClubApiClient.kt"

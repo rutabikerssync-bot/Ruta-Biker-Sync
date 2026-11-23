@@ -905,16 +905,19 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 
 **Estado:** 4 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
 
-### Ajuste UX — RUTAS DEL CLUB queda informativo (2026-11-23)
+### Ajuste UX — RUTAS DEL CLUB informativo; PARTICIPANTES solo para la nueva rodada (2026-11-23)
 
-Decisión del usuario: los botones de respuesta dentro de **RUTAS DEL CLUB** no tienen sentido ahí. Ese espacio es solo informativo; la respuesta RSVP se registra en **PARTICIPANTES** y el registro/estadísticas en **BITÁCORA**.
+Decisión del usuario: los botones de respuesta dentro de **RUTAS DEL CLUB** no tienen sentido ahí. La respuesta RSVP se registra en **PARTICIPANTES** y el registro/estadísticas en **BITÁCORA**. Solo la card **PRÓXIMA RODADA** abre PARTICIPANTES; las rodadas viejas únicamente informan del número de participantes.
 
 | Tarea | Archivo | Cambio | Test |
 | --- | --- | --- | --- |
-| Quitar acciones RSVP del listado | `ClubRoutesScreen.kt` | Se eliminan los botones `Asistiré / En casa / No iré` de cada tarjeta; conservan título, salida, descripción, “Tu respuesta” y el banner de pendientes | `ClubRoutesInformationalTest` |
-| Detalle informativo con un CTA | `RouteDetailComponents.kt` | El bottom sheet ya no calcula acciones; queda un único botón **“Ver participantes”** | `ClubRoutesInformationalTest` |
-| Cableado del CTA | `Phase1Screens.kt`, `MainAppScaffold.kt` | `onOpenParticipants(routeId)` fija `requestedRosterRouteId`, carga `loadRideRoster(routeId)` y cambia a la pestaña Rodadas. El efecto respeta esa ruta antes de caer en la “próxima”; la rodada activa sigue teniendo prioridad. No se tocó `Phase1ViewModel` | `ClubRoutesInformationalTest` |
-| Contrato de separación | `ClubRoutesInformationalTest.kt` | Fija que RUTAS DEL CLUB no contiene `requestRsvp`/`onRsvp`/`RsvpAction`, que PARTICIPANTES conserva las acciones y que BITÁCORA sigue accesible | suite completa (`106/559/0`) |
+| Quitar acciones RSVP del listado | `ClubRoutesScreen.kt` | Se eliminan los botones `Asistiré / En casa / No iré` de cada tarjeta; se conservan título, salida y el banner de pendientes | `ClubRoutesInformationalTest` |
+| Cards viejas solo informativas | `ClubRoutesScreen.kt`, `Phase1Screens.kt` | Las filas de rodadas viejas dejan de ser clicables y muestran `Participantes: N` desde `loadRsvps(route.id).summary?.total` (o `—` si no hay dato real). Solo `nextRoute` abre el detalle | `ClubRoutesInformationalTest` |
+| Detalle informativo con un CTA | `RouteDetailComponents.kt` | El bottom sheet ya no calcula acciones; queda un único botón **“Ver participantes”**, alcanzable solo desde la nueva convocatoria | `ClubRoutesInformationalTest` |
+| Cableado del CTA | `Phase1Screens.kt`, `MainAppScaffold.kt` | `onOpenParticipants(routeId)` fija `requestedRosterRouteId`, carga `loadRideRoster(routeId)` y cambia a la pestaña Rodadas. No se tocó `Phase1ViewModel` | `ClubRoutesInformationalTest` |
+| Contrato de separación | `ClubRoutesInformationalTest.kt`, `RideParticipantsScreenTest.kt` | Fija que RUTAS DEL CLUB no contiene `requestRsvp`/`onRsvp`/`RsvpAction`, que las cards viejas no navegan, que PARTICIPANTES conserva las acciones y que BITÁCORA sigue accesible | suite completa (`106/561/0`) |
 
-Suite final: **106 suites / 559 tests / 0 fallos / 0 errores / 0 omitidos**. Un commit local atómico, sin `amend` y sin `push`.
+**Corrección del detalle (2026-11-23)**: el usuario observó que abrir el roster de una rodada vieja parecía llevar a la última convocada. Dos causas: (1) `MainAppScaffold` daba prioridad a `currentRide?.clubRouteId` sobre la selección explícita, ahora invertida a `requestedRosterRouteId ?: currentRide?.clubRouteId`; (2) PARTICIPANTES no identificaba la ruta, ahora muestra `Ruta <id corto> · Salida: <fecha>` usando el `startsAt` real del roster. Con la decisión final las cards viejas ya no navegan, pero la precedencia explícita se conserva para cualquier apertura directa y el encabezado identifica la ruta nueva.
+
+Suite final: **106 suites / 561 tests / 0 fallos / 0 errores / 0 omitidos**. Un commit local atómico, sin `amend` y sin `push`.
 

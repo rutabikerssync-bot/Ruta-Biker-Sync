@@ -130,11 +130,18 @@ fun GroupsMainTabScreen(
         val routes by viewModel.clubRoutes.collectAsState()
         val nextRoute by viewModel.nextClubRoute.collectAsState()
         val rsvpByRoute by viewModel.clubRsvpByRoute.collectAsState()
+        var participantCounts by remember { mutableStateOf<Map<String, Int?>>(emptyMap()) }
+        LaunchedEffect(routes.map { it.id }.toSet()) {
+            participantCounts = routes.associate { route ->
+                route.id to viewModel.repository.clubRoutes.loadRsvps(route.id).summary?.total
+            }
+        }
         ClubRoutesScreen(
             groupName = groups.firstOrNull { it.id == selectedGroupId }?.name ?: "Mi Club",
             routes = routes,
             nextRoute = nextRoute,
             rsvpByRoute = rsvpByRoute,
+            participantCounts = participantCounts,
             pendingCount = rsvpPendingCount,
             onOpenParticipants = onOpenParticipants,
             onBack = { viewModel.closeClubRoutes() }

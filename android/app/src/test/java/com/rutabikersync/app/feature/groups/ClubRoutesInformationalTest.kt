@@ -80,8 +80,22 @@ class ClubRoutesInformationalTest {
         assertTrue(scaffold.contains("requestedRosterRouteId = routeId"))
         assertTrue(scaffold.contains("phase1ViewModel.loadRideRoster(routeId)"))
         assertTrue(scaffold.contains("selectedTab = 0"))
-        assertTrue(scaffold.contains("currentRide?.clubRouteId ?: requestedRosterRouteId"))
+        assertTrue(scaffold.contains("requestedRosterRouteId ?: currentRide?.clubRouteId"))
         assertTrue(scaffold.contains("requestedRosterRouteId: String? = null"))
+    }
+
+    @Test
+    fun `las cards viejas solo informan participantes y no navegan`() {
+        assertFalse(
+            routesScreen.contains("clickable { selectedRouteId = route.id }")
+        )
+        assertTrue(
+            routesScreen.contains("selectedRoute = nextRoute?.takeIf { it.id == selectedRouteId }")
+        )
+        assertTrue(routesScreen.contains("\"Participantes: \$countText\""))
+        assertTrue(routesScreen.contains("participantCounts[route.id]?.toString()"))
+        assertTrue(groupTab.contains("loadRsvps(route.id).summary?.total"))
+        assertTrue(groupTab.contains("participantCounts = participantCounts"))
     }
 
     @Test
