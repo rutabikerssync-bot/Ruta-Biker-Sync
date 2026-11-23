@@ -808,6 +808,8 @@ Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1
 
 El descenso puntual de Redmi puede investigarse en una sesión futura (captura de UI y logcat cada minuto durante 35 min) si se desea, pero **no es bloqueante** y no se repetirá la medición en este ciclo.
 
+> **Actualización 2026-11-23:** la observación de 35 min aquí descartada **sí se ejecutó** por petición explícita del usuario. El descenso resultó **reproducible** y su causa (gaps reales de `AdvRx` superiores a 40,5 s) está documentada en la sección «Investigación del descenso transitorio del HUD en Redmi». El texto anterior se conserva como registro de la decisión tomada el 2026-11-22.
+
 **Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
 
 ### P1 — Audio: hub único, señales únicas y liberación (2026-11-22)
@@ -920,4 +922,49 @@ Decisión del usuario: los botones de respuesta dentro de **RUTAS DEL CLUB** no 
 **Corrección del detalle (2026-11-23)**: el usuario observó que abrir el roster de una rodada vieja parecía llevar a la última convocada. Dos causas: (1) `MainAppScaffold` daba prioridad a `currentRide?.clubRouteId` sobre la selección explícita, ahora invertida a `requestedRosterRouteId ?: currentRide?.clubRouteId`; (2) PARTICIPANTES no identificaba la ruta, ahora muestra `Ruta <id corto> · Salida: <fecha>` usando el `startsAt` real del roster. Con la decisión final las cards viejas ya no navegan, pero la precedencia explícita se conserva para cualquier apertura directa y el encabezado identifica la ruta nueva.
 
 Suite final: **106 suites / 561 tests / 0 fallos / 0 errores / 0 omitidos**. Un commit local atómico, sin `amend` y sin `push`.
+
+### Investigación del descenso transitorio del HUD en Redmi (2026-11-23)
+
+**Motivo:** el usuario pidió repetir de forma enfocada la observación de 35 min para decidir si el descenso `7/8` de la medición del 2026-11-22 era reproducible o un artefacto, y documentar causa y fix en caso de reproduce. Alcance sin cambios de código: **no se tocó GATT, crypto, `HeartbeatFrame`, PTT, malla ni UI**.
+
+**Condición:** APK `standardDebug` recompilada con `rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5` (SHA-256 `5EC51CB2073328B8419D083A9191E6A0A5A38AFAD238902700DE7CC7E4AFB33A`), instalada en TECNO `098813734B105395` y Redmi `b2c398bb` con `adb reverse tcp:3000 tcp:3000` y deep links de clave/build por dispositivo. Rodada iniciada en ambos; baseline `2 riders`, shortIds `32191`/`22873`. Protocolo: 36 muestras cada 60 s (00:49:09 → 01:24:16) con XML, PNG, notificación y logcat puntual en Redmi, más logcat continuo en ambos y control TECNO cada 5 min.
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| HUD Redmi 0→35 min | `2 riders` en 36/36 | `2` en 31/36; `1` en 5/36 (min 16, 17, 21, 22, 35) → **reproducible** | `docs/evidence/fixb_descenso_redmi_20261123/summary.txt`, `REDMI_min00.xml`…`REDMI_min35.xml` |
+| Notificación en el descenso | 1 peer BLE conexo | Min 16/21/35: `0 riders conectados en la mesh · 1 sin señal · BLE Real` → `isLost` real, no artefacto | `REDMI_notification_min16.txt`, `min21.txt`, `min35.txt` |
+| Gaps BLE frente a 40,5 s | Ningún gap > 40,5 s | 13 gaps > 40,5 s; máximos 149,2 s, 81,9 s, 78,4 s, 76,5 s, 68,7 s, 63,9 s, 63,3 s y 48,2–48,7 s | `ANALISIS_adv_minuto.txt`, `REDMI_full_log.txt` |
+| Correlación temporal | Sin descensos dentro de gaps largos | Los 5 descensos caen dentro de gaps `AdvRx` > 40,5 s (detalle en `RESULTADO.md`) | `RESULTADO.md`, `ANALISIS_adv_minuto.txt` |
+| `GattVoice` / fallback / shortIds | Sin desconexión, sin fallback, IDs constantes | `GattDisc=0`, `Fallback=0`, `PeerLost=0` en 36/36; `peerNode=32191` constante | `summary.txt`, `ANALISIS_causa.txt` |
+| TECNO (control) | `2 riders` | `2` en 8/8 | `summary.txt`, `TECNO_min00.xml`…`TECNO_min35.xml` |
+| Suite JVM | Verde | `BUILD SUCCESSFUL in 22s` (106 suites / 561 tests / 0 fallos en este estado del árbol) | salida de Gradle 2026-11-23 |
+
+**Causa:** `MeshRelayEngine.evaluatePeerTimeouts` (`MeshRelayEngine.kt:1610-1632`) declara `isLost` cuando
+el silencio supera `LOST_TIMEOUT_MS = 40_500 ms`; `LiveMapViewModel.kt:507-509,619-621` convierte ese estado
+en `OFF_MESH_LOST` y lo excluye del contador del HUD. En esta sesión los advertisements del peer
+(`BleAdvTransport.kt:761`, dos flujos `head=125,-65` y `head=89,89`) presentan 13 silencios superiores al
+timeout, con un máximo de 149,2 s. La notificación pasa a `1 sin señal` y la posición queda retenida
+(`⏱ hace 289s` en min 16, comportamiento FIX A ya documentado). FIX B derivó 40,5 s de un intervalo
+observado de 27 s en otra sesión: **la lógica funciona como diseñada, pero el parámetro no cubre la
+distribución de gaps medida aquí**. La recuperación de min 17 y 22 con notificación ya sana pero HUD todavía
+en 1 es coherente con la histéresis de 2 latidos de `updatePeerTrackLocked`.
+
+**Descartado:** GATT desconectado (0 eventos), `Auto-fallback BLE` (0), doble identity (compuerta BLE activa,
+shortIds constantes), GPS inválido (posición retenida, no coordenada falsa) y artefacto de pintado (la
+notificación del sistema confirma el `isLost`).
+
+**Fix propuesto, no aplicado** (requiere autorización; ninguna opción toca GATT, crypto, `HeartbeatFrame` ni PTT):
+(1) gracia visual en el HUD de ~60 s conservando la tarjeta como `sin señal · hace Ns` en lugar de retirarla
+del contador, sin relajar la verdad de la notificación; (2) recalibrar el timeout con un percentil alto de la
+distribución real de llegadas y un techo de seguridad de ~90 s, instrumentando el intervalo por peer;
+(3) **no** subirlo a 150 s, porque retrasaría 2,5 min la detección de isla/SOS (Decisión 3.4 C).
+
+**Limitación de evidencia:** el script no guardó `REDMI_DESCENSO_minNN_log.txt` porque la fecha del
+dispositivo devolvió nulo; las capturas XML/PNG de los descensos sí existen y el logcat continuo
+(`REDMI_full_log.txt`, 323.871 líneas) cubre toda la ventana. No se afirma evidencia inexistente.
+
+**Conclusión:** el descenso **no es reproducible como artefacto**, sino **reproducible como pérdida real de
+señal BLE** con `isLost` legítimo. FIX B queda con la lógica validada pero su umbral de 40,5 s **no validado
+para esta distribución de gaps**; la compuerta BLE sigue **validada**. Sin cambios de código, sin `amend` y
+sin `push`. Detalle y tabla completa en `docs/evidence/fixb_descenso_redmi_20261123/RESULTADO.md`.
 
