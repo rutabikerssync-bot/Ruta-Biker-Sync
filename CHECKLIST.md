@@ -179,7 +179,7 @@ wsl -u root -d Ubuntu -e pg_ctlcluster 16 main restart
 El backend compila TypeScript con `npm run build` y corre en Node.js conectándose a PostgreSQL en el puerto 5433:
 ```bash
 # Modo Desarrollo / Daemon en WSL:
-wsl -u root -d Ubuntu -e /bin/bash -c "cd /mnt/d/Ruta-Biker-Sync/backend && PORT=3000 PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs node dist/index.js"
+wsl -u root -d Ubuntu -e /bin/bash -c "cd /mnt/d/Ruta-Biker-Sync/backend && PORT=3000 DATABASE_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs_test node dist/index.js"
 
 # O mediante npm run dev:
 wsl -u root -d Ubuntu -e /bin/bash -c "cd /mnt/d/Ruta-Biker-Sync/backend && npm run dev"

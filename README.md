@@ -28,7 +28,7 @@ wsl -d Ubuntu -u root service postgresql start
 Desde WSL2 o terminal con acceso a la base de datos:
 ```bash
 cd /mnt/d/Ruta-Biker-Sync/backend
-PORT=3000 PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs node dist/index.js
+PORT=3000 DATABASE_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs_test node dist/index.js
 ```
 *Verificar salud del servidor:*
 ```bash
@@ -148,7 +148,7 @@ Get-Content backend\logs\fastify_dev_20261118.log -Tail 200 -Wait
 El archivo se crea al redirigir la salida del servidor de desarrollo:
 ```
 cd /mnt/d/Ruta-Biker-Sync/backend && mkdir -p logs
-nohup setsid env PORT=3000 PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs npm run dev >> logs/fastify_dev_20261118.log 2>&1 < /dev/null &
+nohup setsid env PORT=3000 DATABASE_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs PG_TEST_URL=postgres://rbs:rbs_dev_password@localhost:5433/rbs_test npm run dev >> logs/fastify_dev_20261118.log 2>&1 < /dev/null &
 ```
 
 **Endpoint debug opcional:** `GET /v1/debug/logs?date=YYYYMMDD&lines=200` con cabecera `x-admin-key`. Requiere `NODE_ENV != production`, `ENABLE_DEBUG_LOGS=true` y `ADMIN_API_KEY` configurado; responde `text/plain` con las últimas líneas redactadas (máx. 500). Si falta alguna condición devuelve 404; sin clave válida devuelve 401. En producción el endpoint no existe.
