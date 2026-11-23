@@ -427,12 +427,12 @@ El patch original del outbox tenia CRLF+BOM y el repo mezcla LF/CRLF (`core.auto
 | Firma APK | `apksigner verify --print-certs` | CN=Ruta Biker Sync, huella v2 | DN correcto, SHA-256 `e99c0e7dd35691d26d15b51ff0e9d1e0d3acbba8c2579ddb505cc13346e8546b` (BASE_URL tailnet) | misma evidencia |
 | Instalacion TECNO | uninstall + install (autorizado; firma distinta a la instalada 8502ba90) | app con firma v2 | instalado, SHA-256 `e99c0e7d`, `MainActivity` resumida | `fase5_tecno_state_20261119.png/.xml` |
 | Instalacion Redmi | uninstall + install | app con firma v2 | **NO EJECUTADA**: `b2c398bb` not found, `100.98.78.105:5555` no conecta (10013) | misma evidencia |
-| Humo Fase 5 (red/avion/red) | RSVP con red, modo avion, banner, restaurar red | sincronizacion automatica + captura | **NO EJECUTADA**: Redmi inaccesible; TECNO en estado limpio tras reinstalacion sin sesion/club/ruta; ping tailnet 100% loss en captura | misma evidencia |
+| Humo Fase 5 (red/avion/red) | RSVP con red, modo avion, banner, restaurar red | sincronizacion automatica + captura | **EJECUTADA el 2026-11-22** en TECNO y Redmi; ver seccion de cierre Fase 5 | `docs/evidence/fase5_rsvp_20261122/` |
 | Humo Fase 2 (motto) | TECNO cambia motto, Redmi refleja >1,5 s | propagacion sin reiniciar | **NO EJECUTADA**: requiere ambos dispositivos con sesion y mismo club | misma evidencia |
 
-**Confirmacion**: la capa de datos del outbox y el cableado del banner funcionan y estan cubiertos por 42/42 tests JVM. La compilacion y el release firmado son correctos. **El RSVP offline NO queda confirmado en hardware** y no hay captura real del banner "Pendiente de sincronizar".
+**Confirmacion**: la capa de datos del outbox y el cableado del banner funcionan y estan cubiertos por 42/42 tests JVM. La compilacion y el release firmado son correctos. **El RSVP offline SI quedo confirmado en hardware el 2026-11-22**, con captura real del banner "Pendiente de sincronizar" y resincronizacion posterior (ver seccion de cierre Fase 5).
 
-**Pendiente**: reconectar Redmi e instalar release v2; restaurar sesion/club/ruta en ambos (estado limpio); ejecutar humo Fase 5 red->avion->red con capturas y humo Fase 2 del motto; validar conectividad Tailscale de TECNO y reinicio completo de Windows para WSL; rotar la contraseña del keystore v2 expuesta en la conversacion. No hacer push. No tocar BLE/GATT/PTT/crypto/backend.
+**Pendiente**: reconectar Redmi e instalar release v2; restaurar sesion/club/ruta en ambos (estado limpio); ejecutar humo Fase 2 del motto; validar conectividad Tailscale de TECNO y reinicio completo de Windows para WSL; rotar la contraseña del keystore v2 expuesta en la conversacion. No hacer push. No tocar BLE/GATT/PTT/crypto/backend.
 
 ### Fix regresión cabina de miembros post b01b481 — 2026-11-20
 
@@ -825,4 +825,8 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 **Capturas, comandos y detalle**: `docs/evidence/fase5_rsvp_20261122/README.md`.
 
 **Estado:** 4 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
+
+### Cherry-pick a `feat/paso-a-ui` — 2026-11-23
+
+Los 4 commits se aplicaron desde `feat/logo-oficial-escala` en orden: `a529909` (equivalente a `3da31aa`), `b6ca772` (`4546ee1`), `91fc133` (`e5d9cc7`) y `192f2de` (`052bb30`). Hubo un **conflicto add/add** en `RideParticipantsScreenTest.kt`: la rama destino ya tenía el test `la tarjeta identifica la ruta cuyo roster se esta viendo` y la rama origen añadía `el roster viene del endpoint real del backend`. Se resolvió conservando **ambos** tests, sin tocar `Phase1ViewModel`, GATT, crypto, `HeartbeatFrame`, PTT ni los logos de `0d56887`. El merge de `HISTORY_NOTE.md` fue automático; se ajustó la tabla histórica anterior para que el humo Fase 5 figure como **EJECUTADA** y no como pendiente. Suite en esta rama: **94 suites / 525 tests / 0 fallos / 0 errores** (el `105/555` de la sección anterior corresponde a la rama origen, que divergió). Sin `amend` y sin `push`.
 
