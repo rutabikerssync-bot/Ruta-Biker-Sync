@@ -44,15 +44,57 @@ class ClubRoutesRepository(
     private val api: ClubApiClient,
     private val routeDao: ClubRouteDao,
     private val outboxDao: RsvpOutboxDao,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val lifecycleDao: RideLifecycleOutboxDao? = null
 ) {
 
     private val _pendingCount = MutableStateFlow(0)
     /** Nº de RSVP pendientes de sincronizar; alimenta el banner de la UI. */
     val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
 
+    private val _lifecyclePendingCount = MutableStateFlow(0)
+    /** Nº de transiciones de ciclo pendientes de ACK. */
+    val lifecyclePendingCount: StateFlow<Int> = _lifecyclePendingCount.asStateFlow()
+
+    private val lifecycleCoordinator: RideLifecycleOutboxCoordinator? by lazy {
+        val dao = lifecycleDao ?: return@lazy null
+        RideLifecycleOutboxCoordinator(
+            dao = dao,
+            transport = object : RideLifecycleTransport {
+                override suspend fun send(
+                    routeId: String,
+                    event: RideLifecycleTransition
+                ): RideLifecycleSendResult {
+                    val result = when (event) {
+                        RideLifecycleTransition.START_OUTBOUND -> api.startClubRoute(routeId)
+                        RideLifecycleTransition.ARRIVE -> api.postRouteArrival(routeId)
+                        RideLifecycleTransition.ARRIVE_DESTINATION -> api.arriveDestination(routeId)
+                        RideLifecycleTransition.START_RETURN -> api.startReturnRoute(routeId)
+                        RideLifecycleTransition.COMPLETE_RIDE -> api.completeRoute(routeId)
+                    }
+                    return RideLifecycleHttpMapper.fromResult(result)
+                }
+            },
+            scheduleWorker = { context?.let { RideLifecycleOutboxWorker.schedule(it) } }
+        )
+    }
+
     suspend fun refreshPendingCount() {
         _pendingCount.value = outboxDao.pendingCount()
+        lifecycleDao?.let { _lifecyclePendingCount.value = it.pendingCount() }
+    }
+
+    /** Solicita una transición de ciclo sin mutar estado local antes del ACK. */
+    suspend fun requestRideLifecycle(
+        routeId: String,
+        event: RideLifecycleTransition
+    ): RideLifecycleRequestResult {
+        val coordinator = requireNotNull(lifecycleCoordinator) {
+            "ClubRoutesRepository requiere RideLifecycleOutboxDao para transiciones de ciclo"
+        }
+        val result = coordinator.request(routeId, event)
+        refreshPendingCount()
+        return result
     }
 
     /** Caché primero; si hay red, reconcilia y devuelve el estado fresco. */

@@ -10,6 +10,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.rutabikersync.app.core.clubroutes.ClubRouteDao
 import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
 import com.rutabikersync.app.core.clubroutes.RsvpOutboxDao
+import com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxDao
+import com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxEntity
 import com.rutabikersync.app.core.clubroutes.RsvpOutboxEntity
 import com.rutabikersync.app.core.clubroutes.RsvpEntity
 import com.rutabikersync.app.core.clubroutes.RsvpSummaryEntity
@@ -27,9 +29,10 @@ import com.rutabikersync.app.core.mesh.sos.PendingSosRetryEntity
         ClubRouteEntity::class,
         RsvpEntity::class,
         RsvpSummaryEntity::class,
-        RsvpOutboxEntity::class
+        RsvpOutboxEntity::class,
+        RideLifecycleOutboxEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingSosRetryDao(): PendingSosRetryDao
     abstract fun clubRouteDao(): ClubRouteDao
     abstract fun rsvpOutboxDao(): RsvpOutboxDao
+    abstract fun rideLifecycleOutboxDao(): RideLifecycleOutboxDao
 
     companion object {
         @Volatile
@@ -56,6 +60,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS ride_lifecycle_outbox (" +
+                        "id TEXT NOT NULL PRIMARY KEY, " +
+                        "routeId TEXT NOT NULL, " +
+                        "event TEXT NOT NULL, " +
+                        "sequence INTEGER NOT NULL, " +
+                        "createdAt INTEGER NOT NULL, " +
+                        "synced INTEGER NOT NULL, " +
+                        "attempts INTEGER NOT NULL, " +
+                        "lastError TEXT)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_ride_lifecycle_outbox_routeId " +
+                        "ON ride_lifecycle_outbox (routeId)"
+                )
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -63,7 +87,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "ruta_biker_sync.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }
