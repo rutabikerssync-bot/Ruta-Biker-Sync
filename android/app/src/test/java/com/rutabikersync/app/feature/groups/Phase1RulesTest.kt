@@ -18,11 +18,14 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class Phase1RulesTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    // Dispatcher nuevo por test: así las corrutinas que sobrevivan a un test
+    // quedan ligadas a su dispatcher antiguo y no contaminan el siguiente.
+    private var testDispatcher = UnconfinedTestDispatcher()
     private val createdViewModels = mutableListOf<Phase1ViewModel>()
 
     @Before
     fun setUp() {
+        testDispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(testDispatcher)
     }
 
