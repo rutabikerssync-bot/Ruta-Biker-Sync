@@ -845,3 +845,32 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 
 **Estado:** commits locales atómicos, sin `amend` y sin `push`.
 
+### P2 — Estado y mapa: outbox de ciclo, retorno invertido y replay cero (2026-11-22)
+
+**Alcance**: sin tocar GATT, crypto, `HeartbeatFrame` ni PTT. Rama `feat/logo-oficial-escala`, 5 commits atómicos, sin `amend` y sin `push`. Suite final: **102 suites / 545 tests / 0 fallos / 0 errores / 0 omitidos**.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| T1 · H3 outbox de ciclo (`02fce48`) | `RideLifecycleOutboxEntity.kt`, `RideLifecycleOutboxDao.kt`, `RideLifecycleOutboxCoordinator.kt`, `RideLifecycleOutboxSyncEngine.kt`, `RideLifecycleOutboxWorker.kt`, `ClubRoutesRepository.kt`, `Phase1ViewModel.kt`, `AppDatabase.kt` | Tabla nueva con PK UUID + `sequence`; la UI no muta roster/fase antes del ACK; 403/409 son terminales; fallo de red encola y reintenta con WorkManager. No se reutiliza `rsvp_outbox` porque su PK `(routeId,userId)` colapsa transiciones | `RideLifecycleOutboxTest` |
+| T2 · M5 inversión de retorno (`4f836a7`) | `RouteOrientation.kt`, `LiveMapScreen.kt`, `RecalculateRouteUseCase.kt`, `RideScheduleRepository.kt` | Helper puro que invierte waypoints en lectura para ruta de malla y recalculada; el emisor NO invierte (SHA-256 es direccional) | `RouteOrientationTest`, `RouteMeshReturnOrientationTest`, `RecalculateReturnDestinationTest`, `RecalculateRouteUseCaseTest` |
+| T3 · M4 `replay=0` (`96d5d9c`) | `NonReplayingEventBus.kt`, `RideServiceLifecycleReplayRegressionTest.kt` | `SharedFlow(replay=0)`: recrear la cabina no re-ejecuta eventos antiguos | `NonReplayingEventBusTest`, `RideServiceLifecycleReplayRegressionTest` |
+| T4 · Disparador DEV (`a4bf1ee`) | `RideLifecycleDevTrigger.kt`, `Phase1Screens.kt` | `DEV: completar rodada` usa el mismo outbox y exige ruta/roster activo; no salta el backend | suite completa |
+| T5 · Fix de esquema Room (`5da5b1b`) | `RideLifecycleOutboxEntity.kt` | Declara `index_ride_lifecycle_outbox_routeId`, creado por `MIGRATION_5_6`. Sin esa declaración Room rechazaba el esquema en cada apertura y caían **todas** las consultas (rutas, roster y outbox), aunque el backend estuviera sano | suite completa (`102/545/0`) |
+
+**Verificación hardware** (APK `standardDebug` firmada con debug keystore, instalada en TECNO `098813734B105395` y Redmi `b2c398bb`; backend real Fastify+PostgreSQL, ruta `6935451a-86e7-40c8-b245-5a298cf74500`):
+
+| Prueba | Resultado | Evidencia |
+| --- | --- | --- |
+| `start → arrive-destination → return → complete` | Los cuatro timestamps se aplicaron en backend en orden; cabina abierta en `start` y en `return`; cierre vía DEV | `cycle_00_ready.png` … `cycle_16_complete_state.png` |
+| Caída de red en `START_RETURN` | Sin mutación optimista: backend siguió con `return_started_at = NULL`; outbox local `START_RETURN, sequence=1, synced=0, attempts=2, lastError=Failed to connect to /127.0.0.1:3999` | `cycle_08_return_offline.png`, `cycle_08_return_offline_ui.xml` |
+| Reconexión y reintento | `RideLifecycleOutboxWorker` pasó a `SUCCESS`; backend aplicó `return_started_at = 2026-11-22 23:04:51.695823-04`; outbox quedó vacío | `cycle_09_return_online.png`, `cycle_09_return_online_ui.xml` |
+| M5 en hardware | Fase "En retorno" visible en TECNO y Redmi; mapa de malla y polilínea recalculada orientados al origen | `cycle_10_return_map.png`, `cycle_10_return_map_ui.xml`, `redmi_cycle_final.png` |
+| M4 en hardware | Cabina abierta/recreada en `start` y `return` sin eventos de ciclo repetidos | `cycle_01_start_ui.xml`, `cycle_10_return_map_ui.xml` |
+| Sincronización entre equipos | Redmi reflejó el roster con `En retorno` / `Ya en casa` desde el backend real | `redmi_cycle_final_ui.xml` |
+
+**Diagnóstico relevante**: el panel "Ver Rutas" mostraba vacío aunque el backend tenía 3 rutas publicadas. La instrumentación temporal reveló `IllegalStateException: Migration didn't properly handle: ride_lifecycle_outbox(...)`: `MIGRATION_5_6` creaba `index_ride_lifecycle_outbox_routeId` y la entidad no lo declaraba. Room valida el esquema al abrir la BD, de modo que fallaban rutas, roster y outbox a la vez. El fix `5da5b1b` declara el índice en la entidad (sin subir de versión) y se revirtió toda la instrumentación antes de commitear.
+
+**Capturas y detalle**: `docs/evidence/P2/hardware/README.md`.
+
+**Estado:** 5 commits locales atómicos, sin `amend` y sin `push`; el usuario ejecuta el push.
+
