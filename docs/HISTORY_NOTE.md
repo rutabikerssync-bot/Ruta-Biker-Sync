@@ -602,7 +602,7 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
   - Callback `var onConvoySignalReceived: ((IncomingConvoySignal) -> Unit)? = null`.
   - Despacho inmediato en `onRawPacketReceived` para `kindCode in (0xC1..0xC5)`.
 - `android/app/src/main/java/com/rutabikersync/app/core/mesh/RideService.kt`:
-  - Canal estático `incomingConvoySignals` con `replay = 1` y buffer de 64.
+  - Canal estático `incomingConvoySignals` con `replay = 1` y buffer de 64 (en P1/`3de79e7` se migró a `NonReplayingEventBus` con `replay = 0`).
   - Reproducción directa de audio en `onConvoySignalReceived` vía `ConvoySignalAudioHub.playSignal(incoming.signalKind)`.
   - Método `dispatchSendConvoySignal(signal)` con prioridad `Transport.Priority.PEER_EVENT` (ráfaga de 100 ms).
 - `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`:
@@ -807,6 +807,120 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 | T4 · Documentación (este commit) | `docs/HISTORY_NOTE.md` | Cierre de Fase 5, tabla de entregable, hallazgos y estado final | suite completa (`105/555/0`) |
 
 **Regla 1 h**: se respeta el backend. `no_go → confirmed` solo se permite cuando `now() <= starts_at - interval '1 hour'`; en `[startsAt-1h, startsAt)` queda bloqueado. La UI pura `RideParticipantsUi.canReconsider` y el test de contrato replican ese criterio sin inventar una regla propia.
+
+**Verificación en campo (TECNO `098813734B105395` y Redmi `b2c398bb`, rodada real `2de260aa-3e24-493b-b9b8-0846366ba1c5`)**:
+
+| Comprobación | Resultado | Evidencia |
+| --- | --- | --- |
+| Uplink HTTP manual desde TECNO con radio apagada | Redmi mostró `Piloto #14410 [4G]` / `Mensaje 4G desde TECNO`; `POST` 200, `messageId=cad49bab-d2cd-43ae-b523-4d9e8cb1caf2` | `chat_4g_redmi_corte2a_20261122.png`, `logcat_redmi_corte2a_20261122.txt` |
+| Retorno a BLE tras reactivar radio y relanzar apps | Redmi mostró `RETORNO_BLE_SIN_4G` de `Piloto #32191` **sin `[4G]`** | `chat_ble_retorno_redmi_corte2a_20261122.png`, `logcat_redmi_ble_retorno_corte2a_20261122.txt` |
+| Fallback **automático** desde la UI de Redmi con BLE apagado (APK v5) | `BleRadioGate: BLUETOOTH_ON=0` → `publishChat 4G rideId=... from=22873 text=FALLBACK_REDMI_V5` → `publishChat POST ok status=200`; `GET .../comms` devuelve el item con `source: "4g"` y `expiresAt` | `fallback_4g_automatico_redmi_v5_20261122.png`, `logcat_fallback_4g_automatico_redmi_v5_resumen.txt`, `backend_comms_fallback_automatico_v5_20261122.json` |
+
+Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5` y se instalaron en ambos equipos; el backend piloto sigue en `:3100` y el túnel Cloudflare conserva su URL. El mensaje HTTP se entrega al store existente únicamente como mensaje entrante con remitente etiquetado `[4G]`; el store y la pantalla de chat no se modificaron. Los dumps/XML temporarios de depuración (`v2_*`, `v3_*`, `*_tmp_*` y `corte2a_*_ui.xml`) se retiraron; solo permanece la evidencia final listada arriba.
+
+### Diferidos del Corte 2 (sin implementar, sin commits de código)
+
+**2B — FCM (bloqueado)**: `backend/service_account.json` no existe en el piloto; `FcmService.isLive() === false` y las respuestas usan `mock-msg-id-*`, por lo que no hay entrega real. Quedan documentadas tres discrepancias de contrato: los `type` de `fcm.ts` van en `RIDE_INVITATION`/`CLUB_INVITATION`/`DIRECT_MESSAGE` mientras Android espera `ride_invitation`/`club_invitation`/`direct_message` (solo `sos` coincide); `/v1/notifications/send` no restringe `recipientUserIds`, no tiene rate limit propio, idempotencia ni `messageId`; faltan los tipos `TACTICAL_CHAT`/`CONVOY_SIGNAL` y los tests de deep-link. No se leyó ni copió la cuenta real del backend base.
+
+**2C — mapeo `userId ↔ shortId` (diferido)**: no se tocaron claves ni manifiesto. Antes de cualquier cambio debe verificarse la discrepancia entre `LEGACY_RIDE_ID = "ride-live-01"` y el UUID real inyectado (`2de260aa-3e24-493b-b9b8-0846366ba1c5`), confirmada en campo por `HybridChatStart: rideId=... pilot=...`. El manifiesto firmado no se consume actualmente en hardware, así que no se afirma identidad remota real.
+
+**Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
+
+### Revisión del entorno de manifiesto para FIX B (2026-11-22)
+
+**Motivo**: se intentó reanudar la verificación hardware de FIX B (`LOST_TIMEOUT_MS = 40_500 ms`, derivado de la llegada de heartbeats cada ~27 s en campo), que esta nota marcaba «PENDIENTE DE REINTENTO» por un supuesto entorno de manifiesto inválido (`memberRes rows count: 0`).
+
+**Diagnóstico corregido**: el entorno está sano. No falta siembra de miembros, rodada de prueba, endpoint ni migración. El log `memberRes rows count: 0` corresponde únicamente al líder TECNO, porque `app.ts:1576` consulta solo `memberships`; el líder se resuelve por `group_leaders` (`ledRes`) y el miembro por `memberships` (`memberRes`). Es un log informativo, no un fallo: la inferencia anterior de «manifiesto no válido» era incorrecta.
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| `GET /v1/groups` con UID TECNO | Club resuelto | `200`, `ledGroups=1`, club `e3988eba-26e8-425a-80ac-2a65aeda8484` | `diagnostico_manifiesto_fixb_20261122.txt` |
+| `GET /v1/groups` con UID Redmi | Club resuelto | `200`, `memberGroups=1`, mismo club | misma evidencia |
+| BD: club y membresía | Líder + miembro aceptado | `group_leaders` TECNO=`t`; `memberships` Redmi=`accepted` | misma evidencia |
+| BD: rodada `2de260aa-…` | Activa con 2 participantes | `state=active`, `manifest_kid=ed25519-k1`, 2 participantes (TECNO `capitan_rodada`, Redmi `participante`) | misma evidencia |
+| `GET /v1/rides/:id/manifest` | Payload firmado | `200`, `kid=ed25519-k1`, `participants=2`, `publicKeys=1` para ambos UIDs | misma evidencia |
+| `adb devices -l` | TECNO y Redmi conectados | Solo `b2c398bb` (Redmi); **TECNO `098813734B105395` ausente** | misma evidencia |
+
+**Bloqueo real y único**: sin el TECNO no hay dos peers y no puede ejecutarse la rodada de 35–40 min que validaría el criterio «2 riders estables». No se ejecutó esa prueba y no se afirma su resultado. La acción pendiente es conectar el TECNO por USB y confirmar `adb devices -l`; no se requiere ningún comando de siembra ni migración en la BD.
+
+**Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
+
+### Resultado de la medición hardware de FIX B (2026-11-22, 35 min)
+
+**Condición**: TECNO `098813734B105395` y Redmi `b2c398bb` conectados, radio BLE encendido en ambos, APK del HEAD `9085036` instalado en los dos equipos con `rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5`. Rodada `active` con 2 participantes y manifiesto `ed25519-k1`. Protocolo: 8 muestras cada 5 min, 18:48:36 → 19:24:24.
+
+| Señal | Resultado | Evidencia |
+| --- | --- | --- |
+| HUD TECNO (min 0→35) | `3,3,3,3,3,3,2,3` | `resultado_fixb_35min_20261122.txt`, `summary.txt` |
+| HUD Redmi (min 0→35) | `3,3,3,3,3,2,1,3` | misma evidencia |
+| shortIds de malla | TECNO `32191 ↔ 22873`, Redmi `22873 ↔ 32191`, constantes en min 0 y 35 | `GattVoice` en `TECNO_min0_log.txt`, `TECNO_min35_log.txt`, `REDMI_min0_log.txt`, `REDMI_min35_log.txt` |
+| Notificación persistente TECNO | 65 eventos, todos `1 riders conectados`; nunca 0 ni 2 | mismos logs |
+| Heartbeats | TECNO `elapsedSec=97s n=33 → 2245s n=740`; Redmi `97s n=33 → 2247s n=751` (~3,03 s) | mismos logs |
+| `Auto-fallback BLE` | 0 en las 8 muestras | `summary.txt` |
+
+**Conclusión honesta**: la capa BLE estuvo estable durante los 35 min y `LOST_TIMEOUT_MS = 40_500 ms` no generó falsos `isLost`; en esa capa FIX B se comportó como diseñado. **Pero el criterio visible «2 riders estables» NO está verificado**: el HUD osciló `3→2→1→3` por el doble identity de Corte 1, no por pérdida de peers. `LiveMapScreen.kt:475` pasa `resolveShortId = { null }`, de modo que `HybridTransportDispatcher.fuse()` asigna un `shortId` sintético 60000+ a cada muestra HTTP aunque el rider ya esté en BLE; esos marcadores `[4G]` se retiran por TTL de 30 s y producen la oscilación (`LiveMapViewModel.kt:619-621` cuenta marcadores).
+
+**Resolución**: se autorizó la opción (B) — compuerta BLE — y se dejó (A) / 2C diferido. Commit funcional `da7cadb`; medición de repetición documentada en la sección siguiente.
+
+**Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
+
+### Compuerta BLE contra el doble identity y repetición de FIX B (2026-11-22)
+
+**Cambio funcional** (`da7cadb`): `HybridTransportDispatcher.fuse()` retorna las posiciones BLE sin añadir ninguna muestra HTTP cuando existe al menos un peer BLE con posición renderizable (`isRenderablePeerPosition`). No se modificaron `LiveMapViewModel`, chat, GATT, crypto, `HeartbeatFrame`, PTT ni liderazgo; no hay persistencia ni claves/manifiesto nuevos. Tests nuevos: BLE con posición válida descarta HTTP aunque `resolveShortId = null`; peer sin posición válida permite el fallback HTTP. Suite completa: **92 suites, 519 tests, 0 fallos, 0 errores**.
+
+**Medición** (APK `da7cadb`, ambos dispositivos conectados, BLE encendido, rodada real, 19:37:57 → 20:13:44, 8 muestras cada 5 min):
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| HUD TECNO (0→35 min) | `2 riders` estable | `2,2,2,2,2,2,2,2` (8/8) | `resultado_compuerta_ble_fixb_20261122.txt`, `summary.txt` |
+| HUD Redmi (0→35 min) | `2 riders` estable | `2,2,2,2,2,1,2,2` (7/8; descenso transitorio en +25 min, recuperado solo en +30 min; no atribuido a FIX B) | misma evidencia |
+| Notificación TECNO min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `TECNO_min0_notification.txt`, `TECNO_min35_notification.txt` |
+| Notificación Redmi min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `REDMI_min0_notification.txt`, `REDMI_min35_notification.txt` |
+| shortIds de malla | constantes | TECNO `22873`, Redmi `32191` en 8/8 | `summary.txt` |
+| Heartbeats / fallback | latidos continuos, sin degradación | `HeartbeatTx` y `AdvRx` en 8/8; `Auto-fallback BLE` = 0 | `*_log.txt` |
+| Suite Android | verde | 92 suites, 519 tests, 0 fallos | salida de Gradle |
+
+**Conclusión aceptada**: la compuerta eliminó el doble identity (el HUD pasó de `3/4` a `2` con peer BLE activo) y queda **validada**. FIX B queda **validado en TECNO** (8/8, estable) y **parcial en Redmi** (7/8, descenso transitorio en +25 min recuperado solo en +30 min). El descenso **no se atribuye a FIX B**: en toda la serie el peer BLE siguió conexo (notificación `1 riders conectados en la mesh · BLE Real` en min 0 y 35), los shortIds fueron constantes (`22873` / `32191`) y no hubo `Auto-fallback BLE`; en min 35 Redmi muestra `⏱ hace 278s` (posición retenida, comportamiento FIX A). No se repitió la observación de 35 min: el descenso se documenta como transitorio y no bloqueante.
+
+**Estado:** commit funcional `da7cadb` y commits de evidencia/documentación separados, sin `amend` y sin `push`.
+
+### Cierre de la compuerta BLE y siguiente paso propuesto (2026-11-22)
+
+**Cierre**: la compuerta BLE de `HybridTransportDispatcher` queda **validada**; el doble identity está resuelto (HUD `2` con peer BLE, frente a `3/4` antes). FIX B queda registrado como **validado en TECNO (8/8) y parcial en Redmi (7/8, descenso transitorio en +25 min, recuperado en +30 min, no atribuido a FIX B)**. Evidencia: `docs/evidence/fixb_gate_verify_20261122/summary.txt`, capturas `TECNO_min0/35.png` y `REDMI_min0/35.png`, dumps de notificación y logcat de ambos equipos.
+
+**Siguiente paso recomendado: P1 (audio)** — hub único en `App.kt`, señales únicas y `dispose` explícito. Motivo: es el único candidato con una falla funcional dura ya demostrada en hardware (el audio no cruzó en ninguna dirección; tres rutas desconectadas documentadas en esta nota), y afecta directamente la comunicación del convoy. Requiere autorización explícita para trabajar el cableado de voz/PTT, hoy fuera de alcance; no se tocaría GATT ni crypto sin permiso nuevo.
+
+**Alternativas, en orden**:
+- **P2 (estado/mapa)**: outbox de ciclo, `replay=0` y retorno completo; continuidad natural tras la compuerta BLE, sin credenciales nuevas.
+- **Fase 5 (RSVP offline)**: UI de participantes + outbox; útil si se quiere reforzar la participación antes de audio.
+- **2B (FCM)**: bloqueado por `service_account.json` ausente y contratos de notificación sin cerrar.
+- **2C (`userId ↔ shortId`)**: diferido; requiere autorización de claves/manifiesto y resolver la discrepancia `LEGACY_RIDE_ID` frente al UUID real.
+
+El descenso puntual de Redmi puede investigarse en una sesión futura (captura de UI y logcat cada minuto durante 35 min) si se desea, pero **no es bloqueante** y no se repetirá la medición en este ciclo.
+
+**Estado:** commit local atómico de documentación, sin `amend` y sin `push`.
+
+### P1 — Audio: hub único, señales únicas y liberación (2026-11-22)
+
+**Autorización y alcance**: se autorizó únicamente el cableado de audio. No se tocó GATT, crypto, `HeartbeatFrame`, wire format ni PTT de audio. La activación de audio se **mantiene en 15 s con carácter informativo**; ese valor no es la duración de un tono y no se modificó.
+
+**Cambios atómicos** (sin `amend`, sin `push`):
+
+| Tarea | Commit | Archivo principal | Cambio | Test |
+| --- | --- | --- | --- | --- |
+| T1 Hub en `App.kt` | `dfdedeb` | `App.kt`, `AppAudioBootstrap.kt` | `AppAudioBootstrap.initialize(...)` instala el hub de SOS y de señales con alcance de aplicación; la cabina solo publica el proveedor de PTT | `AppAudioBootstrapTest` |
+| T2 Tuplas únicas | `631a89d` | `ConvoySignalToneCatalog.kt` | 11 tuplas únicas (tono, pulsos, duración, gap); pares antes casi idénticos diferenciados | `ConvoySignalToneCatalogTest` (unicidad de tupla completa + códigos de wire) |
+| T3 Dispose | `17b9183` | `ConvoySignalAudioPlayer.kt`, `RideService.kt`, `App.kt` | `ToneGenerator.release()` en `ConvoySignalAudioHub.release()`, invocado en `RideService.onDestroy()` y `App.onTerminate()`; el siguiente sonido reconstruye el hub desde `appContext` | `ConvoySignalAudioReleaseTest` |
+| T4 Sin replay | `3de79e7` | `NonReplayingEventBus.kt`, `RideService.kt` | `SharedFlow(replay=0)` para RX de eventos de malla: recrear la cabina no re-ejecuta señales antiguas (el TX llama directo al motor, sin flow) | `NonReplayingEventBusTest`, `RideServiceLifecycleReplayRegressionTest` |
+| T5 Traza de arranque | `8b42006` | `ConvoySignalAudioPlayer.kt` | log `hub inicializado con alcance de aplicacion` | suite de audio |
+| T6 Duraciones | `48e007f` | `ConvoySignalAudioPlayer.kt`, `ConvoySignalToneCatalog.kt` | los 10 tonos de mensaje duran exactamente 6000 ms (pulsos + gaps); SOS en bucle mientras esté activo | `ConvoySignalToneCatalogTest`, `SosIndefiniteCycleTest` |
+| T7 Traza de liberación | `c6fb852` | `ConvoySignalAudioPlayer.kt` | log `hub liberado (ToneGenerator release)` | suite de audio |
+
+**Catálogo verificado (10 mensajes, total 6000 ms)**: OBSTACLE `NACK 1×6000/0`; REDUCE_SPEED `BEEP2 2×2900/200`; REGROUP `BEEP 2×2800/400`; GAS_STOP `ACK 1×6000/0`; POLICE_CHECKPOINT `PROMPT 3×1900/150`; START_OUTBOUND `BEEP 3×1800/300`; ARRIVE_DESTINATION `ACK 2×2800/400`; START_RETURN `BEEP2 3×1800/300`; COMPLETE_RIDE `PROMPT 2×2600/800`; SAFE_HOME `ACK 2×2700/600`. SOS: Morse `· — ·` en bucle continuo, solo se detiene al cancelar/resolver.
+
+**Suite Android**: 96 suites / 528 tests antes del cambio de duraciones; **97 suites / 530 tests, 0 fallos, 0 errores, 0 omitidos** en `48e007f`.
+
+**Verificación hardware** (APK `standardDebug` `c6fb852` instalado en TECNO `098813734B105395` y Redmi `b2c398bb`; rodada real `2de260aa-3e24-493b-b9b8-0846366ba1c5`):
 
 **Verificación hardware** (APK `standardDebug` firmada con debug keystore, instalada en TECNO `098813734B105395` y Redmi `b2c398bb`; backend real Fastify+PostgreSQL; túnel `adb reverse tcp:3000 tcp:3000`):
 

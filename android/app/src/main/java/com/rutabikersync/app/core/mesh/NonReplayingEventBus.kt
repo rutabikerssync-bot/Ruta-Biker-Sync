@@ -22,6 +22,10 @@ class NonReplayingEventBus<T>(extraBufferCapacity: Int = 64) {
 
     val events: SharedFlow<T> = _events.asSharedFlow()
 
-    /** `false` solo si no hay suscriptores y el buffer está lleno. */
+    /**
+     * Publica sin replay. Con `DROP_OLDEST`, `tryEmit` acepta el evento y descarta
+     * el más antiguo cuando el buffer está lleno; si no hay suscriptores, el
+     * evento se acepta pero ningún suscriptor futuro lo recibirá.
+     */
     fun publish(event: T): Boolean = _events.tryEmit(event)
 }
