@@ -602,7 +602,7 @@ Resolución aislada GPX (`RouteEnginePhase4Test`):
   - Callback `var onConvoySignalReceived: ((IncomingConvoySignal) -> Unit)? = null`.
   - Despacho inmediato en `onRawPacketReceived` para `kindCode in (0xC1..0xC5)`.
 - `android/app/src/main/java/com/rutabikersync/app/core/mesh/RideService.kt`:
-  - Canal estático `incomingConvoySignals` con `replay = 1` y buffer de 64.
+  - Canal estático `incomingConvoySignals` con `replay = 1` y buffer de 64 (en P1/`3de79e7` se migró a `NonReplayingEventBus` con `replay = 0`).
   - Reproducción directa de audio en `onConvoySignalReceived` vía `ConvoySignalAudioHub.playSignal(incoming.signalKind)`.
   - Método `dispatchSendConvoySignal(signal)` con prioridad `Transport.Priority.PEER_EVENT` (ráfaga de 100 ms).
 - `android/app/src/main/java/com/rutabikersync/app/feature/livemap/LiveMapScreen.kt`:
@@ -821,7 +821,7 @@ El descenso puntual de Redmi puede investigarse en una sesión futura (captura d
 | T1 Hub en `App.kt` | `dfdedeb` | `App.kt`, `AppAudioBootstrap.kt` | `AppAudioBootstrap.initialize(...)` instala el hub de SOS y de señales con alcance de aplicación; la cabina solo publica el proveedor de PTT | `AppAudioBootstrapTest` |
 | T2 Tuplas únicas | `631a89d` | `ConvoySignalToneCatalog.kt` | 11 tuplas únicas (tono, pulsos, duración, gap); pares antes casi idénticos diferenciados | `ConvoySignalToneCatalogTest` (unicidad de tupla completa + códigos de wire) |
 | T3 Dispose | `17b9183` | `ConvoySignalAudioPlayer.kt`, `RideService.kt`, `App.kt` | `ToneGenerator.release()` en `ConvoySignalAudioHub.release()`, invocado en `RideService.onDestroy()` y `App.onTerminate()`; el siguiente sonido reconstruye el hub desde `appContext` | `ConvoySignalAudioReleaseTest` |
-| T4 Sin replay | `3de79e7` | `NonReplayingEventBus.kt`, `RideService.kt` | `SharedFlow(replay=0)` para RX/TX de eventos de malla: recrear la cabina no re-ejecuta señales antiguas | `NonReplayingEventBusTest` |
+| T4 Sin replay | `3de79e7` | `NonReplayingEventBus.kt`, `RideService.kt` | `SharedFlow(replay=0)` para RX de eventos de malla: recrear la cabina no re-ejecuta señales antiguas (el TX llama directo al motor, sin flow) | `NonReplayingEventBusTest`, `RideServiceLifecycleReplayRegressionTest` |
 | T5 Traza de arranque | `8b42006` | `ConvoySignalAudioPlayer.kt` | log `hub inicializado con alcance de aplicacion` | suite de audio |
 | T6 Duraciones | `48e007f` | `ConvoySignalAudioPlayer.kt`, `ConvoySignalToneCatalog.kt` | los 10 tonos de mensaje duran exactamente 6000 ms (pulsos + gaps); SOS en bucle mientras esté activo | `ConvoySignalToneCatalogTest`, `SosIndefiniteCycleTest` |
 | T7 Traza de liberación | `c6fb852` | `ConvoySignalAudioPlayer.kt` | log `hub liberado (ToneGenerator release)` | suite de audio |
