@@ -1483,12 +1483,12 @@ private fun GroupDetailScreenD3(
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     // Logo Central editable por el líder (Parche & Escudo oficial)
                     Box(
                         modifier = Modifier
-                            .size(76.dp)
+                            .size(145.dp)
                             .clip(CircleShape)
                             .clickable(enabled = isLeader || isPrincipalLeader) {
                                 photoPickerLauncher.launch("image/*")
@@ -1504,7 +1504,7 @@ private fun GroupDetailScreenD3(
                                     .fillMaxSize()
                                     .clip(CircleShape)
                                     .border(
-                                        width = 2.dp,
+                                        width = 3.dp,
                                         brush = Brush.sweepGradient(
                                             listOf(
                                                 Color(0xFFF6CE74),
@@ -1520,8 +1520,8 @@ private fun GroupDetailScreenD3(
                         } else {
                             HeritageEmblemBadge(
                                 painter = painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
-                                badgeSize = 72.dp,
-                                iconSize = 54.dp,
+                                badgeSize = 145.dp,
+                                iconSize = 110.dp,
                                 contentDescription = group.name
                             )
                         }
@@ -1529,7 +1529,7 @@ private fun GroupDetailScreenD3(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .size(24.dp)
+                                    .size(30.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF2C2216))
                                     .border(1.dp, Color(0xFFD4AF37), CircleShape),
@@ -1539,29 +1539,46 @@ private fun GroupDetailScreenD3(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "Cambiar Escudo/Logo",
                                     tint = Color(0xFFF5D061),
-                                    modifier = Modifier.size(12.dp)
+                                    modifier = Modifier.size(14.dp)
                                 )
                             }
                         }
                     }
 
-                    // 2. Nombre del Club
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // 1. Nombre del Club destacado
                     Text(
-                        text = group.name.uppercase(),
-                        color = Color(0xFFF5E6C8),
+                        text = group.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        letterSpacing = 0.5.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    // 2. País en línea independiente y en mayúsculas
+                    val countryText = if (group.countryCode.equals("VE", ignoreCase = true)) "VENEZUELA"
+                                      else resolveCountryDisplay(group.countryCode).replace("🇻🇪 ", "").uppercase()
+                    Text(
+                        text = countryText,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         letterSpacing = 1.sp,
                         textAlign = TextAlign.Center
                     )
 
-                    // Origen y Trayectoria (1 sola línea limpia)
+                    // 3. Fundación y años en línea independiente
                     Text(
-                        text = "${resolveCountryDisplay(group.countryCode)}${if (!group.city.isNullOrBlank()) " (${group.city})" else ""} · Fundado ${formatFoundationDate(group.foundationDate)} (${eligibility.years} años)",
-                        color = Color(0xFF9E9285),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        text = "Fundado ${formatFoundationDate(group.foundationDate)} (${eligibility.years} años)",
+                        color = Color(0xFFE5E7EB),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center
                     )
+
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // 3. Estatus Institucional: Insignia de Aval de Mesa Directiva
                     Box(
