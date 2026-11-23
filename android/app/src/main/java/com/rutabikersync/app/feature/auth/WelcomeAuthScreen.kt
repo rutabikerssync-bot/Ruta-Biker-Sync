@@ -174,8 +174,9 @@ fun WelcomeAuthScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_gold_winged_crest),
-                        contentDescription = "Escudo Ruta Biker Sync",
+                        painter = painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
+                        contentDescription = "Logo oficial Ruta Biker Sync",
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

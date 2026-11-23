@@ -1,0 +1,3 @@
+﻿11-22 18:24:54.134  8567  8567 I BleRadioGate: BLUETOOTH_ON=0
+11-22 18:24:54.136  8567  8567 I HybridChatDispatcher: publishChat 4G rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5 from=22873 text=FALLBACK_REDMI_V5
+11-22 18:24:54.315  8567  8567 I HybridChatDispatcher: publishChat POST ok status=200

@@ -158,6 +158,16 @@ object RideScheduleRepository {
     }
 
     /**
+     * Adopta una ruta recibida por malla como ruta activa. La orientación de
+     * retorno NO se aplica aquí: se resuelve en lectura con [RouteOrientation].
+     */
+    fun activateMeshRoute(event: RouteMeshReceivedEvent): Boolean {
+        if (!event.isHashVerified) return false
+        updateSelectedRoute(event.route)
+        return true
+    }
+
+    /**
      * Limpia completamente el historial de rodadas.
      */
     fun clearHistory() {

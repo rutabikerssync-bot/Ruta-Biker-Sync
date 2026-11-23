@@ -1,0 +1,7 @@
+﻿
+11-22 21:18:09.269  4905  4905 I RideService: ConvoySignalTx emitido por malla: kind=POLICE_CHECKPOINT code=5
+11-22 21:18:09.270  4905  5042 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+11-22 21:18:11.329  4905  4974 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+11-22 21:18:13.389  4905  5042 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+
+

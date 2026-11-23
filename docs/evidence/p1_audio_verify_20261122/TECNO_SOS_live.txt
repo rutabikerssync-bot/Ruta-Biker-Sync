@@ -1,0 +1,30 @@
+--------- beginning of main
+11-22 21:22:40.806  6432  6432 I ConvoySignalAudioHub: hub inicializado con alcance de aplicacion
+11-22 21:23:40.611  6432  6432 I SosTonePlayer: SosTone START request job=253456975
+11-22 21:23:40.653  6432  6567 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:40.916  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:41.176  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:41.585  6432  6567 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:42.144  6432  6567 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:42.707  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:43.414  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:43.674  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:43.933  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:45.592  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:45.852  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:46.111  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:46.519  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:47.076  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:47.635  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:48.344  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:48.604  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:48.865  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:50.533  6432  6567 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:50.797  6432  6567 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:51.056  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:51.465  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:52.021  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:52.580  6432  6576 I SosTonePlayer: ToneOn toneType=24 durationMs=450 result=true stream=4
+11-22 21:23:53.289  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:53.551  6432  6511 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4
+11-22 21:23:53.811  6432  6573 I SosTonePlayer: ToneOn toneType=24 durationMs=150 result=true stream=4

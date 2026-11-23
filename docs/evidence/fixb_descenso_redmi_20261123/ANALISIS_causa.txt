@@ -1,0 +1,172 @@
+﻿=== ANALISIS LOGCAT CONTINUO REDMI ===
+lineas_totales=323871
+primera=--------- beginning of main
+ultima=11-23 01:24:18.156  3912  3912 I BleAdvTransport: Legacy burst advertise started successfully burst#=1632
+
+HeartbeatRx_eventos=0
+
+=== TOP 15 GAPS HeartbeatRx ===
+
+=== GAPS > 30s (detalle) ===
+ninguno
+
+=== EVENTOS GattVoice / riders conectados / isLost / fallback ===
+11-23 00:49:16.673  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6F:0E:C4:1B:F2:90 advertiser=02:00:00:00:00:00
+11-23 00:49:19.475  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=70:1C:87:D0:96:B7 advertiser=02:00:00:00:00:00
+11-23 00:49:22.513  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=61:26:CB:97:6D:3A advertiser=02:00:00:00:00:00
+11-23 00:49:25.547  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4D:ED:BF:3B:D7:6D advertiser=02:00:00:00:00:00
+11-23 00:49:31.638  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=78:17:9F:F6:AC:FF advertiser=02:00:00:00:00:00
+11-23 00:49:34.687  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:50:69:D0:9A:E0 advertiser=02:00:00:00:00:00
+11-23 00:49:37.728  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5C:83:DB:46:89:48 advertiser=02:00:00:00:00:00
+11-23 00:49:40.782  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5F:64:FC:D7:74:7D advertiser=02:00:00:00:00:00
+11-23 00:49:43.825  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=61:1D:D6:77:83:1F advertiser=02:00:00:00:00:00
+11-23 00:49:46.872  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:C4:89:6E:77:00 advertiser=02:00:00:00:00:00
+11-23 00:49:49.912  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=50:B3:F2:B3:2F:27 advertiser=02:00:00:00:00:00
+11-23 00:49:52.959  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7D:F3:FA:DA:CB:D9 advertiser=02:00:00:00:00:00
+11-23 00:49:56.007  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=75:75:33:D3:AE:50 advertiser=02:00:00:00:00:00
+11-23 00:49:59.054  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=75:83:05:1E:30:AA advertiser=02:00:00:00:00:00
+11-23 00:50:02.104  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6E:74:4F:F4:1D:26 advertiser=02:00:00:00:00:00
+11-23 00:50:05.210  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6D:1A:A8:F3:24:5B advertiser=02:00:00:00:00:00
+11-23 00:50:08.261  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5D:2D:09:7D:9F:A1 advertiser=02:00:00:00:00:00
+11-23 00:50:11.292  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:A4:12:CC:4A:AD advertiser=02:00:00:00:00:00
+11-23 00:50:14.559  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=73:8F:2D:AF:88:63 advertiser=02:00:00:00:00:00
+11-23 00:50:17.614  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=64:0C:5E:B9:F4:B6 advertiser=02:00:00:00:00:00
+11-23 00:50:20.675  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=58:2C:17:51:D4:18 advertiser=02:00:00:00:00:00
+11-23 00:50:23.458  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=71:CA:C2:0C:F6:60 advertiser=02:00:00:00:00:00
+11-23 00:50:26.524  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=68:38:40:47:0E:E9 advertiser=02:00:00:00:00:00
+11-23 00:50:29.535  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=55:04:22:E8:40:D8 advertiser=02:00:00:00:00:00
+11-23 00:50:32.593  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6F:C7:E3:D9:AC:1B advertiser=02:00:00:00:00:00
+11-23 00:50:35.616  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=45:CC:79:BA:74:71 advertiser=02:00:00:00:00:00
+11-23 00:50:38.667  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:00:EE:24:2F:39 advertiser=02:00:00:00:00:00
+11-23 00:50:41.719  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=76:FF:D4:EB:B3:CC advertiser=02:00:00:00:00:00
+11-23 00:50:44.751  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5F:DA:5B:6A:DE:84 advertiser=02:00:00:00:00:00
+11-23 00:50:47.799  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=54:EC:49:53:C2:97 advertiser=02:00:00:00:00:00
+11-23 00:50:50.850  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=44:C6:2D:1D:9E:F0 advertiser=02:00:00:00:00:00
+11-23 00:50:53.878  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=50:FA:A9:E7:AE:55 advertiser=02:00:00:00:00:00
+11-23 00:50:56.929  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=53:F0:47:03:1E:02 advertiser=02:00:00:00:00:00
+11-23 00:50:59.817  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:50:59.963  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4B:0C:AE:89:3E:7B advertiser=02:00:00:00:00:00
+11-23 00:51:03.008  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7A:56:1E:F6:0C:CC advertiser=02:00:00:00:00:00
+11-23 00:51:06.048  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=62:E4:2D:11:88:C4 advertiser=02:00:00:00:00:00
+11-23 00:51:09.099  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=54:64:FE:37:02:DF advertiser=02:00:00:00:00:00
+11-23 00:51:12.136  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4E:0B:43:5A:56:0F advertiser=02:00:00:00:00:00
+11-23 00:51:15.176  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5C:6E:FD:BE:88:70 advertiser=02:00:00:00:00:00
+11-23 00:51:18.225  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6C:E1:E4:8F:B7:51 advertiser=02:00:00:00:00:00
+11-23 00:51:21.265  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=78:8C:5B:01:4A:68 advertiser=02:00:00:00:00:00
+11-23 00:51:24.312  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=47:5A:C8:3B:BF:7B advertiser=02:00:00:00:00:00
+11-23 00:51:30.404  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=63:78:B6:88:5B:75 advertiser=02:00:00:00:00:00
+11-23 00:51:33.451  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5F:E3:EB:89:A0:7E advertiser=02:00:00:00:00:00
+11-23 00:51:36.486  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=59:1E:68:4C:40:EC advertiser=02:00:00:00:00:00
+11-23 00:51:39.531  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=75:C8:45:AE:60:D8 advertiser=02:00:00:00:00:00
+11-23 00:51:42.575  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7A:85:63:74:61:C2 advertiser=02:00:00:00:00:00
+11-23 00:51:45.626  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5D:A5:A5:A1:98:13 advertiser=02:00:00:00:00:00
+11-23 00:51:57.813  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4D:F5:98:6F:BE:E7 advertiser=02:00:00:00:00:00
+11-23 00:52:00.856  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:D9:31:1C:73:31 advertiser=02:00:00:00:00:00
+11-23 00:52:03.912  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6E:3D:25:41:3F:0C advertiser=02:00:00:00:00:00
+11-23 00:52:16.077  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=46:41:6D:4C:AD:66 advertiser=02:00:00:00:00:00
+11-23 00:52:19.124  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:62:32:2D:E4:AB advertiser=02:00:00:00:00:00
+11-23 00:52:31.310  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:EF:43:09:F9:91 advertiser=02:00:00:00:00:00
+11-23 00:52:34.352  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=62:EC:FA:56:9D:10 advertiser=02:00:00:00:00:00
+11-23 00:52:40.444  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=47:D2:60:26:A7:68 advertiser=02:00:00:00:00:00
+11-23 00:52:49.572  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4F:37:AC:E4:33:70 advertiser=02:00:00:00:00:00
+11-23 00:52:54.697  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:53:05.318  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:BD:07:8B:E9:43 advertiser=02:00:00:00:00:00
+11-23 00:53:20.034  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=70:4D:87:E6:CC:1B advertiser=02:00:00:00:00:00
+11-23 00:53:41.826  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4C:A9:53:0B:38:A1 advertiser=02:00:00:00:00:00
+11-23 00:53:55.132  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:53:58.163  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:54:05.654  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6F:F2:D2:18:B9:8F advertiser=02:00:00:00:00:00
+11-23 00:54:08.990  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=48:24:A7:5D:1A:0F advertiser=02:00:00:00:00:00
+11-23 00:54:12.265  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=45:18:E7:70:D0:A1 advertiser=02:00:00:00:00:00
+11-23 00:54:24.194  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:E2:AE:24:42:35 advertiser=02:00:00:00:00:00
+11-23 00:54:33.320  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5F:71:EF:0F:AB:95 advertiser=02:00:00:00:00:00
+11-23 00:54:45.216  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=60:B7:06:DC:98:47 advertiser=02:00:00:00:00:00
+11-23 00:54:48.514  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5A:13:35:93:0A:A4 advertiser=02:00:00:00:00:00
+11-23 00:55:00.421  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5E:95:87:59:E6:EB advertiser=02:00:00:00:00:00
+11-23 00:55:03.718  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=74:00:61:DA:4F:E8 advertiser=02:00:00:00:00:00
+11-23 00:55:15.625  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=51:07:CF:D4:7E:B5 advertiser=02:00:00:00:00:00
+11-23 00:55:22.274  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5E:46:11:8F:35:B9 advertiser=02:00:00:00:00:00
+11-23 00:55:30.838  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=52:7F:CB:07:37:C3 advertiser=02:00:00:00:00:00
+11-23 00:55:46.612  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=44:7E:9E:7C:7A:28 advertiser=02:00:00:00:00:00
+11-23 00:56:01.530  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=58:BB:96:33:07:83 advertiser=02:00:00:00:00:00
+11-23 00:56:02.158  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:56:16.727  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7D:E8:CD:ED:D1:89 advertiser=02:00:00:00:00:00
+11-23 00:56:20.053  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4F:1A:9E:CC:8C:58 advertiser=02:00:00:00:00:00
+11-23 00:56:35.254  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=47:DD:72:B3:81:1C advertiser=02:00:00:00:00:00
+11-23 00:56:47.148  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:8E:B1:29:D7:2C advertiser=02:00:00:00:00:00
+11-23 00:56:50.453  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=53:5D:45:82:BA:FB advertiser=02:00:00:00:00:00
+11-23 00:56:56.614  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:56:59.641  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:57:02.659  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:57:08.193  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5C:6C:1F:7D:65:50 advertiser=02:00:00:00:00:00
+11-23 00:57:08.749  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:57:14.780  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=42:66:D1:05:AA:7E advertiser=02:00:00:00:00:00
+11-23 00:57:20.817  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 00:57:26.678  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5B:C5:94:E6:43:ED advertiser=02:00:00:00:00:00
+11-23 00:57:38.601  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=44:CF:0E:9A:E2:C8 advertiser=02:00:00:00:00:00
+11-23 00:58:02.948  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:50:B4:8F:4A:B2 advertiser=02:00:00:00:00:00
+11-23 00:58:06.234  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=63:89:2D:08:E5:3B advertiser=02:00:00:00:00:00
+11-23 00:58:33.340  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6F:ED:17:F3:13:5C advertiser=02:00:00:00:00:00
+11-23 00:58:39.923  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=68:DE:7C:C7:BA:70 advertiser=02:00:00:00:00:00
+11-23 00:58:48.552  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4C:CF:5F:12:87:95 advertiser=02:00:00:00:00:00
+11-23 00:58:51.889  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7C:9E:F5:41:69:CB advertiser=02:00:00:00:00:00
+11-23 00:59:16.212  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=64:6C:8F:41:8D:F8 advertiser=02:00:00:00:00:00
+11-23 00:59:43.324  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=65:93:E4:F0:69:C3 advertiser=02:00:00:00:00:00
+11-23 01:00:01.810  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6D:48:CE:B5:11:A6 advertiser=02:00:00:00:00:00
+11-23 01:00:07.634  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:92:2E:32:39:81 advertiser=02:00:00:00:00:00
+11-23 01:00:22.868  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=69:D9:E0:FE:0E:77 advertiser=02:00:00:00:00:00
+11-23 01:00:53.293  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=66:4E:46:8D:41:6B advertiser=02:00:00:00:00:00
+11-23 01:00:55.544  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 01:00:56.534  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=62:BE:AA:02:4A:72 advertiser=02:00:00:00:00:00
+11-23 01:00:58.558  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-23 01:01:11.763  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:45:9F:66:F4:9D advertiser=02:00:00:00:00:00
+11-23 01:01:15.047  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6B:2F:D4:19:80:49 advertiser=02:00:00:00:00:00
+11-23 01:01:26.963  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7B:56:6C:EE:D2:A1 advertiser=02:00:00:00:00:00
+11-23 01:01:36.138  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7B:0E:56:32:DB:DE advertiser=02:00:00:00:00:00
+11-23 01:01:51.336  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=45:77:4E:1C:2D:64 advertiser=02:00:00:00:00:00
+11-23 01:02:03.251  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=70:13:45:18:53:96 advertiser=02:00:00:00:00:00
+11-23 01:02:06.538  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:C9:D0:D7:A0:74 advertiser=02:00:00:00:00:00
+11-23 01:02:21.740  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=53:CA:9D:0C:41:98 advertiser=02:00:00:00:00:00
+11-23 01:02:25.019  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=41:55:C1:68:BA:A8 advertiser=02:00:00:00:00:00
+11-23 01:02:55.439  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:6C:33:77:F6:63 advertiser=02:00:00:00:00:00
+11-23 01:03:22.292  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=59:AE:72:D2:68:E7 advertiser=02:00:00:00:00:00
+11-23 01:03:44.075  3912  3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:51:B1:43:91:1E advertiser=02:00:00:00:00:00
+
+=== CORRELACION HUD (summary) ===
+MIN=00 HORA=00:49:09 DEV= HUD=2 HBtx=28 HBrx=0 AdvRx=28 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:49:10.358 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=68:E6:1F:FE:42:13 advertiser=02:00:00:00:00:00
+MIN=01 HORA=00:50:09 DEV= HUD=2 HBtx=24 HBrx=0 AdvRx=22 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:50:11.292 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:A4:12:CC:4A:AD advertiser=02:00:00:00:00:00
+MIN=02 HORA=00:51:09 DEV= HUD=2 HBtx=36 HBrx=0 AdvRx=36 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:51:12.136 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4E:0B:43:5A:56:0F advertiser=02:00:00:00:00:00
+MIN=03 HORA=00:52:09 DEV= HUD=2 HBtx=42 HBrx=0 AdvRx=43 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:52:03.912 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6E:3D:25:41:3F:0C advertiser=02:00:00:00:00:00
+MIN=04 HORA=00:53:08 DEV= HUD=2 HBtx=36 HBrx=0 AdvRx=39 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:53:05.318 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:BD:07:8B:E9:43 advertiser=02:00:00:00:00:00
+MIN=05 HORA=00:54:08 DEV= HUD=2 HBtx=46 HBrx=0 AdvRx=20 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:54:12.265 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=45:18:E7:70:D0:A1 advertiser=02:00:00:00:00:00
+MIN=06 HORA=00:55:09 DEV= HUD=2 HBtx=56 HBrx=0 AdvRx=21 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:55:03.718 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=74:00:61:DA:4F:E8 advertiser=02:00:00:00:00:00
+MIN=07 HORA=00:56:08 DEV= HUD=2 HBtx=58 HBrx=0 AdvRx=22 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:56:01.530 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=58:BB:96:33:07:83 advertiser=02:00:00:00:00:00
+MIN=08 HORA=00:57:08 DEV= HUD=2 HBtx=60 HBrx=0 AdvRx=17 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:57:08.193 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5C:6C:1F:7D:65:50 advertiser=02:00:00:00:00:00
+MIN=09 HORA=00:58:09 DEV= HUD=2 HBtx=48 HBrx=0 AdvRx=8 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:58:06.234 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=63:89:2D:08:E5:3B advertiser=02:00:00:00:00:00
+MIN=10 HORA=00:59:09 DEV= HUD=2 HBtx=62 HBrx=0 AdvRx=12 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 00:58:51.889 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7C:9E:F5:41:69:CB advertiser=02:00:00:00:00:00
+MIN=11 HORA=01:00:08 DEV= HUD=2 HBtx=66 HBrx=0 AdvRx=10 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:00:07.634 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:92:2E:32:39:81 advertiser=02:00:00:00:00:00
+MIN=12 HORA=01:01:08 DEV= HUD=2 HBtx=68 HBrx=0 AdvRx=9 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:01:11.763 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:45:9F:66:F4:9D advertiser=02:00:00:00:00:00
+MIN=13 HORA=01:02:09 DEV= HUD=2 HBtx=66 HBrx=0 AdvRx=10 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:02:06.538 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:C9:D0:D7:A0:74 advertiser=02:00:00:00:00:00
+MIN=14 HORA=01:03:08 DEV= HUD=2 HBtx=60 HBrx=0 AdvRx=8 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:02:55.439 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=67:6C:33:77:F6:63 advertiser=02:00:00:00:00:00
+MIN=15 HORA=01:04:09 DEV= HUD=2 HBtx=50 HBrx=0 AdvRx=7 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:03:44.075 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:51:B1:43:91:1E advertiser=02:00:00:00:00:00
+MIN=16 HORA=01:05:09 DEV= HUD=1 HBtx=62 HBrx=0 AdvRx=10 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real) GATT=11-23 01:04:47.424 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=45:36:85:5B:AE:4C advertiser=02:00:00:00:00:00
+MIN=17 HORA=01:06:08 DEV= HUD=1 HBtx=68 HBrx=0 AdvRx=10 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:06:12.668 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5E:B8:9E:C0:F2:42 advertiser=02:00:00:00:00:00
+MIN=18 HORA=01:07:09 DEV= HUD=2 HBtx=56 HBrx=0 AdvRx=9 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:07:13.999 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=72:6C:01:55:B3:BB advertiser=02:00:00:00:00:00
+MIN=19 HORA=01:08:09 DEV= HUD=2 HBtx=62 HBrx=0 AdvRx=6 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:07:47.024 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=43:6B:F0:A1:72:A9 advertiser=02:00:00:00:00:00
+MIN=20 HORA=01:09:08 DEV= HUD=2 HBtx=68 HBrx=0 AdvRx=6 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:09:06.206 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=76:8F:00:A2:77:36 advertiser=02:00:00:00:00:00
+MIN=21 HORA=01:10:09 DEV= HUD=1 HBtx=70 HBrx=0 AdvRx=4 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real) GATT=11-23 01:09:21.422 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4B:70:AE:A8:F6:6F advertiser=02:00:00:00:00:00
+MIN=22 HORA=01:11:08 DEV= HUD=1 HBtx=60 HBrx=0 AdvRx=4 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:11:10.984 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4E:B7:33:53:82:ED advertiser=02:00:00:00:00:00
+MIN=23 HORA=01:12:08 DEV= HUD=2 HBtx=48 HBrx=0 AdvRx=9 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:11:59.635 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=47:7C:4E:B5:12:F4 advertiser=02:00:00:00:00:00
+MIN=24 HORA=01:13:09 DEV= HUD=2 HBtx=56 HBrx=0 AdvRx=10 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:13:12.878 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=54:E7:26:2D:96:09 advertiser=02:00:00:00:00:00
+MIN=25 HORA=01:14:09 DEV= HUD=2 HBtx=60 HBrx=0 AdvRx=12 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:14:13.682 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5B:44:B9:FC:B0:59 advertiser=02:00:00:00:00:00
+MIN=26 HORA=01:15:08 DEV= HUD=2 HBtx=44 HBrx=0 AdvRx=12 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:15:14.427 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=75:7D:11:E5:CF:E9 advertiser=02:00:00:00:00:00
+MIN=27 HORA=01:16:09 DEV= HUD=2 HBtx=54 HBrx=0 AdvRx=13 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:16:12.469 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=6B:93:B9:6B:E7:DF advertiser=02:00:00:00:00:00
+MIN=28 HORA=01:17:09 DEV= HUD=2 HBtx=50 HBrx=0 AdvRx=8 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:17:07.211 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4E:8A:9A:42:4F:AD advertiser=02:00:00:00:00:00
+MIN=29 HORA=01:18:08 DEV= HUD=2 HBtx=40 HBrx=0 AdvRx=9 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:18:10.571 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=60:94:25:75:2F:3B advertiser=02:00:00:00:00:00
+MIN=30 HORA=01:19:09 DEV= HUD=2 HBtx=60 HBrx=0 AdvRx=17 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:19:08.622 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=50:29:10:EE:5C:70 advertiser=02:00:00:00:00:00
+MIN=31 HORA=01:20:09 DEV= HUD=2 HBtx=64 HBrx=0 AdvRx=13 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:19:42.301 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=44:D1:28:B7:16:E2 advertiser=02:00:00:00:00:00
+MIN=32 HORA=01:21:08 DEV= HUD=2 HBtx=60 HBrx=0 AdvRx=6 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:20:48.938 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7F:16:D9:7D:62:F9 advertiser=02:00:00:00:00:00
+MIN=33 HORA=01:22:08 DEV= HUD=2 HBtx=66 HBrx=0 AdvRx=13 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:22:10.778 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7B:92:6B:73:65:7C advertiser=02:00:00:00:00:00
+MIN=34 HORA=01:23:09 DEV= HUD=2 HBtx=68 HBrx=0 AdvRx=16 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (1 riders conectados en la mesh ┬À BLE Real) GATT=11-23 01:22:59.502 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=5F:78:49:63:BF:6D advertiser=02:00:00:00:00:00
+MIN=35 HORA=01:24:09 DEV= HUD=1 HBtx=64 HBrx=0 AdvRx=9 GattDisc=0 PeerLost=0 Fallback=0 NOTIF=android.text=String (0 riders conectados en la mesh ┬À 1 sin se├▒al ┬À BLE Real) GATT=11-23 01:23:27.326 3912 3912 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=61:95:2C:4C:3E:C1 advertiser=02:00:00:00:00:00
+=== FIN ===

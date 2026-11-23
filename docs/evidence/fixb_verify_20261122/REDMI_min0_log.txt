@@ -1,0 +1,1184 @@
+﻿--------- beginning of main
+11-22 18:48:37.409 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:37.409 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:37.413  1726 30136 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=252630444703327 data 0.000000
+11-22 18:48:37.413 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.414 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.414  2763  2763 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-22 18:48:37.414 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.414 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.415 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.416 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.416  2763  7654 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-22 18:48:37.446 10456 11064 D JavaheapMonitor: Java heap used=14M max=256M, proc: com.miui.daemon
+11-22 18:48:37.446 10456 11064 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:37.489 14580 15100 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-22 18:48:37.492 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetEnabled() - advertiserId=2, enable=false, status=6
+11-22 18:48:37.497 15036 15122 D BtGatt.AdvertiseManager: stopAdvertisingSet() android.os.BinderProxy@85a7dc6
+11-22 18:48:37.498 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:112 Unregister: in shim layer
+11-22 18:48:37.498 15036 15128 I bluetooth_core::gatt::server::isolation_manager: removing server (if any) associated with advertiser AdvertiserId(2)
+11-22 18:48:37.498 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId 2
+11-22 18:48:37.499 14580 14580 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-22 18:48:37.500 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-22 18:48:37.500 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-22 18:48:37.500 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-22 18:48:37.518 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.520 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.520 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.520 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.521 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.522 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.597 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:37.617 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:37.618 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:37.621 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-61, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.621 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.622 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.622 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.623 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.623 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.700 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:37.717 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:37.717 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:37.721 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.722 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.723 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.723 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.724 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.724 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.772  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:37.773  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:37.773  2565  4918 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:37.773  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:37.773  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:37.774  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:37.775  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:37.784  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:37.784  1787  2147 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-22 18:48:37.784  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:37.784  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:37.784  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:37.792  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:37.794  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:37.795  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:37.795  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:37.798  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:37.798 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:37.819  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:37.820  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:37.820  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1140.038696,R:492.516724,G:495.016815,B:260.008820, lux: 39.982147
+11-22 18:48:37.823 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:37.823 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:37.826 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.826 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.826 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.826 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.828 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.828 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.904 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:37.930 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:37.930 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:37.933 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-59, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:37.933 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.933 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.933 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.935 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.936 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:37.986 19890 20999 D JavaheapMonitor: Java heap used=6M max=256M, proc: com.facebook.services
+11-22 18:48:37.987 19890 20999 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:38.012 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.034 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.035 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.037 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.038 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.038 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.038 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.039 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.040 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.116 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.138 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.138 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.141 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.142 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.142 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.142 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.143 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.144 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.219 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.246 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.246 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.249 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-59, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.249 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.249 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.250 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.251 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.252 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.327 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.350 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.351 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.354 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.354 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.354 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.354 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.355 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.356 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.404  1726 30136 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=252631435858379 data 5.000000
+11-22 18:48:38.405  2763  2763 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-22 18:48:38.406  2763  7654 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-22 18:48:38.432 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.503 14580 15100 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-22 18:48:38.503 14580 15100 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+--------- beginning of system
+11-22 18:48:38.518  2763  5838 D ActionExecute: setPkgData uid = 10435 time=8000
+11-22 18:48:38.561 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.562 14580 15097 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+11-22 18:48:38.562 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.564 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-60, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.565 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.565 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.565 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.566 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.567 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.577 16989 17259 D JavaheapMonitor: Java heap used=9M max=256M, proc: com.miui.powerkeeper
+11-22 18:48:38.577 16989 17259 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:38.582 18210 22656 I BleAdvTransport: BleAdvTransport.send burst#=55 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:38.583 18210 22656 D AdvertiseSettings: setTxPowerLevel: 3
+11-22 18:48:38.583 18210 22656 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.583 18210 22656 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:38.583 18210 22656 D BluetoothLeAdvertiser: TxPower == ADVERTISE_TX_POWER_HIGH
+11-22 18:48:38.583 18210 22656 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.584 18210 22656 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:38.588 15036 15122 D BtGatt.AdvertiseManager: startAdvertisingSet() - reg_id=-411, callback: android.os.BinderProxy@dfe1187
+11-22 18:48:38.590 15036 15122 D BtGatt.AdvertiserMap: advertiseInstanceCount is 12
+11-22 18:48:38.590 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:198 StartAdvertisingSet: in shim layer
+11-22 18:48:38.590 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:224 StartAdvertisingSet: create advertising set, client_id:255, reg_id:-411
+11-22 18:48:38.590 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:736 create_extended_advertiser_with_id: Scheduling address rotation for advertiser_id=2
+11-22 18:48:38.591 15036 15088 I bluetooth: system/gd/hci/le_address_manager.cc:576 GetNextPrivateAddressIntervalRange: client=advertising_set_2, nonwake=8m50s, wake=14m7s
+11-22 18:48:38.591 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Scan Response Data
+11-22 18:48:38.591 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Advertising Data
+11-22 18:48:38.591 15036 15088 I bluetooth: Data: 4252595900000000000000000080E04401F4B24A4888 Data Type:   Size: 22
+11-22 18:48:38.591 18210 22656 I RideService: HeartbeatTx rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5 startedAtEpochMs=1795387624314 elapsedSec=94s packetsEmitted=32
+11-22 18:48:38.591 14580 14580 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-22 18:48:38.592 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-22 18:48:38.592 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-22 18:48:38.592 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-22 18:48:38.595 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:2525 on_set_advertising_set_random_address_complete: update random address for advertising set 2 : xx:xx:xx:xx:f3:d6
+11-22 18:48:38.597 15036 18200 I AdapterProperties: getBondedDevices: length=0
+11-22 18:48:38.598 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetStarted() - regId=-411, advertiserId=2, status=0
+11-22 18:48:38.598 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId -411
+11-22 18:48:38.599 18210 18210 I BleAdvTransport: Legacy burst advertise started successfully burst#=55
+11-22 18:48:38.667 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.667 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.667 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.667 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.668 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.669 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.738 18210 22454 I tabikersync.app: Method exceeds compiler instruction limit: 24858 in void com.rutabikersync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, androidx.compose.runtime.Composer, int, int)
+11-22 18:48:38.745 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.770 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.770 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.771  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:38.774 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.774 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.775 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.775 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.780 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.781 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.782  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:38.782  2565  2680 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:38.783  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:38.783  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:38.783  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:38.783  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:38.792  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:38.792  1787  2147 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-22 18:48:38.792  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:38.792  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:38.792  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:38.797  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:38.805  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:38.806  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:38.806  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:38.808  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:38.817  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:38.818  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:38.818  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1150.039062,R:495.016815,G:502.517059,B:257.508728, lux: 41.020580
+11-22 18:48:38.831 12352 12352 W FirebaseRemoteConfig: No value of type 'FirebaseRemoteConfigValue' exists for parameter key 'enable_push_monitor_broadcast'.
+11-22 18:48:38.833  7146  7146 D FocusPlugin: 0|com.rutabikersync.app|3201|null|10435 is not focus notification, isMedia: false
+11-22 18:48:38.834  7146  7146 D AlarmScheduler-fold: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=274231867
+11-22 18:48:38.835  7146  7146 D AlarmScheduler-TIMEOUT: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=511831867
+11-22 18:48:38.835  7146  7146 D MiuiBubbleManager: onEntryUpdated: com.android.systemui.statusbar.notification.collection.NotificationEntry@794b5d2 App
+11-22 18:48:38.851 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:38.852  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:38.854  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:38.857  7146  7146 D EmptyNotif: setContractedChild: 0|com.rutabikersync.app|3201|null|10435  null
+11-22 18:48:38.859  7146  7146 D NotificationRowContentBinderInjectorImpl: changeToFullAodContext: not need change full aod style
+11-22 18:48:38.861  7146  7146 D NotificationHeaderExpandController: onExpansionChanged: progress =  0.0
+11-22 18:48:38.864  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:38.867  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:38.870  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:38.873  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:38.874 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:38.874 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:38.876 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-60, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.876 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.876 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.876 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.877 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.877 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.878  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:38.881  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:38.887  7146  7146 D AlertCoordinator: onViewBound, buzzBeep for 0|com.rutabikersync.app|3201|null|10435
+11-22 18:48:38.898  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:38.899  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:38.918 15036 15103 V ScanController: onScanResult() - eventType=0x1a, addressType=1, address=XX:XX:XX:XX:3A:C1, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-37, periodicAdvInt=0x0, originalAddress=59:89:42:80:3A:C1
+11-22 18:48:38.918 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.919 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.919 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.920 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.921 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.924 18210 18210 I BleAdvTransport: AdvRx bytes=20 head=89,89 rssi=-37
+11-22 18:48:38.983 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-48, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:38.983 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.983 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.983 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.984 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:38.985 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.030 12352 13609 D JavaheapMonitor: Java heap used=10M max=256M, proc: com.xiaomi.xmsf
+11-22 18:48:39.030 12352 13609 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:39.060 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.062 29949 30151 D JavaheapMonitor: Java heap used=14M max=256M, proc: com.miui.msa.global
+11-22 18:48:39.063 29949 30151 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:39.087 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.087 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.091 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.091 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.092 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.092 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.093 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.094 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.163 15036 15103 V ScanController: onScanResult() - eventType=0x1a, addressType=1, address=XX:XX:XX:XX:3A:C1, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-34, periodicAdvInt=0x0, originalAddress=59:89:42:80:3A:C1
+11-22 18:48:39.164 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.164 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.165 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.166 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.167 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.240 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.296 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.296 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.300 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-44, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.300 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.301 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.301 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.302 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.303 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.312 17859 19514 D JavaheapMonitor: Java heap used=3M max=256M, proc: com.miui.analytics
+11-22 18:48:39.312 17859 19514 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:39.378 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.454  1726 28975 I sensors-hal: handle_sns_std_sensor_event:65, light_event: ts=252632483385150, lux: 40.0, extra_info=0 
+11-22 18:48:39.478 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.478 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.482 15036 15103 V ScanController: onScanResult() - eventType=0x1a, addressType=1, address=XX:XX:XX:XX:34:FB, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-34, periodicAdvInt=0x0, originalAddress=7C:1B:96:67:34:FB
+11-22 18:48:39.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.484 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.485 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.488 18210 18210 I BleAdvTransport: AdvRx bytes=20 head=125,-65 rssi=-34
+11-22 18:48:39.489 18210 18210 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=7C:1B:96:67:34:FB advertiser=02:00:00:00:00:00
+11-22 18:48:39.489 18210 18210 I GattVoice: GattVoice startGattServer (gattServer=true)
+11-22 18:48:39.501 15036 15050 I AdapterProperties: getBondedDevices: length=0
+11-22 18:48:39.507 18210 22656 I BleAdvTransport: BleAdvTransport.send burst#=56 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:39.509 15036 15122 D BtGatt.AdvertiseManager: stopAdvertisingSet() android.os.BinderProxy@dfe1187
+11-22 18:48:39.509 18210 22656 D AdvertiseSettings: setTxPowerLevel: 3
+11-22 18:48:39.510 18210 22656 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:39.510 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:112 Unregister: in shim layer
+11-22 18:48:39.510 18210 22656 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:39.510 18210 22656 D BluetoothLeAdvertiser: TxPower == ADVERTISE_TX_POWER_HIGH
+11-22 18:48:39.510 18210 22656 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:39.510 18210 22656 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:39.510 15036 15128 I bluetooth_core::gatt::server::isolation_manager: removing server (if any) associated with advertiser AdvertiserId(2)
+11-22 18:48:39.511 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-47, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.511 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId 2
+11-22 18:48:39.511 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.511 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.511 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.512 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.512 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.515 15036 15122 D BtGatt.AdvertiseManager: startAdvertisingSet() - reg_id=-412, callback: android.os.BinderProxy@3eec8b4
+11-22 18:48:39.516 15036 15122 D BtGatt.AdvertiserMap: advertiseInstanceCount is 12
+11-22 18:48:39.517 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:198 StartAdvertisingSet: in shim layer
+11-22 18:48:39.517 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:224 StartAdvertisingSet: create advertising set, client_id:255, reg_id:-412
+11-22 18:48:39.517 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:736 create_extended_advertiser_with_id: Scheduling address rotation for advertiser_id=2
+11-22 18:48:39.517 15036 15088 I bluetooth: system/gd/hci/le_address_manager.cc:576 GetNextPrivateAddressIntervalRange: client=advertising_set_2, nonwake=8m50s, wake=13m2s
+11-22 18:48:39.517 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Scan Response Data
+11-22 18:48:39.517 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Advertising Data
+11-22 18:48:39.517 15036 15088 I bluetooth: Data: 42527DBF062B248CD80B485D0757F14402030DC32A7C Data Type:   Size: 22
+11-22 18:48:39.523 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:2525 on_set_advertising_set_random_address_complete: update random address for advertising set 2 : xx:xx:xx:xx:9c:77
+11-22 18:48:39.526 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetStarted() - regId=-412, advertiserId=2, status=0
+11-22 18:48:39.526 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId -412
+11-22 18:48:39.532 18210 18210 I BleAdvTransport: Legacy burst advertise started successfully burst#=56
+11-22 18:48:39.606 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.615 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.616 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.619 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.620 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.620 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.620 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.621 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.621 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.697 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.738  7146  7146 D FocusPlugin: 0|com.rutabikersync.app|3201|null|10435 is not focus notification, isMedia: false
+11-22 18:48:39.740  7146  7146 D AlarmScheduler-fold: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=274232772
+11-22 18:48:39.740  7146  7146 D AlarmScheduler-TIMEOUT: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=511832773
+11-22 18:48:39.740  7146  7146 D MiuiBubbleManager: onEntryUpdated: com.android.systemui.statusbar.notification.collection.NotificationEntry@794b5d2 App
+11-22 18:48:39.743 12352 12352 W FirebaseRemoteConfig: No value of type 'FirebaseRemoteConfigValue' exists for parameter key 'enable_push_monitor_broadcast'.
+11-22 18:48:39.757  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:39.760  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:39.763  7146  7146 D EmptyNotif: setContractedChild: 0|com.rutabikersync.app|3201|null|10435  null
+11-22 18:48:39.763  7146  7146 D NotificationRowContentBinderInjectorImpl: changeToFullAodContext: not need change full aod style
+11-22 18:48:39.764  7146  7146 D NotificationHeaderExpandController: onExpansionChanged: progress =  0.0
+11-22 18:48:39.766  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:39.767  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:39.767  2565  4898 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:39.767  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:39.767  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:39.767  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:39.768  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:39.769  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:39.770  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:39.772  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:39.773  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:39.780  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:39.780  1787  2147 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-22 18:48:39.780  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:39.780  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:39.781  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:39.783  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:39.784  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:39.787  7146  7146 D AlertCoordinator: onViewBound, buzzBeep for 0|com.rutabikersync.app|3201|null|10435
+11-22 18:48:39.789  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:39.790  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:39.791  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:39.791  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:39.792  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:39.799  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:39.801  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:39.803  2763  5701 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+11-22 18:48:39.807  2428  2428 I wificond: station_bandwidth: P
+11-22 18:48:39.807  2763  5701 D MiuiWifiCommonBase: band: 1, compensate: 0
+11-22 18:48:39.810  2763  5701 E AmlWifiScoreReportInjector: AmlWifiScoreReportInjector was cleared
+11-22 18:48:39.810  2763  5701 D WifiOptimizationImpl: AmlWifiScoreReportInjector.get() = null, stop reportTxBadOrRetryEvent
+11-22 18:48:39.811  2763  5701 E WifiClientModeImpl[222586014:wlan0]: Failed to get mlo info
+11-22 18:48:39.816  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:39.816  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:39.816  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1150.039062,R:497.516876,G:502.517059,B:260.008820, lux: 40.740761
+11-22 18:48:39.828 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.828 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.831 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-44, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.831 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.831 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.831 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.832 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.833 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.909 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:39.915  2763  5883 I SmartPower: com.google.android.googlequicksearchbox:search/10171(19574): background->idle(3003ms) R(service unbind com.google.android.googlequicksearchbox/com.google.frameworks.client.data.android.server.tiktok.assistant.SearchProcessEndpointService) adj=800.
+11-22 18:48:39.933 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:39.933 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:39.936 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:39.937 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.937 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.937 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.938 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:39.939 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.014 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.038 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.039 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.042 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-56, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.042 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.042 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.043 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.044 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.044 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.119 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.143 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.143 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.146 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-47, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.146 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.146 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.146 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.147 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.148 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.224 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.243  3676  3722 D JavaheapMonitor: Java heap used=53M max=256M, proc: com.google.android.gms
+11-22 18:48:40.243  3676  3722 V JavaheapMonitor: Check java heap usage finished! Next check delay: 180000
+11-22 18:48:40.246 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.246 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.250 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.250 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.250 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.250 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.251 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.252 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.314 17249 18819 D JavaheapMonitor: Java heap used=4M max=256M, proc: com.lbe.security.miui
+11-22 18:48:40.315 17249 18819 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:40.327 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.356 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.357 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.360 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-60, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.360 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.360 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.361 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.362 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.363 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.387  1726 30136 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=252633418628900 data 0.000000
+11-22 18:48:40.388  2763  2763 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-22 18:48:40.388  2763  7654 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-22 18:48:40.438 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.464 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.464 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.467 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-48, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.468 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.468 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.468 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.469 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.470 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.525 14580 15100 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-22 18:48:40.526 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetEnabled() - advertiserId=2, enable=false, status=6
+11-22 18:48:40.531 15036 15122 D BtGatt.AdvertiseManager: stopAdvertisingSet() android.os.BinderProxy@3eec8b4
+11-22 18:48:40.531 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:112 Unregister: in shim layer
+11-22 18:48:40.531 15036 15128 I bluetooth_core::gatt::server::isolation_manager: removing server (if any) associated with advertiser AdvertiserId(2)
+11-22 18:48:40.531 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId 2
+11-22 18:48:40.532 14580 14580 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-22 18:48:40.532 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-22 18:48:40.533 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-22 18:48:40.533 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-22 18:48:40.555  8484  9905 D JavaheapMonitor: Java heap used=5M max=256M, proc: com.google.android.ext.services
+11-22 18:48:40.555  8484  9905 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:40.576 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-42, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.576 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.576 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.577 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.578 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.579 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.654 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.678 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.678 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.681 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-53, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.681 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.681 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.682 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.682 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.683 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.759 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.771  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:40.772  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:40.773  2565  4918 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:40.774  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:40.774  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:40.775  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:40.775  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:40.780 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.780 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.781 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.781 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.782 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.782 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.782 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.782 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.783  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:40.783  1787  2147 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-22 18:48:40.783  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:40.783  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:40.783  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:40.791  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:40.793  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:40.793  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:40.794  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:40.796  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:40.811  2763  4627 D AlarmManager: mBroadcastRefCount -> 1
+11-22 18:48:40.812  2763  4627 I whetstone.activity: Power Event callback listener is empty for resId=128
+11-22 18:48:40.812  2763  4627 D BatteryStatsManagerStub: notifyEvent for resId=128 used 0ms
+11-22 18:48:40.815  2763  2779 E AlarmManager: not align this alarm: Alarm{a03a969 type 3 origWhen 252653844 whenElapsed 252653844 com.google.android.gms}, reason=0
+11-22 18:48:40.817  2763  2779 D AlarmManager: mBroadcastRefCount -> 0
+11-22 18:48:40.818  2763  2779 D AlarmManager: mPendingIntent -> null
+11-22 18:48:40.820  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:40.820  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:40.820  2763  2779 D LocationManagerService: incoming location: Location[network hAcc=100 et=+2d22h10m33s844ms vAcc=100 sAcc=??? bAcc=???]
+11-22 18:48:40.820  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1162.539429,R:500.016968,G:510.017303,B:265.009003, lux: 41.450111
+11-22 18:48:40.821  1699  1699 I LocSvc_GnssInterface: ===> injectLocation line 337 
+11-22 18:48:40.822  1699  1861 I LocSvc_api_v02: ---> locClientSendReq line 2422 QMI_LOC_INJECT_POSITION_REQ_V02
+11-22 18:48:40.823  1699  3128 I LocSvc_ApiV02: <--- globalRespCb line 261 QMI_LOC_INJECT_POSITION_REQ_V02
+11-22 18:48:40.860 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:40.990 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:40.991 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:40.994 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-48, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:40.994 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.995 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.995 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.996 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:40.997 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.071 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.098 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.098 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.102 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.102 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.102 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.102 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.103 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.104 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.180 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.276  6442  7493 D JavaheapMonitor: Java heap used=28M max=512M, proc: com.miui.home
+11-22 18:48:41.277  6442  7493 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:41.312 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.312 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.315 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.316 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.316 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.316 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.317 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.318 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.393 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.422 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.422 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.424 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-44, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.425 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.425 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.425 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.426 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.427 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.504 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.535 14580 15100 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-22 18:48:41.535 14580 15100 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+11-22 18:48:41.621 18210 22515 I BleAdvTransport: BleAdvTransport.send burst#=57 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:41.621 18210 22515 D AdvertiseSettings: setTxPowerLevel: 3
+11-22 18:48:41.621 18210 22515 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:41.622 18210 22515 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:41.622 18210 22515 D BluetoothLeAdvertiser: TxPower == ADVERTISE_TX_POWER_HIGH
+11-22 18:48:41.622 18210 22515 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:41.622 18210 22515 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:41.626 15036 15122 D BtGatt.AdvertiseManager: startAdvertisingSet() - reg_id=-413, callback: android.os.BinderProxy@d0a7cdd
+11-22 18:48:41.628 15036 15122 D BtGatt.AdvertiserMap: advertiseInstanceCount is 12
+11-22 18:48:41.628 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:198 StartAdvertisingSet: in shim layer
+11-22 18:48:41.628 18210 22515 I RideService: HeartbeatTx rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5 startedAtEpochMs=1795387624314 elapsedSec=97s packetsEmitted=33
+11-22 18:48:41.628 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:224 StartAdvertisingSet: create advertising set, client_id:255, reg_id:-413
+11-22 18:48:41.628 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:736 create_extended_advertiser_with_id: Scheduling address rotation for advertiser_id=2
+11-22 18:48:41.629 15036 15088 I bluetooth: system/gd/hci/le_address_manager.cc:576 GetNextPrivateAddressIntervalRange: client=advertising_set_2, nonwake=7m2s, wake=14m36s
+11-22 18:48:41.629 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Scan Response Data
+11-22 18:48:41.629 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Advertising Data
+11-22 18:48:41.629 15036 15088 I bluetooth: Data: 4252595900000000000000000080E0440204BC055292 Data Type:   Size: 22
+11-22 18:48:41.629 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+11-22 18:48:41.629 14580 14580 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-22 18:48:41.630 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-22 18:48:41.630 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-22 18:48:41.630 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-22 18:48:41.630 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.630 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.632 15036 16781 I AdapterProperties: getBondedDevices: length=0
+11-22 18:48:41.632 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:2525 on_set_advertising_set_random_address_complete: update random address for advertising set 2 : xx:xx:xx:xx:fa:d7
+11-22 18:48:41.636 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetStarted() - regId=-413, advertiserId=2, status=0
+11-22 18:48:41.636 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId -413
+11-22 18:48:41.637 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.638 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.638 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.638 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.638 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.638 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.639 18210 18210 I BleAdvTransport: Legacy burst advertise started successfully burst#=57
+11-22 18:48:41.648 18210 22454 I tabikersync.app: Method exceeds compiler instruction limit: 24858 in void com.rutabikersync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, androidx.compose.runtime.Composer, int, int)
+11-22 18:48:41.716 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.740 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.740 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.743 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.743 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.744 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.744 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.745 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.746 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.771  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:41.792  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:41.792  2565  2680 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:41.792  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:41.792  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:41.793  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:41.793  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:41.802  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:41.802  1787  2147 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-22 18:48:41.802  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:41.802  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:41.803  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:41.813  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:41.817  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:41.817  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:41.817  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1167.539673,R:502.517059,G:510.017303,B:267.509094, lux: 41.559959
+11-22 18:48:41.817  2565  4887 I libsensor-displayalgo: ##### the value of lux: 41.450111, cct: 0.000000
+11-22 18:48:41.817  2565  4887 I libsensor-ssccalapi: value of set_lux: 41.450111
+11-22 18:48:41.817  2565  4887 I libsensor-ssccalapi: value of set cct: 0.000000
+11-22 18:48:41.817  2565  4887 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-22 18:48:41.819  2565  4818 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-22 18:48:41.819  2565  4818 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() e5a632f0
+11-22 18:48:41.819  2565  4818 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-22 18:48:41.820  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:41.821  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:41.821  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:41.821 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.822  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:41.823 31779 31779 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:input keyevent 224'
+11-22 18:48:41.844 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.844 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.847  2763  2865 D JavaheapMonitor: Java heap used=171M max=512M, proc: system_server
+11-22 18:48:41.847  2763  2865 V JavaheapMonitor: Check java heap usage finished! Next check delay: 180000
+11-22 18:48:41.847 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-75, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.848 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.848 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.848 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.849 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.850 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.865 12352 12352 W FirebaseRemoteConfig: No value of type 'FirebaseRemoteConfigValue' exists for parameter key 'enable_push_monitor_broadcast'.
+11-22 18:48:41.867  7146  7146 D FocusPlugin: 0|com.rutabikersync.app|3201|null|10435 is not focus notification, isMedia: false
+11-22 18:48:41.869  7146  7146 D AlarmScheduler-fold: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=274234902
+11-22 18:48:41.870  7146  7146 D AlarmScheduler-TIMEOUT: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=511834902
+11-22 18:48:41.870  7146  7146 D MiuiBubbleManager: onEntryUpdated: com.android.systemui.statusbar.notification.collection.NotificationEntry@794b5d2 App
+11-22 18:48:41.873  2763  4218 W MIUIInput: Input key event injection from package: null action ACTION_DOWN keycode 224
+11-22 18:48:41.878  2763  4218 W MiuiInputKeyEventLog: keyCode:224 down:true eventTime:247586247 downTime:247586247 policyFlags:2b000000 flags:0 metaState:0 deviceId:-1 isScreenOn:true keyguardActive:false repeatCount:0
+11-22 18:48:41.879  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:41.879  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:41.880  7146  7146 D EmptyNotif: setContractedChild: 0|com.rutabikersync.app|3201|null|10435  null
+11-22 18:48:41.880  7146  7146 D NotificationRowContentBinderInjectorImpl: changeToFullAodContext: not need change full aod style
+11-22 18:48:41.881  7146  7146 D NotificationHeaderExpandController: onExpansionChanged: progress =  0.0
+11-22 18:48:41.883  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:41.885  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:41.887  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:41.889  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:41.893  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:41.895  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:41.899  8806  9908 D JavaheapMonitor: Java heap used=31M max=256M, proc: com.google.android.inputmethod.latin
+11-22 18:48:41.899  8806  9908 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:41.901  7146  7146 D AlertCoordinator: onViewBound, buzzBeep for 0|com.rutabikersync.app|3201|null|10435
+11-22 18:48:41.907  2763  2804 D MiuiPaperContrastOverlayStubImpl: Update paper-mode, param is true
+11-22 18:48:41.911  2763  4218 W MIUIInput: Input key event injection from package: null action ACTION_UP keycode 224
+11-22 18:48:41.911  2763  4218 W MiuiInputKeyEventLog: keyCode:224 down:false eventTime:247586285 downTime:247586247 policyFlags:2b000000 flags:0 metaState:0 deviceId:-1 isScreenOn:true keyguardActive:false repeatCount:0
+11-22 18:48:41.914  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:41.914  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:41.914  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1172.539795,R:505.017151,G:510.017303,B:265.009003, lux: 42.019054
+11-22 18:48:41.914  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:41.914  2763  2804 D MiuiPaperContrastOverlayStubImpl: Update paper-mode, param is true
+11-22 18:48:41.915  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:41.925 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:41.944 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:41.944 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:41.947 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:41.947 31779 31779 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:uiautomator dump /sdcard/ui_fixb.xml'
+11-22 18:48:41.947 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.947 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.947 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.948 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:41.949 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.025 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.040 23078 23078 W libc    : Access denied finding property "persist.vendor.audio.cpupror.schedDy"
+11-22 18:48:42.034 23078 23078 W app_process: type=1400 audit(0.0:227534): avc:  denied  { read } for  name="u:object_r:vendor_audio_prop:s0" dev="tmpfs" ino=445 scontext=u:r:shell:s0 tcontext=u:object_r:vendor_audio_prop:s0 tclass=file permissive=0
+11-22 18:48:42.051 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.051 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.054 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.054 23078 23078 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-22 18:48:42.054 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.054 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.054 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.055 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.056 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.057 23078 23078 I app_process: MMAP_TRYLOCK is supported in uffd errno:2 addr:0x72844e2000 size:4096
+11-22 18:48:42.058 23078 23078 I AndroidRuntime: Using default boot image
+11-22 18:48:42.058 23078 23078 I AndroidRuntime: Leaving lock profiling enabled
+11-22 18:48:42.060 23078 23078 I app_process: Core platform API enforcement disabled by runtime option
+11-22 18:48:42.061 23078 23078 I app_process: Using generational CollectorTypeCMC GC.
+11-22 18:48:42.112 23078 23078 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+11-22 18:48:42.120 23078 23078 D nativeloader: Load libicu_jni.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:42.120 23078 23078 D app_process: u_setTimeZoneFilesDirectory("/apex/com.android.tzdata/etc/tz/versioned/9/icu") succeeded. 
+11-22 18:48:42.120 23078 23078 D app_process: I18n APEX ICU file found: /apex/com.android.i18n/etc/icu/icudt76l.dat
+11-22 18:48:42.120 23078 23078 D nativeloader: Load libjavacore.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:42.121 23078 23078 D nativeloader: Load libopenjdk.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:42.122 23078 23078 I app_process: Priority-to-niceness mapping: 19, 16, 13, 10, 0, -2, -4, -5, -6, -8
+11-22 18:48:42.132 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.138 23078 23078 W libc    : Access denied finding property "ro.vendor.mtk.hbt_binfmt_misc_support"
+11-22 18:48:42.139 23078 23078 W libc    : Access denied finding property "ro.vendor.mtk.hbt_dyn_type"
+11-22 18:48:42.139 23078 23078 W libc    : Access denied finding property "persist.vendor.mtk.hbt_dyn_type"
+11-22 18:48:42.139 23078 23078 W libc    : Access denied finding property "ro.vendor.mi_fake_32bit_support"
+11-22 18:48:42.150 23078 23078 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+11-22 18:48:42.150 23078 23078 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-22 18:48:42.160 23078 23078 I MessageMonitor: Load libmiui_runtime
+11-22 18:48:42.160 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.160 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.161 23078 23078 D nativeloader: Load libmiui_runtime.so using system ns (caller=/system_ext/framework/miui-framework.jar): ok
+11-22 18:48:42.161 23078 23078 E app_process: register_android_view_SurfaceRuntimeShader  
+11-22 18:48:42.161 23078 23078 E app_process: register_android_view_SurfaceRuntimeShader  0
+11-22 18:48:42.163 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-74, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.163 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.163 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.163 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.163 23078 23078 W PlatformAconfigPackage: android.os.flagging.AconfigStorageReadException: ERROR_CANNOT_READ_STORAGE_FILE: Fail to mmap storage
+11-22 18:48:42.164 23078 23078 I AconfigPackage: com.android.bluetooth.flags is mapped to com.android.bt
+11-22 18:48:42.164 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.164 23078 23078 I AconfigPackage: android.uprobestats.mainline.flags is mapped to com.android.uprobestats
+11-22 18:48:42.164 23078 23078 I AconfigPackage: com.android.healthfitness.flags is mapped to com.android.healthfitness
+11-22 18:48:42.164 23078 23078 I AconfigPackage: com.android.healthfitness.beta is mapped to com.android.healthfitness
+11-22 18:48:42.164 23078 23078 I AconfigPackage: android.provider.flags is mapped to com.android.configinfrastructure
+11-22 18:48:42.164 23078 23078 I AconfigPackage: com.android.server.deviceconfig is mapped to com.android.configinfrastructure
+11-22 18:48:42.165 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.165 23078 23078 I AconfigPackage: android.media.swcodec.flags is mapped to com.android.media.swcodec
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.permissioncontroller.flags is mapped to com.android.permission
+11-22 18:48:42.165 23078 23078 I AconfigPackage: android.net.http is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.tethering.readonly.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: android.net.vcn is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.net.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.tethering.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.tethering.beta.test is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.nearby.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.net.thread.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: android.net.http.flags is mapped to com.android.tethering
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.ipsec.flags is mapped to com.android.ipsec
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.os.statsd.flags is mapped to com.android.os.statsd
+11-22 18:48:42.165 23078 23078 I AconfigPackage: android.os.profiling is mapped to com.android.profiling
+11-22 18:48:42.165 23078 23078 I AconfigPackage: com.android.scheduling.flags is mapped to com.android.scheduling
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.rkpd.flags is mapped to com.android.rkpd
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.uwb.flags is mapped to com.android.uwb
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.ranging.flags is mapped to com.android.uwb
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.system.virtualmachine.flags is mapped to com.android.virt
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.media.extractor.flags is mapped to com.android.media
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.media.metrics.flags is mapped to com.android.media
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.media.mainline.flags is mapped to com.android.media
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.devicelock.flags is mapped to com.android.devicelock
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.appsearch.flags is mapped to com.android.appsearch
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.adbd.flags is mapped to com.android.adbd
+11-22 18:48:42.166 23078 23078 I AconfigPackage: com.android.wifi.flags is mapped to com.android.wifi
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.signature.flags is mapped to com.android.mediaprovider
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.providers.media.flags is mapped to com.android.mediaprovider
+11-22 18:48:42.167 23078 23078 I AconfigPackage: android.graphics.pdf.flags is mapped to com.android.mediaprovider
+11-22 18:48:42.167 23078 23078 I AconfigPackage: android.graphics.pdf.flags.readonly is mapped to com.android.mediaprovider
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.cellbroadcastreceiver.flags is mapped to com.android.cellbroadcast
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.org.conscrypt.flags is mapped to com.android.conscrypt
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.org.conscrypt.net.flags is mapped to com.android.conscrypt
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.adservices.flags is mapped to com.android.adservices
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.sdksandbox.flags is mapped to com.android.adservices
+11-22 18:48:42.167 23078 23078 I AconfigPackage: android.app.sdksandbox.flags is mapped to com.android.adservices
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.adservices.ondevicepersonalization.flags is mapped to com.android.ondevicepersonalization
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.art.flags is mapped to com.android.art
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.art.rw.flags is mapped to com.android.art
+11-22 18:48:42.167 23078 23078 I AconfigPackage: com.android.libcore is mapped to com.android.art
+11-22 18:48:42.168 23078 23078 I AconfigPackage: com.android.icu is mapped to com.android.i18n
+11-22 18:48:42.168 23078 23078 E FeatureFlagsImplExport: android.os.flagging.AconfigStorageReadException: ERROR_PACKAGE_NOT_FOUND: package android.xr cannot be found on the device
+11-22 18:48:42.169 23078 23078 D UiAutomationConnection: Created on user UserHandle{0}
+11-22 18:48:42.169 23078 23078 I UiAutomation: Initialized for user 0 on display 0
+11-22 18:48:42.169 23078 23078 W UiAutomation: Created with deprecatead constructor, assumes DEFAULT_DISPLAY
+11-22 18:48:42.171  2763  4218 D AccessibilityManagerService: changeCurrentUserForTestAutomationIfNeededLocked(0): ignoring because device doesn't support visible background users
+11-22 18:48:42.171  2763  4218 I UiAutomationManager: Registering UiTestAutomationService (id=com.android.server.accessibility/UiAutomation, flags=0x0) when called by user 0
+11-22 18:48:42.171  2763  4218 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-22 18:48:42.178  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:42.178  2565  4898 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:42.178  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:42.178  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:42.179  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:42.180  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:42.182  2763  4218 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-22 18:48:42.183  3676  3676 I A11yMonitor: (REDACTED) Accessibility state change detected by AccessibilityStateChangeListener: %b
+11-22 18:48:42.185  3676 23059 D AudioManager: getMode: mode=0, callApp=com.google.android.gms
+11-22 18:48:42.186  3676 23059 I A11yMonitor: Updating accessibility services baseline [CONTEXT service_id=435 ]
+11-22 18:48:42.189  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:42.189  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:42.189  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:42.189  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:42.191  2763  2763 E AccessibilityStateListenerImpl: MiuiEnhanceTBService is not installed
+11-22 18:48:42.194  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:42.202  2763  2763 D BatterySaverPolicy: accessibility changed to true, updating policy.
+11-22 18:48:42.202  3676  3676 I A11yMonitor: Accessibility services change detected by AccessibilityServicesStateChangeListener. [CONTEXT service_id=435 ]
+11-22 18:48:42.203  2763  2763 D AS.AudioService: Accessibility volume enabled = false
+11-22 18:48:42.203  3676 23059 D AudioManager: getMode: mode=0, callApp=com.google.android.gms
+11-22 18:48:42.204  3676 23059 I A11yMonitor: Updating accessibility services baseline [CONTEXT service_id=435 ]
+11-22 18:48:42.204 19856 19856 I SafetyCenterAccessibilityListener: accessibility event occurred, safety center feature not enabled.
+11-22 18:48:42.205  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:42.205  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:42.205  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:42.206  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:42.215  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:42.215  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:42.215  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1180.040039,R:507.517242,G:512.517395,B:267.509094, lux: 42.386948
+11-22 18:48:42.241 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.264 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.264 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.267 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.268 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.268 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.268 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.269 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.270 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.280 31960 31998 D JavaheapMonitor: Java heap used=3M max=256M, proc: com.miui.misightservice
+11-22 18:48:42.280 31960 31998 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:42.346 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.362  1726 30136 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=252635394233796 data 5.000000
+11-22 18:48:42.363  2763  2763 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-22 18:48:42.363  2763  7654 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-22 18:48:42.372 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.372 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.375 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.375 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.376 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.376 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.377 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.378 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.453 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.480 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.480 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.483 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-73, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.483 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.484 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.485 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.530 15036 15103 V ScanController: onScanResult() - eventType=0x1a, addressType=1, address=XX:XX:XX:XX:96:1D, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-35, periodicAdvInt=0x0, originalAddress=4B:2B:BB:D7:96:1D
+11-22 18:48:42.530 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.530 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.530 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.531 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.532 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.536 18210 18210 I BleAdvTransport: AdvRx bytes=20 head=125,-65 rssi=-35
+11-22 18:48:42.536 18210 18210 I GattVoice: GattVoice role=SERVER localNode=22873 peerNode=32191 peer=4B:2B:BB:D7:96:1D advertiser=02:00:00:00:00:00
+11-22 18:48:42.537 18210 18210 I GattVoice: GattVoice startGattServer (gattServer=true)
+11-22 18:48:42.550 15036 18200 I AdapterProperties: getBondedDevices: length=0
+11-22 18:48:42.556 18210 22515 I BleAdvTransport: BleAdvTransport.send burst#=58 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:42.558 15036 15122 D BtGatt.AdvertiseManager: stopAdvertisingSet() android.os.BinderProxy@d0a7cdd
+11-22 18:48:42.558 18210 22515 D AdvertiseSettings: setTxPowerLevel: 3
+11-22 18:48:42.558 18210 22515 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:42.559 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:112 Unregister: in shim layer
+11-22 18:48:42.559 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId 2
+11-22 18:48:42.559 15036 15128 I bluetooth_core::gatt::server::isolation_manager: removing server (if any) associated with advertiser AdvertiserId(2)
+11-22 18:48:42.560 18210 22515 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:42.560 18210 22515 D BluetoothLeAdvertiser: TxPower == ADVERTISE_TX_POWER_HIGH
+11-22 18:48:42.560 18210 22515 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:42.560 18210 22515 D BluetoothLeAdvertiser:  Total bytes: size:24
+11-22 18:48:42.563 15036 15122 D BtGatt.AdvertiseManager: startAdvertisingSet() - reg_id=-414, callback: android.os.BinderProxy@f70b052
+11-22 18:48:42.564 15036 15122 D BtGatt.AdvertiserMap: advertiseInstanceCount is 12
+11-22 18:48:42.565 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:198 StartAdvertisingSet: in shim layer
+11-22 18:48:42.565 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:224 StartAdvertisingSet: create advertising set, client_id:255, reg_id:-414
+11-22 18:48:42.565 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:736 create_extended_advertiser_with_id: Scheduling address rotation for advertiser_id=2
+11-22 18:48:42.565 15036 15088 I bluetooth: system/gd/hci/le_address_manager.cc:576 GetNextPrivateAddressIntervalRange: client=advertising_set_2, nonwake=7m43s, wake=14m54s
+11-22 18:48:42.565 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Scan Response Data
+11-22 18:48:42.565 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:1688 set_enc_data: Advertising Data
+11-22 18:48:42.565 15036 15088 I bluetooth: Data: 42527DBF062B24CBD80B48FD074FF144021322E95126 Data Type:   Size: 22
+11-22 18:48:42.570 15036 15088 I bluetooth: system/gd/hci/le_advertising_manager.cc:2525 on_set_advertising_set_random_address_complete: update random address for advertising set 2 : xx:xx:xx:xx:ff:9c
+11-22 18:48:42.574 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetStarted() - regId=-414, advertiserId=2, status=0
+11-22 18:48:42.574 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId -414
+11-22 18:48:42.575 18210 18210 I BleAdvTransport: Legacy burst advertise started successfully burst#=58
+11-22 18:48:42.581 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.581 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.581 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.581 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.582 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.582 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.627  1726 28975 I sensors-hal: handle_sns_std_sensor_event:65, light_event: ts=252635656364577, lux: 40.0, extra_info=0 
+11-22 18:48:42.661 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.771  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:42.787  7146  7146 D FocusPlugin: 0|com.rutabikersync.app|3201|null|10435 is not focus notification, isMedia: false
+11-22 18:48:42.788  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:42.788  2565  2673 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:42.788  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:42.788  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:42.788  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:42.789  7146  7146 D AlarmScheduler-fold: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=274235821
+11-22 18:48:42.789 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.789 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.789  7146  7146 D AlarmScheduler-TIMEOUT: addAlarm, key=0|com.rutabikersync.app|3201|null|10435, triggerTime=511835822
+11-22 18:48:42.789  7146  7146 D MiuiBubbleManager: onEntryUpdated: com.android.systemui.statusbar.notification.collection.NotificationEntry@794b5d2 App
+11-22 18:48:42.789 12352 12352 W FirebaseRemoteConfig: No value of type 'FirebaseRemoteConfigValue' exists for parameter key 'enable_push_monitor_broadcast'.
+11-22 18:48:42.790  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:42.791 15036 15103 V ScanController: onScanResult() - eventType=0x1a, addressType=1, address=XX:XX:XX:XX:96:1D, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-35, periodicAdvInt=0x0, originalAddress=4B:2B:BB:D7:96:1D
+11-22 18:48:42.791 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.791 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.791 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.791 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.792 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.793 18210 18210 I BleAdvTransport: AdvRx bytes=20 head=125,-65 rssi=-35
+11-22 18:48:42.797  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:42.798  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:42.798  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:42.798  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:42.799  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:42.799  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:42.799  7146  7146 D EmptyNotif: setContractedChild: 0|com.rutabikersync.app|3201|null|10435  null
+11-22 18:48:42.799  7146  7146 D NotificationRowContentBinderInjectorImpl: changeToFullAodContext: not need change full aod style
+11-22 18:48:42.800  7146  7146 D NotificationHeaderExpandController: onExpansionChanged: progress =  0.0
+11-22 18:48:42.801  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:42.803  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:42.804  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:42.805  7146  8170 D HWUI    : ImageDecoder_nDecodeBitmap: width = 72, height = 72, encodedFormat = 4
+11-22 18:48:42.807  7146  8170 W HWUI    : Image decoding logging dropped!
+11-22 18:48:42.812  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:42.814  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:42.814  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:42.815  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:42.815  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:42.816  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:42.817  2763  2949 D AurogonBandwidthController: skinTemperature:34.793
+11-22 18:48:42.818  2763  2949 D AurogonBandwidthController: skinTemperature:34.793
+11-22 18:48:42.819  2763  5701 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+11-22 18:48:42.820  7146  7146 D AlertCoordinator: onViewBound, buzzBeep for 0|com.rutabikersync.app|3201|null|10435
+11-22 18:48:42.821  2428  2428 I wificond: station_bandwidth: P
+11-22 18:48:42.821  2763  5701 D MiuiWifiCommonBase: band: 1, compensate: 0
+11-22 18:48:42.826  2763  5701 E AmlWifiScoreReportInjector: AmlWifiScoreReportInjector was cleared
+11-22 18:48:42.826  2763  5701 D WifiOptimizationImpl: AmlWifiScoreReportInjector.get() = null, stop reportTxBadOrRetryEvent
+11-22 18:48:42.827  2763  5701 E WifiClientModeImpl[222586014:wlan0]: Failed to get mlo info
+11-22 18:48:42.827  2763  7263 I NetworkBoostStatusManager: handle: 102
+11-22 18:48:42.827  2763  7263 I NetworkBoostStatusManager: interfaceOnCapabilitiesChanged interface name:wlan0
+11-22 18:48:42.830  6887  8594 D QCNEJ/NativeHalConnector: -> SND notifyDefaultNetworkChanged(1)
+11-22 18:48:42.831  7061  7061 D QtiLinkBandwidthEstimator-1: handleMessage: 4
+11-22 18:48:42.831  7061  7061 D QtiLinkBandwidthEstimator-0: handleMessage: 4
+11-22 18:48:42.831  7061  9705 W Settings: Setting airplane_mode_on has moved from android.provider.Settings.System to android.provider.Settings.Global, returning read-only value.
+11-22 18:48:42.835 17017 17466 W Settings: Setting device_provisioned has moved from android.provider.Settings.Secure to android.provider.Settings.Global.
+11-22 18:48:42.835 17017 17466 I JoyoseCloudControlManager3: network metered changed, network metered: false, deviceProvisioned: true, scAllowConn: true, try to setNetworkAccessEnabled: true
+11-22 18:48:42.836 23597 23855 I NetBusNetworkMonitor: onCapabilitiesChanged Cellular
+11-22 18:48:42.837  7609 23713 I IDMManager: onCapabilitiesChanged: network is 337
+11-22 18:48:42.837  3676  3743 I NullBinder: NullBinder for android.net.action.RECOMMEND_NETWORKS triggering remote TransactionTooLargeException due to Service without Chimera impl, calling uid: 1000, calling pid: 0
+11-22 18:48:42.837  3676  3743 W gle.android.gms: Large reply transaction of 1056768 bytes, interface descriptor , code 1
+11-22 18:48:42.837  7609 23713 I IDMManager: network is not MiuiCarSoftAp
+11-22 18:48:42.837  7146  7146 I ClockDeviceConfig: get bounds = Rect(0, 0 - 1220, 2712)
+11-22 18:48:42.837 23597 23855 I NetBusNetworkMonitor: onCapabilitiesChanged WIFI isPrimary = true
+11-22 18:48:42.838  7146  7146 D DeviceCenterCardController: onGlobalLayout
+11-22 18:48:42.839 23597 23855 I NetBusNetworkMonitor: gateway=192.$)+.$.1
+11-22 18:48:42.845  3676  3743 I NullBinder: NullBinder for android.net.action.RECOMMEND_NETWORKS triggering remote TransactionTooLargeException due to Service without Chimera impl, calling uid: 1000, calling pid: 0
+11-22 18:48:42.845  3676  3743 W gle.android.gms: Large reply transaction of 1056768 bytes, interface descriptor , code 1
+11-22 18:48:42.846  3676  3676 I MagicTether: (REDACTED) [ActiveNetworkTracker] setActiveNetwork: %s
+11-22 18:48:42.847  3676  3676 I MagicTether: (REDACTED) [TetherService] onActiveNetworkChanged: network=%s isLost=%s
+11-22 18:48:42.847  2763  5735 D ConnectivityService: NetReassign [no changes] [c 0] [a 1] [i 0]
+11-22 18:48:42.847 23597 23855 I NetBusNetworkMonitor: addConnectNetworkInterface mediumType:256, detail:NetworkDetailInfo{mIsConnected=false, mIsSupportTdls=true, mNetworkType=0, mIpAddress=192.$)+.$.136, mIfName=wlan0, mGateway=192.$)+.$.1, mNetmask=255.%((.%((.0, mSsid=L**Hz}
+11-22 18:48:42.848 23597 23855 I NetBusNetworkMonitor: onCapabilitiesChanged WIFI handle=1450809675789, mediumType=256, ifName=wlan0
+11-22 18:48:42.848  3676 23011 I MagicTether: [WifiConnectionHandler] Ignoring getWifiConfigurationByNetworkId when checking connected state [CONTEXT service_id=276 ]
+11-22 18:48:42.848  3676 23011 I MagicTether: [WifiConnectionHandler] No networkId set, can't be connected. [CONTEXT service_id=276 ]
+11-22 18:48:42.849  3676 23011 I MagicTether: (REDACTED) [TetherService] TRANSPORT_CELLULAR [%s], TRANSPORT_ETHERNET [%s], TRANSPORT_WIFI [%s]
+11-22 18:48:42.849  3676 23011 I MagicTether: (REDACTED) [TetherService] setRoles hasActiveNetworkConnection=%s canActiveNetworkBeTethered=%s isConnectedToInstantTether=%s isWifiEnabled=%s isHosting=%s
+11-22 18:48:42.849 25395 25674 I dywu    : Connection state change: onCapabilitiesChanged, data connection: WIFI, manual connection eligibility: false, ntn roaming: false
+11-22 18:48:42.850  3676 23055 I NearbyMediums: Wifi changed new SSID: "Linksys00235_5GHz"
+11-22 18:48:42.850  3676 23055 I NearbyMediums: WifiLanConnectivityInfo is not changed, skip notify.
+11-22 18:48:42.850 25395 25674 I dywu    : New default data network: wifi
+11-22 18:48:42.852  3676  3676 I MagicTether: (REDACTED) [LaunchUtils] Instant Wifi for status account: name: %s | type: %s | isLaunched: %s
+11-22 18:48:42.853  3676  3676 I MagicTether: (REDACTED) [TidepoolFeatureStatusManager] isInstantHotspotEnabled=%s
+11-22 18:48:42.853  3676  3676 I MagicTether: (REDACTED) [TidepoolFeatureStatusManager] isInstantWifiEnabled=%s
+11-22 18:48:42.853  3676  3676 I MagicTether: (REDACTED) [TetherService] startNearbyClientRole: start: %s isInstantHotspotEnabled: %s isInstantWifiEnabled: %s
+11-22 18:48:42.853  3676  3676 I MagicTether: [TetherService] Stopping Nearby client role [CONTEXT service_id=276 ]
+11-22 18:48:42.853  3676  3676 I MagicTether: [ClientTetherRole] Client role already stopped [CONTEXT service_id=276 ]
+11-22 18:48:42.854  3676  3676 I MagicTether: (REDACTED) [LaunchUtils] Instant Wifi for status account: name: %s | type: %s | isLaunched: %s
+11-22 18:48:42.854  3676  3676 I MagicTether: (REDACTED) [TidepoolFeatureStatusManager] isInstantHotspotEnabled=%s
+11-22 18:48:42.854  3676  3676 I MagicTether: (REDACTED) [TidepoolFeatureStatusManager] isInstantWifiEnabled=%s
+11-22 18:48:42.854  3676  3676 I MagicTether: (REDACTED) [TetherService] startNearbyHostRole: start: %s isInstantHotspotEnabled: %s isInstantWifiEnabled: %s
+11-22 18:48:42.854  3676  3676 I MagicTether: (REDACTED) [TidepoolFeatureStatusManager] isInstantHotspotEnabled=%s
+11-22 18:48:42.854  3676  3676 I MagicTether: [HostTetherRole] Nearby host role already started [CONTEXT service_id=276 ]
+11-22 18:48:42.870 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.884 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.884 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.887 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.887 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.887 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.887 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.888 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.889 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.920  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:42.920  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:42.920  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1167.539673,R:502.517059,G:507.517242,B:262.508911, lux: 41.846004
+11-22 18:48:42.965 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:42.991 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:42.991 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:42.994 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-68, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:42.995 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.995 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.995 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.996 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:42.997 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.072 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.092 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.092 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.095 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-50, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.095 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.095 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.095 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.096 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.097 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.173 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.194 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.194 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.197 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.197 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.198 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.198 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.199 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.200 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.209 23078 23078 W libc    : Access denied finding property "qemu.sf.lcd_density"
+11-22 18:48:43.202 23078 23078 W uiautomator: type=1400 audit(0.0:227535): avc:  denied  { read } for  name="u:object_r:qemu_sf_lcd_density_prop:s0" dev="tmpfs" ino=355 scontext=u:r:shell:s0 tcontext=u:object_r:qemu_sf_lcd_density_prop:s0 tclass=file permissive=0
+11-22 18:48:43.202 23078 23078 W uiautomator: type=1400 audit(0.0:227536): avc:  denied  { read } for  name="u:object_r:qemu_sf_lcd_density_prop:s0" dev="tmpfs" ino=355 scontext=u:r:shell:s0 tcontext=u:object_r:qemu_sf_lcd_density_prop:s0 tclass=file permissive=0
+11-22 18:48:43.226 10342 10754 W MediaProvider: isAppCloneUserPair for user 0: false
+11-22 18:48:43.253 18210 18210 W BpBinder: Large outgoing transaction of 21148 bytes, interface descriptor android.view.accessibility.IAccessibilityInteractionConnectionCallback, code 3 was sent
+11-22 18:48:43.261  2763  8416 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.270  2763  8416 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.273  2763  8416 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.275 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.278  2763 10639 E AlarmManager: not align this alarm: Alarm{f2e6805 type 3 origWhen 254762900 whenElapsed 254762900 com.google.android.gms}, reason=0
+11-22 18:48:43.290  3676 23011 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+11-22 18:48:43.291  3676 23011 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+11-22 18:48:43.294  2763 10639 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.296  2763  8075 I ActivityManager: unbindService com.android.server.am.ActiveServices@d0bac7f conn=android.os.BinderProxy@395d4e callingPid=3676
+11-22 18:48:43.296 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.296 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.299  3676 23011 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+11-22 18:48:43.299 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-62, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.300 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.300 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.300 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.301 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.301 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.309  2763  8075 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.316  2763  8416 E AlarmManager: not align this alarm: Alarm{bce115f type 3 origWhen 254762900 whenElapsed 254762900 com.google.android.gms}, reason=0
+11-22 18:48:43.323 23078 23078 W AccessibilityNodeInfoDumper: Fetch time: 107ms
+11-22 18:48:43.324  2763  8416 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.324  2763  7394 I ActivityManager: unbindService com.android.server.am.ActiveServices@d0bac7f conn=android.os.BinderProxy@352005a callingPid=3676
+11-22 18:48:43.325  3676 23011 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+11-22 18:48:43.326  2763  8075 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+11-22 18:48:43.326  2763  8075 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+11-22 18:48:43.328  2763  8075 D Aurogon :  packageName = com.google.android.gms isAllowWakeUpList 
+11-22 18:48:43.332  2763  2763 E AccessibilityStateListenerImpl: MiuiEnhanceTBService is not installed
+11-22 18:48:43.332 23078 23078 D AndroidRuntime: callMain: return with no error.
+11-22 18:48:43.332 23078 23078 D AndroidRuntime: Shutting down VM
+11-22 18:48:43.333 23078 23087 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+11-22 18:48:43.333 23078 23089 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+11-22 18:48:43.333 23078 23093 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+11-22 18:48:43.334  3676  3676 I A11yMonitor: (REDACTED) Accessibility state change detected by AccessibilityStateChangeListener: %b
+11-22 18:48:43.335  2763  2763 D BatterySaverPolicy: accessibility changed to false, updating policy.
+11-22 18:48:43.335  3676 23061 D AudioManager: getMode: mode=0, callApp=com.google.android.gms
+11-22 18:48:43.335  3676 23061 I A11yMonitor: Updating accessibility services baseline [CONTEXT service_id=435 ]
+11-22 18:48:43.339  2763  7394 E AlarmManager: not align this alarm: Alarm{df25c75 type 3 origWhen 254762900 whenElapsed 254762900 com.google.android.gms}, reason=0
+11-22 18:48:43.339  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:43.340  2565  4918 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:43.340  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:43.340  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:43.341  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:43.341  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:43.342  3676 23055 I NearbySharing: Network state changed: NetworkState(isRestricted=false, isOnline=true, isCongested=false, isMetered=false, isWifiConnected=true)
+11-22 18:48:43.350  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:43.350  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:43.350  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:43.350  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:43.357  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:43.361  1726 30136 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=252636393040410 data 0.000000
+11-22 18:48:43.362  2763  2763 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-22 18:48:43.362  2763  7654 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-22 18:48:43.366  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:43.366  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:43.366  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:43.368  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:43.377 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.402 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.402 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.405 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-49, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.406 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.406 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.406 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.407 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.408 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.416  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:43.417  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:43.417  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1155.039185,R:502.517059,G:505.017151,B:260.008820, lux: 40.983261
+11-22 18:48:43.483 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.483  7146  7694 D JavaheapMonitor: Java heap used=98M max=256M, proc: com.android.systemui
+11-22 18:48:43.483  7146  7694 V JavaheapMonitor: Check java heap usage finished! Next check delay: 180000
+11-22 18:48:43.510 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.510 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.513 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.514 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.514 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.514 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.515 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.516 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.572 14580 15100 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-22 18:48:43.575 15036 15122 D BtGatt.AdvertiseManager: onAdvertisingSetEnabled() - advertiserId=2, enable=false, status=6
+11-22 18:48:43.581 15036 15122 D BtGatt.AdvertiseManager: stopAdvertisingSet() android.os.BinderProxy@f70b052
+11-22 18:48:43.581 15036 15122 I bt_shim_advertiser: system/main/shim/le_advertising_manager.cc:112 Unregister: in shim layer
+11-22 18:48:43.582 15036 15128 I bluetooth_core::gatt::server::isolation_manager: removing server (if any) associated with advertiser AdvertiserId(2)
+11-22 18:48:43.582 15036 15122 I BtGatt.AdvertiseManager: findAdvertiser2() - advertiserId 2
+11-22 18:48:43.582 14580 14580 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-22 18:48:43.583 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-22 18:48:43.583 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-22 18:48:43.584 14580 14580 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-22 18:48:43.619 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-64, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.619 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.619 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.619 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.620 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.620 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.696 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.755 18210 22454 I tabikersync.app: Method exceeds compiler instruction limit: 24858 in void com.rutabikersync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, androidx.compose.runtime.Composer, int, int)
+11-22 18:48:43.771  1699  1828 E LocSvc_GnssAdapter: 0 !!!! is mRecordLoseCount  sv report
+11-22 18:48:43.791  1787  2310 I vendor.qti.hardware.display.composer-service: FrameNotifyProcess Sensor: notify citsensorservice to trigger cwb
+11-22 18:48:43.791  2565  2680 I libcitsensorservice@2.0-impl: msg_transfer
+11-22 18:48:43.791  2565  4881 I libsensor-parseRGB: request dump start
+11-22 18:48:43.791  2565  4881 D vendor.xiaomi.sensor.citsensorservice@2.0-service: handle id:22 wxh:1280x2712 uwxuh:1220x2712 size: 10416128 fd:15 fd_meta:16 flags:0x4000228 usage:0x33  format:0x3 layer_count: 1 reserved_size = 0
+11-22 18:48:43.791  1787  2147 D SDM     : HWCSession::SetCWBOutputBuffer: CWB config passed by cwb_client : tappoint 1  CWB_ROI : (817.000000 7.000000 978.000000 128.000000)
+11-22 18:48:43.792  1787  4891 D SDM     : HWCSession::ProcessRequests: Successfully configured CWB buffer.
+11-22 18:48:43.801  1787  4891 D SDM     : HWCSession::ProcessRequests: Pushing release fence in fenece wait queue.
+11-22 18:48:43.801  1787  4891 D SDM     : HWCSession::ProcessRequests: Creating AsyncFenceWaits async thread.
+11-22 18:48:43.801  1787  4891 D SDM     : HWCSession::ProcessRequests: Remove current CWB request from the pending request queue.
+11-22 18:48:43.801  1787  4891 D SDM     : HWCSession::ProcessRequests: No pending cwb requests found in the queue.
+11-22 18:48:43.808  1787  2009 D SDM     : HWDeviceDRM::SetupConcurrentWriteback: Tear down the Concurrent Writeback topology
+11-22 18:48:43.817  1787  4894 D SDM     : HWCSession::NotifyCWBStatus: Notify the client about buffer status 0.
+11-22 18:48:43.818  1787  4894 D SDM     : HWCSession::PerformFenceWaits: Remove current release fence from the pending fence wait queue.
+11-22 18:48:43.818  1787  4894 D SDM     : HWCSession::PerformFenceWaits: CWB fence queue is empty. No pending release fence to wait on.
+11-22 18:48:43.820  2565  4882 D libsensor-parseRGB: the value of RGB [1041.177239 1041.394733 1067.485411 1109.682242 1109.682242 1135.505401 1479.994307 1480.137784 1497.244832 918.888002 918.888002 948.932867]
+11-22 18:48:43.831 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.831 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.834 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.834 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.834 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.835 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.836 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.836 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.913 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:43.922  2565  4887 I libsensor-displayalgo: the value of channelCali C:441.927956,R:228.890248,G:156.413210,B:89.762269,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-22 18:48:43.922  2565  4887 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-22 18:48:43.922  2565  4887 D libsensor-displayalgo: brightness:342.000000,R:1041.177239,G:1041.394733,B:1067.485411,EVENT C:1152.539185,R:497.516876,G:497.516876,B:260.008820, lux: 40.809143
+11-22 18:48:43.936 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:43.936 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:43.939 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-75, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:43.939 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.939 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.939 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.940 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:43.942 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.016 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:44.037 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:44.037 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:44.040 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-50, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:44.041 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.041 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.041 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.042 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.043 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.069 10395 12058 D JavaheapMonitor: Java heap used=15M max=512M, proc: com.google.android.googlequicksearchbox:interactor
+11-22 18:48:44.069 10395 12058 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:44.089  7061  7447 D JavaheapMonitor: Java heap used=30M max=256M, proc: com.android.phone
+11-22 18:48:44.089  7061  7447 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-22 18:48:44.118 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:44.147 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:44.147 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:44.149 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-43, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:44.149 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.149 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.150 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.150 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.151 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.177 23078 23078 I app_process: hook_module_exit libgui_unisoc_utils.so over, handle:0x0
+11-22 18:48:44.216 31779 31779 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:cat /sdcard/ui_fixb.xml'
+11-22 18:48:44.227 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-22 18:48:44.256 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-22 18:48:44.256 14580 15097 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-22 18:48:44.260 15036 15103 V ScanController: onScanResult() - eventType=0x10, addressType=1, address=XX:XX:XX:XX:01:3F, primaryPhy=1, secondaryPhy=0, advertisingSid=0xff, txPower=127, rssi=-60, periodicAdvInt=0x0, originalAddress=3C:D7:BD:C7:01:3F
+11-22 18:48:44.260 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.260 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.260 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.261 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.261 15036 15103 V ScanController: Skipping client: permission=true matches=false
+11-22 18:48:44.283 31779 31779 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color:export ANDROID_LOG_TAGS=''; exec logcat '-d' '-t' '8000''

@@ -49,10 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -319,50 +316,15 @@ class RideSessionController(
                 "RideService",
                 "RideLifecycleEventRx recibido por BLE Mesh: from=${incoming.senderShortId} event=${incoming.event.name}"
             )
-            // 1. Tono audible diferenciado en el casco inmediatamente
+            // 1. Tono audible diferenciado en el casco (tupla única del catálogo P1/T2)
             when (incoming.event) {
-                MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND -> {
+                MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND ->
                     com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(false)
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_BEEP,
-                        pulseCount = 2,
-                        pulseDurationMs = 150L,
-                        gapMs = 80L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_ACK,
-                        pulseCount = 1,
-                        pulseDurationMs = 400L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.START_RETURN -> {
+                MeshRelayEngine.RideLifecycleEvent.START_RETURN ->
                     com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(true)
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_BEEP2,
-                        pulseCount = 3,
-                        pulseDurationMs = 120L,
-                        gapMs = 80L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_PROMPT,
-                        pulseCount = 2,
-                        pulseDurationMs = 200L,
-                        gapMs = 100L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.SAFE_HOME -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_ACK,
-                        pulseCount = 2,
-                        pulseDurationMs = 250L,
-                        gapMs = 100L
-                    )
-                }
+                else -> Unit
             }
+            com.rutabikersync.app.core.audio.ConvoySignalToneCatalog.playLifecycle(incoming.event)
             // 2. Notificar al canal estático de RideService para la UI
             RideService.notifyIncomingRideLifecycleEvent(incoming)
         }
@@ -1321,26 +1283,18 @@ class RideService : Service() {
         @Volatile
         var globalLastPacketsCsv: String? = null
 
-        private val _incomingConvoySignals = MutableSharedFlow<MeshRelayEngine.IncomingConvoySignal>(
-            replay = 1,
-            extraBufferCapacity = 64,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-        val incomingConvoySignals: SharedFlow<MeshRelayEngine.IncomingConvoySignal> = _incomingConvoySignals.asSharedFlow()
+        private val incomingConvoySignalBus = NonReplayingEventBus<MeshRelayEngine.IncomingConvoySignal>()
+        val incomingConvoySignals: SharedFlow<MeshRelayEngine.IncomingConvoySignal> = incomingConvoySignalBus.events
 
         internal fun notifyIncomingConvoySignal(incoming: MeshRelayEngine.IncomingConvoySignal) {
-            _incomingConvoySignals.tryEmit(incoming)
+            incomingConvoySignalBus.publish(incoming)
         }
 
-        private val _incomingRideLifecycleEvents = MutableSharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent>(
-            replay = 1,
-            extraBufferCapacity = 64,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-        val incomingRideLifecycleEvents: SharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent> = _incomingRideLifecycleEvents.asSharedFlow()
+        private val incomingRideLifecycleEventBus = NonReplayingEventBus<MeshRelayEngine.IncomingRideLifecycleEvent>()
+        val incomingRideLifecycleEvents: SharedFlow<MeshRelayEngine.IncomingRideLifecycleEvent> = incomingRideLifecycleEventBus.events
 
         internal fun notifyIncomingRideLifecycleEvent(incoming: MeshRelayEngine.IncomingRideLifecycleEvent) {
-            _incomingRideLifecycleEvents.tryEmit(incoming)
+            incomingRideLifecycleEventBus.publish(incoming)
         }
 
         @Volatile
@@ -1445,48 +1399,13 @@ class RideService : Service() {
                 return false
             }
             when (event) {
-                MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND -> {
+                MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND ->
                     com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(false)
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_BEEP,
-                        pulseCount = 2,
-                        pulseDurationMs = 150L,
-                        gapMs = 80L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_ACK,
-                        pulseCount = 1,
-                        pulseDurationMs = 400L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.START_RETURN -> {
+                MeshRelayEngine.RideLifecycleEvent.START_RETURN ->
                     com.rutabikersync.app.feature.routes.RideScheduleRepository.setReturnPhase(true)
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_BEEP2,
-                        pulseCount = 3,
-                        pulseDurationMs = 120L,
-                        gapMs = 80L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_PROMPT,
-                        pulseCount = 2,
-                        pulseDurationMs = 200L,
-                        gapMs = 100L
-                    )
-                }
-                MeshRelayEngine.RideLifecycleEvent.SAFE_HOME -> {
-                    com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playPattern(
-                        android.media.ToneGenerator.TONE_PROP_ACK,
-                        pulseCount = 2,
-                        pulseDurationMs = 250L,
-                        gapMs = 100L
-                    )
-                }
+                else -> Unit
             }
+            com.rutabikersync.app.core.audio.ConvoySignalToneCatalog.playLifecycle(event)
             val packet = engine.emitRideLifecycleEvent(event)
             android.util.Log.i("RideService", "RideLifecycleEventTx emitido por malla: event=${event.name} code=${event.code}")
             return true
@@ -1800,7 +1719,7 @@ class RideService : Service() {
     suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState {
         val current = _sharedState.value
         if (current.lifecycleState != RideLifecycleState.RUNNING) return current
-        val rideId = current.rideId ?: "ride-live-01"
+        val rideId = current.rideId ?: PilotRideConfig.rideId
         val shortId = current.localShortId
         val expected = current.expectedPeerShortIds.map { it.toUShort() }.toSet()
         val isSim = current.isUsingSimulatedTransport
@@ -1827,6 +1746,8 @@ class RideService : Service() {
     override fun onDestroy() {
         instance = null
         com.rutabikersync.app.core.audio.SosToneHub.stopAll()
+        // P1/T3: el hub se libera al cerrar la rodada; el próximo sonido lo reconstruye.
+        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.release()
         autoFallbackJob?.cancel()
         autoFallbackJob = null
         runCatching {

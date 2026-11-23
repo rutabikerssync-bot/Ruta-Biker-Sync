@@ -1,0 +1,37 @@
+﻿=== P1 AUDIO - HARDWARE VERIFY 6s - 2026-11-22 ===
+START: 2026-11-22 21:14:46
+APK: HEAD c6fb852 (P1 + 6000 ms message tones + indefinite SOS), standardDebug
+Devices: TECNO 098813734B105395 / Redmi b2c398bb; real ride 2de260aa-3e24-493b-b9b8-0846366ba1c5
+Criterion: each message tone emits ToneOn patterns totaling 6000 ms and distinct; SOS keeps looping.
+BOOT TECNO: hub initialized=0
+BOOT REDMI: hub initialized=0
+SIGNAL OBSTACLE TECNO: ToneOn=[toneType=26 durationMs=6000 result=true stream=4] RX=[]
+SIGNAL OBSTACLE REDMI: ToneOn=[] RX=[]
+SIGNAL REDUCE_SPEED TECNO: ToneOn=[toneType=28 durationMs=2900 result=true stream=4 ; toneType=28 durationMs=2900 result=true stream=4] RX=[]
+SIGNAL REDUCE_SPEED REDMI: ToneOn=[toneType=28 durationMs=2900 result=true stream=4] RX=[]
+SIGNAL REGROUP TECNO: ToneOn=[toneType=24 durationMs=2800 result=true stream=4 ; toneType=24 durationMs=2800 result=true stream=4] RX=[]
+SIGNAL REGROUP REDMI: ToneOn=[] RX=[]
+SIGNAL GAS_STOP TECNO: ToneOn=[toneType=25 durationMs=6000 result=true stream=4] RX=[]
+SIGNAL GAS_STOP REDMI: ToneOn=[toneType=25 durationMs=6000 result=true stream=4] RX=[recibido por BLE Mesh: from=32191 kind=GAS_STOP ; recibido de Piloto #32191 por malla: GAS_STOP]
+SIGNAL POLICE_CHECKPOINT TECNO: ToneOn=[toneType=27 durationMs=1900 result=true stream=4 ; toneType=27 durationMs=1900 result=true stream=4 ; toneType=27 durationMs=1900 result=true stream=4] RX=[]
+SIGNAL POLICE_CHECKPOINT REDMI: ToneOn=[toneType=27 durationMs=1900 result=true stream=4 ; toneType=27 durationMs=1900 result=true stream=4 ; toneType=27 durationMs=1900 result=true stream=4] RX=[recibido por BLE Mesh: from=32191 kind=POLICE_CHECKPOINT ; recibido de Piloto #32191 por malla: POLICE_CHECKPOINT]
+SOS TECNO: starts=0 pulses=0 (loop while active)
+SOS REDMI: starts=0 pulses=0 (loop while active)
+RELEASE TECNO: hub released=0
+RELEASE REDMI: hub released=0
+=== END PROTOCOL ===
+
+=== VERIFICACION ENFOCADA POSTERIOR (logcat en vivo por tag) ===
+BOOT TECNO: ConvoySignalAudioHub "hub inicializado con alcance de aplicacion" en App.onCreate (TECNO_hub_boot_live.txt)
+BOOT REDMI: mismo rastro en arranque de la aplicacion
+SOS TECNO: "SosTone START request" + multiples ciclos Morse · — · durante 13 s (TECNO_SOS_live.txt)
+SOS REDMI: "SOS RECIBIDO POR MESH" de Piloto #32191 y reproduccion del mismo tono
+RELEASE TECNO: "SosTone STOP immediate" -> "ConvoySignalAudioHub: hub liberado (ToneGenerator release)"; dumpsys sin RideService (TECNO_release_live.txt)
+RELEASE REDMI: misma secuencia (REDMI_release_live.txt)
+RETRY senales que no cruzaron en la primera pasada (PLR 54.1% / 38.3%), con Redmi reincorporado a la rodada:
+  OBSTACLE:     TECNO NACK 1x6000     -> REDMI ToneOn toneType=26 durationMs=6000  (RETRY3_OBSTACLE_REDMI_live.txt)
+  REDUCE_SPEED: TECNO BEEP2 2x2900/200 -> REDMI ToneOn toneType=28 durationMs=2900 x2 (RETRY3_REDUCE_SPEED_REDMI_live.txt)
+  REGROUP:      TECNO BEEP 2x2800/400  -> REDMI ToneOn toneType=24 durationMs=2800 x2 (RETRY3_REGROUP_REDMI_live.txt)
+RESULTADO: 5/5 senales rapidas y SOS cruzan y suenan con patron distinto en Redmi; liberacion confirmada en ambos equipos.
+NOTA: las 5 senales de ciclo de vida se validan por test unitario; su TX manual requiere relayEngine activo (RideLifecycleEventTx abortado: no hay relayEngine activo).
+NOTA: "activacion de audio 15 s" es informativa y no modifica las duraciones de tono.

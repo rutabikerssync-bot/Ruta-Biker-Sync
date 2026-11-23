@@ -1,0 +1,5 @@
+﻿
+11-22 21:17:51.900  4905  4935 I SosTonePlayer: ToneOn toneType=25 durationMs=6000 result=true stream=4
+11-22 21:17:51.901  4905  4905 I RideService: ConvoySignalTx emitido por malla: kind=GAS_STOP code=4
+
+

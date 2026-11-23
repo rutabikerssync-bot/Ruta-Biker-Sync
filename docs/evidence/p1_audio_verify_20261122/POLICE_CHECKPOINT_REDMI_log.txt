@@ -1,0 +1,8 @@
+﻿
+11-22 21:18:10.055 13260 23343 I RideService: ConvoySignalRx recibido por BLE Mesh: from=32191 kind=POLICE_CHECKPOINT
+11-22 21:18:10.063 13260 13260 I LiveMapScreen: ConvoySignalRx recibido de Piloto #32191 por malla: POLICE_CHECKPOINT
+11-22 21:18:10.094 13260 23236 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+11-22 21:18:12.179 13260 23236 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+11-22 21:18:14.258 13260 23236 I SosTonePlayer: ToneOn toneType=27 durationMs=1900 result=true stream=4
+
+

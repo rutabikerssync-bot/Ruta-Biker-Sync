@@ -339,13 +339,20 @@ object RoadRoutingEngine {
  */
 object RoadGeometryCleaner {
 
+    /** Separación mínima entre vértices consecutivos para conservar ambos (metros). */
+    const val MIN_VERTEX_SPACING_METERS = 2.5
+
+    /** Equivalente en grados² (111_139 m ≈ 1° de latitud), sin sqrt por punto. */
+    private val MIN_VERTEX_SPACING_DEG_SQ =
+        (MIN_VERTEX_SPACING_METERS / 111_139.0) * (MIN_VERTEX_SPACING_METERS / 111_139.0)
+
     /**
      * Snap-to-roads y filtrado geométrico integral en cliente.
      */
     fun cleanAndSnap(points: List<LatLngPoint>): List<LatLngPoint> {
         if (points.size < 3) return points
 
-        // 1. Deduplicar puntos sub-métricos (< 2.5 metros)
+        // 1. Deduplicar vértices separados menos de MIN_VERTEX_SPACING_METERS
         val deduped = mutableListOf<LatLngPoint>()
         deduped.add(points[0])
         for (i in 1 until points.size) {
@@ -353,7 +360,7 @@ object RoadGeometryCleaner {
             val curr = points[i]
             val dLat = curr.latitude - prev.latitude
             val dLon = curr.longitude - prev.longitude
-            if (dLat * dLat + dLon * dLon > 0.00000008) {
+            if (dLat * dLat + dLon * dLon > MIN_VERTEX_SPACING_DEG_SQ) {
                 deduped.add(curr)
             }
         }
@@ -495,7 +502,7 @@ object RoadGeometryCleaner {
                     val qLat = 0.82 * p0.latitude + 0.18 * p1.latitude
                     val qLon = 0.82 * p0.longitude + 0.18 * p1.longitude
                     val rLat = 0.18 * p0.latitude + 0.82 * p1.latitude
-                    val rLon = 0.18 * p0.longitude + 0.82 * p1.latitude
+                    val rLon = 0.18 * p0.longitude + 0.82 * p1.longitude
                     smoothed.add(LatLngPoint(qLat, qLon))
                     smoothed.add(LatLngPoint(rLat, rLon))
                 }

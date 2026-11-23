@@ -1,0 +1,5 @@
+﻿
+                android.title=String (Rodada activa ┬À 1 riders conectados)
+                android.text=String (1 riders conectados en la mesh ┬À BLE Real)
+
+

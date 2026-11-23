@@ -1,0 +1,17 @@
+﻿=== VERIFICACION HARDWARE FIX B - 35 MIN - 2026-11-22 ===
+INICIO: 2026-11-22 18:48:36
+APK: build actual HEAD 9085036 (FIX A + FIX B + Corte 2A), standardDebug
+Radio BLE: ON en ambos (TECNO habilitado por UI; Redmi por cmd bluetooth_manager enable)
+Rodada: 2de260aa-3e24-493b-b9b8-0846366ba1c5 (host_group e3988eba-..., 2 participantes)
+Nota: HUD cuenta marcadores BLE + HTTP_4G (Corte 1); la notificacion reporta peers de malla.
+
+MUESTRA 0/7 t=+0min hora=18:48:36 | TECNO: HUD=3 riders vel=7 km/h meshPeers= HBrx=0 HBtx=1 advRx=3 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=2 advRx=4 fallback=0
+MUESTRA 1/7 t=+5min hora=18:53:44 | TECNO: HUD=3 riders vel=2 km/h meshPeers= HBrx=0 HBtx=22 advRx=32 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=21 advRx=5 fallback=0
+MUESTRA 2/7 t=+10min hora=18:58:50 | TECNO: HUD=3 riders vel=4 km/h meshPeers= HBrx=0 HBtx=22 advRx=42 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=24 advRx=16 fallback=0
+MUESTRA 3/7 t=+15min hora=19:03:57 | TECNO: HUD=3 riders vel=2 km/h meshPeers= HBrx=0 HBtx=22 advRx=32 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=27 advRx=10 fallback=0
+MUESTRA 4/7 t=+20min hora=19:09:03 | TECNO: HUD=3 riders vel=2 km/h meshPeers= HBrx=0 HBtx=23 advRx=34 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=25 advRx=9 fallback=0
+MUESTRA 5/7 t=+25min hora=19:14:09 | TECNO: HUD=3 riders vel=2 km/h meshPeers= HBrx=0 HBtx=20 advRx=33 fallback=0 | REDMI: HUD=2 riders vel=0 km/h meshPeers= HBrx=0 HBtx=28 advRx=4 fallback=0
+MUESTRA 6/7 t=+30min hora=19:19:18 | TECNO: HUD=2 riders vel=6 km/h meshPeers= HBrx=0 HBtx=31 advRx=47 fallback=0 | REDMI: HUD=1 rider vel=0 km/h meshPeers= HBrx=0 HBtx=29 advRx=10 fallback=0
+MUESTRA 7/7 t=+35min hora=19:24:24 | TECNO: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=33 advRx=61 fallback=0 | REDMI: HUD=3 riders vel=0 km/h meshPeers= HBrx=0 HBtx=35 advRx=17 fallback=0
+FIN: 2026-11-22 19:24:33
+=== FIN PROTOCOLO ===

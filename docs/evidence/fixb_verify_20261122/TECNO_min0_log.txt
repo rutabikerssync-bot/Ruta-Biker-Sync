@@ -1,0 +1,612 @@
+﻿--------- beginning of main
+11-22 18:48:36.511   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.511   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.511   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.511   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.527   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.527   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.527   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.527   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.536 30277 22511 I GoogleSignatureVerifier: package info is not set correctly
+11-22 18:48:36.539 30277 22511 I TFLite-in-PlayServices: Created interpreter.
+11-22 18:48:36.544   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.544   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.544   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.544   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.561   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.561   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.561   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.561   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.567 30277 22511 I GoogleSignatureVerifier: package info is not set correctly
+11-22 18:48:36.569 30277 22511 I TFLite-in-PlayServices: Created interpreter.
+11-22 18:48:36.578   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.578   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.578   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.578   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.580   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:36.587 30277 22511 I SemanticLocation: (REDACTED) [Inferrer] %s%s
+11-22 18:48:36.594   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.594   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.594   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.594   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.611   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.611   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.611   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.611   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+--------- beginning of system
+11-22 18:48:36.614   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:36.619   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:36.628   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.628   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.628   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.628   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.644   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.645   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.645   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.645   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.660   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.660   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.660   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.660   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.677   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.677   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.677   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.677   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.694   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.694   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.694   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.694   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.711   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.711   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.711   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.711   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.727   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.727   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.727   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.727   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.744   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:36.745   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.745   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.745   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.745   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.761   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.761   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.761   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.761   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.778   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.778   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.778   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.778   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.793   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.794   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.794   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.794   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.811   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.811   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.811   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:36.811   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:36.822 19402 19402 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:input keyevent 224'
+11-22 18:48:36.855   848  1854 D GeminiPolicyImpl: interceptKeyBeforeQueueing return mSystemReady=false
+11-22 18:48:36.856   848  1854 D PowerManagerService: unblockScreenOnLocked
+11-22 18:48:36.856   848  1854 D GeminiPolicyImpl: interceptKeyBeforeQueueing return mSystemReady=false
+11-22 18:48:36.856   848  1854 D PowerManagerService: unblockScreenOnLocked
+11-22 18:48:36.886 19402 19402 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:uiautomator dump /sdcard/ui_fixb.xml'
+11-22 18:48:36.905   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.015 22764 22764 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-22 18:48:37.023 22764 22764 I app_process: MMAP_TRYLOCK is not supported in uffd addr:0x7e09720000 page-size:4096
+11-22 18:48:37.025 22764 22764 I AndroidRuntime: Using default boot image
+11-22 18:48:37.025 22764 22764 I AndroidRuntime: Leaving lock profiling enabled
+11-22 18:48:37.025 22764 22764 W libc    : Access denied finding property "odsign.verification.success"
+11-22 18:48:37.021 22764 22764 W app_process: type=1400 audit(0.0:267280): avc: denied { read } for name="u:object_r:odsign_prop:s0" dev="tmpfs" ino=1985 scontext=u:r:shell:s0 tcontext=u:object_r:odsign_prop:s0 tclass=file permissive=0
+11-22 18:48:37.030 22764 22764 W app_process: ART APEX data files are untrusted.
+11-22 18:48:37.031 22764 22764 I app_process: Core platform API enforcement reporting only by runtime option
+11-22 18:48:37.032 22764 22764 I app_process: Using generational CollectorTypeCMC GC.
+11-22 18:48:37.032 22764 22764 E app_process: Error reading named image component header for /system/framework/boot.art, error: Image header from "/system/framework/arm64/boot.art" is invalid
+11-22 18:48:37.032 22764 22764 E app_process: Could not create image space with image file '/system/framework/boot.art!/apex/com.android.art/etc/boot-image.prof:/system/framework/boot-framework.art!/system/etc/boot-image.prof'. Attempting to fall back to imageless running. Error was: Image header from "/system/framework/arm64/boot.art" is invalid
+11-22 18:48:37.067   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.130 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.130 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.174 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.174 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.211 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.211 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.229   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.292  1023  1585 D GNSSMGT : gps_getData: ellipse subtype is received
+11-22 18:48:37.317 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.318 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.344   607 23357 D bt_vendor: op for BT_VND_OP_EVENT_CALLBACK
+11-22 18:48:37.344   607 23357 D bt_vnd_ssp: sprd_vse_cback: 0x0a
+11-22 18:48:37.391   848  1347 D ResMonitor2Proxy: foreground mem gap 228501Kb
+11-22 18:48:37.391   848  1347 D Griffin/AdjClean: item=1
+11-22 18:48:37.391   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.391   848   901 D Griffin/CleanManager: dispatch clean index=9
+11-22 18:48:37.392   848   901 D Griffin/AdjClean: clean code: foreground(1) begin:
+11-22 18:48:37.393   848   901 D UxDetectorUtil: getIsLowBattery init =99
+11-22 18:48:37.394   848   901 D UxDetectorUtil: getIsLowBattery = 0
+11-22 18:48:37.394   848   901 D UxDetectorUtil: bright ness is 255
+11-22 18:48:37.394   848   901 D UxDetectorUtil: return bringt ness is 3
+11-22 18:48:37.395   848   901 D UxDetectorUtil: signal string is 2
+11-22 18:48:37.397  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:4, gpstow:0
+11-22 18:48:37.397  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 0, sv_constellation_total = 3, num_svs = 4
+11-22 18:48:37.397  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:37.398  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:37.398  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 1, sv_constellation_total = 3, num_svs = 5
+11-22 18:48:37.398  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:37.398  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:37.398  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 2, sv_constellation_total = 3, num_svs = 6
+11-22 18:48:37.398  1023  1585 E GNSSMGT : dataproc_bufin: input len[2576] is bigger than buf size 2048, logtype[1]
+11-22 18:48:37.398  1023  1594 D GnssHAL_V_Gnss: gnssSvStatusCb, enter
+11-22 18:48:37.398  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:37.401   848   901 D Griffin/AdjClean: clean code:foreground(1) finish: coast 8ms
+11-22 18:48:37.420  1023  1585 D GNSSMGT : gnss_gst_process(): the hor accuracy is 15.000000, ver accuracy :4.868720, speed accuracy:6.004560, bear accuracy :16.725077
+11-22 18:48:37.421  1023  1585 D GNSSMGT : parse_rmc_token: in RMC, fixStatus=A
+11-22 18:48:37.421  1023  1585 E GNSSMGT : nmea_reader_handle_gsa: gnss_used_in_fix_nums modified to MAX_FIX_SVS
+11-22 18:48:37.423 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.423 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.424  1023  1594 D GnssHAL_V_GnssUtil: convertToGnssLocation_2_0: enter
+11-22 18:48:37.427   848   869 I GnssLocationProvider: reportLocation Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077]
+11-22 18:48:37.427   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}]]]
+11-22 18:48:37.428   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:37.430   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}]]]
+11-22 18:48:37.431   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:37.436   848   869 W AlarmManager: Unrecognized alarm listener com.android.server.location.gnss.GnssLocationProvider$$ExternalSyntheticLambda1@c56b95f
+11-22 18:48:37.441   848  1854 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077]]]
+11-22 18:48:37.442   848  1854 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:37.444 22389 22395 I tabikersync.ap: Method exceeds compiler instruction limit: 24858 in void com.rutabikersync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, androidx.compose.runtime.Composer, int, int)
+11-22 18:48:37.444   848  1854 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077]]]
+11-22 18:48:37.444   848  1854 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m13s669ms alt=1171.08 vAcc=4.86872 vel=2.0340567 sAcc=6.0045595 bear=122.238 bAcc=16.725077], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:37.477  1023  1585 D GNSSMGT : gps_handleFlashType: gps save flash information
+11-22 18:48:37.477  1023  1585 D GNSSMGT : gpsSaveEph2Ram: Rec packet [T:0x9, SubT:0x1F]: cnt=0x3BB08
+11-22 18:48:37.493   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.494   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.494   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.494   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.510   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.510   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.510   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.510   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.526 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.526 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.527   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.527   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.527   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.527   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.534 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.534 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.544   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.544   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.544   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.544   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.554   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.560   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.560   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.560   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.560   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.576   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.576   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.576   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.576   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.594   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.594   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.594   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.594   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.610   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.611   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.611   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.611   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.627   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.627   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.627   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.627   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.630 22764 22764 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+11-22 18:48:37.633 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.633 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.644   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.644   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.644   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.644   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.655   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:37.656 22764 22764 D nativeloader: Load libicu_jni.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:37.656 22764 22764 D app_process: Time zone APEX ICU file found: /apex/com.android.tzdata/etc/icu/icu_tzdata.dat
+11-22 18:48:37.657 22764 22764 D app_process: I18n APEX ICU file found: /apex/com.android.i18n/etc/icu/icudt68l.dat
+11-22 18:48:37.659 22764 22764 D nativeloader: Load libjavacore.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:37.660   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:37.660   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.660   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.660   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.660   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.662 22764 22764 D nativeloader: Load libopenjdk.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+11-22 18:48:37.677   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.677   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.677   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.677   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.693   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.693   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.693   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.693   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.710   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.710   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.710   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.710   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.713 22764 22764 W app_process: Using default priority map due to SDK version
+11-22 18:48:37.716   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.727   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.727   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.727   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.727   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.740 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.741 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.743   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.743   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.743   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.743   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.743 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.743 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.760   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.760   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.760   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.760   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.777   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.777   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.777   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.777   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.793   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.793   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.793   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.793   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.810   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.810   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.810   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.810   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.816  1023  1585 D GNSSMGT : GNSS_LIBGPS_TEST_SUBTYPE: length[1] buf[0] = 00
+11-22 18:48:37.827   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.827   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.827   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:37.827   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:37.843 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.843 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.878   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:37.940 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.940 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.949 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.949 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.996 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:37.996 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:37.997 22389 22389 I BleAdvTransport: AdvRx bytes=20 head=89,89 rssi=-36
+11-22 18:48:37.998 22389 22389 I GattVoice: GattVoice role=CLIENT localNode=32191 peerNode=22873 peer=77:C1:93:7A:F3:D6 advertiser=02:00:00:00:00:00
+11-22 18:48:38.014   848  1854 D os.notification.pre:  add StatusBarNotification 73341221 current size 1
+11-22 18:48:38.014   848  1854 D os.notification: onEnqueueNotificationInternal wait before
+11-22 18:48:38.015   848  1226 D os.notification.SuspendJobManager: create job  com.transsion.util.SuspendJobManager$JobInfo@767a8ab key:NotificationRecord(0x0dc52afa: pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@bc91b08 sn:-1 owner:{}
+11-22 18:48:38.016 22389 22455 I BleAdvTransport: BleAdvTransport.send burst#=62 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:38.017 22389 22455 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.017 22389 22455 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.019  2653 28323 D os.notification: onNotifyNotification StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10388 NotificationChannel:NotificationChannel{mId='rbs_active_ride_mesh_channel', mName=Rodada Activa y Mesh BLE, mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@73ef59 sn:153719
+11-22 18:48:38.020  2653 28323 D os_noti_center_rule: match = false, sendPkg = com.rutabikersync.app, dbChannel = null, chName = Rodada Activa y Mesh BLE, chId = rbs_active_ride_mesh_channel
+11-22 18:48:38.022  2653 28323 D os.notification: handleNotifyNotification notification:Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)
+11-22 18:48:38.023   848  1226 D os.notification.pre:  add Runnable 185410209 with StatusBarNotification 73341221 current size 1
+11-22 18:48:38.023   848  1226 D os.notification.SuspendJobManager: done  com.transsion.util.SuspendJobManager$JobInfo@767a8ab key:NotificationRecord(0x0dc52afa: pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@bc91b08 sn:153719 owner:{2653} for  app-2653-request
+11-22 18:48:38.024   848  1226 D os.notification: onEnqueueNotificationInternal notifyAll
+11-22 18:48:38.024   848  1854 D os.notification: onEnqueueNotificationInternal wait after
+11-22 18:48:38.024   848  1854 D os.notification: onEnqueueNotificationInternal StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10388 sn:153719 res:true
+11-22 18:48:38.026   848   848 D os.notification.pre:  remove Runnable 185410209 with StatusBarNotification 73341221 for puppet run current size 0
+11-22 18:48:38.037 22389 22389 I BleAdvTransport: Legacy burst advertise started successfully burst#=62
+11-22 18:48:38.040   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:38.053 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.053 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.057 22764 22764 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-22 18:48:38.088 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.088 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.135 30277 30277 I A11yMonitor: (REDACTED) Accessibility state change detected by AccessibilityStateChangeListener: %b
+11-22 18:48:38.142 30277 22511 I A11yMonitor: Updating accessibility services baseline [CONTEXT service_id=435 ]
+11-22 18:48:38.142   687   687 I Layer   : name=33f7172 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=79911, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-22 18:48:38.142   687   687 I Layer   : name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=79920, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-22 18:48:38.142   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.transsion.hilauncher
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.settings
+11-22 18:48:38.143   848   873 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app refreshMode=0 is90HZ=false
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.rutabikersync.app
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.google.android.inputmethod.latin
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.143   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:38.144   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.144   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.144   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.144   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.145   848   848 D BatterySaverPolicy: accessibility changed to true, updating policy.
+11-22 18:48:38.154   848   848 D AS.AudioService: Accessibility volume enabled = false
+11-22 18:48:38.158   687   687 I Layer   : name=33f7172 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=79911, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-22 18:48:38.158   687   687 I Layer   : name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=79920, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-22 18:48:38.160   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.160   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.160   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.160   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.174   848  1259 D BroadcastQueue: Add broadcast <BroadcastRecord{e7e4320 u-1 com.android.server.action.NETWORK_STATS_UPDATED}> into [parallel | background], pending size 0
+11-22 18:48:38.175   848   883 D BroadcastQueue: Done with parallel broadcast [background] [BroadcastRecord{e7e4320 u-1 com.android.server.action.NETWORK_STATS_UPDATED}]
+11-22 18:48:38.175   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.175   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.175   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.175   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.189   848  1592 D SSense  : onTouchRateChanged: rate:0.001953125
+11-22 18:48:38.202   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:38.211   848  1592 D SSense  : onFpsChanged: fps:8.066667
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isAutoVerificationEnable: true
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isLongBatterySuperPs: false
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isBikeModeEnable: false
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isGameNotInterrupt: false
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isZenModeOff: true
+11-22 18:48:38.232  1349  1349 D SmsFilterController: isVideoAssistantMode: false
+11-22 18:48:38.233 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.233  2676  2676 D NotificationListeners: onNotificationPosted
+11-22 18:48:38.234  2676  2676 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.startService:1918 android.content.ContextWrapper.startService:776 com.transsion.smartpanel.NotificationListener.a:24 com.transsion.smartpanel.NotificationListener.onNotificationPosted:2 android.service.notification.NotificationListenerService.onNotificationPosted:444 
+11-22 18:48:38.235 29453 29453 D NotificationListener: onNotificationPosted: StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x6a color=0x00000000 actions=3 vis=PRIVATE))
+11-22 18:48:38.235 29453 29453 W NotifCollection: Ranking update is missing ranking for 0|com.facebook.katana|0|100014941028070|10258
+11-22 18:48:38.236  1349  1349 D SmsFilterController: appItem : com.ubercab
+11-22 18:48:38.239  2676  2676 I SmartPanel_SmartPanelService: SP_NOTI_CHANAGE_STATUS isPost = true  bean NotificationBean{packageName='com.rutabikersync.app', tag='null', channelId='rbs_active_ride_mesh_channel', category='null', extraTitle='Rodada activa ┬À 1 riders conectados', id=3201, mUserId=0, defaults=0, when=1795387718010}
+11-22 18:48:38.240 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.rutabikersync.app|3201|null|10388
+11-22 18:48:38.240 29453 29453 D InterruptionStateProvider: No heads up: unimportant notification: 0|com.rutabikersync.app|3201|null|10388
+11-22 18:48:38.246 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.246 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.250 29453 29511 D PeopleSpaceWidgetMgr: Sbn doesn't contain valid PeopleTileKey: null/0/com.rutabikersync.app
+11-22 18:48:38.276   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.276   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.276   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.276   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.290 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.290 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.291 22389 22389 I BleAdvTransport: AdvRx bytes=20 head=89,89 rssi=-36
+11-22 18:48:38.292  1023  1585 D GNSSMGT : gps_getData: ellipse subtype is received
+11-22 18:48:38.364   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:38.398  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:4, gpstow:0
+11-22 18:48:38.398  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 0, sv_constellation_total = 3, num_svs = 4
+11-22 18:48:38.398  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:38.399  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:38.399  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 1, sv_constellation_total = 3, num_svs = 5
+11-22 18:48:38.399  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:38.399  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:38.399  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 2, sv_constellation_total = 3, num_svs = 6
+11-22 18:48:38.399  1023  1585 E GNSSMGT : dataproc_bufin: input len[2576] is bigger than buf size 2048, logtype[1]
+11-22 18:48:38.400  1023  1594 D GnssHAL_V_Gnss: gnssSvStatusCb, enter
+11-22 18:48:38.400  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:38.421  1023  1585 D GNSSMGT : gnss_gst_process(): the hor accuracy is 15.000000, ver accuracy :5.120244, speed accuracy:5.899737, bear accuracy :17.020063
+11-22 18:48:38.422  1023  1585 D GNSSMGT : parse_rmc_token: in RMC, fixStatus=A
+11-22 18:48:38.422  1023  1585 E GNSSMGT : nmea_reader_handle_gsa: gnss_used_in_fix_nums modified to MAX_FIX_SVS
+11-22 18:48:38.426  1023  1594 D GnssHAL_V_GnssUtil: convertToGnssLocation_2_0: enter
+11-22 18:48:38.428   848   869 I GnssLocationProvider: reportLocation Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063]
+11-22 18:48:38.429   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}]]]
+11-22 18:48:38.429   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:38.430   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}]]]
+11-22 18:48:38.430   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063 {Bundle[{satellites=5, maxCn0=20, meanCn0=17}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:38.434   848   869 W AlarmManager: Unrecognized alarm listener com.android.server.location.gnss.GnssLocationProvider$$ExternalSyntheticLambda1@c56b95f
+11-22 18:48:38.441   848  2778 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063]]]
+11-22 18:48:38.441   848  2778 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:38.441   848  2778 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063]]]
+11-22 18:48:38.441   848  2778 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m14s671ms alt=1170.887 vAcc=5.1202435 vel=2.0931861 sAcc=5.8997374 bear=120.258 bAcc=17.020063], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:38.475 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.475 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.478  1023  1585 D GNSSMGT : gps_handleFlashType: gps save flash information
+11-22 18:48:38.479  1023  1585 D GNSSMGT : gpsSaveEph2Ram: Rec packet [T:0x9, SubT:0x1F]: cnt=0x3BB09
+11-22 18:48:38.518 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.518 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.526   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:38.545  1736 19503 I native  : I0000 00:00:1795387718.545254   19503 soda_async_impl.cc:1447] Current audio timestamp: 1795387718267896
+11-22 18:48:38.577 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.577 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.579 22389 22389 I BleAdvTransport: AdvRx bytes=20 head=89,89 rssi=-36
+11-22 18:48:38.587 22389 22519 I BleAdvTransport: BleAdvTransport.send burst#=63 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-22 18:48:38.589 22389 22519 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.589 22389 22519 D BluetoothAdapter: isLeEnabled(): ON
+11-22 18:48:38.594 22389 22519 I RideService: HeartbeatTx rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5 startedAtEpochMs=1795387621226 elapsedSec=97s packetsEmitted=33
+11-22 18:48:38.609   848  1854 D os.notification.pre:  add StatusBarNotification 175986232 current size 1
+11-22 18:48:38.610   848  1854 D os.notification: onEnqueueNotificationInternal wait before
+11-22 18:48:38.610   848  1226 D os.notification.SuspendJobManager: create job  com.transsion.util.SuspendJobManager$JobInfo@6922376 key:NotificationRecord(0x0ef2f611: pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@64b3d77 sn:-1 owner:{}
+11-22 18:48:38.612  2653 28323 D os.notification: onNotifyNotification StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10388 NotificationChannel:NotificationChannel{mId='rbs_active_ride_mesh_channel', mName=Rodada Activa y Mesh BLE, mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, mDemoted=false, mImportantConvo=false} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@c20371e sn:153720
+11-22 18:48:38.613  2653 28323 D os_noti_center_rule: match = false, sendPkg = com.rutabikersync.app, dbChannel = null, chName = Rodada Activa y Mesh BLE, chId = rbs_active_ride_mesh_channel
+11-22 18:48:38.615  2653 28323 D os.notification: handleNotifyNotification notification:Notification(channel=null shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)
+11-22 18:48:38.616   848  1226 D os.notification.pre:  add Runnable 198024676 with StatusBarNotification 175986232 current size 1
+11-22 18:48:38.617   848  1226 D os.notification.SuspendJobManager: done  com.transsion.util.SuspendJobManager$JobInfo@6922376 key:NotificationRecord(0x0ef2f611: pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@64b3d77 sn:153720 owner:{2653} for  app-2653-request
+11-22 18:48:38.617   848  1226 D os.notification: onEnqueueNotificationInternal notifyAll
+11-22 18:48:38.617   848  1854 D os.notification: onEnqueueNotificationInternal wait after
+11-22 18:48:38.618   848  1854 D os.notification: onEnqueueNotificationInternal StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10388 sn:153720 res:true
+11-22 18:48:38.621   848   848 D os.notification.pre:  remove Runnable 198024676 with StatusBarNotification 175986232 for puppet run current size 0
+11-22 18:48:38.640 22389 22389 I BleAdvTransport: Legacy burst advertise started successfully burst#=63
+11-22 18:48:38.657 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.657 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.659   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.659   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.659   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.659   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.685 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:38.686 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:38.688   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:38.695   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:38.699   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isAutoVerificationEnable: true
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isLongBatterySuperPs: false
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isBikeModeEnable: false
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isGameNotInterrupt: false
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isZenModeOff: true
+11-22 18:48:38.827  1349  1349 D SmsFilterController: isVideoAssistantMode: false
+11-22 18:48:38.828  2676  2676 D NotificationListeners: onNotificationPosted
+11-22 18:48:38.828  2676  2676 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.startService:1918 android.content.ContextWrapper.startService:776 com.transsion.smartpanel.NotificationListener.a:24 com.transsion.smartpanel.NotificationListener.onNotificationPosted:2 android.service.notification.NotificationListenerService.onNotificationPosted:444 
+11-22 18:48:38.830  1349  1349 D SmsFilterController: appItem : com.ubercab
+11-22 18:48:38.832 29453 29453 D NotificationListener: onNotificationPosted: StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null key=0|com.rutabikersync.app|3201|null|10388: Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x6a color=0x00000000 actions=3 vis=PRIVATE))
+11-22 18:48:38.833 29453 29453 W NotifCollection: Ranking update is missing ranking for 0|com.facebook.katana|0|100014941028070|10258
+11-22 18:48:38.834  2676  2676 I SmartPanel_SmartPanelService: SP_NOTI_CHANAGE_STATUS isPost = true  bean NotificationBean{packageName='com.rutabikersync.app', tag='null', channelId='rbs_active_ride_mesh_channel', category='null', extraTitle='Rodada activa ┬À 1 riders conectados', id=3201, mUserId=0, defaults=0, when=1795387718604}
+11-22 18:48:38.837 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.rutabikersync.app|3201|null|10388
+11-22 18:48:38.837 29453 29453 D InterruptionStateProvider: No heads up: unimportant notification: 0|com.rutabikersync.app|3201|null|10388
+11-22 18:48:38.844 29453 29511 D PeopleSpaceWidgetMgr: Sbn doesn't contain valid PeopleTileKey: null/0/com.rutabikersync.app
+11-22 18:48:38.851   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:38.859   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.859   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.859   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.859   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.992   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.992   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:38.992   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:38.992   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.003 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.003 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.013   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:39.164 22764 22764 W libc    : Access denied finding property "qemu.sf.lcd_density"
+11-22 18:48:39.164 22764 22764 W libc    : Access denied finding property "qemu.sf.lcd_density"
+11-22 18:48:39.161 22764 22764 W uiautomator: type=1400 audit(0.0:267281): avc: denied { read } for name="u:object_r:qemu_sf_lcd_density_prop:s0" dev="tmpfs" ino=2002 scontext=u:r:shell:s0 tcontext=u:object_r:qemu_sf_lcd_density_prop:s0 tclass=file permissive=0
+11-22 18:48:39.161 22764 22764 W uiautomator: type=1400 audit(0.0:267282): avc: denied { read } for name="u:object_r:qemu_sf_lcd_density_prop:s0" dev="tmpfs" ino=2002 scontext=u:r:shell:s0 tcontext=u:object_r:qemu_sf_lcd_density_prop:s0 tclass=file permissive=0
+11-22 18:48:39.175   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:39.201 29632 22577 I bvgb    : running action ProcessPendingMessagesAction
+11-22 18:48:39.202 29632 22577 I dybh    : isDefaultSmsApp: true [CONTEXT class_name="PhoneConfiguration" ]
+11-22 18:48:39.202 29632 29632 I dwkw    : ActionExecutorImpl: ACTION_EXECUTE_QUEUED_ProcessPendingMessagesAction
+11-22 18:48:39.205  2523  3680 W MediaProvider: isAppCloneUserPair for user 0: false
+11-22 18:48:39.211 29632 22577 I bunk    : PendingMessagesProcessor process from ProcessPendingMessagesAction due to scheduled processing  with delay 0s with queues smsMessagesToSend:0 mmsMessagesToSend:0 rcsMessagesToSend:0 rcsFTMessagesToSend:0 messagesToDownload:0
+11-22 18:48:39.217 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.217 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.217 29632 22577 I bvgb    : finished running action ProcessPendingMessagesAction in 15 ms
+11-22 18:48:39.223   848  2778 D AlarmManagerService: set alarm to kernel: 2637497.312000000, type=2 
+11-22 18:48:39.223   848  2778 D AlarmManagerService: set alarm to kernel: 2637317.124000000, type=3 
+11-22 18:48:39.229   848  2778 V AlarmManager: set(PendingIntent{2cdae5a: PendingIntentRecord{16d74ab com.google.android.gms/com.google.android.gms.scheduler broadcastIntent}}) : type=3 listener=null listenerTag=null triggerAtTime=2639517542 win=1651551 tElapsed=2639517542 maxElapsed=2641169093 interval=0 flags=0x0
+11-22 18:48:39.236   848  2778 D AlarmManagerService: set alarm to kernel: 2637497.312000000, type=2 
+11-22 18:48:39.236   848  2778 D AlarmManagerService: set alarm to kernel: 2637317.124000000, type=3 
+11-22 18:48:39.241 30277 22511 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+11-22 18:48:39.244 30277 22511 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+11-22 18:48:39.263   848  2778 D AlarmManagerService: set alarm to kernel: 2637497.312000000, type=2 
+11-22 18:48:39.264   848  2778 D AlarmManagerService: set alarm to kernel: 2637317.124000000, type=3 
+11-22 18:48:39.269   848  2715 V AlarmManager: set(PendingIntent{9ba85ac: PendingIntentRecord{16d74ab com.google.android.gms/com.google.android.gms.scheduler broadcastIntent}}) : type=3 listener=null listenerTag=null triggerAtTime=2639517542 win=1651521 tElapsed=2639517542 maxElapsed=2641169063 interval=0 flags=0x0
+11-22 18:48:39.280   848  2715 D AlarmManagerService: set alarm to kernel: 2637497.312000000, type=2 
+11-22 18:48:39.280   848  2715 D AlarmManagerService: set alarm to kernel: 2637317.124000000, type=3 
+11-22 18:48:39.283 30277 22000 I NetworkScheduler.Stats: (REDACTED) Task %s/%s started execution. cause:%s exec_start_elapsed_seconds: %s
+11-22 18:48:39.292 30277 22511 I NetworkScheduler.Stats: (REDACTED) Task %s/%s finished executing. cause:%s result: %s elapsed_millis: %s uptime_millis: %s exec_start_elapsed_seconds: %s
+11-22 18:48:39.292  1023  1585 D GNSSMGT : gps_getData: ellipse subtype is received
+11-22 18:48:39.297 22764 22764 W AccessibilityNodeInfoDumper: Fetch time: 122ms
+11-22 18:48:39.299   848  1327 W WindowManager: removeWindowToken: Attempted to remove non-existing token: android.os.Binder@eaafcc6
+11-22 18:48:39.305 30277 30277 I A11yMonitor: (REDACTED) Accessibility state change detected by AccessibilityStateChangeListener: %b
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.transsion.hilauncher
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.settings
+11-22 18:48:39.308   848   873 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app refreshMode=0 is90HZ=false
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.rutabikersync.app
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.google.android.inputmethod.latin
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.308   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.transsion.hilauncher
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.settings
+11-22 18:48:39.310 30277 22511 I A11yMonitor: Updating accessibility services baseline [CONTEXT service_id=435 ]
+11-22 18:48:39.310   848  1327 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app refreshMode=0 is90HZ=false
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.rutabikersync.app
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.google.android.inputmethod.latin
+11-22 18:48:39.310   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.311   848  1327 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.317   848   848 D BatterySaverPolicy: accessibility changed to false, updating policy.
+11-22 18:48:39.318 22764 22764 D AndroidRuntime: Shutting down VM
+11-22 18:48:39.320 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.320 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.whatsapp.w4b
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.transsion.hilauncher
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.settings
+11-22 18:48:39.324   848   873 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app refreshMode=0 is90HZ=false
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.rutabikersync.app
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.google.android.inputmethod.latin
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.324   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.325   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.325   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  package=com.android.systemui
+11-22 18:48:39.325   687   687 I Layer   : name=33f7172 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=79911, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-22 18:48:39.325   687   687 I Layer   : name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=79920, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-22 18:48:39.327   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.327   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.327   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.327   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.337   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:39.397  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:4, gpstow:0
+11-22 18:48:39.398  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 0, sv_constellation_total = 3, num_svs = 4
+11-22 18:48:39.398  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:39.398  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:39.398  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 1, sv_constellation_total = 3, num_svs = 5
+11-22 18:48:39.398  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:39.399  1023  1585 D GNSSMGT : set_measurement_svstatus_data: set_measure_data listnum:1, gpstow:0
+11-22 18:48:39.399  1023  1585 D GNSSMGT : transform_gnss_svstatus: sv_constellation_index = 2, sv_constellation_total = 3, num_svs = 6
+11-22 18:48:39.399  1023  1585 E GNSSMGT : dataproc_bufin: input len[2576] is bigger than buf size 2048, logtype[1]
+11-22 18:48:39.399  1023  1594 D GnssHAL_V_Gnss: gnssSvStatusCb, enter
+11-22 18:48:39.399  1023  1624 D GNSSMGT : agps_msg_thread: read cmd is 7
+11-22 18:48:39.420  1023  1585 D GNSSMGT : gnss_gst_process(): the hor accuracy is 15.000000, ver accuracy :5.566049, speed accuracy:5.614697, bear accuracy :17.300798
+11-22 18:48:39.421  1023  1585 D GNSSMGT : parse_rmc_token: in RMC, fixStatus=A
+11-22 18:48:39.422  1023  1585 E GNSSMGT : nmea_reader_handle_gsa: gnss_used_in_fix_nums modified to MAX_FIX_SVS
+11-22 18:48:39.425  1023  1594 D GnssHAL_V_GnssUtil: convertToGnssLocation_2_0: enter
+11-22 18:48:39.427   848   869 I GnssLocationProvider: reportLocation Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798]
+11-22 18:48:39.427   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798 {Bundle[{satellites=5, maxCn0=22, meanCn0=18}]}]]]
+11-22 18:48:39.427   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798 {Bundle[{satellites=5, maxCn0=22, meanCn0=18}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:39.428 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.428 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.429   848   869 I LocationManagerService: incoming location: locationResult [[Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798 {Bundle[{satellites=5, maxCn0=22, meanCn0=18}]}]]]
+11-22 18:48:39.429   848   869 D os.LocationLice: wz1 wz=Location[gps 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798 {Bundle[{satellites=5, maxCn0=22, meanCn0=18}]}], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:39.433   848   869 W AlarmManager: Unrecognized alarm listener com.android.server.location.gnss.GnssLocationProvider$$ExternalSyntheticLambda1@c56b95f
+11-22 18:48:39.437   848  2957 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798]]]
+11-22 18:48:39.438   848  2957 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:39.439   848  2957 I LocationManagerService: incoming location: locationResult [[Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798]]]
+11-22 18:48:39.440   848  2957 D os.LocationLice: wz1 wz=Location[fused 10****** ,-67******  hAcc=15.0 et=+30d12h35m15s670ms alt=1169.796 vAcc=5.5660486 vel=2.0422833 sAcc=5.6146965 bear=116.386 bAcc=17.300798], this=com.transsion.server.location.LocationLice@4aec109
+11-22 18:48:39.444 22389 22395 I tabikersync.ap: Method exceeds compiler instruction limit: 24858 in void com.rutabikersync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, androidx.compose.runtime.Composer, int, int)
+11-22 18:48:39.469 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.470 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.472 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.472 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.478  1023  1585 D GNSSMGT : gps_handleFlashType: gps save flash information
+11-22 18:48:39.478  1023  1585 D GNSSMGT : gpsSaveEph2Ram: Rec packet [T:0x9, SubT:0x1F]: cnt=0x3BB0A
+11-22 18:48:39.492   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.492   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.492   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.492   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.499   648   648 D enhanceHAL: slpSetBrightness: ambient = 46
+11-22 18:48:39.508   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.508   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.508   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:39.508   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:39.533 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.533 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.636 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.637 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.661   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:39.712   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:39.718   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-22 18:48:39.816  1023  1585 D GNSSMGT : GNSS_LIBGPS_TEST_SUBTYPE: length[1] buf[0] = 00
+11-22 18:48:39.823   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:39.877 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:39.878 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:39.985   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:40.041   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:40.041   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:40.041   617 16680 E GSP     : unisoc layer dataspace=0
+11-22 18:48:40.041   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-22 18:48:40.148   648   648 D enhanceHAL: slpSetBrightness: ambient = 47
+11-22 18:48:40.149 23313 23339 E BtGatt.ContextMap: Context not found for ID 5
+11-22 18:48:40.149 23313 23339 W TWSClientService: manufacturerId array.length is null
+11-22 18:48:40.185 19402 19402 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:cat /sdcard/ui_fixb.xml'
+11-22 18:48:40.242 19402 19402 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color:export ANDROID_LOG_TAGS=''; exec logcat '-d' '-t' '8000''

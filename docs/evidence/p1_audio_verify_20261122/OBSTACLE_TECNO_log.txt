@@ -1,0 +1,5 @@
+﻿
+11-22 21:16:58.271  4905  4905 I RideService: ConvoySignalTx emitido por malla: kind=OBSTACLE code=1
+11-22 21:16:58.283  4905  4974 I SosTonePlayer: ToneOn toneType=26 durationMs=6000 result=true stream=4
+
+

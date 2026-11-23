@@ -63,6 +63,42 @@ class ProfileRepository(context: Context) : IProfileRepository {
             val cleanEmail = email.trim().lowercase()
             return UUID.nameUUIDFromBytes("rbs:google:$cleanEmail".toByteArray(Charsets.UTF_8)).toString()
         }
+
+        private fun ensureValidUuid(uid: String, email: String): String {
+            return try {
+                UUID.fromString(uid)
+                uid
+            } catch (_: Exception) {
+                generateDeterministicUuid(email)
+            }
+        }
+
+        /**
+         * El login de Google entrega `google-<email>`, que no es UUID y antes se
+         * convertía siempre en el UUID determinista local, sobrescribiendo el
+         * UUID que el backend había registrado. Si ya hay un UUID guardado para
+         * el mismo email, es el identificador real del backend y se conserva.
+         */
+        fun resolveAuthenticatedUid(
+            uid: String,
+            email: String,
+            existingUid: String?,
+            existingEmail: String?
+        ): String {
+            val cleanEmail = email.trim().lowercase()
+            val savedUid = existingUid?.takeIf { it.isNotBlank() }
+            val savedEmail = existingEmail?.trim()?.lowercase()
+            if (savedUid != null && savedEmail == cleanEmail) {
+                val isUuid = try {
+                    UUID.fromString(savedUid)
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                if (isUuid) return savedUid
+            }
+            return ensureValidUuid(uid, cleanEmail)
+        }
     }
 
     override fun isAuthenticated(): Boolean = prefs.getBoolean(KEY_IS_AUTH, false)
@@ -73,18 +109,14 @@ class ProfileRepository(context: Context) : IProfileRepository {
 
     override fun getGooglePhotoUrl(): String? = prefs.getString(KEY_USER_PHOTO_URL, null)
 
-    private fun ensureValidUuid(uid: String, email: String): String {
-        return try {
-            UUID.fromString(uid)
-            uid
-        } catch (_: Exception) {
-            generateDeterministicUuid(email)
-        }
-    }
-
     override fun setAuthenticated(uid: String, email: String, displayName: String?, photoUrl: String?) {
         val cleanEmail = email.trim().lowercase()
-        val validUid = ensureValidUuid(uid, cleanEmail)
+        val validUid = resolveAuthenticatedUid(
+            uid = uid,
+            email = cleanEmail,
+            existingUid = prefs.getString(KEY_USER_ID, null),
+            existingEmail = prefs.getString(KEY_USER_EMAIL, null)
+        )
 
         prefs.edit()
             .putBoolean(KEY_IS_AUTH, true)

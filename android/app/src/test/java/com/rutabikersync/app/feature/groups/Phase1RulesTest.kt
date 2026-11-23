@@ -1,9 +1,12 @@
 package com.rutabikersync.app.feature.groups
 
+import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.ui.components.skeleton.SkeletonTimingRules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -16,7 +19,8 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class Phase1RulesTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
+    private val testDispatcher = StandardTestDispatcher()
+    private val trackedViewModels = mutableListOf<Phase1ViewModel>()
 
     @Before
     fun setUp() {
@@ -25,7 +29,30 @@ class Phase1RulesTest {
 
     @After
     fun tearDown() {
+        // El init del VM abre un ciclo infinito de sincronizacion. Cancelar su scope
+        // evita que siga usando Dispatchers.Main mientras hacemos resetMain.
+        trackedViewModels.forEach { viewModel ->
+            viewModel.viewModelScope.coroutineContext[Job]?.cancel()
+        }
+        trackedViewModels.clear()
+        // Drenar antes de resetMain evita que una continuacion pendiente intente
+        // despachar en el Main real y dispare "Dispatchers.Main is used concurrently".
+        testDispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
+    }
+
+    /**
+     * La red corre en Dispatchers.IO (no controlado por el scheduler de prueba).
+     * Avanzar el scheduler en cada sondeo publica el rollback en Dispatchers.Main
+     * sin permitir que gane la carrera antes de la asercion de 0 ms.
+     */
+    private fun awaitRollback(timeoutMs: Long = 25_000L, condition: () -> Boolean) {
+        val deadline = System.nanoTime() + timeoutMs * 1_000_000L
+        while (!condition() && System.nanoTime() < deadline) {
+            testDispatcher.scheduler.advanceUntilIdle()
+            if (!condition()) Thread.sleep(10)
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     @Test
@@ -365,7 +392,7 @@ class Phase1RulesTest {
     fun `R2_2 prevents cross membership when user already belongs to a club`() {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         val user = repo.currentUser.value
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).also { trackedViewModels.add(it) }
 
         // 1. Intentar unirse a un segundo club (Lobos del Asfalto) mediante QR de miembro
         val qrPayloadSecondClub = GroupInviteQrHelper.encodePayload(
@@ -437,7 +464,7 @@ class Phase1RulesTest {
     @Test
     fun `Hito 2 hermandad invitation enforces synchronous precheck and blocks dual membership immediately`() {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).also { trackedViewModels.add(it) }
         val user = repo.currentUser.value
         val myClub = repo.groups.value.first { g -> g.members.any { it.userId == user.id } }
 
@@ -474,7 +501,7 @@ class Phase1RulesTest {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         repo.apiClient.baseUrl = "http://invalid.test"
         repo.updateDevOverrides { it.copy(useFakeBackend = false) } // Simula backend real conectado
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).also { trackedViewModels.add(it) }
         val group = repo.groups.value.first { it.id == "grp-halcones-mx" }
         val memberId = "u-member-1"
 
@@ -484,15 +511,13 @@ class Phase1RulesTest {
         assertFalse("El miembro debe desaparecer inmediatamente (0 ms) a nivel local", groupImmediate.members.any { it.userId == memberId })
 
         // 2. Esperar a que el backend rechace (401/403/error de red) y se active el rollback
-        var restored = false
-        for (i in 0 until 500) {
-            Thread.sleep(50)
+        awaitRollback {
             val g = repo.groups.value.first { it.id == group.id }
-            if (g.members.any { it.userId == memberId } && vm.statusBanner.value?.contains("revertida") == true) {
-                restored = true
-                break
-            }
+            g.members.any { it.userId == memberId } && vm.statusBanner.value?.contains("revertida") == true
         }
+        val restoredGroup = repo.groups.value.first { it.id == group.id }
+        val restored = restoredGroup.members.any { it.userId == memberId } &&
+            vm.statusBanner.value?.contains("revertida") == true
         assertTrue("El miembro debe ser restaurado por el mecanismo de rollback", restored)
         val banner = vm.statusBanner.value
         assertTrue("Debe notificar que la acción fue revertida: $banner", banner?.contains("revertida") == true)
@@ -503,7 +528,7 @@ class Phase1RulesTest {
         val repo = ClubRepository().apply { loadDemoDataForTesting() }
         repo.apiClient.baseUrl = "http://invalid.test"
         repo.updateDevOverrides { it.copy(useFakeBackend = false) }
-        val vm = Phase1ViewModel(repository = repo)
+        val vm = Phase1ViewModel(repository = repo).also { trackedViewModels.add(it) }
 
         val initialGroupsCount = repo.groups.value.size
 
@@ -516,14 +541,8 @@ class Phase1RulesTest {
         assertTrue("El club debe aparecer inmediatamente a nivel local (0 ms)", repo.groups.value.any { it.name == "Rollback Club" })
 
         // 2. Esperar a que el backend rechace y se ejecute el rollback
-        var rolledBack = false
-        for (i in 0 until 100) {
-            Thread.sleep(50)
-            if (repo.groups.value.none { it.name == "Rollback Club" }) {
-                rolledBack = true
-                break
-            }
-        }
+        awaitRollback { repo.groups.value.none { it.name == "Rollback Club" } }
+        val rolledBack = repo.groups.value.none { it.name == "Rollback Club" }
         println("DEBUG ROLLBACK: groups=${repo.groups.value.map { it.name }}, banner=${vm.statusBanner.value}")
         assertTrue("El club debe ser removido por el rollback. Banner actual: ${vm.statusBanner.value}", rolledBack)
         assertEquals(initialGroupsCount, repo.groups.value.size)

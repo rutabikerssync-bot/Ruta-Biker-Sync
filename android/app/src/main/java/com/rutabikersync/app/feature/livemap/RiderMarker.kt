@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rutabikersync.app.core.mesh.TelemetrySource
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.ui.theme.BikerDimens
@@ -72,6 +73,8 @@ enum class RiderRideRole(val badgeLabel: String) {
 enum class RiderRouteStatus(val symbolAndLabel: String) {
     ON_ROUTE("✓ En ruta"),
     OFF_ROUTE_DEVIATED("⚠ Desviado"),
+    /** Gracia visual de 60 s: el peer sigue contando como rider aunque el motor ya marcó `isLost`. */
+    SIGNAL_GRACE("◌ Sin señal (gracia)"),
     OFF_MESH_LOST("✕ Sin señal"),
     SOS_ACTIVE("SOS ACTIVO")
 }
@@ -111,7 +114,9 @@ data class RiderMarkerUiModel(
      * Edad en segundos de una posición conservada porque el peer dejó de enviar un fix
      * válido (centinela 0,0). `null` cuando la posición es actual: no se muestra el aviso.
      */
-    val positionAgeSeconds: Long? = null
+    val positionAgeSeconds: Long? = null,
+    /** Origen de la posición. BLE por defecto para no alterar los marcadores existentes. */
+    val telemetrySource: TelemetrySource = TelemetrySource.BLE
 ) {
     /**
      * Decisión 3.2 (C): Nombre abreviado siempre visible junto al avatar (ej. "J.M."),
@@ -183,6 +188,7 @@ fun RiderMarker(
     val ringColor = when (marker.routeStatus) {
         RiderRouteStatus.SOS_ACTIVE -> BikerColors.StatusRed
         RiderRouteStatus.OFF_MESH_LOST -> BikerColors.TextSecondary
+        RiderRouteStatus.SIGNAL_GRACE -> BikerColors.StatusYellow
         RiderRouteStatus.OFF_ROUTE_DEVIATED -> BikerColors.StatusYellow
         RiderRouteStatus.ON_ROUTE -> Color(marker.markerColorHex)
     }
@@ -354,7 +360,8 @@ fun RiderMarker(
                             )
                         }
                     }
-                    marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST -> {
+                    marker.routeStatus == RiderRouteStatus.OFF_MESH_LOST ||
+                        marker.routeStatus == RiderRouteStatus.SIGNAL_GRACE -> {
                         Icon(
                             imageVector = AppIcons.RiderOffMesh,
                             contentDescription = "Fuera de mesh",
@@ -424,6 +431,17 @@ fun RiderMarker(
         marker.positionAgeSeconds?.let { ageSeconds ->
             Text(
                 text = "⏱ hace ${ageSeconds}s",
+                color = BikerColors.PrimaryAmber,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Corte 1 de redundancia: distingue visualmente una posición recibida por 4G
+        // de una recibida por la malla BLE. No cambia avatar, anillo, icono ni estilo del mapa.
+        if (marker.telemetrySource == TelemetrySource.HTTP_4G) {
+            Text(
+                text = "[4G]",
                 color = BikerColors.PrimaryAmber,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold

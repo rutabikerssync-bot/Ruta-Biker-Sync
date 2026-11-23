@@ -1,0 +1,6 @@
+﻿
+11-22 21:17:34.497  4905  4935 I SosTonePlayer: ToneOn toneType=24 durationMs=2800 result=true stream=4
+11-22 21:17:34.499  4905  4905 I RideService: ConvoySignalTx emitido por malla: kind=REGROUP code=3
+11-22 21:17:37.707  4905  4974 I SosTonePlayer: ToneOn toneType=24 durationMs=2800 result=true stream=4
+
+

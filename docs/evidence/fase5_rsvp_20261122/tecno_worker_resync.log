@@ -1,0 +1,10 @@
+# TECNO 098813734B105395 — RsvpOutboxWorker (logcat -d -v time)
+
+11-22 23:54:32.813 D/WM-WorkerWrapper(26631): Starting work for com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker
+11-22 23:54:32.839 I/WM-WorkerWrapper(26631): Worker result RETRY for Work [ id=6996a228-dec4-48e2-8b2a-46a2f97337b3, tags={ com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker } ]
+
+11-22 23:54:47.865 D/WM-WorkerWrapper(26631): Starting work for com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker
+11-22 23:54:47.881 I/WM-WorkerWrapper(26631): Worker result RETRY for Work [ id=6996a228-dec4-48e2-8b2a-46a2f97337b3, tags={ com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker } ]
+
+11-22 23:55:17.897 D/WM-WorkerWrapper(26631): Starting work for com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker
+11-22 23:55:17.930 I/WM-WorkerWrapper(26631): Worker result SUCCESS for Work [ id=6996a228-dec4-48e2-8b2a-46a2f97337b3, tags={ com.rutabikersync.app.core.clubroutes.RsvpOutboxWorker } ]

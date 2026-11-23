@@ -109,7 +109,10 @@ import com.rutabikersync.app.core.uxtest.UxTestTracker
  * Pestaña Grupo (SCREENS.md D1–D9) con soporte completo para StateHost y Skeletons (SKELETONS.md §7).
  */
 @Composable
-fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
+fun GroupsMainTabScreen(
+    viewModel: Phase1ViewModel,
+    onOpenParticipants: (routeId: String) -> Unit = {}
+) {
     val groups by viewModel.repository.groups.collectAsState()
     val invitations by viewModel.repository.pendingInvitations.collectAsState()
     val currentUser by viewModel.repository.currentUser.collectAsState()
@@ -122,18 +125,25 @@ fun GroupsMainTabScreen(viewModel: Phase1ViewModel) {
     val showClubRoutes by viewModel.showClubRoutes.collectAsState()
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    // Fase 5 · Hito 3: sustituye la pestaña mientras se consultan/firmas rutas.
+    // Fase 5: vista informativa de convocatorias; la respuesta se da en PARTICIPANTES.
     if (showClubRoutes) {
         val routes by viewModel.clubRoutes.collectAsState()
         val nextRoute by viewModel.nextClubRoute.collectAsState()
         val rsvpByRoute by viewModel.clubRsvpByRoute.collectAsState()
+        var participantCounts by remember { mutableStateOf<Map<String, Int?>>(emptyMap()) }
+        LaunchedEffect(routes.map { it.id }.toSet()) {
+            participantCounts = routes.associate { route ->
+                route.id to viewModel.repository.clubRoutes.loadRsvps(route.id).summary?.total
+            }
+        }
         ClubRoutesScreen(
             groupName = groups.firstOrNull { it.id == selectedGroupId }?.name ?: "Mi Club",
             routes = routes,
             nextRoute = nextRoute,
             rsvpByRoute = rsvpByRoute,
+            participantCounts = participantCounts,
             pendingCount = rsvpPendingCount,
-            onRsvp = { routeId, status -> viewModel.requestRsvp(routeId, status) },
+            onOpenParticipants = onOpenParticipants,
             onBack = { viewModel.closeClubRoutes() }
         )
         return
@@ -4212,6 +4222,9 @@ fun DevPanelDialog(
                 ) {
                     Text(stringResource(id = R.string.dev_load_demo), fontWeight = FontWeight.Bold)
                 }
+
+                // Cierre DEV del ciclo: válido solo en builds con panel de desarrollador.
+                RideLifecycleDevTrigger(viewModel = viewModel)
 
                 // Bloque D: exportar logs sin adb. Doble guardia: el panel ya está detrás
                 // de BuildConfig.DEV_PANEL_ENABLED y aquí se vuelve a comprobar.

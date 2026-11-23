@@ -193,6 +193,18 @@ android {
         "RBS_PILOT_BUILD debe tener 1-40 caracteres alfanuméricos, punto, guion o guion bajo"
     }
 
+    // UUID de una rodada real creada en el backend. No se versiona: se inyecta
+    // mediante -Prbs.pilot.rideId o RBS_PILOT_RIDE_ID al compilar el APK piloto.
+    val pilotRideId = (
+        providers.gradleProperty("rbs.pilot.rideId").orNull ?: System.getenv("RBS_PILOT_RIDE_ID") ?: ""
+    ).trim()
+    val rideUuidPattern = Regex(
+        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+    require(pilotRideId.isBlank() || rideUuidPattern.matches(pilotRideId)) {
+        "RBS_PILOT_RIDE_ID debe ser un UUID válido o estar vacío"
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
@@ -201,6 +213,7 @@ android {
             buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
             buildConfigField("String", "PILOT_KEY", "\"$pilotKey\"")
             buildConfigField("String", "PILOT_BUILD", "\"$pilotBuild\"")
+            buildConfigField("String", "PILOT_RIDE_ID", "\"$pilotRideId\"")
         }
         release {
             signingConfig = signingConfigs.getByName("release")
@@ -209,6 +222,7 @@ android {
             // Nunca se distribuye una clave de piloto en release.
             buildConfigField("String", "PILOT_KEY", "\"\"")
             buildConfigField("String", "PILOT_BUILD", "\"\"")
+            buildConfigField("String", "PILOT_RIDE_ID", "\"\"")
             isMinifyEnabled = true       // ofuscaci?n R8 (app de c?digo cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")

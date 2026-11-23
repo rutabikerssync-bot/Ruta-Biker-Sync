@@ -34,8 +34,8 @@ enum class ConvoySignalKind(
         icon = "⚠",
         toneType = ToneGenerator.TONE_PROP_NACK,
         pulseCount = 1,
-        pulseDurationMs = 300L,
-        gapMs = 100L
+        pulseDurationMs = 6_000L,
+        gapMs = 0L
     ),
     REDUCE_SPEED(
         code = 2,
@@ -44,8 +44,8 @@ enum class ConvoySignalKind(
         icon = "🛑",
         toneType = ToneGenerator.TONE_PROP_BEEP2,
         pulseCount = 2,
-        pulseDurationMs = 100L,
-        gapMs = 60L
+        pulseDurationMs = 2_900L,
+        gapMs = 200L
     ),
     REGROUP(
         code = 3,
@@ -54,8 +54,8 @@ enum class ConvoySignalKind(
         icon = "🔁",
         toneType = ToneGenerator.TONE_PROP_BEEP,
         pulseCount = 2,
-        pulseDurationMs = 180L,
-        gapMs = 120L
+        pulseDurationMs = 2_800L,
+        gapMs = 400L
     ),
     GAS_STOP(
         code = 4,
@@ -64,8 +64,8 @@ enum class ConvoySignalKind(
         icon = "⛽",
         toneType = ToneGenerator.TONE_PROP_ACK,
         pulseCount = 1,
-        pulseDurationMs = 450L,
-        gapMs = 100L
+        pulseDurationMs = 6_000L,
+        gapMs = 0L
     ),
     POLICE_CHECKPOINT(
         code = 5,
@@ -74,8 +74,8 @@ enum class ConvoySignalKind(
         icon = "👮",
         toneType = ToneGenerator.TONE_PROP_PROMPT,
         pulseCount = 3,
-        pulseDurationMs = 90L,
-        gapMs = 60L
+        pulseDurationMs = 1_900L,
+        gapMs = 150L
     );
 
     val fullLabel: String get() = "$icon $title"
@@ -92,6 +92,9 @@ interface ConvoySignalAudioPlayer {
     fun playTone(toneType: Int, durationMs: Long)
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L)
     fun stop()
+
+    /** Libera el ToneGenerator y el foco; el reproductor queda inactivo. */
+    fun release()
 }
 
 /**
@@ -201,6 +204,14 @@ class DefaultConvoySignalPlayer(
         }
     }
 
+    override fun release() {
+        synchronized(stateLock) {
+            stopInternal()
+            runCatching { toneEmitter.release() }
+            focusDelegate.releaseFocus()
+        }
+    }
+
     private fun stopInternal() {
         if (!playing && playbackJob == null) return
         val ownedJob = playbackJob
@@ -231,8 +242,11 @@ class DefaultConvoySignalPlayer(
  * Hub singleton para coordinar la reproducción de señales desde Composable o background.
  */
 object ConvoySignalAudioHub {
+    private const val TAG_HUB = "ConvoySignalAudioHub"
+
     @Volatile
     private var player: ConvoySignalAudioPlayer? = null
+    private var appContext: Context? = null
     private val lock = Any()
 
     @Volatile
@@ -249,6 +263,7 @@ object ConvoySignalAudioHub {
         synchronized(lock) {
             if (player != null) return
             val appContext = context.applicationContext
+            this.appContext = appContext
             val focusDelegate = DuckingFocusDelegate(AudioDuckingManager(appContext))
             val audibility = AndroidSosAudibilityPolicy(appContext)
             player = DefaultConvoySignalPlayer(
@@ -259,6 +274,7 @@ object ConvoySignalAudioHub {
                 coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
                 audibilityProvider = audibility::isAudible
             )
+            Log.i(TAG_HUB, "hub inicializado con alcance de aplicacion")
         }
     }
 
@@ -268,22 +284,41 @@ object ConvoySignalAudioHub {
         player = customPlayer
     }
 
+    /** Tras un `release()` (fin de rodada), el siguiente sonido reconstruye el hub. */
+    private fun activePlayer(): ConvoySignalAudioPlayer? {
+        if (player == null) appContext?.let { ensureInitialized(it) }
+        return player
+    }
+
     fun playSignal(kind: ConvoySignalKind) {
-        player?.playSignal(kind)
+        activePlayer()?.playSignal(kind)
     }
 
     fun playTone(toneType: Int, durationMs: Long) {
-        player?.playTone(toneType, durationMs)
+        activePlayer()?.playTone(toneType, durationMs)
     }
 
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L) {
-        player?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
+        activePlayer()?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
     }
 
     fun stop() {
         player?.stop()
     }
 
+    /** Libera el ToneGenerator; idempotente. */
+    fun release() {
+        synchronized(lock) {
+            if (player != null) Log.i(TAG_HUB, "hub liberado (ToneGenerator release)")
+            player?.release()
+            player = null
+        }
+    }
+
     val isPlaying: Boolean
         get() = player?.isPlaying == true
+
+    /** True cuando el hub ya fue instalado por [AppAudioBootstrap]. */
+    val isInitialized: Boolean
+        get() = player != null
 }

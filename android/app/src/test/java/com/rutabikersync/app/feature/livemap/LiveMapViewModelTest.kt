@@ -1,6 +1,8 @@
 package com.rutabikersync.app.feature.livemap
 
+import com.rutabikersync.app.core.mesh.FusedPeerPosition
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.TelemetrySource
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -166,16 +168,26 @@ class LiveMapViewModelTest {
         assertEquals(RiderRouteStatus.OFF_ROUTE_DEVIATED, rider3.routeStatus)
         assertEquals("⚠ Desviado", rider3.routeStatus.symbolAndLabel)
 
-        // Rider 4 emite un paquete y luego guarda silencio hasta superar el timeout derivado -> OFF_MESH_LOST ("✕ Sin señal")
+        // Rider 4 emite un paquete y luego guarda silencio hasta superar el timeout derivado.
+        // FIX 2026-11-23: el motor marca isLost, pero la gracia de 60 s mantiene el rider en el HUD.
         engines.getValue(4u).emitLocalPosition(19.4250, -99.1332, 60, 180f, 80, ttl = 4)
         val lossAtMs = System.currentTimeMillis() + MeshRelayEngine.LOST_TIMEOUT_MS + 1_000L
         engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
-        val afterTimeoutFrame = mapController.flushMapFrame(nowEpochMs = lossAtMs, force = true)
-        val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
+        val graceFrame = mapController.flushMapFrame(nowEpochMs = lossAtMs, force = true)
+        val rider4Grace = graceFrame.markers.first { it.shortId == 4u.toUShort() }
+        assertEquals(RiderRouteStatus.SIGNAL_GRACE, rider4Grace.routeStatus)
+        assertTrue(rider4Grace.routeStatus.symbolAndLabel.contains("Sin señal"))
+        assertEquals(4, graceFrame.ridersCount)
+
+        // Transcurridos 60 s sin señal, el marcador pasa a OFF_MESH_LOST y deja de contar.
+        val afterGraceFrame = mapController.flushMapFrame(
+            nowEpochMs = lossAtMs + PeerSignalGraceTracker.GRACE_MS,
+            force = true
+        )
+        val rider4Lost = afterGraceFrame.markers.first { it.shortId == 4u.toUShort() }
         assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
         assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
-        // FIX contador HUD: los peers sin señal no cuentan; queda solo el local.
-        assertEquals(1, afterTimeoutFrame.ridersCount)
+        assertEquals(1, afterGraceFrame.ridersCount)
 
         // Rider 2 activa SOS -> actualización inmediata sin esperar al tick de 1 s
         engines.getValue(2u).emitLocalPosition(19.4410, -99.1332, 0, 180f, 88, isSos = true, ttl = 4)
@@ -332,10 +344,24 @@ class LiveMapViewModelTest {
         assertEquals(2, twoPeers.ridersCount)
         assertEquals("2 riders", ConvoyRiderCountFormatter.format(twoPeers.ridersCount))
 
-        // El peer se pierde: su marcador fantasma sigue visible, pero el HUD baja a 1.
+        // El peer se pierde: durante 60 s sigue contando como "Sin señal (gracia)".
         val nowMs = System.currentTimeMillis()
-        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS)
-        val lostPeer = controller.flushMapFrame(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS, force = true)
+        val lossAtMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS
+        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
+        val gracePeer = controller.flushMapFrame(nowEpochMs = lossAtMs, force = true)
+        assertEquals(2, gracePeer.markers.size)
+        assertEquals(2, gracePeer.ridersCount)
+        assertEquals("2 riders", ConvoyRiderCountFormatter.format(gracePeer.ridersCount))
+        assertEquals(
+            RiderRouteStatus.SIGNAL_GRACE,
+            gracePeer.markers.first { it.shortId == 2u.toUShort() }.routeStatus
+        )
+
+        // Agotada la gracia, sí baja a 1 rider.
+        val lostPeer = controller.flushMapFrame(
+            nowEpochMs = lossAtMs + PeerSignalGraceTracker.GRACE_MS,
+            force = true
+        )
         assertEquals(2, lostPeer.markers.size)
         assertEquals(1, lostPeer.ridersCount)
         assertEquals("1 rider", ConvoyRiderCountFormatter.format(lostPeer.ridersCount))
@@ -369,5 +395,38 @@ class LiveMapViewModelTest {
         // Tocar el mapa vacío también cierra el detalle (onSelectRider(null)).
         controller.selectRiderMarker(1u)
         assertNull(controller.selectRiderMarker(null).selectedRiderShortId)
+    }
+
+    @Test
+    fun `Corte 1 una posicion 4G añade marcador con origen HTTP y perfil redactado`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.updateLocalRiderPose(latitude = 10.3538, longitude = -67.0425, speedKmh = 60)
+
+        controller.setHybridPositions(
+            listOf(
+                FusedPeerPosition(
+                    shortId = 60_000.toUShort(),
+                    userId = "e54bb490-754a-4aa6-9b4c-8b7b043e9dff",
+                    latitude = 10.3600,
+                    longitude = -67.0500,
+                    heading = 90.0,
+                    speedKmh = 48.0,
+                    observedAtMillis = 1_000L,
+                    source = TelemetrySource.HTTP_4G,
+                    profileRedacted = true
+                )
+            )
+        )
+
+        val frame = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
+        val marker = frame.markers.first { it.shortId == 60_000.toUShort() }
+        assertEquals(TelemetrySource.HTTP_4G, marker.telemetrySource)
+        assertTrue(marker.profileRedacted)
+        assertEquals(10.36, marker.displayLatitude, 0.000001)
     }
 }

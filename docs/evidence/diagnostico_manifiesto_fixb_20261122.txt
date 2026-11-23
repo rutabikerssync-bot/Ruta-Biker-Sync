@@ -1,0 +1,55 @@
+Diagnóstico del entorno de manifiesto para la verificación hardware de FIX B
+Fecha: 2026-11-22
+Repo: D:\Ruta-Biker-Sync-piloto (backend piloto :3100, BD compartida con el base)
+
+CONCLUSIÓN: el entorno de manifiesto NO está roto. No falta siembra de
+miembros, ni rodada de prueba, ni endpoint, ni migración. El único bloqueo
+para la verificación de FIX B es que el TECNO no está conectado por ADB.
+
+1) Dispositivos (adb devices -l)
+List of devices attached
+b2c398bb               device product:garnet_global model:2312DRA50G device:garnet transport_id:9
+098813734B105395 -> AUSENTE
+
+2) GET http://127.0.0.1:3100/v1/groups (x-rbs-pilot-key + x-user-id)
+TECNO (b5d0228d-8ab9-49fd-9cc7-efa452a484f2): status=200 ledGroups=1 memberGroups=0 groupIds=e3988eba-26e8-425a-80ac-2a65aeda8484
+REDMI (e54bb490-754a-4aa6-9b4c-8b7b043e9dff): status=200 ledGroups=0 memberGroups=1 groupIds=e3988eba-26e8-425a-80ac-2a65aeda8484
+
+Nota: el log "memberRes rows count: 0" corresponde SOLO al líder (TECNO),
+porque app.ts:1576 consulta únicamente memberships. El líder se resuelve por
+group_leaders (ledRes) y el miembro por memberships (memberRes). Es un log
+informativo, no un fallo. El HISTORY_NOTE anterior interpretó ese log como
+"manifiesto no válido"; esa inferencia era incorrecta.
+
+3) BD (postgres :5433 / rbs) - club y membresía
+GROUPS:
+  e3988eba-26e8-425a-80ac-2a65aeda8484 | Rutas Demo Bikers | active
+MEMBERSHIPS (UIDs del piloto):
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff | e3988eba-... | accepted | prospect |
+GROUP_LEADERS (UIDs del piloto):
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2 | e3988eba-... | t
+
+4) Rodada real
+SELECT id,host_group,host_leader,state,manifest_kid,manifest_issued_at
+  FROM rides WHERE id='2de260aa-3e24-493b-b9b8-0846366ba1c5';
+  2de260aa-3e24-493b-b9b8-0846366ba1c5 | e3988eba-26e8-425a-80ac-2a65aeda8484 |
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2 | active | ed25519-k1 | 2026-11-22 18:36:33.225282-04
+
+SELECT user_id,group_id,status_kind,ride_role,joined_at FROM ride_participants
+  WHERE ride_id='2de260aa-3e24-493b-b9b8-0846366ba1c5';
+  b5d0228d-8ab9-49fd-9cc7-efa452a484f2 | e3988eba-... | leader | capitan_rodada | 2026-11-22 16:46:04.443295-04
+  e54bb490-754a-4aa6-9b4c-8b7b043e9dff | e3988eba-... | full    | participante   | 2026-11-22 16:46:04.446509-04
+
+5) GET http://127.0.0.1:3100/v1/rides/2de260aa-3e24-493b-b9b8-0846366ba1c5/manifest
+TECNO: status=200 kid=ed25519-k1 participants=2 publicKeys=1
+       fields=manifest,payload,signatureBase64Url,publicKeys
+REDMI: status=200 kid=ed25519-k1 participants=2 publicKeys=1
+       fields=manifest,payload,signatureBase64Url,publicKeys
+
+6) Salud del servicio
+GET http://127.0.0.1:3100/health -> 200
+GET https://section-venues-manufacturer-infinite.trycloudflare.com/health -> {"status":"ok"}
+
+ACCIÓN PENDIENTE (única): conectar el TECNO por USB y verificar que
+`adb devices -l` muestre 098813734B105395. No se requiere ningún comando de
+siembra ni migración en la BD.

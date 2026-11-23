@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.rutabikersync.app.core.audio.AudioDuckingManager
+import com.rutabikersync.app.core.audio.ConvoySignalAudioHub
+import com.rutabikersync.app.core.audio.PttStateProvider
 import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
 import com.rutabikersync.app.core.mesh.audio.PttState
@@ -31,6 +33,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -71,6 +74,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -120,6 +124,7 @@ import com.rutabikersync.app.feature.routes.RecalculateRouteUseCase
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.feature.routes.RoadRoutingEngine
 import com.rutabikersync.app.feature.routes.RouteDeviationDetector
+import com.rutabikersync.app.feature.routes.RouteOrientation
 import com.rutabikersync.app.feature.routes.RoutePolylineMeshRelay
 import com.rutabikersync.app.feature.routes.StopReason
 import com.rutabikersync.app.feature.sos.EmergencyRescuePacketDialog
@@ -141,6 +146,34 @@ import android.os.Build
 import com.rutabikersync.app.core.mesh.sos.SosProximityEngine
 import com.rutabikersync.app.core.mesh.sos.SosProximityAlert
 import kotlin.math.roundToInt
+
+/**
+ * Corte 2A: el despacho BLE puede devolver `true` aunque el radio esté apagado a nivel de
+ * sistema (el RelayEngine sigue vivo). En ese caso el mensaje se perdería sin activar el
+ * fallback HTTP, así que el estado real del adaptador manda antes que el resultado BLE.
+ */
+internal fun isBleRadioEnabled(context: Context): Boolean = try {
+    // BluetoothAdapter.isEnabled() puede seguir reportando BLE_ONLY en algunos equipos;
+    // el valor global de BLUETOOTH_ON es el que refleja el apagón del radio del piloto.
+    val bluetoothOn = android.provider.Settings.Global.getInt(
+        context.contentResolver,
+        android.provider.Settings.Global.BLUETOOTH_ON,
+        0
+    )
+    android.util.Log.i("BleRadioGate", "BLUETOOTH_ON=$bluetoothOn")
+    bluetoothOn > 0
+} catch (e: Exception) {
+    android.util.Log.w("BleRadioGate", "No se pudo leer BLUETOOTH_ON; asumimos BLE activo", e)
+    true
+}
+
+/** Compuerta pura para poder probar la decisión sin depender del framework Android. */
+internal fun tryBleDelivery(radioEnabled: Boolean, dispatch: () -> Boolean): Boolean =
+    radioEnabled && dispatch()
+
+/** Variante suspendida para el despacho de señales, que ocurre dentro de `coroutineScope.launch`. */
+internal suspend fun tryBleSuspendDelivery(radioEnabled: Boolean, dispatch: suspend () -> Boolean): Boolean =
+    radioEnabled && dispatch()
 
 /**
  * Pantalla `C1. Cabina de Rodada Activa` (SCREENS.md C1, DESIGN.md §2).
@@ -213,7 +246,10 @@ fun LiveMapScreen(
         )
     }
     DisposableEffect(pttEngine) {
-        onDispose { pttEngine.release() }
+        onDispose {
+            ConvoySignalAudioHub.pttStateProvider = PttStateProvider { false }
+            pttEngine.release()
+        }
     }
     // El engine puede sustituirse al reiniciar BLE: re-suscribir la recepción de voz.
     DisposableEffect(rideServiceState.lifecycleState, rideServiceState.isUsingSimulatedTransport, pttEngine) {
@@ -352,17 +388,16 @@ fun LiveMapScreen(
             }
             RideService.dispatchStartRide(
                 context = context.applicationContext,
-                rideId = "ride-live-01",
+                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                 localShortId = shortId,
                 forceSimulated = false
             )
         }
-        // El alcance real pertenece a App; cabina solo observa PTT y el estado SOS.
+        // El hub pertenece a App (alcance de aplicación). La cabina solo publica
+        // el estado de su PTT local para que las señales informativas se supriman.
         com.rutabikersync.app.core.audio.SosToneHub.ensureInitialized(context.applicationContext)
-        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.ensureInitialized(
-            context = context.applicationContext,
-            externalPttStateProvider = { pttEngine.pttState.value !is PttState.Idle }
-        )
+        ConvoySignalAudioHub.pttStateProvider =
+            PttStateProvider { pttEngine.pttState.value !is PttState.Idle }
     }
     LaunchedEffect(pttEngine) {
         com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
@@ -432,6 +467,63 @@ fun LiveMapScreen(
         } catch (_: Exception) {}
     }
 
+    // Corte 1 de redundancia BLE ↔ 4G: el dispatcher solo lee HTTP; BLE sigue siendo
+    // la fuente de verdad. Se activa únicamente con un UUID de rodada real.
+    val hybridDispatcher = remember {
+        com.rutabikersync.app.core.mesh.HybridTransportDispatcher(
+            http = { rideId ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance()
+                    .fetchRideTelemetry(rideId)
+            },
+            pollIntervalMs = 5_000L,
+            ttlMs = 30_000L,
+            resolveShortId = { null }
+        )
+    }
+    // Corte 2A de redundancia BLE ↔ 4G: chat/señales efímeros. BLE sigue siendo primario.
+    val hybridChatDispatcher = remember(selfShortId) {
+        com.rutabikersync.app.core.mesh.HybridChatDispatcher(
+            selfShortId = selfShortId,
+            fetch = { id, since ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance().fetchRideComms(id, since)
+            },
+            post = { id, draft ->
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance().postRideComms(id, draft)
+            }
+        )
+    }
+    val hybridRideState by RideService.sharedState.collectAsState()
+    // El dispatcher de chat se recreate cuando cambia `selfShortId` (llega el RelayEngine).
+    // Sin incluirlo como key, el efecto anterior no volvía a arrancarlo y el uplink 4G se
+    // descartaba por falta de rodeo activo (evidencia logcat 2026-11-22).
+    LaunchedEffect(hybridRideState.rideId, hybridDispatcher, hybridChatDispatcher) {
+        val rideId = hybridRideState.rideId
+        android.util.Log.i("HybridChatStart", "rideId=$rideId pilot=${com.rutabikersync.app.core.mesh.PilotRideConfig.rideId}")
+        if (runCatching { java.util.UUID.fromString(rideId) }.isSuccess) {
+            hybridDispatcher.start(rideId, this)
+            hybridChatDispatcher.start(rideId, this)
+        } else {
+            hybridDispatcher.stop()
+            hybridChatDispatcher.stop()
+        }
+    }
+    DisposableEffect(hybridDispatcher, hybridChatDispatcher) {
+        onDispose {
+            hybridDispatcher.stop()
+            hybridChatDispatcher.stop()
+        }
+    }
+    LaunchedEffect(hybridDispatcher) {
+        while (true) {
+            liveMapViewModel.controller.setHybridPositions(
+                hybridDispatcher.fuse(
+                    blePeers = liveMapViewModel.controller.currentBlePeerSnapshots()
+                )
+            )
+            kotlinx.coroutines.delay(1_000L)
+        }
+    }
+
     // Monitoreo del Radar SOS de proximidad (telemetría + radar 5 km)
     LaunchedEffect(Unit) {
         val client = com.rutabikersync.app.core.network.ClubApiClient.getInstance()
@@ -440,9 +532,29 @@ fun LiveMapScreen(
                 val currentLat = liveMapViewModel.uiState.value.cameraLatitude
                 val currentLng = liveMapViewModel.uiState.value.cameraLongitude
 
-                // 1. Emitir telemetría efímera si el usuario está autenticado
-                if (currentLat != 0.0 && currentLng != 0.0 && (client.accessToken != null || client.currentUserId != null)) {
-                    client.sendTelemetryHeartbeat(currentLat, currentLng)
+                // 1. Emitir telemetría efímera solo desde un fix GPS real y reciente.
+                //    La cámara puede estar desplazada por el usuario: nunca se envía como posición.
+                val geoCache = context.getSharedPreferences("rbs_geo_cache", Context.MODE_PRIVATE)
+                val cachedLat = geoCache.getFloat("last_known_lat", 0f).toDouble()
+                val cachedLng = geoCache.getFloat("last_known_lon", 0f).toDouble()
+                val cachedTime = geoCache.getLong("last_known_time_epoch_ms", 0L)
+                val hasFreshCachedFix = cachedTime > 0L &&
+                    com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy.isUsableFix(
+                        latitude = cachedLat,
+                        longitude = cachedLng,
+                        accuracyMeters = geoCache.getFloat("last_known_accuracy", 50f),
+                        fixTimeEpochMs = cachedTime,
+                        nowEpochMs = System.currentTimeMillis()
+                    )
+                val telemetryRideId = RideService.sharedState.value.rideId
+                    .takeIf { runCatching { java.util.UUID.fromString(it) }.isSuccess }
+
+                if (hasFreshCachedFix && (client.accessToken != null || client.currentUserId != null)) {
+                    client.sendTelemetryHeartbeat(
+                        lat = cachedLat,
+                        lng = cachedLng,
+                        rideId = telemetryRideId
+                    )
                 }
 
                 // 2. Consultar alertas SOS cercanas activas (< 5 km)
@@ -567,7 +679,8 @@ fun LiveMapScreen(
             isOnline = isOnline,
             fetchRoadRoute = { origin, destination, destinationName ->
                 RoadRoutingEngine.fetchRealRoadRoute(origin, destination, destinationName)
-            }
+            },
+            isReturnPhase = { RideScheduleRepository.isReturnPhase.value }
         )
     }
 
@@ -577,9 +690,16 @@ fun LiveMapScreen(
     LaunchedEffect(deviationState.isAlertActive) {
         if (!deviationState.isAlertActive || isRecalculatingRoute) return@LaunchedEffect
         isRecalculatingRoute = true
+        val activeRide = scheduledRide
+        val returnPhaseForRecalc = RideScheduleRepository.isReturnPhase.value
+        val recalcDestination = when {
+            activeRide == null -> null
+            returnPhaseForRecalc -> RouteOrientation.effectiveDestination(activeRide, true)
+            else -> activeRide.destination
+        }
         val outcome = recalculateRouteUseCase(
             currentLocation = deviationState.lastKnownLocation,
-            destination = scheduledRide?.destination
+            destination = recalcDestination
         )
         actionFeedback = when (outcome) {
             RecalculateRouteOutcome.SUCCESS -> "✓ Ruta recalculada automáticamente sobre vías reales"
@@ -592,8 +712,9 @@ fun LiveMapScreen(
     val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
     LaunchedEffect(scheduledRide, isReturnPhase) {
         scheduledRide?.selectedRoute?.waypoints?.let { pts ->
-            val effective = if (isReturnPhase) pts.reversed() else pts
-            RouteDeviationDetector.setActiveRoutePolyline(effective)
+            RouteDeviationDetector.setActiveRoutePolyline(
+                RouteOrientation.effectiveWaypoints(pts, isReturnPhase)
+            )
         }
     }
 
@@ -700,8 +821,8 @@ fun LiveMapScreen(
     LaunchedEffect(rideServiceState.rideId, localProfile?.uid) {
         val rideId = rideServiceState.rideId
         val uuidPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-        // La rodada de prueba usa "ride-live-01": el backend exige UUID, así que se omite
-        // la petición y se conservan los fallbacks locales sin lanzar errores.
+        // Solo se consulta el roster cuando la cabina usa un UUID real. Los builds sin
+        // rodada inyectada conservan el identificador local y no lanzan errores de red.
         if (rideId.isNullOrBlank() || !uuidPattern.matches(rideId)) return@LaunchedEffect
         val api = ClubApiClient.getInstance().apply { initContext(context.applicationContext) }
         val response = api.fetchRideRoster(rideId).getOrNull() ?: return@LaunchedEffect
@@ -829,8 +950,12 @@ fun LiveMapScreen(
         } else {
             // Posición inicial segura en caso de primera instalación sin fix previo
             val activeRoute = RideScheduleRepository.currentRide.value?.selectedRoute
-            val initLat = activeRoute?.waypoints?.firstOrNull()?.latitude ?: 10.3444
-            val initLon = activeRoute?.waypoints?.firstOrNull()?.longitude ?: -67.0422
+            val orientedStart = RouteOrientation.effectiveWaypoints(
+                activeRoute?.waypoints.orEmpty(),
+                RideScheduleRepository.isReturnPhase.value
+            ).firstOrNull()
+            val initLat = orientedStart?.latitude ?: 10.3444
+            val initLon = orientedStart?.longitude ?: -67.0422
             liveMapViewModel.controller.updateLocalRiderPose(
                 latitude = initLat,
                 longitude = initLon,
@@ -1100,88 +1225,91 @@ fun LiveMapScreen(
                 .navigationBarsPadding()
                 .padding(start = 14.dp, end = 14.dp, bottom = 14.dp, top = 20.dp)
         ) {
-            // Cápsulas intermedias sobre el mapa: Convoy (izquierda) y Seguir líder (derecha)
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Cápsula izquierda: Convoy + cantidad de riders (Clickable para silenciar y reportar riders R13)
+            // Cápsulas intermedias: solo en cabina expandida. En modo mínimo el asa inferior
+            // muestra Convoy y el estado de malla; el líder sigue accesible desde el HUD superior.
+            AnimatedVisibility(visible = isBottomCockpitExpanded) {
                 Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DarkCardElevated.copy(alpha = 0.95f))
-                        .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
-                        .clickable { showConvoyDialog = true }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Convoy",
-                        tint = HeritageCopper,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Convoy",
-                            color = HeritageLeatherBrown,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp
-                        )
-                        Text(
-                            text = ConvoyRiderCountFormatter.format(state.ridersCount),
-                            color = HeritageLeatherMuted,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp,
-                            lineHeight = 11.sp
-                        )
-                    }
-                }
-
-                if (!isLeader && currentLeaderPin != null) {
-                    // Cápsula derecha: Botón "Seguir líder"
-                    val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                    // Cápsula izquierda: Convoy + cantidad de riders (Clickable para silenciar y reportar riders R13)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
-                            .background(
-                                if (isFollowing) HeritageCopper else HeritageCardWarm.copy(alpha = 0.95f)
-                            )
-                            .border(
-                                1.2.dp,
-                                if (isFollowing) HeritageCopperDark else HeritageBorder,
-                                RoundedCornerShape(14.dp)
-                            )
-                            .clickable {
-                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                    "LIVE_MAP",
-                                    "TAP_FOLLOW_LEADER",
-                                    "btn_seguir_lider"
-                                )
-                                liveMapViewModel.controller.followLeader(
-                                    nowEpochMs = System.currentTimeMillis(),
-                                    scheduleAutoRevert = true
-                                )
-                            }
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                            .background(DarkCardElevated.copy(alpha = 0.95f))
+                            .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
+                            .clickable { showConvoyDialog = true }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.NearMe,
-                            contentDescription = "Seguir líder",
-                            tint = if (isFollowing) Color.White else HeritageLeatherBrown,
-                            modifier = Modifier.size(16.dp)
+                            imageVector = Icons.Default.Link,
+                            contentDescription = "Convoy",
+                            tint = HeritageCopper,
+                            modifier = Modifier.size(18.dp)
                         )
-                        Text(
-                            text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
-                            color = if (isFollowing) Color.White else HeritageLeatherBrown,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
+                        Column {
+                            Text(
+                                text = "Convoy",
+                                color = HeritageLeatherBrown,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                lineHeight = 12.sp
+                            )
+                            Text(
+                                text = ConvoyRiderCountFormatter.format(state.ridersCount),
+                                color = HeritageLeatherMuted,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 10.sp,
+                                lineHeight = 11.sp
+                            )
+                        }
+                    }
+
+                    if (!isLeader && currentLeaderPin != null) {
+                        // Cápsula derecha: Botón "Seguir líder"
+                        val isFollowing = state.cameraMode == CameraMode.FOLLOWING_LEADER
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isFollowing) HeritageCopper else HeritageCardWarm.copy(alpha = 0.95f)
+                                )
+                                .border(
+                                    1.2.dp,
+                                    if (isFollowing) HeritageCopperDark else HeritageBorder,
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable {
+                                    com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                        "LIVE_MAP",
+                                        "TAP_FOLLOW_LEADER",
+                                        "btn_seguir_lider"
+                                    )
+                                    liveMapViewModel.controller.followLeader(
+                                        nowEpochMs = System.currentTimeMillis(),
+                                        scheduleAutoRevert = true
+                                    )
+                                }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NearMe,
+                                contentDescription = "Seguir líder",
+                                tint = if (isFollowing) Color.White else HeritageLeatherBrown,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (isFollowing) "Líder (${state.followLeaderRemainingSeconds}s)" else "Seguir líder",
+                                color = if (isFollowing) Color.White else HeritageLeatherBrown,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
@@ -1618,7 +1746,11 @@ fun LiveMapScreen(
                             Text("📡", fontSize = 18.sp)
                             Column {
                                 Text(
-                                    text = "Ruta por Malla (Hash verificado)",
+                                    text = if (meshRoute.isHashVerified) {
+                                        "Ruta por Malla (Hash verificado)"
+                                    } else {
+                                        "Ruta por Malla (hash NO verificado)"
+                                    },
                                     color = Color(0xFF38BDF8),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -1633,8 +1765,12 @@ fun LiveMapScreen(
                         }
                         androidx.compose.material3.Button(
                             onClick = {
-                                RouteDeviationDetector.setActiveRoutePolyline(meshRoute.route.waypoints)
-                                actionFeedback = "✓ Ruta de malla cargada en cabina: ${meshRoute.route.name}"
+                                val activated = RideScheduleRepository.activateMeshRoute(meshRoute)
+                                actionFeedback = if (activated) {
+                                    "✓ Ruta de malla cargada en cabina: ${meshRoute.route.name}"
+                                } else {
+                                    "✗ Ruta de malla rechazada: hash no verificado"
+                                }
                             },
                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8)),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
@@ -1646,7 +1782,9 @@ fun LiveMapScreen(
                 }
             }
 
-            // Control visual interactivo: Toca para subir/ocultar la botonera
+            // Asa mínima de cabina: Convoy + estado de malla. Toque o arrastre vertical
+            // (arriba abre / abajo cierra) aislado del mapa para no robar zoom/rotación.
+            val swipeThresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { 24.dp.toPx() }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -1657,12 +1795,48 @@ fun LiveMapScreen(
                         RoundedCornerShape(12.dp)
                     )
                     .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
+                    .pointerInput(Unit) {
+                        var dragYPx = 0f
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                when {
+                                    CockpitGestureResolver.shouldExpand(dragYPx, swipeThresholdPx) ->
+                                        isBottomCockpitExpanded = true
+                                    CockpitGestureResolver.shouldCollapse(dragYPx, swipeThresholdPx) ->
+                                        isBottomCockpitExpanded = false
+                                }
+                                dragYPx = 0f
+                            },
+                            onDragCancel = { dragYPx = 0f }
+                        ) { _, dragAmount ->
+                            dragYPx += dragAmount
+                        }
+                    }
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (activeRelayEngine != null) EmeraldMesh else Color(0xFF9CA3AF))
+                    )
+                    Text(
+                        text = ConvoyRiderCountFormatter.format(state.ridersCount),
+                        color = TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                    Text(
+                        text = if (activeRelayEngine != null) "MALLA ACTIVA" else "SIN MALLA",
+                        color = if (activeRelayEngine != null) EmeraldMesh else Color(0xFF9CA3AF),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
                     Icon(
                         imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                         contentDescription = null,
@@ -1670,7 +1844,7 @@ fun LiveMapScreen(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
+                        text = if (isBottomCockpitExpanded) "Ocultar" else "Controles (desliza arriba)",
                         color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp
@@ -1909,7 +2083,11 @@ fun LiveMapScreen(
                                         )
                                         com.rutabikersync.app.core.audio.ConvoySignalAudioHub.playSignal(signal)
                                         coroutineScope.launch {
-                                            RideService.dispatchSendConvoySignal(signal)
+                                            if (!tryBleSuspendDelivery(isBleRadioEnabled(context)) {
+                                                    RideService.dispatchSendConvoySignal(signal)
+                                                }) {
+                                                hybridChatDispatcher.publishSignal(signal)
+                                            }
                                         }
                                         actionFeedback = "📢 Señal emitida: ¡${signal.fullLabel}!"
                                         showSignalsDialog = false
@@ -2331,8 +2509,13 @@ fun LiveMapScreen(
                     peerFullNames = peerFullNames,
                     initialFocusKeyboard = initialFocusKeyboard,
                     onSendMessage = { targetId, text ->
-                        RideService.dispatchSendTextMessage(context, targetId, text)
-                        actionFeedback = "💬 Mensaje enviado: $text"
+                        val bleSent = tryBleDelivery(isBleRadioEnabled(context)) {
+                            RideService.dispatchSendTextMessage(context, targetId, text)
+                        }
+                        if (!bleSent) {
+                            coroutineScope.launch { hybridChatDispatcher.publishChat(targetId, text) }
+                        }
+                        actionFeedback = if (bleSent) "💬 Mensaje enviado: $text" else "💬 Mensaje enviado por 4G: $text"
                     },
                     onNavigateBack = { showTacticalChat = false }
                 )
@@ -2538,8 +2721,7 @@ private fun MapLibreCorridorSurface(
         val isReturnPhase by RideScheduleRepository.isReturnPhase.collectAsState()
         val activeRoute = scheduledRide?.selectedRoute
         val activeWaypoints = remember(activeRoute?.waypoints, isReturnPhase) {
-            val pts = activeRoute?.waypoints.orEmpty()
-            if (isReturnPhase) pts.reversed() else pts
+            RouteOrientation.effectiveWaypoints(activeRoute?.waypoints.orEmpty(), isReturnPhase)
         }
 
         // MapLibre nativo conectado a capas cartográficas
