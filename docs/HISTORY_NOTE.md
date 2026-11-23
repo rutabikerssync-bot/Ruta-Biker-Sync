@@ -830,3 +830,20 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 Los 4 commits se aplicaron desde `feat/logo-oficial-escala` en orden: `a529909` (equivalente a `3da31aa`), `b6ca772` (`4546ee1`), `91fc133` (`e5d9cc7`) y `192f2de` (`052bb30`). Hubo un **conflicto add/add** en `RideParticipantsScreenTest.kt`: la rama destino ya tenía el test `la tarjeta identifica la ruta cuyo roster se esta viendo` y la rama origen añadía `el roster viene del endpoint real del backend`. Se resolvió conservando **ambos** tests, sin tocar `Phase1ViewModel`, GATT, crypto, `HeartbeatFrame`, PTT ni los logos de `0d56887`. El merge de `HISTORY_NOTE.md` fue automático; se ajustó la tabla histórica anterior para que el humo Fase 5 figure como **EJECUTADA** y no como pendiente. Suite en esta rama: **94 suites / 525 tests / 0 fallos / 0 errores** (el `105/555` de la sección anterior corresponde a la rama origen, que divergió). Sin `amend` y sin `push`.
 
+### FIX B — Gracia visual del HUD y timeout de peer por percentil — 2026-11-23
+
+**Diagnóstico:** `LOST_TIMEOUT_MS = 40,5 s` (27 s × 1,5) no cubría los gaps reales de AdvRx medidos en campo (48–149 s), por lo que el HUD de Redmi caía de "2 riders" a "1 rider" en cuanto aparecía un hueco de radio.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| T1 · Gracia visual 60 s | `PeerGracePolicy.kt` (nuevo), `MeshRelayEngine.kt`, `LiveMapViewModel.kt`, `LiveMapViewModelTest.kt` | `PeerTrack.lostSinceEpochMs`; el HUD mantiene al peer en `ridersCount` y en `connectedPeers` durante 60 s tras el timeout, mostrando `✕ Sin señal` en el marcador | `PeerGracePolicyTest` + dos aserciones nuevas en `LiveMapViewModelTest` |
+| T2 · Timeout por percentil 95 | `PeerGapTimeoutPolicy.kt`, `PeerGapTimeoutTracker.kt` (nuevos), `MeshRelayEngine.kt` | Ventana de 16 gaps; `timeout = clamp(p95, 40,5 s, 90 s)`. Sin subir a 150 s para no retrasar isla/SOS | `PeerGapTimeoutPolicyTest` (p95 80/30/120 s) + `PeerGapTimeoutIntegrationTest` (80 s retrasa pérdida, 50 s registra `lostSince`) |
+| T3 · Verificación hardware | `docs/evidence/fixb_hud_gracia_20261123/` | APK debug instalada en TECNO y Redmi; Redmi detenido en vivo; HUD TECNO a +99 s y +168 s | **2 riders** durante la gracia y **1 rider** tras vencerla |
+| T4 · Documentación | `docs/HISTORY_NOTE.md` | Este registro | suite completa |
+
+**Restricciones cumplidas:** no se tocó GATT, crypto, `HeartbeatFrame` ni PTT; no se inflaron archivos existentes (toda la lógica nueva vive en archivos propios); no se modificó `Phase1ViewModel`; sin `amend` y sin `push`.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, **97 suites / 535 tests / 0 fallos / 0 errores**.
+
+**Hardware:** APK SHA-256 `326E002B036034AC88040D77D1A091CC2DBF70305F2E1C04C746EF073ED68159`. Ambos dispositivos con cockpit abierto mostraron "2 riders". A las 18:23:13 se detuvo la app en Redmi (`am force-stop`); a las 18:24:52 (+99 s) TECNO seguía mostrando **2 riders** y a las 18:26:01 (+168 s) mostró **1 rider**. Sin `FATAL`/`AndroidRuntime` del app en logcat. Capturas, dumps UI y comandos en `docs/evidence/fixb_hud_gracia_20261123/README.md`.
+

@@ -143,6 +143,8 @@ class MeshRelayEngine(
         val receivedBeats: Int,
         val consecutiveAfterLossBeats: Int,
         val isLost: Boolean,
+        /** Instante en que se marcó perdido; alimenta la gracia visual del HUD (FIX B). */
+        val lostSinceEpochMs: Long = 0L,
         val lastHops: Int,
         val lastRssiDbm: Int? = null,
         /**
@@ -271,6 +273,7 @@ class MeshRelayEngine(
     }
 
     private val peerMap = mutableMapOf<UShort, PeerTrack>()
+    private val gapTracker = PeerGapTimeoutTracker()
     private val relayQueue = PriorityQueue<QueuedRelay>()
     private val deviceModels = mutableMapOf(localDeviceModel to 1)
 
@@ -1598,7 +1601,7 @@ class MeshRelayEngine(
     }
 
     /**
-     * Evalúa qué nodos han superado [LOST_TIMEOUT_MS] sin señal (40,5 s, derivado del intervalo
+     * Evalúa qué nodos han superado el timeout recalibrado sin señal (mínimo 40,5 s, derivado del intervalo
      * de llegada medido en campo) y contabiliza eventos de partición (islas) cuando >=50% de los
      * peers conocidos se pierden a la vez.
      *
@@ -1612,20 +1615,23 @@ class MeshRelayEngine(
         synchronized(this) {
             for ((id, track) in peerMap.entries) {
                 val elapsed = (nowEpochMs - track.lastSeenEpochMs).coerceAtLeast(0L)
+                val timeoutMs = gapTracker.timeoutFor(id)
                 if (track.receivedBeats == 0) {
                     val beatsSinceStart = (elapsed / HEARTBEAT_INTERVAL_MS).toInt()
-                    val lostNow = elapsed >= LOST_TIMEOUT_MS
+                    val lostNow = elapsed >= timeoutMs
                     peerMap[id] = track.copy(
                         expectedBeats = maxOf(track.expectedBeats, beatsSinceStart),
                         isLost = track.isLost || lostNow,
+                        lostSinceEpochMs = if (lostNow && !track.isLost) nowEpochMs else track.lostSinceEpochMs,
                         consecutiveAfterLossBeats = 0
                     )
                     if (lostNow && !track.isLost) {
                         newlyLost.add(id)
                     }
-                } else if (!track.isLost && elapsed >= LOST_TIMEOUT_MS) {
+                } else if (!track.isLost && elapsed >= timeoutMs) {
                     peerMap[id] = track.copy(
                         isLost = true,
+                        lostSinceEpochMs = nowEpochMs,
                         consecutiveAfterLossBeats = 0
                     )
                     newlyLost.add(id)
@@ -1700,6 +1706,7 @@ class MeshRelayEngine(
 
     private fun updatePeerTrackLocked(packet: MeshPacket, nowEpochMs: Long, rssi: Int? = null) {
         val existing = peerMap[packet.shortId]
+        gapTracker.recordGap(packet.shortId, nowEpochMs - (existing?.lastSeenEpochMs ?: nowEpochMs))
         val firstSeq = if (existing == null || existing.receivedBeats == 0 || existing.firstSequence < 0) {
             packet.sequenceNumber
         } else {
@@ -1759,6 +1766,7 @@ class MeshRelayEngine(
             receivedBeats = newReceived,
             consecutiveAfterLossBeats = if (stillLost) consecutiveRecovery else 0,
             isLost = stillLost,
+            lostSinceEpochMs = if (stillLost) existing?.lostSinceEpochMs ?: 0L else 0L,
             lastHops = packet.hopsTaken,
             lastRssiDbm = rssi ?: existing?.lastRssiDbm,
             lastPositionEpochMs = effectivePositionEpochMs,
