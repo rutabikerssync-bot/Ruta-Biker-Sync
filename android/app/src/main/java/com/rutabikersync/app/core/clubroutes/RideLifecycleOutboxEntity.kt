@@ -1,6 +1,7 @@
 package com.rutabikersync.app.core.clubroutes
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.util.UUID
 
@@ -24,7 +25,10 @@ enum class RideLifecycleTransition(val endpoint: String) {
     }
 }
 
-@Entity(tableName = "ride_lifecycle_outbox")
+@Entity(
+    tableName = "ride_lifecycle_outbox",
+    indices = [Index(value = ["routeId"], name = "index_ride_lifecycle_outbox_routeId")]
+)
 data class RideLifecycleOutboxEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val routeId: String,
