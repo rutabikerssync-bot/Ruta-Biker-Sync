@@ -309,6 +309,7 @@ object ConvoySignalAudioHub {
     /** Libera el ToneGenerator; idempotente. */
     fun release() {
         synchronized(lock) {
+            if (player != null) Log.i(TAG_HUB, "hub liberado (ToneGenerator release)")
             player?.release()
             player = null
         }
