@@ -38,3 +38,13 @@ adb -s <serial> exec-out screencap -p > <captura.png>
 ```
 
 **Suite JVM:** 89 suites, 511 tests, 0 fallos, 0 errores (`--rerun-tasks`).
+
+## Ronda 2 — guardado offline visible y retiro de la caja oscura
+
+**APK:** `android/app/build/outputs/apk/standard/debug/app-standard-debug.apk`
+**SHA-256:** `9CEC4E49CFEF7FA1CA8C0DFF73BD8FE9157BFB4C86965A1DBE5C6FB964ECD3F9`
+
+- El botón `📥 Guardar Mapa Offline (PMTiles)` ahora aparece en la fase de selección de trazado del planner, antes de `Aceptar Trazado y Definir Salida`, para cualquier usuario (con o sin club).
+- Eliminados de Rodadas el `HeritageBevelCard` de 230 dp, sus botones `Ver Mapa` / `+ Trazar` y el botón `🗺️ Rutas y Corredor sin señal`.
+- `redmi_descarga_offline_dialog.png`: diálogo real `Mapa del Corredor Offline` para `Ruta 1 · Vía Principal Directa (ARC)`, con `Descargar Corredor (8.5 MB)` y selección de buffer ±5/±10/±15 km.
+- Suite JVM tras el cambio: 89 suites, 512 tests, 0 fallos, 0 errores (`--rerun-tasks`).

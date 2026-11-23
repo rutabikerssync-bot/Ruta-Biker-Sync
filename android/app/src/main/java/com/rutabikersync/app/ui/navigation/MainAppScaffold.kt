@@ -11,7 +11,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -43,7 +42,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.NearMe
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -108,7 +106,6 @@ import com.rutabikersync.app.feature.routes.ScheduledRide
 import com.rutabikersync.app.feature.rides.RideParticipantsScreen
 import com.rutabikersync.app.feature.routes.ScheduleRideMapScreen
 import com.rutabikersync.app.feature.routes.RideHistoryScreen
-import com.rutabikersync.app.feature.routes.CorridorOfflineManager
 import com.rutabikersync.app.feature.vault.VaultScreen
 
 import androidx.compose.foundation.clickable
@@ -1129,99 +1126,6 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Tarjeta: Ruta y Corredor Vial (Biselada)
-        HeritageBevelCard(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(0.dp)
-        ) {
-            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 230.dp)) {
-                if (currentRide != null) {
-                    Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
-                        val isOfflineDownloaded = remember(currentRide) {
-                            val routeId = currentRide?.selectedRoute?.id ?: "route-tovar-directa"
-                            CorridorOfflineManager.isCorridorDownloaded(context, routeId) ||
-                                CorridorOfflineManager.isRegionDownloaded(context, "caracas-junquito-tovar")
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = currentRide!!.selectedRoute.name.ifBlank { stringResource(id = R.string.rides_route_title) },
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isOfflineDownloaded) "✓ Offline Listo" else "En Línea",
-                                color = if (isOfflineDownloaded) Color(0xFF10B981) else Color(0xFFE5B869),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        }
-
-                    }
-                }
-            }
-        }
-
-        // Botones fuera de la tarjeta con imagen.
-        if (currentRide != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_VIEW_MAP", "btn_ver_mapa")
-                        onStartLiveMapPreview()
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFFC99A45))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.NearMe,
-                        contentDescription = "Ver Mapa",
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Ver Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_trazar_ruta")
-                        showScheduleMapPlanner = true
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.White
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Trazar",
-                        modifier = Modifier.size(16.dp),
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Trazar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
         // Sección 2: Ruta Libre. Siempre visible: con club, sin club y con/sin ruta local.
         Spacer(modifier = Modifier.height(8.dp))
         HeritageBevelCard(
@@ -1271,29 +1175,6 @@ private fun RidesReleaseHomeScreen(
                     Text("Conceder permisos", color = Color(0xFF101114), fontWeight = FontWeight.Bold)
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Botón Rutas y Corredor sin señal
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1E2129))
-                .border(1.dp, Color(0xFFC99A45).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable {
-                    showScheduleMapPlanner = true
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🗺️ Rutas y Corredor sin señal",
-                color = Color(0xFFE5B869),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
         }
 
         Spacer(modifier = Modifier.height(80.dp))

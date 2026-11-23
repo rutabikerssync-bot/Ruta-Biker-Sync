@@ -1555,6 +1555,33 @@ fun ScheduleRideMapScreen(
                             }
                         }
 
+                        // Descarga offline visible para todos desde que hay un trazado elegido.
+                        OutlinedButton(
+                            onClick = { showCorridorDownloadDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm),
+                            border = BorderStroke(1.2.dp, HeritageCopper),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth().height(42.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    tint = HeritageCopperDark,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "📥 Guardar Mapa Offline (PMTiles)",
+                                    color = HeritageCopperDark,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
                         Button(
                             onClick = { routeSelectionPhase = RouteSelectionPhase.INPUT_DETAILS },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDF6E32)),
@@ -1617,32 +1644,6 @@ fun ScheduleRideMapScreen(
                             errorMessage = rideMetadataError,
                             onClearError = { rideMetadataError = null }
                         )
-
-                        // Botón Secundario: Descarga explícita de mapa offline (PMTiles)
-                        OutlinedButton(
-                            onClick = {
-                                if (currentSelectedRoute != null) {
-                                    showCorridorDownloadDialog = true
-                                }
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm),
-                            border = BorderStroke(1.2.dp, HeritageCopper),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth().height(42.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Default.CloudDownload, contentDescription = null, tint = HeritageCopperDark, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = "📥 Guardar Mapa Offline (PMTiles)",
-                                    color = HeritageCopperDark,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
 
                         // Botón Principal: GUARDAR RUTA Y COMPARTIR CON EL CLUB
                         Button(

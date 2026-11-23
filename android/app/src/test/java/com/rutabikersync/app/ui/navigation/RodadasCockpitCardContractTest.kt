@@ -10,6 +10,7 @@ import java.io.File
  * - no existe "Cabina Activa" ni su imagen con acción;
  * - la imagen card3.2 es cabecera decorativa de PARTICIPANTES;
  * - "Ruta Libre" (Modo Libre) está siempre disponible, con o sin club;
+ * - la descarga offline se ofrece en el planner, sin caja huérfana en Rodadas;
  * - el ciclo de rodada de club sigue viviendo en el roster (líder).
  */
 class RodadasCockpitCardContractTest {
@@ -37,6 +38,9 @@ class RodadasCockpitCardContractTest {
     )
     private val participants = source(
         "app/src/main/java/com/rutabikersync/app/feature/rides/RideParticipantsScreen.kt"
+    )
+    private val planner = source(
+        "app/src/main/java/com/rutabikersync/app/feature/routes/ScheduleRideMapScreen.kt"
     )
 
     @Test
@@ -85,18 +89,21 @@ class RodadasCockpitCardContractTest {
     }
 
     @Test
-    fun `ruta libre es incondicional y esta-separada de la rodada de club`() {
+    fun `ruta libre es incondicional y la caja oscura desaparecio`() {
         val clubHeader = scaffold.indexOf("text = \"Rodada de Club\"")
         val roster = scaffold.indexOf("rideRoster?.takeIf { primaryGroup != null }?.let { roster ->")
-        val routeCard = scaffold.indexOf("// Tarjeta: Ruta y Corredor Vial")
         val free = scaffold.indexOf("RutaLibreCard(")
 
         assertTrue(clubHeader >= 0)
         assertTrue(clubHeader < roster)
-        assertTrue(roster < routeCard)
-        assertTrue(routeCard < free)
+        assertTrue(roster < free)
 
-        // La invocación está fuera del bloque `if (currentRide != null)` y no tiene else.
+        assertFalse(scaffold.contains("// Tarjeta: Ruta y Corredor Vial"))
+        assertFalse(scaffold.contains("Rutas y Corredor sin señal"))
+        assertFalse(scaffold.contains("CorridorOfflineManager"))
+        assertFalse(scaffold.contains("text = \"Ver Mapa\""))
+        assertFalse(scaffold.contains("text = \"Trazar\""))
+
         val afterFree = scaffold.substring(free)
         assertFalse(afterFree.contains("} else {"))
         assertFalse(scaffold.contains("rides_btn_start_ride_preview"))
@@ -133,11 +140,25 @@ class RodadasCockpitCardContractTest {
         assertTrue(clubBlock.contains("Tarjeta: Próxima Rodada"))
         assertTrue(clubBlock.contains("+ Crear Ruta Oficial de Club"))
 
-        // Lo que pertenece al motociclista o al modo offline queda fuera del gate.
+        // Lo que pertenece al motociclista queda fuera del gate; la descarga offline vive en el planner.
         assertTrue(scaffold.indexOf("Bitácora de Rodadas") < gate)
-        assertTrue(scaffold.indexOf("Rutas y Corredor sin señal") > endGate)
         assertTrue(scaffold.indexOf("RutaLibreCard(") > endGate)
         assertTrue(scaffold.contains("rideRoster?.takeIf { primaryGroup != null }"))
+        assertFalse(scaffold.contains("Rutas y Corredor sin señal"))
+    }
+
+    @Test
+    fun `descarga offline disponible para todos en el planner`() {
+        assertTrue(planner.contains("Guardar Mapa Offline (PMTiles)"))
+        assertTrue(planner.contains("showCorridorDownloadDialog = true"))
+        assertTrue(planner.contains("CorridorDownloadDialog("))
+        assertTrue(planner.contains("registerCustomRoute("))
+        assertTrue(planner.contains("startDownloadRegion("))
+
+        // Visible en la fase de selección de trazado, antes de aceptar la salida.
+        val offline = planner.indexOf("Guardar Mapa Offline (PMTiles)")
+        val accept = planner.indexOf("Aceptar Trazado y Definir Salida")
+        assertTrue(offline >= 0 && accept > offline)
     }
 
     @Test

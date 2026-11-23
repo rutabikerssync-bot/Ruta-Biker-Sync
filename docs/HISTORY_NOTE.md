@@ -724,3 +724,18 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Estado:** cambios listos para commit atómico; sin `amend` y sin `push`.
 
+## 2026-11-23 — Guardado offline visible para todos y retiro de la caja huérfana de Rodadas
+
+**Contexto:** el usuario no veía la opción de guardar el mapa offline al crear una ruta. El botón existía, pero enterrado en la subfase 3B del planner y sin anuncio visible; la caja de 230 dp en Rodadas era un `Box` vacío que nunca mostró mapa ni descarga, y el botón `🗺️ Rutas y Corredor sin señal` era solo otro atajo al mismo planner.
+
+**Cambios:**
+- `MainAppScaffold.kt`: eliminado el `HeritageBevelCard` de la «Ruta y Corredor Vial» con su `Box` de 230 dp, el badge `En Línea`/`✓ Offline Listo`, los botones externos `Ver Mapa` / `+ Trazar` y el botón `🗺️ Rutas y Corredor sin señal`. Limpiados los imports que quedaron sin uso (`BorderStroke`, `Icons.Default.NearMe`, `CorridorOfflineManager`).
+- `ScheduleRideMapScreen.kt`: el botón `📥 Guardar Mapa Offline (PMTiles)` se movió a la fase de selección de trazado, antes de `Aceptar Trazado y Definir Salida`, de modo que esté visible para cualquier usuario en cuanto elige una ruta. El botón principal sigue registrando la ruta como región offline y lanzando la descarga; `CorridorDownloadDialog` sigue gestionando buffer, progreso, pausa y borrado.
+- `RodadasCockpitCardContractTest.kt`:nuevo test que exige el botón offline en el planner y la ausencia de la caja y del botón redundante en el scaffold.
+
+**No tocado:** `canPublishClubRoute`, liderazgo, GATT, crypto, `HeartbeatFrame`, PTT, RSVP offline, `BleAdvTransport.kt`, Bitácora ni `Ruta Libre`. El mapa en vivo sigue accesible desde el roster y desde `Ruta Libre`.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --console=plain --rerun-tasks` → **BUILD SUCCESSFUL**, 89 suites / 512 tests / 0 fallos.
+
+**Estado:** pendiente de commit; sin `amend` y sin `push`.
+
