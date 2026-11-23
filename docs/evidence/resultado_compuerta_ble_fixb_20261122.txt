@@ -1,0 +1,60 @@
+Verificación de la compuerta BLE y de FIX B (35 min) — 2026-11-22
+Repo: D:\Ruta-Biker-Sync-piloto
+
+CONCLUSIÓN: la compuerta BLE eliminó el doble identity: el HUD pasó de
+3/4 riders a 2 riders con peer BLE activo. TECNO mantuvo 2 riders en 8/8
+muestras. Redmi mantuvo 2 riders en 7/8, con un descenso puntual a 1 en
++25 min que NO se llegó a diagnosticar (sin XML/log en ese minuto). Por
+ello el criterio «2 riders estables» queda validado en TECNO y NO
+estrictamente validado en Redmi. No se afirma un éxito completo.
+
+1) Condición
+- `adb devices -l`: TECNO `098813734B105395` (KI5k) y Redmi `b2c398bb`, ambos `device`.
+- `bluetooth_on=1` y `enabled: true` en ambos antes de iniciar.
+- APK instalado en ambos: HEAD `da7cadb`, `standardDebug`,
+  `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1c5`.
+  Incluye FIX A + FIX B + Corte 2A + compuerta BLE (`LOST_TIMEOUT_MS = 40_500 ms`).
+- Rodada real activa con 2 participantes; inicio de medición 19:37:57, fin 20:13:44.
+
+2) Serie del HUD (8 muestras, cada 5 min)
+  minuto:      0  5 10 15 20 25 30 35
+  TECNO:       2  2  2  2  2  2  2  2      (8/8)
+  REDMI:       2  2  2  2  2  1  2  2      (7/8; descenso en +25 min)
+
+3) Notificación persistente (`dumpsys notification --noredact`)
+  TECNO min 0  y min 35: `Rodada activa · 1 riders conectados`
+                          `1 riders conectados en la mesh · BLE Real`
+  REDMI min 0  y min 35: `Rodada activa · 1 riders conectados`
+                          `1 riders conectados en la mesh · BLE Real`
+  El conteo de la notificación excluye al propio usuario: 1 peer + local = 2 riders.
+  No se observó 0 riders en ninguno de los extremos en los extremos de la medición.
+
+4) Transporte BLE
+  peerNodes: TECNO `22873` y Redmi `32191` constantes en las 8 muestras.
+  Heartbeats `HeartbeatTx` presentes en todas las muestras (TECNO 31→34, Redmi 30→56
+  en el buffer de 8000 líneas); `AdvRx` presente en todas; `Auto-fallback BLE` = 0.
+  No aparece `isLost` ni `OFF_MESH_LOST` en los logs de min 0 ni min 35.
+  En min 35 Redmi muestra `⏱ hace 278s`: posición BLE retenida (comportamiento FIX A),
+  no pérdida del peer.
+
+5) Tabla de pruebas
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| HUD con peer BLE y mapeo `userId↔shortId = null` | 2 riders, sin pin sintético | TECNO 2 en 8/8; Redmi 2 en 7/8 | `summary.txt`, `TECNO_min0.png`, `TECNO_min35.png`, `REDMI_min0.png`, `REDMI_min35.png` |
+| Descenso a 1 rider | 0 muestras | 1 muestra (Redmi, +25 min), recuperada en +30 min | `summary.txt` |
+| Notificación TECNO min 0 / min 35 | 1 peer BLE conexo | `1 riders conectados · BLE Real` en ambos | `TECNO_min0_notification.txt`, `TECNO_min35_notification.txt` |
+| Notificación Redmi min 0 / min 35 | 1 peer BLE conexo | `1 riders conectados · BLE Real` en ambos | `REDMI_min0_notification.txt`, `REDMI_min35_notification.txt` |
+| Identidad de malla | shortIds constantes | TECNO `22873`, Redmi `32191` en 8/8 | `summary.txt` |
+| Heartbeats y fallback | latidos continuos, sin degradación | `HeartbeatTx` y `AdvRx` en 8/8; `Auto-fallback BLE`=0 | `summary.txt`, `*_log.txt` |
+| Suite Android | verde | 92 suites, 519 tests, 0 fallos, 0 errores | `gradlew :app:testStandardDebugUnitTest` |
+
+6) Estado y siguiente paso
+El doble identity quedó corregido por la compuerta: no se crean pines HTTP
+mientras exista un peer BLE con posición renderizable. La causa del descenso
+puntual de Redmi no quedó determinada: no se capturó XML ni logcat en +25 min,
+y para ese minuto solo se dispone del conteo del HUD. No se atribuye a FIX B
+sin evidencia, y tampoco se descarta. Si se requiere validación estricta 8/8,
+repetir una observación enfocada capturando UI y logcat cada minuto.
+
+Sin push. Sin cambios en GATT, crypto, `HeartbeatFrame`, PTT, liderazgo,
+`TacticalChatStore`, `TacticalChatScreen`, mapa ni claves/manifiesto.

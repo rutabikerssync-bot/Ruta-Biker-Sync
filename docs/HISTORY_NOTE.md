@@ -770,7 +770,27 @@ Los APK se compilaron con `-Prbs.pilot.rideId=2de260aa-3e24-493b-b9b8-0846366ba1
 
 **Conclusión honesta**: la capa BLE estuvo estable durante los 35 min y `LOST_TIMEOUT_MS = 40_500 ms` no generó falsos `isLost`; en esa capa FIX B se comportó como diseñado. **Pero el criterio visible «2 riders estables» NO está verificado**: el HUD osciló `3→2→1→3` por el doble identity de Corte 1, no por pérdida de peers. `LiveMapScreen.kt:475` pasa `resolveShortId = { null }`, de modo que `HybridTransportDispatcher.fuse()` asigna un `shortId` sintético 60000+ a cada muestra HTTP aunque el rider ya esté en BLE; esos marcadores `[4G]` se retiran por TTL de 30 s y producen la oscilación (`LiveMapViewModel.kt:619-621` cuenta marcadores).
 
-**Pendiente**: corregir ese duplicado y repetir la medición de 35 min antes de cerrar FIX B. Queda sin aplicar a la espera de autorización entre: (A) cablear el mapeo real `userId ↔ shortId` — el 2C diferido, sin fuente autorizada hoy— o (B) no añadir posiciones HTTP mientras exista un peer BLE con posición válida, sin claves ni manifiesto nuevos.
+**Resolución**: se autorizó la opción (B) — compuerta BLE — y se dejó (A) / 2C diferido. Commit funcional `da7cadb`; medición de repetición documentada en la sección siguiente.
 
 **Estado:** commit local atómico de evidencia/documentación, sin `amend` y sin `push`.
+
+### Compuerta BLE contra el doble identity y repetición de FIX B (2026-11-22)
+
+**Cambio funcional** (`da7cadb`): `HybridTransportDispatcher.fuse()` retorna las posiciones BLE sin añadir ninguna muestra HTTP cuando existe al menos un peer BLE con posición renderizable (`isRenderablePeerPosition`). No se modificaron `LiveMapViewModel`, chat, GATT, crypto, `HeartbeatFrame`, PTT ni liderazgo; no hay persistencia ni claves/manifiesto nuevos. Tests nuevos: BLE con posición válida descarta HTTP aunque `resolveShortId = null`; peer sin posición válida permite el fallback HTTP. Suite completa: **92 suites, 519 tests, 0 fallos, 0 errores**.
+
+**Medición** (APK `da7cadb`, ambos dispositivos conectados, BLE encendido, rodada real, 19:37:57 → 20:13:44, 8 muestras cada 5 min):
+
+| Prueba | Resultado esperado | Resultado obtenido | Evidencia |
+| --- | --- | --- | --- |
+| HUD TECNO (0→35 min) | `2 riders` estable | `2,2,2,2,2,2,2,2` (8/8) | `resultado_compuerta_ble_fixb_20261122.txt`, `summary.txt` |
+| HUD Redmi (0→35 min) | `2 riders` estable | `2,2,2,2,2,1,2,2` (7/8; descenso en +25 min) | misma evidencia |
+| Notificación TECNO min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `TECNO_min0_notification.txt`, `TECNO_min35_notification.txt` |
+| Notificación Redmi min 0 / 35 | 1 peer BLE conexo | `1 riders conectados en la mesh · BLE Real` en ambos | `REDMI_min0_notification.txt`, `REDMI_min35_notification.txt` |
+| shortIds de malla | constantes | TECNO `22873`, Redmi `32191` en 8/8 | `summary.txt` |
+| Heartbeats / fallback | latidos continuos, sin degradación | `HeartbeatTx` y `AdvRx` en 8/8; `Auto-fallback BLE` = 0 | `*_log.txt` |
+| Suite Android | verde | 92 suites, 519 tests, 0 fallos | salida de Gradle |
+
+**Conclusión**: la compuerta eliminó el doble identity (el HUD pasó de `3/4` a `2`). FIX B queda **validado en TECNO** (8/8) y **no estrictamente validado en Redmi** (7/8, un descenso a `1` en +25 min sin XML ni logcat en ese minuto). No se atribuye ese descenso a FIX B ni se descarta: la notificación y los shortIds muestran que el peer BLE siguió conexo; en min 35 Redmi muestra `⏱ hace 278s` (posición retenida, comportamiento FIX A). Para validación estricta 8/8 hace falta repetir una observación enfocada capturando UI y logcat cada minuto.
+
+**Estado:** commit funcional `da7cadb` y commits de evidencia/documentación separados, sin `amend` y sin `push`.
 

@@ -1,0 +1,16 @@
+﻿=== VERIFICACION HARDWARE FIX B + COMPUERTA BLE - 35 MIN - 2026-11-22 ===
+INICIO: 2026-11-22 19:37:57
+APK: HEAD da7cadb (FIX A + FIX B + Corte 2A + compuerta BLE), standardDebug
+Radio BLE: ON en ambos; rodada real 2de260aa-3e24-493b-b9b8-0846366ba1c5
+Criterio: HUD = 2 riders estable en ambos durante 35 min; notificacion = 1 peer BLE conexo.
+
+MUESTRA 0/7 t=+0min hora=19:37:57 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=31 HBrx=0 advRx=89 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=30 HBrx=0 advRx=30 fallback=0
+MUESTRA 1/7 t=+5min hora=19:43:06 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=32 HBrx=0 advRx=59 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=60 HBrx=0 advRx=9 fallback=0
+MUESTRA 2/7 t=+10min hora=19:48:12 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=36 HBrx=0 advRx=62 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=54 HBrx=0 advRx=10 fallback=0
+MUESTRA 3/7 t=+15min hora=19:53:19 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=34 HBrx=0 advRx=49 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=44 HBrx=0 advRx=8 fallback=0
+MUESTRA 4/7 t=+20min hora=19:58:25 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=32 HBrx=0 advRx=52 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=46 HBrx=0 advRx=10 fallback=0
+MUESTRA 5/7 t=+25min hora=20:03:31 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=33 HBrx=0 advRx=54 fallback=0 | REDMI: HUD=1 rider vel=0 km/h notif= peerNodes=32191 HBtx=54 HBrx=0 advRx=6 fallback=0
+MUESTRA 6/7 t=+30min hora=20:08:38 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=34 HBrx=0 advRx=60 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=52 HBrx=0 advRx=7 fallback=0
+MUESTRA 7/7 t=+35min hora=20:13:44 | TECNO: HUD=2 riders vel=0 km/h notif=1 peerNodes=22873 HBtx=34 HBrx=0 advRx=53 fallback=0 | REDMI: HUD=2 riders vel=0 km/h notif= peerNodes=32191 HBtx=56 HBrx=0 advRx=6 fallback=0
+FIN: 2026-11-22 20:13:53
+=== FIN PROTOCOLO ===
