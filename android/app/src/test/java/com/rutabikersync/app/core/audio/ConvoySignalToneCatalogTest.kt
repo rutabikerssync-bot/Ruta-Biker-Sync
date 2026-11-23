@@ -32,11 +32,11 @@ class ConvoySignalToneCatalogTest {
         val arrive = ConvoySignalToneCatalog.tupleFor(MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION)
         assertNotEquals(gasStop, arrive)
         assertEquals(
-            SignalToneTuple(ToneGenerator.TONE_PROP_ACK, 1, 520L, 120L),
+            SignalToneTuple(ToneGenerator.TONE_PROP_ACK, 1, 6_000L, 0L),
             gasStop
         )
         assertEquals(
-            SignalToneTuple(ToneGenerator.TONE_PROP_ACK, 2, 400L, 100L),
+            SignalToneTuple(ToneGenerator.TONE_PROP_ACK, 2, 2_800L, 400L),
             arrive
         )
 
@@ -44,13 +44,30 @@ class ConvoySignalToneCatalogTest {
         val startOutbound = ConvoySignalToneCatalog.tupleFor(MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND)
         assertNotEquals(regroup, startOutbound)
         assertEquals(
-            SignalToneTuple(ToneGenerator.TONE_PROP_BEEP, 2, 220L, 140L),
+            SignalToneTuple(ToneGenerator.TONE_PROP_BEEP, 2, 2_800L, 400L),
             regroup
         )
         assertEquals(
-            SignalToneTuple(ToneGenerator.TONE_PROP_BEEP, 3, 160L, 90L),
+            SignalToneTuple(ToneGenerator.TONE_PROP_BEEP, 3, 1_800L, 300L),
             startOutbound
         )
+    }
+
+    @Test
+    fun `los 10 tonos de mensaje duran exactamente 6 segundos`() {
+        val messageTuples = ConvoySignalToneCatalog.quickSignals.values +
+            ConvoySignalToneCatalog.lifecycleEvents.values
+
+        assertEquals(10, messageTuples.size)
+        messageTuples.forEach { tuple ->
+            assertEquals(
+                "Todo mensaje debe durar 6000 ms: $tuple",
+                6_000L,
+                tuple.totalDurationMs
+            )
+        }
+        // El SOS no es un mensaje de 6 s: se repite mientras esté activo.
+        assertEquals(3 * 150L + 2 * 250L, ConvoySignalToneCatalog.sosLocal.totalDurationMs)
     }
 
     @Test

@@ -9,7 +9,11 @@ data class SignalToneTuple(
     val pulseCount: Int,
     val pulseDurationMs: Long,
     val gapMs: Long
-)
+) {
+    /** Duración total del patrón: pulsos + gaps intermedios. */
+    val totalDurationMs: Long
+        get() = pulseCount * pulseDurationMs + (pulseCount - 1) * gapMs
+}
 
 /**
  * Catálogo de las 11 señales acústicas de la app (P1/T2). Documenta la tupla
@@ -19,21 +23,29 @@ data class SignalToneTuple(
  *
  * | Señal                 | Tono        | Pulsos | Duración | Gap  |
  * |-----------------------|-------------|--------|----------|------|
- * | OBSTACLE              | NACK        | 1      | 300 ms   | 100  |
- * | REDUCE_SPEED          | BEEP2       | 2      | 100 ms   | 60   |
- * | REGROUP               | BEEP        | 2      | 220 ms   | 140  |
- * | GAS_STOP              | ACK         | 1      | 520 ms   | 120  |
- * | POLICE_CHECKPOINT     | PROMPT      | 3      | 90 ms    | 60   |
- * | START_OUTBOUND        | BEEP        | 3      | 160 ms   | 90   |
- * | ARRIVE_DESTINATION    | ACK         | 2      | 400 ms   | 100  |
- * | START_RETURN          | BEEP2       | 3      | 120 ms   | 80   |
- * | COMPLETE_RIDE         | PROMPT      | 2      | 200 ms   | 100  |
- * | SAFE_HOME             | ACK         | 2      | 250 ms   | 100  |
- * | SOS_LOCAL             | BEEP        | 3      | 150 ms   | 250  |
+ * Los 10 tonos de mensaje duran exactamente 6000 ms en total (pulsos + gaps).
+ * El SOS se reproduce en bucle mientras esté activo: duración indefinida.
+ *
+ * | Señal                 | Tono        | Pulsos | Duración | Gap  | Total |
+ * |-----------------------|-------------|--------|----------|------|-------|
+ * | OBSTACLE              | NACK        | 1      | 6000 ms  | 0    | 6000  |
+ * | REDUCE_SPEED          | BEEP2       | 2      | 2900 ms  | 200  | 6000  |
+ * | REGROUP               | BEEP        | 2      | 2800 ms  | 400  | 6000  |
+ * | GAS_STOP              | ACK         | 1      | 6000 ms  | 0    | 6000  |
+ * | POLICE_CHECKPOINT     | PROMPT      | 3      | 1900 ms  | 150  | 6000  |
+ * | START_OUTBOUND        | BEEP        | 3      | 1800 ms  | 300  | 6000  |
+ * | ARRIVE_DESTINATION    | ACK         | 2      | 2800 ms  | 400  | 6000  |
+ * | START_RETURN          | BEEP2       | 3      | 1800 ms  | 300  | 6000  |
+ * | COMPLETE_RIDE         | PROMPT      | 2      | 2600 ms  | 800  | 6000  |
+ * | SAFE_HOME             | ACK         | 2      | 2700 ms  | 600  | 6000  |
+ * | SOS_LOCAL             | BEEP        | 3      | 150 ms   | 250  | indefinido (bucle) |
  *
  * Nota: `SOS_LOCAL` resume el identificador de la secuencia Morse `· — ·`
  * (duraciones reales 150/450/1500 ms, gaps 100/250/1500 ms) reproducida por
  * `SosTonePlayer`; su tupla no representa un beep simple.
+ *
+ * Nota informativa (2026-11-22): la activación de audio se mantiene en 15 s.
+ * Ese valor no es la duración de un tono y no se modifica aquí.
  */
 object ConvoySignalToneCatalog {
 
@@ -44,19 +56,19 @@ object ConvoySignalToneCatalog {
 
     val lifecycleEvents: Map<RideLifecycleEvent, SignalToneTuple> = linkedMapOf(
         RideLifecycleEvent.START_OUTBOUND to SignalToneTuple(
-            ToneGenerator.TONE_PROP_BEEP, 3, 160L, 90L
+            ToneGenerator.TONE_PROP_BEEP, 3, 1_800L, 300L
         ),
         RideLifecycleEvent.ARRIVE_DESTINATION to SignalToneTuple(
-            ToneGenerator.TONE_PROP_ACK, 2, 400L, 100L
+            ToneGenerator.TONE_PROP_ACK, 2, 2_800L, 400L
         ),
         RideLifecycleEvent.START_RETURN to SignalToneTuple(
-            ToneGenerator.TONE_PROP_BEEP2, 3, 120L, 80L
+            ToneGenerator.TONE_PROP_BEEP2, 3, 1_800L, 300L
         ),
         RideLifecycleEvent.COMPLETE_RIDE to SignalToneTuple(
-            ToneGenerator.TONE_PROP_PROMPT, 2, 200L, 100L
+            ToneGenerator.TONE_PROP_PROMPT, 2, 2_600L, 800L
         ),
         RideLifecycleEvent.SAFE_HOME to SignalToneTuple(
-            ToneGenerator.TONE_PROP_ACK, 2, 250L, 100L
+            ToneGenerator.TONE_PROP_ACK, 2, 2_700L, 600L
         )
     )
 

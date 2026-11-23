@@ -34,8 +34,8 @@ enum class ConvoySignalKind(
         icon = "⚠",
         toneType = ToneGenerator.TONE_PROP_NACK,
         pulseCount = 1,
-        pulseDurationMs = 300L,
-        gapMs = 100L
+        pulseDurationMs = 6_000L,
+        gapMs = 0L
     ),
     REDUCE_SPEED(
         code = 2,
@@ -44,8 +44,8 @@ enum class ConvoySignalKind(
         icon = "🛑",
         toneType = ToneGenerator.TONE_PROP_BEEP2,
         pulseCount = 2,
-        pulseDurationMs = 100L,
-        gapMs = 60L
+        pulseDurationMs = 2_900L,
+        gapMs = 200L
     ),
     REGROUP(
         code = 3,
@@ -54,8 +54,8 @@ enum class ConvoySignalKind(
         icon = "🔁",
         toneType = ToneGenerator.TONE_PROP_BEEP,
         pulseCount = 2,
-        pulseDurationMs = 220L,
-        gapMs = 140L
+        pulseDurationMs = 2_800L,
+        gapMs = 400L
     ),
     GAS_STOP(
         code = 4,
@@ -64,8 +64,8 @@ enum class ConvoySignalKind(
         icon = "⛽",
         toneType = ToneGenerator.TONE_PROP_ACK,
         pulseCount = 1,
-        pulseDurationMs = 520L,
-        gapMs = 120L
+        pulseDurationMs = 6_000L,
+        gapMs = 0L
     ),
     POLICE_CHECKPOINT(
         code = 5,
@@ -74,8 +74,8 @@ enum class ConvoySignalKind(
         icon = "👮",
         toneType = ToneGenerator.TONE_PROP_PROMPT,
         pulseCount = 3,
-        pulseDurationMs = 90L,
-        gapMs = 60L
+        pulseDurationMs = 1_900L,
+        gapMs = 150L
     );
 
     val fullLabel: String get() = "$icon $title"

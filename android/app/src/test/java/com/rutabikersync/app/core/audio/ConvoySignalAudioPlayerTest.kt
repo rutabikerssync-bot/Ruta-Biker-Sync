@@ -116,7 +116,7 @@ class ConvoySignalAudioPlayerTest {
         assertEquals(1, emitter.events.size)
         assertTrue(emitter.events.first() is ToneEvent.ToneOn)
 
-        // Avanzar el tiempo completo del pulso (300 ms)
+        // Avanzar el tiempo completo del pulso (6000 ms)
         advanceTimeBy(ConvoySignalKind.OBSTACLE.pulseDurationMs + 10)
         runCurrent()
 
@@ -140,23 +140,25 @@ class ConvoySignalAudioPlayerTest {
             dispatcher = testDispatcher
         )
 
-        // REDUCE_SPEED: 2 pulsos de 120 ms, gap 80 ms
+        // REDUCE_SPEED: 2 pulsos de 2900 ms, gap 200 ms (total 6000 ms)
+        val pulse = ConvoySignalKind.REDUCE_SPEED.pulseDurationMs
+        val gap = ConvoySignalKind.REDUCE_SPEED.gapMs
         player.playSignal(ConvoySignalKind.REDUCE_SPEED)
         runCurrent()
 
         // Pulso 1
         assertEquals(1, emitter.events.filterIsInstance<ToneEvent.ToneOn>().size)
-        advanceTimeBy(120)
+        advanceTimeBy(pulse)
         runCurrent()
         assertEquals(1, emitter.events.filterIsInstance<ToneEvent.ToneOff>().size)
 
-        // Gap 80 ms
-        advanceTimeBy(80)
+        // Gap
+        advanceTimeBy(gap)
         runCurrent()
 
         // Pulso 2
         assertEquals(2, emitter.events.filterIsInstance<ToneEvent.ToneOn>().size)
-        advanceTimeBy(120)
+        advanceTimeBy(pulse)
         runCurrent()
         assertEquals(2, emitter.events.filterIsInstance<ToneEvent.ToneOff>().size)
 
@@ -254,7 +256,7 @@ class ConvoySignalAudioPlayerTest {
             dispatcher = testDispatcher
         )
 
-        player.playSignal(ConvoySignalKind.GAS_STOP) // 400 ms
+        player.playSignal(ConvoySignalKind.GAS_STOP) // 6000 ms
         runCurrent()
         assertTrue(player.isPlaying)
 
@@ -267,8 +269,8 @@ class ConvoySignalAudioPlayerTest {
 
         assertTrue(player.isPlaying)
 
-        // Completar la segunda
-        advanceTimeBy(350)
+        // Completar la segunda (pulso completo de 6 s)
+        advanceTimeBy(ConvoySignalKind.OBSTACLE.pulseDurationMs + 100)
         runCurrent()
 
         assertFalse(player.isPlaying)
