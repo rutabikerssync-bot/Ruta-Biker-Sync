@@ -1,0 +1,7 @@
+﻿11-23 21:33:36.668  3358  3358 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:am start -a android.intent.action.VIEW -d rbs://ptt?action=start -n com.rutabikersync.app/.MainActivity'
+11-23 21:33:36.714   848  2947 I ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=rbs://ptt?action=start flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity} from uid 2000, pid 11111
+11-23 21:33:36.771 10747 10747 I MainActivity: Deep Link rbs://ptt?action=start procesado
+11-23 21:33:36.815 10747 10747 I BleMeshService: startForeground garantizado antes de procesar la acci├│n PTT
+11-23 21:33:36.815 10747 10747 I BleMeshService: ACTION_PTT_START recibido
+11-23 21:33:36.826 10747 10747 I BleMeshService: Foco de silencio SOS compartido con hardware PTT
+11-23 21:33:36.826 10747 10747 I PttAudioEngine: PTT: Iniciando transmisi├│n de audio...

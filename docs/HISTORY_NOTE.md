@@ -1135,3 +1135,21 @@ Merge local `--no-ff`, sin `push`. Se preservan la UI nueva de la rama entrante 
 
 **Estado:** merge local atómico, sin `amend` y sin `push`. Los assets sueltos del working tree (`card_iniciar_cabina.webp` y evidencias de fases anteriores) quedan sin stagear.
 
+### Verificación post-merge del Corte 2B y de la UI integrada — 2026-11-23
+
+Tras el merge `35de84b` se repitieron todas las comprobaciones sobre el código resultante, sin tocar GATT, crypto, `HeartbeatFrame`, PTT ni liderazgo:
+
+| Verificación | Resultado |
+| --- | --- |
+| Backend `PG_TEST_URL=... npm test` | **25 archivos / 172 tests, 0 fallos**; `npm run typecheck` OK. El merge no cambio `backend/`. |
+| Android `.\gradlew.bat :app:testStandardDebugUnitTest :app:assembleStandardDebug --no-daemon --rerun-tasks` | **BUILD SUCCESSFUL**, **584 tests / 0 fallos / 0 errores / 0 omitidos**. |
+| APK `standardDebug` | SHA-256 `41A859431F43355E7329001F8BDBAB5180C0B3BE786A9CBE50A49CD5A185895B`, instalada en TECNO `098813734B105395`. |
+| Release | `assembleStandardRelease` bloqueado por `FAIL_PLACEHOLDER` en `BASE_URL` (`https://rbs-pending.invalid`) y ausencia de keystore/variables `RBS_*`; se documenta y se usa `standardDebug` como en verificaciones anteriores. |
+| UI Fase 5/P2/FIX B/logos | Dumps y capturas muestran `Bitácora de Rodadas`, `Próxima Convocatoria de Club`, `Ruta Libre`, `Modo Libre`, `Iniciar Ruta Libre` y `PARTICIPANTES (1)`; sin `Cabina Activa`. Sin `FATAL` en logcat. |
+| FCM live | Servidor `:3001` con `GOOGLE_APPLICATION_CREDENTIALS`, `FCM_IS_LIVE=true`, `adb reverse tcp:3000 tcp:3001`, app en background con `stopped=false`. SOS y chat táctico: `success=1 failure=0` cada uno. `sos_channel` importance 4 con título `🚨 SOS BIKER CERCANO`; `direct_message_channel` importance 3 con `💬 Chat táctico: El Rutero Bikers`. |
+| Deep-links | `rbs://ptt?action=start` y `action=stop` procesados por `MainActivity`/`BleMeshService`; la radio se dejo detenida. Los extras de notificación siguen cubiertos por `RutaBikerMessagingServiceTest`. |
+
+Los timeouts iniciales de la suite backend se debieron a procesos y daemonso residuales del entorno (servidores viejos y ~4 GB en daemon de Gradle con 3,35 GB libres), no a regresiones del merge: se detuvieron esos procesos y la corrida limpia quedo en 172/172 sin cambiar tests. Redmi `b2c398bb` no estaba conectado (`adb devices` solo lista TECNO), por lo que su reinstalación y push quedan pendientes de reconexión.
+
+Detalle, capturas, dumps, logcat e IDs de mensaje: `docs/evidence/corte2b_fcm_20261123/README.md`. El asset suelto `card_iniciar_cabina.webp` se respaldo en `%TEMP%/opencode/` y se retiro del working tree porque `RodadasCockpitCardContractTest` exige que no exista; no fue commiteado. Estado: commit de evidencia separado, sin `amend` y sin `push`.
+

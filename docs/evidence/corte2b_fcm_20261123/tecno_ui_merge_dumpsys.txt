@@ -1,0 +1,6 @@
+﻿NotificationRecord(0x024f4e56: pkg=com.rutabikersync.app user=UserHandle{0} id=0 tag=FCM-Notification:2363637579 importance=4 key=0|com.rutabikersync.app|0|FCM-Notification:2363637579|10389: Notification(channel=sos_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x10 color=0x00000000 vis=PRIVATE))
+opPkg=com.rutabikersync.app
+icon=Icon(typ=RESOURCE pkg=com.rutabikersync.app id=0x7f0d0000)
+NotificationRecord(0x0de5efa8: pkg=com.rutabikersync.app user=UserHandle{0} id=0 tag=FCM-Notification:2363638338 importance=3 key=0|com.rutabikersync.app|0|FCM-Notification:2363638338|10389: Notification(channel=direct_message_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x10 color=0x00000000 vis=PRIVATE))
+opPkg=com.rutabikersync.app
+icon=Icon(typ=RESOURCE pkg=com.rutabikersync.app id=0x7f0d0000)

@@ -1,0 +1,3 @@
+﻿11-23 21:34:23.271 10747 10747 I MainActivity: Deep Link rbs://ptt?action=stop procesado
+11-23 21:34:23.291 10747 10747 I BleMeshService: ACTION_PTT_STOP recibido
+11-23 21:34:23.291 10747 10747 I PttAudioEngine: PTT: Transmisi├│n finalizada por el usuario.

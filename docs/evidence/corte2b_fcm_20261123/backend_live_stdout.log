@@ -1,0 +1,13 @@
+🔥 FCM_LIVE: Firebase Admin SDK inicializado con GOOGLE_APPLICATION_CREDENTIALS.
+✅ Base de datos PostgreSQL conectada y migraciones aplicadas.
+🧹 Cron de Purga RGPD (24h) iniciado.
+
+======================================================
+🚀 Servidor Ruta Biker Sync activo en http://localhost:3001
+🏍️ Panel Backoffice activo en http://localhost:3001/admin
+======================================================
+
+GET /v1/groups called for UID: b5d0228d-8ab9-49fd-9cc7-efa452a484f2
+memberRes rows count: 0 first row: undefined
+GET /v1/groups called for UID: b5d0228d-8ab9-49fd-9cc7-efa452a484f2
+memberRes rows count: 0 first row: undefined
