@@ -107,11 +107,14 @@ class BleAdvTransport(
          * que son 4 fragmentos. Con el perfil estándar eso son 4 × 2 × 1120 ms ≈ 9 s
          * serializados en `sendMutex`, y el bucle de heartbeats baja de 3 s a ~18 s
          * (evidencia: docs/evidence/cadence_root_cause_20261124). Perfil propio para
-         * POSITION: 4 × 320 ms ≈ 1,3 s, compatible con el tick de 3 s.
+         * POSITION: se conserva la ráfaga de 1 s que entregaba los 4 fragmentos en campo
+         * y se baja a 1 repetición: 4 × 1120 ms ≈ 4,5 s. El perfil 300/20/1 reducía el
+         * airtime a 1,3 s pero el scanner solo reensamblaba 4 de 34 heartbeats, así que
+         * se descartó (evidencia: docs/evidence/cadence_root_cause_20261124).
          * VOICE/PTT y los demás priority conservan el perfil estándar.
          */
-        const val POSITION_FRAGMENT_BURST_MS = 300
-        const val POSITION_FRAGMENT_GAP_MS = 20L
+        const val POSITION_FRAGMENT_BURST_MS = 1_000
+        const val POSITION_FRAGMENT_GAP_MS = 120L
         const val POSITION_FRAGMENT_REPEATS = 1
 
         /**

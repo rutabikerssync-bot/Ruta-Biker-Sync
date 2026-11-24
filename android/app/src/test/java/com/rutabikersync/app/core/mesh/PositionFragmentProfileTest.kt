@@ -15,7 +15,8 @@ import org.junit.Test
 /**
  * Regresión de cadencia: el sobre AEAD de los heartbeats POSITION mide 52 B y se fragmenta
  * en 4. El perfil estándar (1000+120 ms × 2 repeticiones) serializa ~9 s en sendMutex y
- * baja el bucle de 3 s a ~18 s. Solo POSITION debe usar el perfil corto (300+20 ms × 1);
+ * baja el bucle de 3 s a ~18 s. Solo POSITION usa el perfil propio (1000+120 ms × 1):
+ * mantiene la ráfaga de 1 s que sí entregaba los 4 fragmentos y quita una repetición.
  * PEER_EVENT/SOS y VOICE/PTT conservan el suyo.
  */
 class PositionFragmentProfileTest {
@@ -75,7 +76,7 @@ class PositionFragmentProfileTest {
     }
 
     @Test
-    fun `perfil POSITION reduce el airtime de 8960 a 1280 ms sin cambiar el frame`() {
+    fun `perfil POSITION reduce el airtime de 8960 a 4480 ms sin cambiar el frame`() {
         val key = testKey()
         val packet = MeshPacket.createSigned(
             shortId = 100u,
@@ -103,6 +104,6 @@ class PositionFragmentProfileTest {
             BleAdvTransport.POSITION_FRAGMENT_REPEATS *
             (BleAdvTransport.POSITION_FRAGMENT_BURST_MS + BleAdvTransport.POSITION_FRAGMENT_GAP_MS)
         assertEquals(8_960L, estandarMs)
-        assertEquals(1_280L, positionMs)
+        assertEquals(4_480L, positionMs)
     }
 }
