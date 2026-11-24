@@ -47,7 +47,9 @@ import kotlin.math.roundToInt
  * 2. Decremento de TTL en cada salto: si currentTtl <= 1 al recibirlo, se procesa localmente pero NO se reenvía.
  * 3. Verificación de etiqueta de autenticación de 4 bytes antes de aceptar o reenviar.
  * 4. Cola priorizada según Transport.Priority (SOS > PEER_EVENT > POSITION > ROUTE > VOICE > STATUS).
- * 5. Heartbeat cada 3 s; declaración de pérdida tras 4–5 latidos perdidos (~12–15 s) con histéresis de reconexión.
+ * 5. Heartbeat cada 3 s; pérdida *sospechada* al vencer el timeout recalibrado (mínimo 40,5 s,
+ *    derivado del intervalo de llegada medido en campo), con histéresis de reconexión de 2 latidos.
+ *    La pérdida *confirmada* (gracia agotada) la decide [PeerPresencePolicy].
  */
 class MeshRelayEngine(
     val localShortId: UShort,
@@ -1947,7 +1949,7 @@ class MeshRelayEngine(
         val stillLost = if (existing?.isLost == true) consecutiveRecovery < RECONNECT_HYSTERESIS_BEATS else false
 
         // El RSSI se conserva solo como historial para las barras visuales; la pérdida
-        // sigue gobernada exclusivamente por evaluatePeerTimeouts (15 s sin heartbeats).
+        // sigue gobernada exclusivamente por evaluatePeerTimeouts (timeout recalibrado).
         val rssiSamples = if (rssi == null) {
             existing?.rssiSamples.orEmpty()
         } else {
@@ -1959,7 +1961,7 @@ class MeshRelayEngine(
         // no debe borrar la última coordenada real del peer. Si el paquete entrante no es
         // renderizable y ya teníamos un fix válido, se conservan coordenadas y marca de
         // tiempo. `lastSeenEpochMs` SÍ se refresca en cada heartbeat: la vida del peer
-        // sigue dependiendo solo del timeout de 15 s, nunca de la calidad del GPS/RSSI.
+        // sigue dependiendo solo del timeout recalibrado, nunca de la calidad del GPS/RSSI.
         val incomingPositionValid = MeshTelemetry.isValidPosition(packet.latitude, packet.longitude)
         val previousValidPosition = existing?.takeIf {
             MeshTelemetry.isValidPosition(it.lastLatitude, it.lastLongitude)

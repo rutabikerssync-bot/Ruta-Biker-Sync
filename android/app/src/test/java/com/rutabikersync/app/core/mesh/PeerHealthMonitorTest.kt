@@ -21,9 +21,12 @@ class PeerHealthMonitorTest {
 
     private val secretKey = "peer-health-timeout-test-key-32bytes!!".encodeToByteArray()
 
-    private fun heartbeat(sequenceNumber: Int, nowEpochMs: Long): MeshPacket =
-        MeshPacket.createSigned(
-            shortId = 2u,
+    private fun heartbeat(
+        sequenceNumber: Int,
+        nowEpochMs: Long,
+        shortId: UShort = 2u
+    ): MeshPacket = MeshPacket.createSigned(
+            shortId = shortId,
             latitude = 19.4300,
             longitude = -99.1332,
             speedKmh = 45,
@@ -86,10 +89,52 @@ class PeerHealthMonitorTest {
 
         val justoAntes = monitor.evaluateHealth(t0 + MeshRelayEngine.LOST_TIMEOUT_MS - 1_000L)
         assertEquals(0, justoAntes.lostPeersCount)
+        assertEquals(0, justoAntes.suspectedLostPeersCount)
 
+        // Al vencer el timeout hay pérdida SOSPECHADA (cruda), pero no confirmada todavía.
         val perdido = monitor.evaluateHealth(t0 + 45_000L)
-        assertEquals(1, perdido.lostPeersCount)
-        assertEquals(0, perdido.onlinePeersCount)
+        assertEquals(1, perdido.suspectedLostPeersCount)
+        assertEquals(0, perdido.lostPeersCount)
+        // En gracia el peer sigue contando como presente para el monitor (degradado, no caído).
+        assertEquals(1, perdido.onlinePeersCount)
         assertTrue(receiver.peers.value.getValue(2u).isLost)
+
+        // Agotada la gracia derivada del timeout, sí hay pérdida confirmada.
+        // `lostSinceEpochMs` se fija en el instante en que se evaluó el timeout (45 s).
+        val confirmadoEn = t0 + 45_000L +
+            PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L
+        val confirmado = monitor.evaluateHealth(confirmadoEn)
+        assertEquals(1, confirmado.suspectedLostPeersCount)
+        assertEquals(1, confirmado.lostPeersCount)
+    }
+
+    @Test
+    fun `isla confirmada avisa de inmediato y repite solo despues de 60s`() = runTest(UnconfinedTestDispatcher()) {
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val avisos = mutableListOf<String>()
+        val monitor = PeerHealthMonitor(engine = receiver, onIslandTtsAnnouncement = { avisos.add(it) })
+        val t0 = 2_000_000L
+
+        receiver.onRawPacketReceived(heartbeat(1, t0, 2u).toByteArray(), nowEpochMs = t0)
+        receiver.onRawPacketReceived(heartbeat(1, t0, 3u).toByteArray(), nowEpochMs = t0)
+        receiver.evaluatePeerTimeouts(t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
+
+        val confirmadoEn = t0 + MeshRelayEngine.LOST_TIMEOUT_MS +
+            PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L
+        val primera = monitor.evaluateHealth(confirmadoEn)
+        assertEquals(2, primera.suspectedLostPeersCount)
+        assertEquals(2, primera.lostPeersCount)
+        assertTrue(primera.isIslandActive)
+        assertEquals(1, avisos.size)
+        assertEquals("Mesh parcial: 2 nodos fuera de contacto", avisos.first())
+
+        // Antes de los 60 s no hay segundo aviso; después, uno solo.
+        monitor.evaluateHealth(confirmadoEn + PeerHealthMonitor.ISLAND_TTS_THRESHOLD_MS)
+        assertEquals(1, avisos.size)
+        monitor.evaluateHealth(confirmadoEn + PeerHealthMonitor.ISLAND_TTS_THRESHOLD_MS + 1L)
+        assertEquals(2, avisos.size)
+        assertEquals("Mesh parcial: 2 nodos siguen fuera de contacto", avisos.last())
+        monitor.evaluateHealth(confirmadoEn + 180_000L)
+        assertEquals(2, avisos.size)
     }
 }

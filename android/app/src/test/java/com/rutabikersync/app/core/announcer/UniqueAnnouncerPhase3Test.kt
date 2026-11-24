@@ -301,4 +301,61 @@ class UniqueAnnouncerPhase3Test {
         announcer1.cancelAllAndStop()
         engine1.stop()
     }
+
+    @Test
+    fun `peer en gracia no genera PEER_LOST y solo se anuncia al expirar`() =
+        runTest(StandardTestDispatcher()) {
+            val medium = SimulatedBleMedium()
+            val engine1 = MeshRelayEngine(1u, medium.createNodeTransport(1u), secretKey).also {
+                it.start(backgroundScope)
+            }
+            val announcer1 = UniqueAnnouncer(
+                scope = backgroundScope,
+                localShortId = 1u,
+                meshEngine = engine1,
+                randomFractionProvider = { _, _ -> 0.1 }
+            ).also { it.start() }
+            runCurrent()
+
+            fun lostSnapshot(lostSinceEpochMs: Long): Map<UShort, MeshRelayEngine.PeerTrack> = mapOf(
+                2u.toUShort() to MeshRelayEngine.PeerTrack(
+                    shortId = 2u,
+                    lastLatitude = 19.4310,
+                    lastLongitude = -99.1332,
+                    lastSpeedKmh = 70,
+                    lastBatteryPercent = 85,
+                    isSos = false,
+                    lastSeenEpochMs = 1_000L,
+                    lastSequence = 1,
+                    expectedBeats = 1,
+                    receivedBeats = 1,
+                    consecutiveAfterLossBeats = 0,
+                    isLost = true,
+                    lostSinceEpochMs = lostSinceEpochMs,
+                    effectiveTimeoutMs = MeshRelayEngine.LOST_TIMEOUT_MS,
+                    lastHops = 1
+                )
+            )
+
+            val lostAt = 20_000L
+            val grace = 81_000L // 2 × 40,5 s, sin cambiar umbrales
+            assertTrue(
+                announcer1.processPeerSnapshotAt(
+                    lostSnapshot(lostAt), nowEpochMs = lostAt + 10_000L
+                ).isEmpty()
+            )
+            assertTrue(
+                announcer1.processPeerSnapshotAt(
+                    lostSnapshot(lostAt), nowEpochMs = lostAt + grace - 1L
+                ).isEmpty()
+            )
+            val confirmed = announcer1.processPeerSnapshotAt(
+                lostSnapshot(lostAt), nowEpochMs = lostAt + grace + 1L
+            )
+            assertEquals(1, confirmed.size)
+            assertEquals(AnnouncerEventKind.PEER_LOST, confirmed.first().kind)
+
+            announcer1.cancelAllAndStop()
+            engine1.stop()
+        }
 }

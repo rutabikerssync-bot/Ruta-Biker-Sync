@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.PeerPresencePolicy
 import com.rutabikersync.app.ui.theme.*
 import kotlin.math.max
 
@@ -70,7 +71,7 @@ enum class GlobalMeshStatus(val label: String, val color: Color, val emoji: Stri
         const val MIN_RSSI_SAMPLES_FOR_WEAK: Int = 3
 
         /**
-         * Evalúa el semáforo usando SOLO heartbeats (timeout) para pérdida y el promedio
+         * Evalúa el semáforo usando SOLO pérdida confirmada (timeout + gracia) y el promedio
          * de RSSI de los últimos 10 s para "malla débil". El estado IP y el PLR no intervienen:
          * el PLR sigue visible como métrica, pero no declara estado.
          */
@@ -886,7 +887,10 @@ fun mapPeerTrackToMeshPeerLiveState(
         expectedBeats = expected,
         receivedBeats = received,
         rssiSamples = track.rssiSamples,
-        isLost = track.isLost
+        // Monitor de malla: solo pérdida confirmada (misma regla que HUD, mapa y anuncios).
+        isLost = PeerPresencePolicy.isConfirmedLost(
+            PeerPresencePolicy.stateFor(track, nowEpochMs)
+        )
     )
 }
 

@@ -1,4 +1,4 @@
-package com.rutabikersync.app.feature.livemap
+package com.rutabikersync.app.core.mesh
 
 /**
  * Gracia visual del HUD (FIX B + Fase 2): cuando un peer supera el timeout se muestra "sin
@@ -6,7 +6,9 @@ package com.rutabikersync.app.feature.livemap
  *
  * Fase 2 deriva la gracia del timeout efectivo del peer (2×, tope 120 s) para absorber
  * cadencias ralentizadas y huecos de recepción sin caer prematuramente a "1 rider".
- * La detección de isla/SOS no depende de esta gracia: sigue gobernada por `isLost`.
+ * Los anuncios, la isla y la declaración de pérdida usan [PeerPresencePolicy]: solo la
+ * pérdida confirmada (gracia agotada) dispara eventos. `isLost` sigue disponible como
+ * estado de transporte crudo para los servicios internos.
  */
 object PeerGracePolicy {
     const val GRACE_MS: Long = 60_000L

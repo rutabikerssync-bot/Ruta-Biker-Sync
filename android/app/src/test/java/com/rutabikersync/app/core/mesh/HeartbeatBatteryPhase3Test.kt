@@ -76,99 +76,70 @@ class HeartbeatBatteryPhase3Test {
         assertEquals(0, initialHealth.lostPeersCount)
         assertFalse(initialHealth.isIslandActive)
 
-        // Pasan LOST_TIMEOUT_MS (40,5 s derivados de campo): riders 2 y 3 envían su latido en tLoss,
-        // mientras 4 y 5 quedan en silencio -> isla de 2 nodos.
-        val tLoss = t0 + MeshRelayEngine.LOST_TIMEOUT_MS
-        for (id in listOf<UShort>(2u, 3u)) {
+        suspend fun sendHeartbeat(id: UShort, sequence: Int, whenMs: Long, lat: Double = 19.4310) {
             val pkt = MeshPacket.createSigned(
                 shortId = id,
-                latitude = 19.4310,
+                latitude = lat,
                 longitude = -99.1332,
                 speedKmh = 70,
                 bearingDegrees = 180f,
                 batteryPercent = 84,
-                sequenceNumber = 2,
+                sequenceNumber = sequence,
                 ttl = 4,
                 rideSecretKey = secretKey
             )
-            leaderEngine.onRawPacketReceived(pkt.toByteArray(), nowEpochMs = tLoss)
+            leaderEngine.onRawPacketReceived(pkt.toByteArray(), nowEpochMs = whenMs)
         }
 
-        val islandAtStart = healthMonitor.evaluateHealth(tLoss)
+        // Pasan LOST_TIMEOUT_MS (40,5 s derivados de campo): riders 2 y 3 envían su latido en tLoss,
+        // mientras 4 y 5 quedan en silencio -> pérdida sospechada, todavía sin isla.
+        val tLoss = t0 + MeshRelayEngine.LOST_TIMEOUT_MS
+        sendHeartbeat(2u, 2, tLoss)
+        sendHeartbeat(3u, 2, tLoss)
+        val suspectedAtLoss = healthMonitor.evaluateHealth(tLoss)
+        assertFalse(suspectedAtLoss.isIslandActive)
+        assertEquals(2, suspectedAtLoss.suspectedLostPeersCount)
+        assertEquals(0, suspectedAtLoss.lostPeersCount)
+        assertTrue(islandTtsAlerts.isEmpty())
+
+        // La gracia (2× timeout) absorbe el hueco: se confirma la isla al agotarse.
+        val confirmedAt = tLoss + PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS)
+        var seq = 3
+        for (at in listOf(tLoss + 20_000L, tLoss + 40_000L, tLoss + 60_000L, tLoss + 80_000L)) {
+            sendHeartbeat(2u, seq++, at)
+            sendHeartbeat(3u, seq++, at)
+        }
+        val islandAtStart = healthMonitor.evaluateHealth(confirmedAt)
         assertTrue(islandAtStart.isIslandActive)
         assertEquals(2, islandAtStart.lostPeersCount)
-        // Decisión 3.4 (C): En t = 0 s de isla y a los 30 s de isla NO se anuncia por TTS
-        assertTrue(islandTtsAlerts.isEmpty())
+        // Con la máquina de estados el primer aviso es inmediato sobre la pérdida confirmada.
+        assertEquals(1, islandTtsAlerts.size)
 
-        for (id in listOf<UShort>(2u, 3u)) {
-            val pkt = MeshPacket.createSigned(
-                shortId = id,
-                latitude = 19.4320,
-                longitude = -99.1332,
-                speedKmh = 70,
-                bearingDegrees = 180f,
-                batteryPercent = 83,
-                sequenceNumber = 3,
-                ttl = 4,
-                rideSecretKey = secretKey
-            )
-            leaderEngine.onRawPacketReceived(pkt.toByteArray(), nowEpochMs = tLoss + 30_000L)
+        for (at in listOf(confirmedAt + 20_000L, confirmedAt + 40_000L, confirmedAt + 60_000L)) {
+            sendHeartbeat(2u, seq++, at)
+            sendHeartbeat(3u, seq++, at)
         }
-        val islandAt30s = healthMonitor.evaluateHealth(tLoss + 30_000L)
-        assertTrue(islandAt30s.isIslandActive)
-        assertFalse(islandAt30s.islandTtsAnnouncedForCurrentEpisode)
-        assertTrue(islandTtsAlerts.isEmpty())
+        healthMonitor.evaluateHealth(confirmedAt + 30_000L)
+        assertEquals(1, islandTtsAlerts.size)
 
-        // Al superar los 60 s de isla continua (tLoss + 61_000 ms), se anuncia una sola vez por TTS
-        for (id in listOf<UShort>(2u, 3u)) {
-            val pkt = MeshPacket.createSigned(
-                shortId = id,
-                latitude = 19.4330,
-                longitude = -99.1332,
-                speedKmh = 70,
-                bearingDegrees = 180f,
-                batteryPercent = 82,
-                sequenceNumber = 4,
-                ttl = 4,
-                rideSecretKey = secretKey
-            )
-            leaderEngine.onRawPacketReceived(pkt.toByteArray(), nowEpochMs = tLoss + 61_000L)
-        }
-        val islandAt61s = healthMonitor.evaluateHealth(tLoss + 61_000L)
+        // Los 60 s solo gobiernan un segundo aviso; no se emite antes.
+        healthMonitor.evaluateHealth(confirmedAt + PeerHealthMonitor.ISLAND_TTS_THRESHOLD_MS)
+        assertEquals(1, islandTtsAlerts.size)
+        val islandAt61s = healthMonitor.evaluateHealth(confirmedAt + PeerHealthMonitor.ISLAND_TTS_THRESHOLD_MS + 1L)
         assertTrue(islandAt61s.isIslandActive)
         assertTrue(islandAt61s.islandTtsAnnouncedForCurrentEpisode)
-        assertEquals(1, islandTtsAlerts.size)
+        assertTrue(islandAt61s.islandSecondTtsAnnouncedForCurrentEpisode)
+        assertEquals(2, islandTtsAlerts.size)
         assertEquals("Mesh parcial: 2 nodos fuera de contacto", islandTtsAlerts.first())
+        assertEquals("Mesh parcial: 2 nodos siguen fuera de contacto", islandTtsAlerts.last())
 
         // Histéresis de reconexión (RECONNECT_HYSTERESIS_BEATS = 2):
         // El Rider 5 envía 1 latido -> sigue en isLost = true (aún falta el 2.º latido consecutivo)
-        val pktBeat1 = MeshPacket.createSigned(
-            shortId = 5u,
-            latitude = 19.4280,
-            longitude = -99.1332,
-            speedKmh = 72,
-            bearingDegrees = 180f,
-            batteryPercent = 80,
-            sequenceNumber = 2,
-            ttl = 4,
-            rideSecretKey = secretKey
-        )
-        leaderEngine.onRawPacketReceived(pktBeat1.toByteArray(), nowEpochMs = tLoss + 62_000L)
+        sendHeartbeat(5u, 2, confirmedAt + 62_000L, lat = 19.4280)
         assertTrue(leaderEngine.peers.value.getValue(5u).isLost)
 
         // El Rider 5 envía el 2.º latido consecutivo -> supera la histéresis y vuelve a ONLINE (isLost = false)
-        val pktBeat2 = MeshPacket.createSigned(
-            shortId = 5u,
-            latitude = 19.4285,
-            longitude = -99.1332,
-            speedKmh = 72,
-            bearingDegrees = 180f,
-            batteryPercent = 80,
-            sequenceNumber = 3,
-            ttl = 4,
-            rideSecretKey = secretKey
-        )
-        leaderEngine.onRawPacketReceived(pktBeat2.toByteArray(), nowEpochMs = tLoss + 65_000L)
+        sendHeartbeat(5u, 3, confirmedAt + 65_000L, lat = 19.4285)
         assertFalse(leaderEngine.peers.value.getValue(5u).isLost)
 
         // Verificar que HeartbeatScheduler respeta el intervalo del perfil activo (3 s -> 5 s -> 10 s)
@@ -204,11 +175,20 @@ class HeartbeatBatteryPhase3Test {
         assertEquals(0, healthy.lostPeersCount)
         assertFalse(healthy.isIslandActive)
 
-        // Sin heartbeats durante el timeout derivado: sí se declara pérdida, exclusivamente por timeout.
-        val lost = monitor.evaluateHealth(t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
-        assertEquals(0, lost.onlinePeersCount)
-        assertEquals(1, lost.lostPeersCount)
+        // Sin heartbeats durante el timeout derivado: pérdida SOSPECHADA (cruda).
+        val suspected = monitor.evaluateHealth(t0 + MeshRelayEngine.LOST_TIMEOUT_MS)
+        assertEquals(1, suspected.onlinePeersCount)
+        assertEquals(1, suspected.suspectedLostPeersCount)
+        assertEquals(0, suspected.lostPeersCount)
         assertTrue(receiver.peers.value.getValue(2u).isLost)
+
+        // Agotada la gracia se declara la pérdida, exclusivamente por timeout + gracia.
+        val confirmed = monitor.evaluateHealth(
+            t0 + MeshRelayEngine.LOST_TIMEOUT_MS +
+                PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L
+        )
+        assertEquals(0, confirmed.onlinePeersCount)
+        assertEquals(1, confirmed.lostPeersCount)
     }
 
     @Test

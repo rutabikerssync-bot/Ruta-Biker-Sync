@@ -1,6 +1,7 @@
 package com.rutabikersync.app.feature.livemap
 
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.PeerGracePolicy
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -170,21 +171,24 @@ class LiveMapViewModelTest {
         assertEquals(RiderRouteStatus.OFF_ROUTE_DEVIATED, rider3.routeStatus)
         assertEquals("⚠ Desviado", rider3.routeStatus.symbolAndLabel)
 
-        // Rider 4 emite un paquete y luego guarda silencio hasta superar el timeout derivado -> OFF_MESH_LOST ("✕ Sin señal")
+        // Rider 4 emite un paquete y luego guarda silencio hasta superar el timeout derivado.
+        // Con la máquina de estados: al vencer el timeout entra en STALE_GRACE (ámbar), no en LOST.
         engines.getValue(4u).emitLocalPosition(19.4250, -99.1332, 60, 180f, 80, ttl = 4)
         val lossAtMs = System.currentTimeMillis() + MeshRelayEngine.LOST_TIMEOUT_MS + 1_000L
         engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
         val afterTimeoutFrame = mapController.flushMapFrame(nowEpochMs = lossAtMs, force = true)
-        val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
-        assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
-        assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
-        // FIX B + Fase 2: al vencer el timeout se muestra "sin señal", pero los 3 peers
-        // siguen contando durante la gracia derivada del timeout; solo después baja a 1.
+        val rider4Stale = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
+        assertEquals(RiderRouteStatus.STALE_GRACE, rider4Stale.routeStatus)
+        assertEquals("⚠ Sin señal temporal", rider4Stale.routeStatus.symbolAndLabel)
+        // Degradado sigue contando como presente; solo la pérdida confirmada baja a 1.
         assertEquals(4, afterTimeoutFrame.ridersCount)
         val afterGraceFrame = mapController.flushMapFrame(
             nowEpochMs = lossAtMs + PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L,
             force = true
         )
+        val rider4Lost = afterGraceFrame.markers.first { it.shortId == 4u.toUShort() }
+        assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
+        assertEquals("✕ Fuera de la malla", rider4Lost.routeStatus.symbolAndLabel)
         assertEquals(1, afterGraceFrame.ridersCount)
 
         // Rider 2 activa SOS -> actualización inmediata sin esperar al tick de 1 s

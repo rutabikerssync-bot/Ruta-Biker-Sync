@@ -1,6 +1,5 @@
-package com.rutabikersync.app.feature.livemap
+package com.rutabikersync.app.core.mesh
 
-import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

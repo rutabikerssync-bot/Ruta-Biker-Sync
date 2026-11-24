@@ -338,4 +338,39 @@ class MeshConvoyStatusScreenTest {
         assertEquals(RssiSignalLevel.EXCELLENT, RssiSignalLevel.fromDbmOrNull(peer.rssiDbm))
         assertEquals(4, RssiSignalLevel.fromDbm(peer.rssiDbm!!).bars)
     }
+
+    @Test
+    fun `monitor de malla solo declara perdida confirmada`() {
+        val now = 1_700_000_000_000L
+
+        fun lostTrack(lostSinceEpochMs: Long) =
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack(
+                shortId = 5u,
+                lastLatitude = 19.3,
+                lastLongitude = -99.1,
+                lastSpeedKmh = 40,
+                lastBatteryPercent = 70,
+                isSos = false,
+                lastSeenEpochMs = now - 50_000L,
+                firstSequence = 1,
+                lastSequence = 10,
+                expectedBeats = 10,
+                receivedBeats = 8,
+                consecutiveAfterLossBeats = 0,
+                isLost = true,
+                lostSinceEpochMs = lostSinceEpochMs,
+                effectiveTimeoutMs = com.rutabikersync.app.core.mesh.MeshRelayEngine.LOST_TIMEOUT_MS,
+                lastHops = 1
+            )
+
+        val degradeado = mapPeerTrackToMeshPeerLiveState(
+            lostTrack(now - 20_000L), nowEpochMs = now
+        )
+        assertFalse("Dentro de la gracia no es pérdida confirmada", degradeado.isLost)
+
+        val confirmado = mapPeerTrackToMeshPeerLiveState(
+            lostTrack(now - 100_000L), nowEpochMs = now
+        )
+        assertTrue("Fuera de la gracia sí es pérdida confirmada", confirmado.isLost)
+    }
 }

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.core.mesh.LocalGpsPositionPolicy
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.mesh.MeshTelemetry
+import com.rutabikersync.app.core.mesh.PeerPresencePolicy
+import com.rutabikersync.app.core.mesh.PeerPresenceState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -362,6 +364,11 @@ class LiveMapController(
         }
 
         val previousByShortId = current.markers.associateBy { it.shortId }
+        // Un único estado por peer para HUD, mapa y distancia al líder. Se deriva del
+        // `isLost` crudo del motor más la gracia; no cambia ningún umbral.
+        val presenceByShortId = latestPeersFromMesh.mapValues { (_, track) ->
+            PeerPresencePolicy.stateFor(track, nowEpochMs)
+        }
 
         // FIX distancia al líder: si no hay posición válida del líder NO se inventa un
         // punto de referencia (antes se caía a la posición local y se mostraba "0 m").
@@ -373,7 +380,7 @@ class LiveMapController(
             if (localPositionValid) localLat to localLon else null
         } else {
             val leaderTrack = latestPeersFromMesh[leaderShortId]
-            if (leaderTrack != null && !leaderTrack.isLost &&
+            if (leaderTrack != null && presenceByShortId[leaderShortId] != PeerPresenceState.LOST &&
                 MeshTelemetry.isValidPosition(leaderTrack.lastLatitude, leaderTrack.lastLongitude)
             ) {
                 leaderTrack.lastLatitude to leaderTrack.lastLongitude
@@ -475,9 +482,11 @@ class LiveMapController(
             } else {
                 null
             }
+            val presence = presenceByShortId[peerId] ?: PeerPresenceState.ACTIVE
             val routeStatus = when {
                 track.isSos -> RiderRouteStatus.SOS_ACTIVE
-                track.isLost -> RiderRouteStatus.OFF_MESH_LOST
+                PeerPresencePolicy.isConfirmedLost(presence) -> RiderRouteStatus.OFF_MESH_LOST
+                presence == PeerPresenceState.STALE_GRACE -> RiderRouteStatus.STALE_GRACE
                 isDeviatedFromCorridor(track.lastLatitude, track.lastLongitude) -> RiderRouteStatus.OFF_ROUTE_DEVIATED
                 else -> RiderRouteStatus.ON_ROUTE
             }
@@ -507,7 +516,7 @@ class LiveMapController(
                     batteryPercent = track.lastBatteryPercent,
                     distanceToLeaderMeters = if (
                         leaderPose != null &&
-                        !track.isLost &&
+                        presenceByShortId[peerId] != PeerPresenceState.LOST &&
                         MeshTelemetry.isValidPosition(track.lastLatitude, track.lastLongitude)
                     ) {
                         haversineMeters(
@@ -531,20 +540,11 @@ class LiveMapController(
             )
         }
 
-        // FIX B + Fase 2: el motor marca `isLost` al vencer el timeout recalibrado, pero el
-        // HUD mantiene al peer en el conteo durante una gracia derivada de ese timeout
-        // mostrando "sin señal". Así un hueco BLE prolongado no cae prematuramente a
-        // "1 rider". La isla/SOS no depende de esta gracia: usa el `isLost` real.
-        fun countsAsConnected(track: MeshRelayEngine.PeerTrack): Boolean =
-            !track.isLost || PeerGracePolicy.isInGrace(
-                nowEpochMs = nowEpochMs,
-                lostSinceEpochMs = track.lostSinceEpochMs,
-                graceMs = PeerGracePolicy.graceMsFor(track.effectiveTimeoutMs)
-            )
-
-        val connectedPeers = latestPeersFromMesh.values.count(::countsAsConnected)
-        val lostPeers = latestPeersFromMesh.size - connectedPeers
-        val totalPeers = latestPeersFromMesh.size
+        // Un solo criterio para las tres vistas: STALE_GRACE cuenta como presente, LOST no.
+        // La isla en UI y los anuncios usan único el estado confirmado (ver `PeerHealthMonitor`).
+        val connectedPeers = presenceByShortId.values.count(PeerPresencePolicy::countsAsConnected)
+        val lostPeers = presenceByShortId.values.count(PeerPresencePolicy::isConfirmedLost)
+        val totalPeers = presenceByShortId.size
 
         // El HUD usa los mismos riders activos y con posición válida que pinta el mapa.
         // Sin fix local no se puede afirmar "1 rider" ni dibujar un avatar en (0,0).
@@ -552,8 +552,7 @@ class LiveMapController(
             if (marker.isSelf) {
                 true
             } else {
-                val track = latestPeersFromMesh[marker.shortId]
-                track == null || countsAsConnected(track)
+                presenceByShortId[marker.shortId]?.let(PeerPresencePolicy::countsAsConnected) ?: true
             }
         }
 

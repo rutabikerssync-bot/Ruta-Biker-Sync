@@ -1,6 +1,7 @@
 package com.rutabikersync.app.core.announcer
 
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
+import com.rutabikersync.app.core.mesh.PeerPresencePolicy
 
 /**
  * Tipo de evento de anunciador único (DESIGN.md §11).
@@ -85,23 +86,28 @@ class AnnouncerTracker {
         for ((shortId, track) in peerMap) {
             val prev = riderStates[shortId]
             val proximityRank = (track.lastHops - 1).coerceAtLeast(0)
+            // Los anuncios solo hablan de pérdida confirmada. Un gap dentro de la gracia
+            // es degradación visual, no un PEER_LOST: evita alarmas falsas en curvas/túneles.
+            val confirmedLost = PeerPresencePolicy.isConfirmedLost(
+                PeerPresencePolicy.stateFor(track, nowEpochMs)
+            )
 
             if (prev == null) {
-                val initialLossList = if (track.isLost) listOf(nowEpochMs) else emptyList()
-                val cycle = if (track.isLost) 1 else 0
+                val initialLossList = if (confirmedLost) listOf(nowEpochMs) else emptyList()
+                val cycle = if (confirmedLost) 1 else 0
                 riderStates[shortId] = RiderTrackState(
                     shortId = shortId,
                     lastLatitude = track.lastLatitude,
                     lastLongitude = track.lastLongitude,
                     lastSeenEpochMs = track.lastSeenEpochMs,
                     lastHops = track.lastHops,
-                    isLost = track.isLost,
+                    isLost = confirmedLost,
                     lossCycle = cycle,
                     reconnectCycle = 0,
                     lossTimestampsEpochMs = initialLossList,
                     unstableAnnouncedInCurrentWindow = false
                 )
-                if (track.isLost) {
+                if (confirmedLost) {
                     val eventId = buildEventId(AnnouncerEventKind.PEER_LOST, shortId, cycle)
                     transitions.add(
                         PeerConnectivityTransition(
@@ -118,7 +124,7 @@ class AnnouncerTracker {
             }
 
             // Caso 1: Estaba conectado y pasa a perdido -> PEER_LOST (o UNSTABLE_CONNECTION si llega a 3 en 10 min)
-            if (!prev.isLost && track.isLost) {
+            if (!prev.isLost && confirmedLost) {
                 val prunedLosses = prev.lossTimestampsEpochMs
                     .filter { nowEpochMs - it <= UNSTABLE_WINDOW_MS } + nowEpochMs
                 val nextLossCycle = prev.lossCycle + 1
@@ -176,7 +182,7 @@ class AnnouncerTracker {
             }
 
             // Caso 2: Estaba perdido y vuelve a estar conectado -> PEER_BACK
-            if (prev.isLost && !track.isLost) {
+            if (prev.isLost && !confirmedLost) {
                 val prunedLosses = prev.lossTimestampsEpochMs.filter { nowEpochMs - it <= UNSTABLE_WINDOW_MS }
                 val nextReconnectCycle = prev.reconnectCycle + 1
                 val resetUnstableFlag = prunedLosses.size < UNSTABLE_LOSS_THRESHOLD

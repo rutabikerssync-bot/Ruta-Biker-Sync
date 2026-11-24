@@ -927,13 +927,24 @@ class RideSessionController(
         ) {
             return
         }
-        val activeConnected = peerMap.values.count { it.receivedBeats > 0 && !it.isLost }
-        val lostCount = peerMap.values.count { it.isLost }
+        val nowEpochMs = System.currentTimeMillis()
+        val presenceByShortId = peerMap.mapValues { (_, track) ->
+            PeerPresencePolicy.stateFor(track, nowEpochMs)
+        }
+        // La notificación usa el mismo criterio que HUD y mapa: degradado cuenta como
+        // presente, pero se distingue del confirmado en el texto.
+        val activeConnected = peerMap.values.count {
+            it.receivedBeats > 0 &&
+                presenceByShortId[it.shortId] != PeerPresenceState.LOST
+        }
+        val staleCount = presenceByShortId.values.count { it == PeerPresenceState.STALE_GRACE }
+        val lostCount = presenceByShortId.values.count(PeerPresencePolicy::isConfirmedLost)
         val bleAdv = activeTransport as? BleAdvTransport
         val btSnapshot = bluetoothDevicesProvider?.invoke()
         val snapshot = buildNotificationSnapshot(
             lifecycleState = current.lifecycleState,
             connectedRiders = activeConnected,
+            staleRiders = staleCount,
             lostRiders = lostCount,
             transportName = current.transportName,
             isSimulated = current.isUsingSimulatedTransport,
@@ -966,6 +977,7 @@ class RideSessionController(
     private fun buildNotificationSnapshot(
         lifecycleState: RideLifecycleState,
         connectedRiders: Int,
+        staleRiders: Int = 0,
         lostRiders: Int,
         transportName: String,
         isSimulated: Boolean,
@@ -983,8 +995,8 @@ class RideSessionController(
             RideLifecycleState.CONFIRMING_STOP ->
                 "Pulsa 'Detener' otra vez en 3 s para cerrar ($connectedRiders riders en mesh · $modeLabel)"
             RideLifecycleState.RUNNING -> {
-                val lostSuffix = if (lostRiders > 0) " · $lostRiders sin señal" else ""
-                "$connectedRiders riders conectados en la mesh$lostSuffix · $modeLabel"
+                val presenceSuffix = PeerPresencePolicy.notificationSuffix(staleRiders, lostRiders)
+                "$connectedRiders riders conectados en la mesh$presenceSuffix · $modeLabel"
             }
             RideLifecycleState.STOPPED ->
                 "Mesh detenida · Notas de voz y accesos de emergencia borrados (R6.5)"
