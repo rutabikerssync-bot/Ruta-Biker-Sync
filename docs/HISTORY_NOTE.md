@@ -1176,3 +1176,20 @@ Con autorización explícita se corrigieron los dos bugs detectados en los logs 
 
 Suite canónica: **622 tests, 0 fallos, 0 errores**. APK `standardDebug` firmado con `PILOT_RIDE_ID` real, SHA-256 `0BCD4CE332991A25957A990B12C5CD90B8A9DB2B4BCFC851488B4EB2E73DF35B`, instalado y verificado en TECNO y REDMI. En rodada continua de ~10 min: **1 solo `RideStarted` por equipo**, **delta 0 s entre `at=` y el reloj del logcat en los 58 heartbeats recibidos**, HUD sin `sin señal` falso; TECNO `2 riders` en 54/54 muestras y REDMI en 33/54 (pérdida real de reensamblado tras 16:30). Detalle, capturas y logs: `docs/evidence/fase1_fixes_20261124/README.md`. Fase 1 sigue **NO validada** y Commit 4 diferido: faltan velocidad/separación reales, pérdida/recuperación y SOS controlado de la Prueba D.
 
+### Migración de heartbeats a GATT (Opción B) — 2026-11-24
+
+Con autorización explícita se sustituyó la ráfaga de advertising de heartbeats por un canal GATT dedicado, sin tocar `HeartbeatFrame`, crypto, voz (`GattVoiceTransport`/`PttAudioEngine`) ni `Phase1ViewModel`. Sin `amend` ni `push`.
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| DÍA 1 · Servidor | `android/app/src/main/java/com/rutabikersync/app/core/transport/GattHeartbeatServer.kt` (nuevo) | Servicio `0000B1D2`, characteristic TX `0000B1D3` con `PROPERTY_NOTIFY`, CCCD, `notifyHeartbeat()`, framing `[total, índice]` y service data con el shortId real del nodo | `GattHeartbeatServerTest` (9/9) |
+| DÍA 1 · Integración | `android/app/src/main/java/com/rutabikersync/app/core/mesh/RideService.kt` | Factories inyectables, `HeartbeatGattRoutingTransport` en el engine; SOS/eventos/discovery siguen en `BleAdvTransport` | `GattHeartbeatServerTest` (routing POSITION/SOS) |
+| DÍA 2 · Cliente | `android/app/src/main/java/com/rutabikersync/app/core/transport/GattHeartbeatClient.kt` (nuevo) | Scan de B1D2, `connectGatt(autoConnect=true)`, `discoverServices()`, suscripción CCCD, `onCharacteristicChanged` → `IncomingPacket` con `senderAddressSuffix` real | `GattHeartbeatClientTest` (9/9) |
+| DÍA 2 · Roles | `GattHeartbeatClient.kt` (`roleFor`/`planFor`) | Por par, shortId menor = Cliente y mayor = Servidor; con 3+ riders un nodo puede ser cliente de mayores y servidor de menores | `GattHeartbeatClientTest` (roles y plan) |
+| DÍA 3 · Corte | `GattHeartbeatServer.kt` (`HeartbeatGattRoutingTransport`) | `POSITION` nunca se delega al advertising (ni la retransmitida); solo GATT. `BleAdvTransport.kt` **no se modificó**: el watchdog ajeno sigue sin stagear y no se mezcla | `GattHeartbeatServerTest` + suite completa |
+| Documentación | `docs/HISTORY_NOTE.md` | Este registro, con verificación hardware pendiente | Revisión del archivo |
+
+Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** (622 previos + 18 nuevos). Las únicas advertencias nuevas son deprecaciones de APIs Android ya usadas por el GATT de voz existente.
+
+**Verificación hardware PENDIENTE:** no se ha capturado logcat real con `GattHeartbeat connected`, `GattHeartbeat notifyHeartbeat` y `GattHeartbeat onCharacteristicChanged`, ni un HUD estable en `2 riders` posterior al cambio. No se inventa evidencia: Fase 1 sigue **NO validada** hasta que el usuario opere TECNO/REDMI con la APK recompilada.
+

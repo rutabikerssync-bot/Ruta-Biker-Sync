@@ -34,7 +34,10 @@ import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
 import com.rutabikersync.app.core.power.PowerProfile
 import com.rutabikersync.app.core.transport.BleAdvTransport
+import com.rutabikersync.app.core.transport.GattHeartbeatClient
+import com.rutabikersync.app.core.transport.GattHeartbeatServer
 import com.rutabikersync.app.core.transport.GattVoiceTransport
+import com.rutabikersync.app.core.transport.HeartbeatGattRoutingTransport
 import java.security.SecureRandom
 import com.rutabikersync.app.core.transport.SimulatedBleMedium
 import com.rutabikersync.app.core.transport.SimulatedBleTransport
@@ -155,6 +158,8 @@ class RideSessionController(
     private val scope: CoroutineScope,
     private val bleTransportFactory: (() -> BleAdvTransport?)? = null,
     private val gattVoiceTransportFactory: ((UShort) -> GattVoiceTransport?)? = null,
+    private val gattHeartbeatServerFactory: ((UShort) -> GattHeartbeatServer?)? = null,
+    private val gattHeartbeatClientFactory: ((UShort, Set<UShort>) -> GattHeartbeatClient?)? = null,
     private val simulatedMedium: SimulatedBleMedium = SimulatedBleMedium.defaultMedium,
     private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null,
     private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null,
@@ -179,6 +184,14 @@ class RideSessionController(
 
     /** Stream GATT de voz: convive con el advertising de malla, no lo sustituye. */
     var gattVoiceTransport: GattVoiceTransport? = null
+        private set
+
+    /** Servidor GATT de heartbeats (Opción B): sustituye la ráfaga de posición por advertising. */
+    var gattHeartbeatServer: GattHeartbeatServer? = null
+        private set
+
+    /** Cliente GATT de heartbeats: se conecta a los peers con shortId mayor. */
+    var gattHeartbeatClient: GattHeartbeatClient? = null
         private set
 
     var lastPacketsCsv: String? = null
@@ -267,9 +280,34 @@ class RideSessionController(
         )
         activeTransport = selectedTransport
 
+        val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
+        val heartbeatPlan = GattHeartbeatClient.planFor(localShortId, effectiveExpectedPeers)
+
+        // Opción B: el heartbeat sale por GATT; SOS/eventos/discovery siguen en BleAdvTransport.
+        // Rol por shortId: el menor es Cliente y el mayor Servidor en cada par.
+        val heartbeatServer = if (!isSimulated && heartbeatPlan.isServer) {
+            gattHeartbeatServerFactory?.invoke(localShortId)
+        } else {
+            null
+        }
+        if (heartbeatServer != null) {
+            heartbeatServer.start()
+            gattHeartbeatServer = heartbeatServer
+        }
+        val heartbeatClient = if (!isSimulated && heartbeatPlan.isClient) {
+            gattHeartbeatClientFactory?.invoke(localShortId, effectiveExpectedPeers)
+        } else {
+            null
+        }
+        val engineTransport = if (heartbeatServer != null || heartbeatClient != null) {
+            HeartbeatGattRoutingTransport(selectedTransport, heartbeatServer, heartbeatClient)
+        } else {
+            selectedTransport
+        }
+
         val engine = MeshRelayEngine(
             localShortId = localShortId,
-            transport = selectedTransport,
+            transport = engineTransport,
             rideSecretKey = effectiveRideSecretKey,
             relayEnabled = relayEnabled,
             relayScope = scope,
@@ -397,11 +435,10 @@ class RideSessionController(
                 }.getOrDefault(Transport.Priority.STATUS)
             }
             scope.launch {
-                runCatching { selectedTransport.send(bytes, priority) }
+                runCatching { engineTransport.send(bytes, priority) }
                     .onFailure { Log.w("RideService", "RelayTx falló: ${it.message}") }
             }
         }
-        val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
         for (peerId in effectiveExpectedPeers) {
             engine.registerExpectedPeer(shortId = peerId, nowEpochMs = nowEpochMs, initialExpectedBeats = 0)
         }
@@ -443,6 +480,11 @@ class RideSessionController(
         }
 
         engine.start(scope)
+
+        if (heartbeatClient != null) {
+            heartbeatClient.startClient()
+            gattHeartbeatClient = heartbeatClient
+        }
 
         // Bloque 3.4: Activar UniqueAnnouncer + TtsAnnouncer mientras la rodada está RUNNING
         val announcer = UniqueAnnouncer(
@@ -883,6 +925,10 @@ class RideSessionController(
         relayEngine?.setVoiceStreamTransport(null)
         gattVoiceTransport?.stop()
         gattVoiceTransport = null
+        gattHeartbeatServer?.stop()
+        gattHeartbeatServer = null
+        gattHeartbeatClient?.stopClient()
+        gattHeartbeatClient = null
 
         relayEngine?.stop()
         relayEngine = null
@@ -1669,6 +1715,12 @@ class RideService : Service() {
             bleTransportFactory = { BleAdvTransport(applicationContext) },
             gattVoiceTransportFactory = { shortId ->
                 GattVoiceTransport(applicationContext, serviceScope, shortId)
+            },
+            gattHeartbeatServerFactory = { shortId ->
+                GattHeartbeatServer.create(applicationContext, shortId)
+            },
+            gattHeartbeatClientFactory = { shortId, expectedPeers ->
+                GattHeartbeatClient.create(applicationContext, shortId, expectedPeers)
             },
             onNotificationUpdated = { snapshot ->
                 _sharedState.value = controller.state.value
