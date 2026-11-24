@@ -428,7 +428,14 @@ class MeshRelayEngine(
         } else {
             packet.toByteArray()
         }
-        transport?.send(bytes, packet.priority)
+        // Solo POSITION usa el perfil de ráfaga corto: el sobre AEAD (52 B) fragmenta en 4
+        // y con el perfil estándar el heartbeat baja de 3 s a ~18 s. PEER_EVENT y SOS
+        // conservan el perfil fiable; el cifrado y el frame no se modifican.
+        if (packet.priority == Transport.Priority.POSITION) {
+            transport?.sendHeartbeat(bytes, packet.priority)
+        } else {
+            transport?.send(bytes, packet.priority)
+        }
     }
 
     /** Envuelve SOS/ACK antes de cualquier retransmisión; los demás tipos quedan intactos. */

@@ -103,6 +103,18 @@ class BleAdvTransport(
         private const val FRAGMENT_REPEATS = 2
 
         /**
+         * Heartbeats de posición: el sobre AEAD convierte los 20 B del paquete en 52 B,
+         * que son 4 fragmentos. Con el perfil estándar eso son 4 × 2 × 1120 ms ≈ 9 s
+         * serializados en `sendMutex`, y el bucle de heartbeats baja de 3 s a ~18 s
+         * (evidencia: docs/evidence/cadence_root_cause_20261124). Perfil propio para
+         * POSITION: 4 × 320 ms ≈ 1,3 s, compatible con el tick de 3 s.
+         * VOICE/PTT y los demás priority conservan el perfil estándar.
+         */
+        const val POSITION_FRAGMENT_BURST_MS = 300
+        const val POSITION_FRAGMENT_GAP_MS = 20L
+        const val POSITION_FRAGMENT_REPEATS = 1
+
+        /**
          * Voz PTT: MISMA lógica de espera (BURST_MS + GAP_MS) que el chat, pero con ráfaga
          * corta. Con los valores del chat un VoicePacket de 80-100 B son 6 fragmentos
          * × (1000 + 120) ms × 2 repeticiones ≈ 13 s por trama, incompatible con la
@@ -504,6 +516,23 @@ class BleAdvTransport(
                 sendFrame(payload, priority, advertisingBurstDurationMs)
             } else {
                 sendFragmented(payload, priority)
+            }
+        }
+    }
+
+    /** Heartbeats de posición: perfil de ráfaga corto solo cuando hay fragmentación. */
+    override suspend fun sendHeartbeat(payload: ByteArray, priority: Transport.Priority) {
+        sendMutex.withLock {
+            if (payload.size <= BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES) {
+                sendFrame(payload, priority, advertisingBurstDurationMs)
+            } else {
+                sendFragmented(
+                    payload = payload,
+                    priority = priority,
+                    burstMs = POSITION_FRAGMENT_BURST_MS,
+                    gapMs = POSITION_FRAGMENT_GAP_MS,
+                    repeats = POSITION_FRAGMENT_REPEATS
+                )
             }
         }
     }
