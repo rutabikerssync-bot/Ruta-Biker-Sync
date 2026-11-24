@@ -1,0 +1,607 @@
+﻿--------- beginning of main
+11-23 20:19:45.685   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.686   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276939924397
+11-23 20:19:45.686   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.689   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.689   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.689   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.689   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.694   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.694   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276948516743
+11-23 20:19:45.694   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.702   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.702   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276956740358
+11-23 20:19:45.703   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.706   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.706   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.706   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.706   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.711   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.711   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276965243089
+11-23 20:19:45.711   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.719   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.719   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276973313281
+11-23 20:19:45.719   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.723   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.723   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.723   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.723   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.727   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.727   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359276981695243
+11-23 20:19:45.728   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.735   848  1238 I InputReader: processEventsLocked: type=3 Count=3 code=57 value=-1 deviceId=3 when=2359276989445000
+11-23 20:19:45.736   848  1238 D InputReader: syncTouch: pointerCount 1 -> 0, touching ids 0x80000000 -> 0x00000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:45.736   848  1238 D InputReader: dispatchTouches action UP now(ns): 2359276990285204
+11-23 20:19:45.736   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:45.740   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.740   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.740   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.740   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.754   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:45.755   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.755   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.755   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.755   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.760  3470  3470 D LauncherPreAnalytics: postAthenaEvent tid = 9461 eventName = launcher_az_page_exposure bundle = null
+11-23 20:19:45.761  3470  3470 D BounceEffect: initFoldScreenState maxWidthDp=806.0 minWidthDp=360.0
+11-23 20:19:45.761  3470  3470 D AllAppsTransition: isMoveWithVelocity:false
+11-23 20:19:45.762  3470  3470 D GestureHelper-: Launcher dispatchTouchEvent: isSupportGesture:true   isFollowHandMoving:false
+11-23 20:19:45.762  3470  3470 D GestureHelper-:    isFollowHandMovingOrEndWithProcessed:true  return true
+11-23 20:19:45.772   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.772   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.772   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.772   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.805   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.805   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.805   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.805   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.822   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.822   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.822   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.822   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.838   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.838   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.838   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.838   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.849  1736 19503 I native  : I0000 00:00:1795479585.849750   19503 soda_impl.cc:2132] Adding hotword timeout event
+11-23 20:19:45.850  1736 19504 I fgir    : Hotword timeout event!
+11-23 20:19:45.851  1736 19504 I fgir    : Not DEFAULT_DSP timeout event. Call the onHotwordTimeout callback.
+11-23 20:19:45.851  1736 19504 I fgkz    : (REDACTED) Hotword score : %f, Hotword model id : %s.
+11-23 20:19:45.851  1736 19504 I fgkz    : (REDACTED) Timeout reason %s, Coarse channel index %d.
+11-23 20:19:45.851  1736 19504 I fgbh    : HDM. Not handling the timeoutevent with the timeout reason that is not DEFAULT_DSP for now.
+11-23 20:19:45.855   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.855   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.855   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.855   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.871   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.872   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.872   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.872   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.888   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.888   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.888   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.888   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.905   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.905   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.905   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.905   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.916   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:45.921   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.921   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.921   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.921   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.938   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.938   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.938   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.938   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.955   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.955   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.955   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.955   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.971   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.971   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.971   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.972   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.988   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.988   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:45.988   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:45.988   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.005   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.005   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.005   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.005   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.021   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.021   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.021   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.021   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.038   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.038   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.038   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.038   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.055   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.055   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.055   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.055   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.071   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.071   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.071   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.071   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.078   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:46.088   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.088   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.088   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.088   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.105   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.105   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.105   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.105   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.121   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.121   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.121   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.121   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.138   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.138   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.138   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.138   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.155   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.155   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.155   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.155   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+--------- beginning of system
+11-23 20:19:46.169   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:46.171   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.171   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.171   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.171   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.172   848  2746 D BroadcastQueue: Add broadcast <BroadcastRecord{385f144 u0 bc_2_pa_launcher_status}> into [parallel | background], pending size 0
+11-23 20:19:46.172   848   883 D BroadcastQueue: Done with parallel broadcast [background] [BroadcastRecord{385f144 u0 bc_2_pa_launcher_status}]
+11-23 20:19:46.173   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:46.188   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.188   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.188   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.188   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.203   848  1592 D SSense  : onTouchRateChanged: rate:3.5
+11-23 20:19:46.204   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.204   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.204   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.205   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.238   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.238   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.238   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.238   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.239   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.239   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.239   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:46.241   648   648 D enhanceHAL: slpSetBrightness: ambient = 41
+11-23 20:19:46.403   648   648 D enhanceHAL: slpSetBrightness: ambient = 41
+11-23 20:19:46.405   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.405   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.405   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.405   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.565   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:46.663   606  1188 I audio_hw_ext: ext_contrtol_process:policy_force_fm_mute=0
+11-23 20:19:46.663   606  1188 I audio_hw_ext: fm_policy_mute:0x0
+11-23 20:19:46.664   606  1188 I audio_hw_control: set_fm_policy_mute, mute:0
+11-23 20:19:46.727   648   648 D enhanceHAL: slpSetBrightness: ambient = 41
+11-23 20:19:46.751   848  1238 D InputReader: syncTouch: pointerCount 0 -> 1, touching ids 0x00000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.752   848  1238 D InputReader: dispatchTouches action DOWN now(ns): 2359278005897358
+11-23 20:19:46.752   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.755  3470  3470 D Launcher: #shouldBlockNavGestureTouchWithAnimation result : false isFreezerAnimRunning = false isFolderOrDockAnimatingRunning = false isAllAppStateAnimRunning = false isWorkspaceFollowHandAnimRunning = false isDragging = false isGuideShown = false isSortThreadRunning = false isRemoteAnimShowing = false isFinishedSwitchingState = false isConfigAnimationRunning = false inRecentViewTranslate = false isStaggeredWorkspaceAnimRunning = false isGestureFollowHandMoving = false isAZFollowHandMoving = false isSearchAppLocateRunning = false isResizeFoerAnimRunning = false
+11-23 20:19:46.820   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.821   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278074891665
+11-23 20:19:46.821   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.828   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.829   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278083036281
+11-23 20:19:46.829   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.837   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.837   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278091482050
+11-23 20:19:46.837   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.846   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.846   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278100620165
+11-23 20:19:46.846   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.853   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.853   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278107837781
+11-23 20:19:46.854   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.855   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.855   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.855   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.855   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.862   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.862   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278116561434
+11-23 20:19:46.862   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.870   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.870   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278124619665
+11-23 20:19:46.871   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.872   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.872   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.872   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.872   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.878   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.879   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278133289896
+11-23 20:19:46.879   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.887   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.887   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278141278242
+11-23 20:19:46.887   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.888   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.888   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.888   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.888   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.889   648   648 D enhanceHAL: slpSetBrightness: ambient = 38
+11-23 20:19:46.895   848  1238 D InputReader: syncTouch: pointerCount 1 -> 1, touching ids 0x80000000 -> 0x80000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.895   848  1238 D InputReader: dispatchTouches action MOVE now(ns): 2359278149728781
+11-23 20:19:46.896   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.903   848  1238 I InputReader: processEventsLocked: type=3 Count=3 code=57 value=-1 deviceId=3 when=2359278157143000
+11-23 20:19:46.904   848  1238 D InputReader: syncTouch: pointerCount 1 -> 0, touching ids 0x80000000 -> 0x00000000, hovering ids 0x00000000 -> 0x00000000, canceled ids 0x00000000
+11-23 20:19:46.904   848  1238 D InputReader: dispatchTouches action UP now(ns): 2359278158367396
+11-23 20:19:46.904   848  1238 D InputReader: notifyMotion call dispatcher
+11-23 20:19:46.905   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.905   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.905   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.905   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.921   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.921   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.921   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.921   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.954   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.954   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:46.954   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:46.954   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.051   648   648 D enhanceHAL: slpSetBrightness: ambient = 38
+11-23 20:19:47.070   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.071   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.071   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.071   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.087   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.087   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.087   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.087   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.104   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.104   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.104   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.104   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.120   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.120   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.120   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.120   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.137   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.137   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.137   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.137   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.154   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.154   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.154   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.154   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.170   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.170   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.170   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.170   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.173   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:47.176   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:47.187   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.187   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.187   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.187   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.204   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.204   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.204   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.204   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.213   648   648 D enhanceHAL: slpSetBrightness: ambient = 38
+11-23 20:19:47.220   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.220   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.220   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.220   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.237   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.237   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.237   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.237   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.254   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.254   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.254   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.254   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.270   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.270   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.270   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.270   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.287   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.287   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.287   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.287   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.304   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.304   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.304   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.304   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.320   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.320   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.320   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.320   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.337   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.337   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.337   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.337   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.353   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.354   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.354   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.354   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.354   848  2746 D BroadcastQueue: Add broadcast <BroadcastRecord{e22a22d u0 bc_2_pa_launcher_status}> into [parallel | background], pending size 0
+11-23 20:19:47.354   848   883 D BroadcastQueue: Done with parallel broadcast [background] [BroadcastRecord{e22a22d u0 bc_2_pa_launcher_status}]
+11-23 20:19:47.371  3470  3470 I MMKV    : <MMKV_IO.cpp:318::checkLoadData> [6b4b0ad01d1056a2190b3d0571fac80c] oldSeq 387, newSeq 388
+11-23 20:19:47.371  3470  3470 I MMKV    : <MMKV.cpp:307::clearMemoryCache> clearMemoryCache [6b4b0ad01d1056a2190b3d0571fac80c]
+11-23 20:19:47.371  3470  3470 I MMKV    : <MemoryFile.cpp:104::close> closing fd[0x61], /data/user_de/0/com.transsion.hilauncher/files/files/mmkv/com.transsion.hilauncher/6b4b0ad01d1056a2190b3d0571fac80c
+11-23 20:19:47.371  3470  3470 I MMKV    : <MMKV_IO.cpp:214::loadMetaInfoAndCheck> meta file [6b4b0ad01d1056a2190b3d0571fac80c] has flag [0]
+11-23 20:19:47.372  3470  3470 I MMKV    : <MemoryFile.cpp:98::open> open fd[0x61], /data/user_de/0/com.transsion.hilauncher/files/files/mmkv/com.transsion.hilauncher/6b4b0ad01d1056a2190b3d0571fac80c
+11-23 20:19:47.372  3470  3470 I MMKV    : <MemoryFile.cpp:203::mmap> mmap to address [0x7e6b1a4000], oldPtr [0x0], [/data/user_de/0/com.transsion.hilauncher/files/files/mmkv/com.transsion.hilauncher/6b4b0ad01d1056a2190b3d0571fac80c]
+11-23 20:19:47.372  3470  3470 I MMKV    : <MMKV_IO.cpp:84::loadFromFile> loading [6b4b0ad01d1056a2190b3d0571fac80c] with 226289 actual size, file size 262144, InterProcess 1, meta info version:4
+11-23 20:19:47.372  3470  3470 I MMKV    : <MMKV_IO.cpp:89::loadFromFile> loading [6b4b0ad01d1056a2190b3d0571fac80c] with crc 1372906387 sequence 388 version 4
+11-23 20:19:47.372  3470  3470 I MMKV    : <MMKV_IO.cpp:133::loadFromFile> loaded [6b4b0ad01d1056a2190b3d0571fac80c] with 5 key-values
+11-23 20:19:47.372  3470  3470 I MMKV    : Disable checkProcessMode()
+11-23 20:19:47.372  3470  3470 I MMKV    : <MMKV.cpp:225::initializeMMKV> root dir: /data/user/0/com.transsion.hilauncher/files/mmkv
+11-23 20:19:47.373  3470  3470 I MMKV    : <MemoryFile.cpp:98::open> open fd[0xef], /data/user/0/com.transsion.hilauncher/files/mmkv/HisavanaMMKV
+11-23 20:19:47.373  3470  3470 I MMKV    : <MemoryFile.cpp:203::mmap> mmap to address [0x7e5f97c000], oldPtr [0x0], [/data/user/0/com.transsion.hilauncher/files/mmkv/HisavanaMMKV]
+11-23 20:19:47.373  3470  3470 I MMKV    : <MemoryFile.cpp:98::open> open fd[0x11a], /data/user/0/com.transsion.hilauncher/files/mmkv/HisavanaMMKV.crc
+11-23 20:19:47.373  3470  3470 I MMKV    : <MemoryFile.cpp:203::mmap> mmap to address [0x7e5f856000], oldPtr [0x0], [/data/user/0/com.transsion.hilauncher/files/mmkv/HisavanaMMKV.crc]
+11-23 20:19:47.374  3470  3470 I MMKV    : <MMKV_IO.cpp:214::loadMetaInfoAndCheck> meta file [HisavanaMMKV] has flag [0]
+11-23 20:19:47.374  3470  3470 I MMKV    : <MMKV_IO.cpp:84::loadFromFile> loading [HisavanaMMKV] with 2411 actual size, file size 4096, InterProcess 0, meta info version:4
+11-23 20:19:47.374  3470  3470 I MMKV    : <MMKV_IO.cpp:89::loadFromFile> loading [HisavanaMMKV] with crc 3824733133 sequence 5 version 4
+11-23 20:19:47.374  3470  3470 I MMKV    : <MMKV_IO.cpp:133::loadFromFile> loaded [HisavanaMMKV] with 26 key-values
+11-23 20:19:47.375   648   648 D enhanceHAL: slpSetBrightness: ambient = 39
+11-23 20:19:47.387   848  2521 D ConnectivityService: requestNetwork for uid/pid:10173/3470 activeRequest: null callbackRequest: 104085 [NetworkRequest [ REQUEST id=104086, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10173 RequestorUid: 10173 RequestorPkg: com.transsion.hilauncher UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOSING|LOST|UNAVAIL|BLK
+11-23 20:19:47.390   848   865 D CompatibilityChangeReporter: Compat change id reported: 319212206; UID 10173; state: ENABLED
+11-23 20:19:47.392   848  1262 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=104086, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10173 RequestorUid: 10173 RequestorPkg: com.transsion.hilauncher UnderlyingNetworks: Null] ]
+11-23 20:19:47.393   848  1262 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=104086, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10173 RequestorUid: 10173 RequestorPkg: com.transsion.hilauncher UnderlyingNetworks: Null] ]
+11-23 20:19:47.393   848  1262 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=104086, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10173 RequestorUid: 10173 RequestorPkg: com.transsion.hilauncher UnderlyingNetworks: Null] ]
+11-23 20:19:47.395   848  1271 D ConnectivityService: NetReassign [104086 : null ÔåÆ 705] [c 1] [a 2] [i 4]
+11-23 20:19:47.401   848  1271 D ConnectivityService: NetReassign [no changes] [c 1] [a 1] [i 3]
+11-23 20:19:47.404   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.404   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.404   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:47.404   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:47.533 26762  4727 I dppd    : kickOffPendingIfNowConnected: RCS is not ready but RCS is available. Trigger scheduling: [processPendingMessagesActionForStartup]
+11-23 20:19:47.537   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:47.699   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:47.861   648   648 D enhanceHAL: slpSetBrightness: ambient = 41
+11-23 20:19:48.023   648   648 D enhanceHAL: slpSetBrightness: ambient = 41
+11-23 20:19:48.136   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:48.136   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:48.136   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:48.136   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:48.186   648   648 D enhanceHAL: slpSetBrightness: ambient = 42
+11-23 20:19:48.209   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:48.213   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:48.285 27271 27300 E BtGatt.ContextMap: Context not found for ID 0
+11-23 20:19:48.348   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:48.510   648   648 D enhanceHAL: slpSetBrightness: ambient = 39
+11-23 20:19:48.528   674  1099 I FastMixer: fastmixer drop data on idle:i:0,framesReady:1920,proc_count:3
+11-23 20:19:48.530   606  1188 I audio_hw_primary: out_standby 0xf1406e50
+11-23 20:19:48.530   606  1188 I audio_hw_primary: do_output_standby 0xf1406e50 audio_app_type:0
+11-23 20:19:48.530   606  1188 I audio_hw_primary: do_normal_output_standby enter:0xf2103750 standby:0
+11-23 20:19:48.530   606  1188 I audio_hw_control: dev_ctl_get_out_pcm_config AUD_PCM_MM_NORMAL:0xef8bba38 4 640
+11-23 20:19:48.530   606  1188 E audio_hw_control: get_stream_type_with_pcm_dev stream type:-1
+11-23 20:19:48.531   606  1188 E audio_hw_control: start_output_stream stream type:0xffffffff
+11-23 20:19:48.531   606  1188 I audio_hw_control: get_usecase_with_mdg, app_type:-1, usecase:408
+11-23 20:19:48.531   606  1188 I audio_hw_control: set_mdg_mute_unlock, usecase:8, on:1
+11-23 20:19:48.531   606  1188 I audio_hw_control: _set_mdg_mute:0xf2dbee38 1
+11-23 20:19:48.531   606  1188 I audio_hw_primary: do_normal_output_standby pcm_close:0xf2103750
+11-23 20:19:48.531   606  1188 I audio_hw_primary: do_normal_output_standby pcm_close:0xf2103750 success
+11-23 20:19:48.574   606  1188 I audio_hw_control: set_usecase cur :0x100008 usecase=0x8  off
+11-23 20:19:48.574   606  1188 I audio_hw_control: device_access_enable
+11-23 20:19:48.574   606  1188 I audio_hw_dsp: dsp_sleep_ctrl_pair: count:1,on_off:1,dsp_ctl->agdsp_sleep_status:1
+11-23 20:19:48.574   606  1188 I audio_hw_control: device_access_restore
+11-23 20:19:48.574   606  1188 I audio_hw_dsp: dsp_sleep_ctrl_pair: count:0,on_off:0,dsp_ctl->agdsp_sleep_status:1
+11-23 20:19:48.574   606  1188 I audio_hw_control: vbc_iis_loop_enable:0
+11-23 20:19:48.574   606  1188 E audio_hw_control: set_ucp_1301_rcv_unlock,can not get mixer:UCP1301_RCV Switch
+11-23 20:19:48.574   606  1188 I audio_hw_dsp: agdsp_send_msg cmd:0x34 param:0x1255 0x100000 0x0 0x0
+11-23 20:19:48.574   606  1188 I audio_hw_control: clear_playback_param_state
+11-23 20:19:48.574   606  1188 I audio_hw_param: get_audio_param_mode invalid offset, param_id:76 type:0 name:Music\Handsfree\Record
+11-23 20:19:48.574   606  1188 I audio_hw_control: set_vbc_param invalid audio param param id:76
+11-23 20:19:48.574   606  1188 I audio_hw_param: get_audio_param_mode type:4 param_id:76 param_mode:2f default_mode:4c
+11-23 20:19:48.574   606  1188 I audio_hw_primary: do_normal_output_standby :0xf1406e50 0 exit
+11-23 20:19:48.672   648   648 D enhanceHAL: slpSetBrightness: ambient = 39
+11-23 20:19:48.697   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.698   639   668 D PowerHAL: ##Timing deboost
+11-23 20:19:48.835   648   648 D enhanceHAL: slpSetBrightness: ambient = 39
+11-23 20:19:48.956   965  1183 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-23 20:19:48.997   648   648 D enhanceHAL: slpSetBrightness: ambient = 38
+11-23 20:19:49.159   648   648 D enhanceHAL: slpSetBrightness: ambient = 37
+11-23 20:19:49.228   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:49.233   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:49.321   648   648 D enhanceHAL: slpSetBrightness: ambient = 39
+11-23 20:19:49.483   648   648 D enhanceHAL: slpSetBrightness: ambient = 40
+11-23 20:19:49.645   648   648 D enhanceHAL: slpSetBrightness: ambient = 37
+11-23 20:19:49.807   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:49.955  1027  1137 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-23 20:19:49.969   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.100 26762  3335 I dppd    : kickOffPendingIfNowConnected: RCS is not ready but RCS is available. Trigger scheduling: [processPendingMessagesActionForStartup]
+11-23 20:19:50.118 30371 30371 D BoundBrokerSvc: onBind: Intent { act=com.google.android.gms.potokens.service.START dat=chimera-action: cmp=com.google.android.gms/.chimera.GmsApiService }
+11-23 20:19:50.119 30371 30371 D BoundBrokerSvc: Loading bound service for intent: Intent { act=com.google.android.gms.potokens.service.START dat=chimera-action: cmp=com.google.android.gms/.chimera.GmsApiService }
+11-23 20:19:50.131   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.239   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:50.245   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:50.294   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.456   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.618   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.780   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.804  4937  4942 I tabikersync.ap: Compiler allocated 5636KB to compile java.lang.Object com.rutabikersync.app.feature.groups.ClubRepository.syncClubsAndInvitations-IoAF18A(kotlin.coroutines.Continuation)
+11-23 20:19:50.864 30371 30371 D BoundBrokerSvc: onUnbind: Intent { act=com.google.android.gms.onboardingconsent.api.ConsentManagerApiService.START dat=chimera-action: cmp=com.google.android.gms/.chimera.GmsApiService }
+11-23 20:19:50.942   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:50.956  1027  1137 D BufferPoolAccessor2.0: bufferpool2 0xb400007bf36a4788 : 0(0 size) total buffers - 0(0 size) used buffers - 96/100 (recycle/alloc) - 4/99 (fetch/transfer)
+11-23 20:19:50.956   965  1183 D BufferPoolAccessor2.0: bufferpool2 0xf2302d28 : 0(0 size) total buffers - 0(0 size) used buffers - 96/104 (recycle/alloc) - 8/204 (fetch/transfer)
+11-23 20:19:50.956  1027  1137 D BufferPoolAccessor2.0: evictor expired: 2, evicted: 1
+11-23 20:19:50.956   965  1183 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-23 20:19:51.098  1349  1360 W TelephonyPermissions: reportAccessDeniedToReadIdentifiers:com.transsion.hilauncher:getImeiForSlot:1
+11-23 20:19:51.099 26762  3335 I dppd    : kickOffPendingIfNowConnected: RCS is not ready but RCS is available. Trigger scheduling: [processPendingMessagesActionForStartup]
+11-23 20:19:51.104   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.111   336 24304 E keystore2: keystore2::security_level: begin method: before km_dev.begin
+11-23 20:19:51.111   368   368 E TrustyKeymaster: succeeded to send cmd (4) to com.android.trusty.keymaster with rc(1420). errno: Success
+11-23 20:19:51.112   368   368 E TrustyKeymaster: Getting response size (28)
+11-23 20:19:51.113   336 24304 E keystore2: keystore2::security_level: begin method: after upgrade_keyblob_if_required_with
+11-23 20:19:51.114   368   368 E TrustyKeymaster: succeeded to send cmd (8) to com.android.trusty.keymaster with rc(284). errno: Success
+11-23 20:19:51.114   368   368 E TrustyKeymaster: Getting response size (28)
+11-23 20:19:51.115   368   368 E TrustyKeymaster: succeeded to send cmd (12) to com.android.trusty.keymaster with rc(32). errno: Success
+11-23 20:19:51.145   368   368 E TrustyKeymaster: Getting response size (8)
+11-23 20:19:51.145   368   368 E TrustyKeymaster: Response of size 4 contained error code -1000
+11-23 20:19:51.145   368   368 E trusty_keymaster_hal: Cmd 12 returned error: -1000
+11-23 20:19:51.146   336 24304 E keystore2: keystore2::error: In KeystoreOperation::finish
+11-23 20:19:51.146   336 24304 E keystore2: 
+11-23 20:19:51.146   336 24304 E keystore2: Caused by:
+11-23 20:19:51.146   336 24304 E keystore2:     0: In finish: KeyMint::finish failed.
+11-23 20:19:51.146   336 24304 E keystore2:     1: Error::Km(ErrorCode(-1000))
+11-23 20:19:51.151  1349  1360 W TelephonyPermissions: reportAccessDeniedToReadIdentifiers:com.transsion.hilauncher:getImeiForSlot:1
+11-23 20:19:51.168   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:51.168   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:51.168   617 16680 E GSP     : unisoc layer dataspace=0
+11-23 20:19:51.168   617 16680 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:51.261   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:51.267   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:51.267   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.418   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:51.418   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:51.418   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:51.418   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:51.428   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.591   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.753   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.915   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:51.946   848  1210 D BroadcastQueue: Add broadcast <BroadcastRecord{87b8e3 u0 android.os.action.POWER_SAVE_TEMP_WHITELIST_CHANGED}> into [parallel | background], pending size 0
+11-23 20:19:51.947   848   883 D BroadcastQueue: Done with parallel broadcast [background] [BroadcastRecord{87b8e3 u0 android.os.action.POWER_SAVE_TEMP_WHITELIST_CHANGED}]
+11-23 20:19:52.077   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:52.145   848   875 E UnisocWatchdog: WDT_Monitor: writeWDTMonitor duration=50,shutdowning=false
+11-23 20:19:52.152   848   875 E UnisocWatchdog: UnisocWatchdogImpl sendMessage:0
+11-23 20:19:52.152   848  1198 E UnisocWatchdog: UNISOCWATCHDOG_MESSAGE_TIMER30 trigger
+11-23 20:19:52.239   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:52.300   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:52.307   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:52.401   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:52.563   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:52.725   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:52.887   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.050   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.212   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.341   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:53.347   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:53.374   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.390 27271 27300 E BtGatt.ContextMap: Context not found for ID 0
+11-23 20:19:53.452 29453 29453 W NotifCollection: Ranking update is missing ranking for 0|com.facebook.katana|0|100014941028070|10258
+11-23 20:19:53.536   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|close_friend_activity|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|100089484022350|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|bm90aWZpY2F0aW9uOjEzMTU0MjI4MjE6MTc5NTQ2MDA2MzEzMTc4Mjo0NTE3NjE3MTE1MjY2ODc6TUFJTl9TVVJGQUNF|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|birthday_reminder|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|onthisday|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|bm90aWZpY2F0aW9uOjEzMTU0MjI4MjE6MTc5NTIyNzY0MDA4MTE5Mzo0NTE3NjE3MTE1MjY2ODc6TUFJTl9TVVJGQUNF|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|org.telegram.messenger|1|null|10217
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|stale_notifications|10258
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.rutabikersync.app|0|FCM-Notification:2359247694|10389
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|181417255|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1840908557|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1119425576|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1740353682|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1115675019|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|86621195|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1957714521|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1933512870|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|2128407315|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|214823718|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1014821863|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|240729382|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|10011|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.zhiliaoapp.musically.go|293670165|app_notify_ame|10241
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.zhiliaoapp.musically.go|1304579348|app_notify_ame|10241
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.zhiliaoapp.musically.go|-1216344825|app_notify_ame|10241
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.zhiliaoapp.musically.go|1564560660|app_notify_ame|10241
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.android.systemui|703711|Securecharge|10160
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.instagram.android|64278|-1418631996-a5a87d60-d2f8-49fb-998f-e27ade5425c6|10202
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: -1|android|26|null|1000
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.instagram.android|64278|-1418631996-ig_heads_up_reminders_with_vibrations-newstab|10202
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.instagram.android|64278|-1418631996-0ab19b9f-19f3-4ef0-bec5-9a7e4b0256e4|10202
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.instagram.android|64278|-1418631996-ffc04b6c-3467-4be0-aaaf-fc6996609364|10202
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|2099875840|null|10120
+11-23 20:19:53.563 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|225021952|null|10120
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.talpa.hibrowser|1600753664|null|10120
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|1625198820|10258
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.facebook.katana|0|100061687999736|10258
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.rutabikersync.app|0|FCM-Notification:2359274435|10389
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.google.android.gm|0|gig:874760281:^sq_ig_i_personal|10128
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.google.android.gm|0|gig:471590879:^sq_ig_i_personal|10128
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.instagram.android|64278|-1418631996-ig_other-newstab|10202
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No alerting: suppressed due to group alert behavior
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 0|com.android.vending|-234430262|null|10108
+11-23 20:19:53.564 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: -1|android|27|null|1000
+11-23 20:19:53.577 26762  3335 I bvgb    : running action ProcessPendingMessagesAction
+11-23 20:19:53.577 26762 26762 I dwkw    : ActionExecutorImpl: ACTION_EXECUTE_QUEUED_ProcessPendingMessagesAction
+11-23 20:19:53.578 26762  3335 I dybh    : isDefaultSmsApp: true [CONTEXT class_name="PhoneConfiguration" ]
+11-23 20:19:53.590 26762  3335 I bunk    : PendingMessagesProcessor process from ProcessPendingMessagesAction due to scheduled processing  with delay 0s with queues smsMessagesToSend:0 mmsMessagesToSend:0 rcsMessagesToSend:0 rcsFTMessagesToSend:0 messagesToDownload:0
+11-23 20:19:53.597 26762  3335 I bvgb    : finished running action ProcessPendingMessagesAction in 19 ms
+11-23 20:19:53.616   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:53.616   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:53.616   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:53.616   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:53.698   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:53.860   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.014   848  1590 V AlarmManager: set(PendingIntent{c9315ce: PendingIntentRecord{6993cef android broadcastIntent}}) : type=3 listener=null listenerTag=null triggerAtTime=2729490258 win=224999 tElapsed=2729490258 maxElapsed=2729715257 interval=0 flags=0x8
+11-23 20:19:54.015   848  1590 D AlarmManagerService: set alarm to kernel: 2730267.432000000, type=2 
+11-23 20:19:54.015   848  1590 D AlarmManagerService: set alarm to kernel: 2729196.245000000, type=3 
+11-23 20:19:54.016   848  1590 D AlarmManagerService: set alarm to kernel: 2730267.432000000, type=2 
+11-23 20:19:54.016   848  1590 D AlarmManagerService: set alarm to kernel: 2729196.245000000, type=3 
+11-23 20:19:54.022   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.182   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:54.182   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:54.182   617   617 E GSP     : unisoc layer dataspace=0
+11-23 20:19:54.182   617   617 E GSP     : unisoc ADP_YINFO(handle)=0
+11-23 20:19:54.185   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.234   848  1592 D SSense  : onFpsChanged: fps:1.5333333
+11-23 20:19:54.282  3358  3358 I adbd    : adbd service requested 'exec:screencap '-p''
+11-23 20:19:54.346   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.376   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:54.382   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:54.409   616   616 I gralloc4: allocate: id=268000110f9, hal_format=RGBA8888, mali_format=RGBA8888, afbc=false, usage=CPU_RW|GPU_RW|HWC, size=720x1612, stride=720, name=screenshot
+11-23 20:19:54.409   687   974 I gralloc4: register: id=268000110f9
+11-23 20:19:54.439  5158  5159 I gralloc4: register: id=268000110f9
+11-23 20:19:54.439  5158  5159 W libc    : Access denied finding property "persist.vendor.sf.fbc"
+11-23 20:19:54.439  5158  5159 W libc    : Access denied finding property "persist.vendor.gpu.fbc"
+11-23 20:19:54.439  5158  5159 W libc    : Access denied finding property "persist.vendor.vsp.fbc"
+11-23 20:19:54.440  5158  5158 E ion     : ioctl c0044901 failed with code -1: Inappropriate ioctl for device
+11-23 20:19:54.508   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.671   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.833   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:54.995   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:55.157   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:55.319   648   648 D enhanceHAL: slpSetBrightness: ambient = 36
+11-23 20:19:55.356  5158  5158 I gralloc4: unregister: id=268000110f9
+11-23 20:19:55.398   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:55.407  3358  3358 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:dumpsys notification --noredact'
+11-23 20:19:55.408   848   880 E ThermalHalWrapper: Couldn't get temperatures because of HAL error: can't find this type sensor
+11-23 20:19:55.481   648   648 D enhanceHAL: slpSetBrightness: ambient = 37
+11-23 20:19:55.636  3358  3358 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color:export ANDROID_LOG_TAGS=''; exec logcat '-d' '-t' '600''
+11-23 20:19:55.644   648   648 D enhanceHAL: slpSetBrightness: ambient = 36

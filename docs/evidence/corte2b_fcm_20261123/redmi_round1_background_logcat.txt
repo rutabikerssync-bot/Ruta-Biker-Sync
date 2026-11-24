@@ -1,0 +1,633 @@
+﻿--------- beginning of main
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: getActiveEchoReferenceRxDevices_l: 4819: Enter
+11-23 20:19:32.276  1664  2257 D PAL: Stream: getAssociatedDevices: 578: no. of devices 1
+11-23 20:19:32.276  1664  2257 D PAL: Stream: getAssociatedDevices: 578: no. of devices 1
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: isDeviceActive_l: 3628: Enter.
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: isDeviceActive_l: 3635: Exit. device 3 (PAL_DEVICE_OUT_SPEAKER) is active 0
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: getActiveEchoReferenceRxDevices_l: 4878: Exit, status 0
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: registerDevice: 3453: Exit. status: 0
+11-23 20:19:32.276  1664  2257 I PAL: StreamSoundTrigger: ProcessEvent: 3668: device started
+11-23 20:19:32.276  1664  2257 I PAL: SoundTriggerEngineGsl: StartRecognition: 2059: Enter
+11-23 20:19:32.276  1664  2257 I PAL: SoundTriggerEngineGsl: ProcessStartRecognition: 1980: Enter
+11-23 20:19:32.276  1664  2257 D PAL: ResourceManager: acquireWakeLock: 1097: wake lock count: 0
+11-23 20:19:32.276  1664  2257 I PAL: ResourceManager: acquireWakeLock: 1099: Acquiring wake lock audio_pal_wl
+11-23 20:19:32.276  1664  2257 I PAL: SoundTriggerEngineGsl: UpdateSessionPayload: 2911: Enter, param : 3 (BUFFERING_CONFIG)
+11-23 20:19:32.276  1664  2257 I PAL: PayloadBuilder: payloadSVAConfig: 1446: PID 0x8001044, payload 0xb400007af5f0d670K size 24
+11-23 20:19:32.276  1664  2257 D PAL: SessionAlsaPcm: setParameters: 2351: Enter. param id: 31 (PAL_PARAM_ID_WAKEUP_BUFFERING_CONFIG)
+11-23 20:19:32.276  1664  2257 I PAL: SessionAlsaPcm: setParameters: 2401: customPayloadSize = 53136
+11-23 20:19:32.276  1664  2257 D PAL: SessionAlsaPcm: setParameters: 2719: Exit. status 0
+11-23 20:19:32.276  1664  2257 I PAL: SoundTriggerEngineGsl: UpdateConfigs: 1970: Exit, status 0
+11-23 20:19:32.276  1664  2257 D PAL: Stream: getBufInfo: 819: In Buffer size 160, In Buffer count 4
+11-23 20:19:32.276  1664  2257 D PAL: Stream: getBufInfo: 823: Out Buffer size 1024 and Out Buffer count 4
+11-23 20:19:32.276  1664  2257 D PAL: SessionAlsaPcm: createMmapBuffer: 3260: Opening PCM device card_id(100) device_id(124), channels 1
+11-23 20:19:32.282  1664  2257 D agm_client_wrapper: agm_session_open called with handle = 72e2a990 , *handle = 0
+11-23 20:19:32.282  1664  2257 E agm_client_wrapper: agm_session_open: agm_server_died 0
+11-23 20:19:32.283  1710  3304 D AGM: graph: graph_open: 657 entry
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 80 *************************Metadata*************************
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 81 GKV size:5
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 84 key:0xbc000000, value:0xbc000002 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[VoiceUI_Stream_Config] value[Hotword]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 84 key:0xb1000000, value:0xb1000003 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[StreamTX] value[Voice_UI]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 84 key:0xab000000, value:0x1 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[Instance] value[Instance_1]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 84 key:0xa3000000, value:0xa3000006 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[DeviceTX] value[VoiceActivation_Mic]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 84 key:0xad000000, value:0xad00000c 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[DevicePP_Tx] value[Voice_UI_RAW]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 89 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: CKV count:2
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 92 key:0xd4000000, value:0x1 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 92 key:0xa9000000, value:0x1 
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: metadata_print:    key[Channels] value[CHS_1]
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 95 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 97 Property ID:134217744 (0x00000010)
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 98 property count:4
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 101 Property Values: 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 103 0x1 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 103 0x3 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 103 0x2 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 103 0x5 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 105 
+11-23 20:19:32.283  1710  3304 D AGM: metadata: metadata_print: 106 ****************Metadata Done***************************
+11-23 20:19:32.283  1710  3304 D AGM: metadata: 
+11-23 20:19:32.283  1710  3304 E ACDB    : AcdbCmdGetGraphAlias:4153 Error[19]: Graph Alias chunk data does not exist. Is it enabled?.
+11-23 20:19:32.283  1710  3304 E gsl     : gsl_get_graph_alias:2262 acdb get graph alias failed 19, len 255
+11-23 20:19:32.283  1710  3304 D AGM: graph: print_graph_alias: 2356 gsl_get_graph_alias failed: ret = 19
+11-23 20:19:32.283  1710  3304 D AGM: graph: graph_open: 794 miid 43d4 mid 7001024 tag c0000005
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: graph_open:                        tag device_hw_ep_tx
+11-23 20:19:32.283  1710  3304 D AGM: graph: graph_open: 740 miid 4531 mid 7001004 tag c000000f
+11-23 20:19:32.283  1710  3304 D kv_xml_parser: graph_open:                        tag stream_pcm_encoder
+11-23 20:19:32.283  1710  3304 I GPR:    : __gpr_cmd_register_v2:902 GPR Register: Source Port is 8208 heap_index: 0
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_graph_open_sgids_and_connections:2725 num_sgid= 3
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_graph_open_sgids_and_connections:2726 sg list:
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_graph_open_sgids_and_connections:2728 b00000cd
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_graph_open_sgids_and_connections:2728 b00000cc
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_graph_open_sgids_and_connections:2728 b0000076
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_print_sg_conn_info:187 num_sg_conn = 2
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_print_sg_conn_info:189 sg b00000cc has 1 children:
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_print_sg_conn_info:192 b00000cd, 
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_print_sg_conn_info:189 sg b0000076 has 1 children:
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_print_sg_conn_info:192 b00000cc, 
+11-23 20:19:32.283  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22b6
+11-23 20:19:32.284  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22b6
+11-23 20:19:32.285  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22b7
+11-23 20:19:32.285  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22b7
+11-23 20:19:32.285  1710  3304 E ACDB    : AcdbCmdGetProcSubgraphCalDataPersist:8416 Error[19]: No calibration found
+11-23 20:19:32.285  1710  3304 E ACDB    : AcdbCmdGetProcSubgraphCalDataPersist:8416 Error[19]: No calibration found
+11-23 20:19:32.285  1710  3304 E ACDB    : AcdbCmdGetProcSubgraphCalDataPersist:8416 Error[19]: No calibration found
+11-23 20:19:32.285  1710  3304 D AGM: graph: graph_open: 828 graph_handle 0x47534c
+11-23 20:19:32.285  1710  3304 D AGM: graph: graph_open: 865 exit, ret 0
+11-23 20:19:32.285  1664  2257 D agm_client_wrapper: agm_session_open Received handle = 0x7972e2a990 , *handle = b400006f2bb3d990
+11-23 20:19:32.285  1664  2257 D PLUGIN: pcm: agm_pcm_hw_params: 469 agm_pcm_hw_params: mode: 268435467
+11-23 20:19:32.286  1710  3304 D AGM: graph: configure_buffer_params: 206 Enter
+11-23 20:19:32.286  1710  3304 D AGM: graph: configure_buffer_params: 269 Capture sess buf_sz 160 num_bufs 1024
+11-23 20:19:32.286  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22b8
+11-23 20:19:32.286  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22b8
+11-23 20:19:32.286  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22b9
+11-23 20:19:32.287  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22b9
+11-23 20:19:32.287  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22ba
+11-23 20:19:32.287  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22ba
+11-23 20:19:32.287  1710  3304 D AGM: graph: configure_buffer_params: 322 exit, ret 0
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2120 metadata b400006e7bb3b6b0
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2121 shmem_buf_info size 163840 - addr 0x70f28db000
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2120 metadata b400006e7bb3ae50
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2121 shmem_buf_info size 16 - addr 0x70f4045000
+11-23 20:19:32.287  1664  2257 E PLUGIN: pcm: agm_pcm_mmap: 818 agm_pcm_mmap: boundary: 0x50000000, size_frames: 0x14000
+11-23 20:19:32.287  1710  3304 D AGM: graph: configure_buffer_params: 202 configure buf params already done
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2120 metadata b400006e7bb3b6b0
+11-23 20:19:32.287  1710  3304 D AGM: graph: graph_fill_buf_info: 2121 shmem_buf_info size 163840 - addr 0x70f28db000
+11-23 20:19:32.288  1664  2257 D PAL: SessionAlsaPcm: createMmapBuffer: 3336: got mmap buffer address 0x79a5b38000K info->buffer_size_frames 81920
+11-23 20:19:32.288  1664  2257 I PAL: SoundTriggerEngineGsl: ProcessStartRecognition: 2030: Resize mmap buffer size to 163840
+11-23 20:19:32.288  1664  2257 D PAL: SessionAlsaPcm: start: 828: Enter
+11-23 20:19:32.288  1664  2257 E PAL: ResourceManager: voteSleepMonitor: 1542: ioctl device is not open
+11-23 20:19:32.288  1664  2257 D PAL: ResourceManager: getDeviceNameFromID: 1290: pcm id name is PCM124 
+11-23 20:19:32.288  1664  2257 D PAL: SessionAlsaUtils: registerMixerEvent: 1320: - mixer -PCM124 event-
+11-23 20:19:32.288  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22bb
+11-23 20:19:32.288  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22bb
+11-23 20:19:32.288  1664  2257 D PAL: ResourceManager: getDeviceNameFromID: 1290: pcm id name is PCM124 
+11-23 20:19:32.288  1664  2257 D PAL: SessionAlsaUtils: setMixerParameter: 1222: - mixer -PCM124-
+11-23 20:19:32.288  1664  2257 D PAL: SessionAlsaUtils: setMixerParameter: 1230: - mixer -PCM124 setParam-
+11-23 20:19:32.288  1664  2257 E PLUGIN: mixer: amp_pcm_set_param_put: 1359 be idx 8, pcm idx 124, pcm_control 3
+11-23 20:19:32.288  1710  3304 D AGM: graph: graph_set_config: 1227 entry graph_handle 0x47534c
+11-23 20:19:32.289  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22bc
+11-23 20:19:32.289  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22bc
+11-23 20:19:32.289  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22bd
+11-23 20:19:32.291  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22bd
+11-23 20:19:32.291  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22be
+11-23 20:19:32.291  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22be
+11-23 20:19:32.291  1710  3304 D AGM: graph: graph_set_config: 1235 exit, graph handle 0x47534c, ret 0
+11-23 20:19:32.291  1664  2257 D PAL: SessionAlsaUtils: setMixerParameter: 1239: ret = 0, cnt = 53136
+11-23 20:19:32.291  1710  3304 D AGM: graph: graph_prepare: 928 entry graph_handle 0x47534c
+11-23 20:19:32.291  1710  3304 D AGM: graph_module: configure_hw_ep_media_config: 673 entry mod tag c0000005 miid 43d4 mid 7001024
+11-23 20:19:32.291  1710  3304 D AGM: graph_module: configure_hw_ep_media_config: 708 rate 16000 bw 16 ch 1, data_fmt 1
+11-23 20:19:32.291  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22bf
+11-23 20:19:32.291  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22bf
+11-23 20:19:32.291  1710  3304 D AGM: graph_module: configure_hw_ep_media_config: 718 exit, ret 0
+11-23 20:19:32.292  1710  3304 D AGM: graph_module: configure_codec_dma_ep: 286 cdc_dma intf cfg lpaif 3 indx 1 ch_msk 1
+11-23 20:19:32.292  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22c0
+11-23 20:19:32.292  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22c0
+11-23 20:19:32.292  1710  3304 D AGM: graph_module: configure_codec_dma_ep: 301 exit, ret 0
+11-23 20:19:32.292  1710  3304 D AGM: graph_module: configure_output_media_format: 807 entry mod tag c000000f miid 4531 mid 7001004
+11-23 20:19:32.292  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22c1
+11-23 20:19:32.292  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22c1
+11-23 20:19:32.292  1710  3304 D AGM: graph_module: configure_output_media_format: 938 exit, ret 0
+11-23 20:19:32.292  1710  3304 D AGM: graph: configure_buffer_params: 202 configure buf params already done
+11-23 20:19:32.292  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22c2
+11-23 20:19:32.293  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22c2
+11-23 20:19:32.293  1710  3304 D AGM: graph: graph_prepare: 1006 exit, ret 0
+11-23 20:19:32.293  1710  3304 D AGM: graph: graph_start: 1020 entry graph_handle 0x47534c
+11-23 20:19:32.293  1710  3304 I gsl     : gsl_send_spf_cmd:157 sending pkt with token 0x22c3
+11-23 20:19:32.294  1710  3304 I gsl     : gsl_send_spf_cmd:184 rcvd pkt token : 0x22c3
+11-23 20:19:32.294  1710  3304 D AGM: graph: graph_start: 1032 exit, ret 0
+11-23 20:19:32.308  1664  2257 D PAL: SessionAlsaPcm: start: 1579: Exit status: 0
+11-23 20:19:32.308  1664  2257 D PLUGIN: pcm: agm_pcm_plugin_reset: 431 agm_pcm_plugin_reset: reset hw_ptr to 0 
+11-23 20:19:32.308  1664  2257 I PAL: SoundTriggerEngineGsl: UpdateSpeakerRotationPayload: 3093: Enter, param : 7 (SPEAKER_ROTATION)
+11-23 20:19:32.308  1664  2257 E PAL: SoundTriggerEngineGsl: UpdateSpeakerRotationPayload: 3103: Invalid tag/param id 7
+11-23 20:19:32.308  1664  2257 E PAL: SoundTriggerEngineGsl: UpdateSpeakerRotationConfig: 2327: Failed to set speaker rotatuon, status = -22
+11-23 20:19:32.308  1664  2257 I PAL: SoundTriggerEngineGsl: UpdateState: 1567: Engine state transitioned from 1 (ENG_LOADED) to 2 (ENG_ACTIVE)
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: releaseWakeLock: 1119: wake lock count: 1
+11-23 20:19:32.308  1664  2257 I PAL: ResourceManager: releaseWakeLock: 1121: Releasing wake lock audio_pal_wl
+11-23 20:19:32.308  1664  2257 I PAL: SoundTriggerEngineGsl: ProcessStartRecognition: 2052: Exit, status 0
+11-23 20:19:32.308  1664  2257 I PAL: StreamSoundTrigger: TransitTo: 3188: Stream instance 1: state transitioned from ST_STATE_LOADED to ST_STATE_ACTIVE
+11-23 20:19:32.308  1664  2257 I PAL: StreamSoundTrigger: HandleConcurrentStream: 619: NLPI->LPI switch takes 51ms
+11-23 20:19:32.308  1664  2257 I PAL: StreamSoundTrigger: HandleConcurrentStream: 627: Exit, status 0
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: isStreamActive: 2992: Enter.
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: isStreamActive: 2999: Exit, ret 1
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: HandleDetectionStreamAction: 4520: Exit, status 0
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: handleConcurrentStreamSwitch: 4657: load/start stream type 23 (PAL_STREAM_ACD)
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: handleConcurrentStreamSwitch: 4657: load/start stream type 25 (PAL_STREAM_SENSOR_PCM_DATA)
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: HandleConcurrencyForSoundTriggerStreams: 4804: Exit
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: eraseStreamUserCounter: 3049: stream counter for 0xb4000079e5eb0a10 is erased.
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: deregisterStream: 2832: Enter. stream 0xb4000079e5eb0a10K
+11-23 20:19:32.308  1664  2257 D PAL: Stream: getStreamType: 479: streamType - 2 (PAL_STREAM_DEEP_BUFFER)
+11-23 20:19:32.308  1664  2257 I PAL: ResourceManager: deregisterStream: 2843: stream type 2 (PAL_STREAM_DEEP_BUFFER)
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: deregisterStream: 2983: Exit. ret 0
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: restoreDevice: 11615: Enter
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: checkAndUpdateGroupDevConfig: 5569: virtual port enabled for device 3
+11-23 20:19:32.308  1664  2257 D PAL: Stream: getAssociatedDevices: 578: no. of devices 1
+11-23 20:19:32.308  1664  2257 I PAL: ResourceManager: getActiveStream_l: 5227: no active streams found for device 20 ret -2
+11-23 20:19:32.308  1664  2257 E PAL: ResourceManager: checkAndUpdateGroupDevConfig: 5734: group config for -1 is missing
+11-23 20:19:32.308  1664  2257 E PAL: ResourceManager: restoreDevice: 11648: no valid group device config found
+11-23 20:19:32.308  1664  2257 D PAL: Stream: getAssociatedDevices: 578: no. of devices 1
+11-23 20:19:32.308  1664  2257 I PAL: ResourceManager: getActiveStream_l: 5227: no active streams found for device 2 ret -2
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: getSharedBEActiveStreamDevs: 6440: got dev 2 (PAL_DEVICE_OUT_HANDSET) active streams on dev is 0
+11-23 20:19:32.308  1664  2257 D PAL: Stream: getAssociatedDevices: 578: no. of devices 1
+11-23 20:19:32.308  1664  2257 I PAL: ResourceManager: getActiveStream_l: 5227: no active streams found for device 3 ret -2
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: getSharedBEActiveStreamDevs: 6440: got dev 3 (PAL_DEVICE_OUT_SPEAKER) active streams on dev is 0
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: restoreDevice: 11796: no active device, switch un-needed
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: restoreDevice: 11804: Exit
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: controlMixerCtl: 9483: isZeroDataNum:0 allStreamNum:0 isForceOpenStream:0 devicetype:1 
+11-23 20:19:32.308  1664  2257 D PAL: ResourceManager: closeMixerCtl: 9577: close GLOBAL_EN Control:1
+11-23 20:19:32.309  1664  2257 I PAL: API: pal_stream_close: 290: Exit. status 0
+11-23 20:19:32.309  1664  2257 D AHAL: AudioStream: Standby: 2344: Exit ret: 0
+11-23 20:19:32.309  1664  2257 D AHAL: AudioStream: astream_out_standby: 785: Exit ret: 0
+11-23 20:19:32.339  2738  3894 D WifiStaIfaceHidlImpl: getCachedScanData is not implemented by HIDL
+--------- beginning of system
+11-23 20:19:32.341  2433  2433 I wificond: station_bandwidth: 
+11-23 20:19:32.341  2738  3894 D MiuiWifiCommonBase: band: 0, compensate: 0
+11-23 20:19:32.342  2738  3894 E AmlWifiScoreReportInjector: AmlWifiScoreReportInjector was cleared
+11-23 20:19:32.342  2738  3894 D WifiOptimizationImpl: AmlWifiScoreReportInjector.get() = null, stop reportTxBadOrRetryEvent
+11-23 20:19:32.343  2738  3894 E WifiClientModeImpl[8995736:wlan0]: Failed to get mlo info
+11-23 20:19:32.385 14754 15825 I BeautyService: task Running...
+11-23 20:19:32.388  2738  3419 D MiuiFreeFormManagerService: getAllFreeFormStackInfosOnDisplay list=0
+11-23 20:19:32.389 14754 15825 I BeautyService: updateForegroundInfo new = ComponentInfo{com.miui.home/com.miui.home.launcher.Launcher}, old Pkg = com.miui.home, old ClsName = com.miui.home.launcher.Launcher
+11-23 20:19:32.390 14754 15825 I BeautyService: inSplitScreenMode = false, isFrontCameraOpen = false, mCurPkgName = com.miui.home, mCurClsName = com.miui.home.launcher.Launcher
+11-23 20:19:32.390 14754 15825 I BeautyUtils: splitMode: onfalse
+11-23 20:19:32.390 14754 15825 D J0      : myUserId = 0	currentUserId0
+11-23 20:19:32.391 14754 15825 I BeautyService: onDockSwitchChange : 	currentUser = true	 isBound = false, curState = NON_CONVERSATION_MODE, isSceneSupport = false, isAllowSplit = false
+11-23 20:19:32.391 14754 15825 I BeautyService: already at target mode!
+11-23 20:19:32.477  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-23 20:19:32.477  1668  5446 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+11-23 20:19:32.477  1668  5446 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+11-23 20:19:32.477  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-23 20:19:32.558  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-23 20:19:32.558  1668  5446 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+11-23 20:19:32.585 21975 32006 I Finsky  : [7133] Stats for Executor: GrpcBackgroundExecutor ymz@cf0af02[Running, pool size = 4, active threads = 0, queued tasks = 0, completed tasks = 17]
+11-23 20:19:32.659  3294  3438 W ScanWatchdog: A long time commit was observed:Flamingo   at 2026-11-23 20:19:29.659 commit: /data/app/~~1NE18mGvfjI8mZLefa9_PQ==/com.alibaba.intl.android.apps.poseidon-5CzBY0eePcwOkXZhDqlCcg==/base.apk
+11-23 20:19:32.708  1668  5221 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+11-23 20:19:32.718  2738  3419 I ActivityManager: unbindService com.android.server.am.ActiveServices@7f9f078 conn=android.os.BinderProxy@fe86619 callingPid=4906
+11-23 20:19:32.721  2738  2861 W ActivityManager: Rescheduling restart of crashed service com.facebook.services/com.facebook.oxygen.services.fbns.PreloadedFbnsService in 7852ms for mem-pressure-event
+11-23 20:19:33.091  1887  1887 D MI-SF   : isTpIdleScene ,mAverageFrameRate is 60, 0 
+11-23 20:19:33.091  1887  1887 D MI-SF   : modeGroup0 mIsSupportAutomodeForMaxFpsSetting is 0(0), getCurrentBrightness() = 1039(1350), mIsKeepAutoMode 0 isAutoModeAllowed() 1
+11-23 20:19:33.091  1887  1887 D RefreshRateSelector: fixedMode_group: 0, isFindModeGroup 0
+11-23 20:19:33.091  1887  1887 D RefreshRateSelector: find max refresh rate:120, mode Group:0
+11-23 20:19:33.108  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.108  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.108  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1132.538452,R:485.016479,G:482.516388,B:262.508911, lux: 32.859219
+11-23 20:19:33.108  2630  3850 I libsensor-displayalgo: ##### the value of lux: 23.810795, cct: 0.000000
+11-23 20:19:33.108  2630  3850 I libsensor-ssccalapi: value of set_lux: 23.810795
+11-23 20:19:33.108  2630  3850 I libsensor-ssccalapi: value of set cct: 0.000000
+11-23 20:19:33.108  2630  3850 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-23 20:19:33.109  2630  3808 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-23 20:19:33.109  2630  3808 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() 216a7950
+11-23 20:19:33.109  2630  3808 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-23 20:19:33.110  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.110  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.110  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1120.038086,R:482.516388,G:475.016113,B:262.508911, lux: 31.800600
+11-23 20:19:33.110  2630  3850 I libsensor-displayalgo: ##### the value of lux: 25.620480, cct: 0.000000
+11-23 20:19:33.110  2630  3850 I libsensor-ssccalapi: value of set_lux: 25.620480
+11-23 20:19:33.110  2630  3850 I libsensor-ssccalapi: value of set cct: 0.000000
+11-23 20:19:33.110  2630  3850 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-23 20:19:33.111  2630  3808 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-23 20:19:33.111  2630  3808 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() 216a7950
+11-23 20:19:33.111  2630  3808 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-23 20:19:33.113  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.113  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.113  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:482.516388,G:477.516205,B:262.508911, lux: 32.058643
+11-23 20:19:33.113  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.113  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.113  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:485.016479,G:475.016113,B:260.008820, lux: 32.064869
+11-23 20:19:33.113  2630  3850 I libsensor-displayalgo: ##### the value of lux: 29.162195, cct: 0.000000
+11-23 20:19:33.113  2630  3850 I libsensor-ssccalapi: value of set_lux: 29.162195
+11-23 20:19:33.113  2630  3850 I libsensor-ssccalapi: value of set cct: 0.000000
+11-23 20:19:33.113  2630  3850 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-23 20:19:33.114  2630  3808 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-23 20:19:33.114  2630  3808 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() 216a7950
+11-23 20:19:33.114  2630  3808 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-23 20:19:33.131  2738  2861 W ActivityManager: Rescheduling restart of crashed service com.facebook.services/com.facebook.oxygen.services.fbns.PreloadedFbnsService in 0ms for mem-pressure-event
+11-23 20:19:33.132  2738  2872 W libc    : Access denied finding property "persist.vendor.duraspeed.support"
+11-23 20:19:33.126  2738  2738 W ActivityManager: type=1400 audit(0.0:50065): avc:  denied  { read } for  name="u:object_r:vendor_default_prop:s0" dev="tmpfs" ino=487 scontext=u:r:system_server:s0 tcontext=u:object_r:vendor_default_prop:s0 tclass=file permissive=0
+11-23 20:19:33.132  2738  2872 D MiuiEmbeddingWindow: blacklistedAppRunningOnPhone: package=com.facebook.servicesisNotProjeciton=true isHavingJeppackDisabledConfig=false isRunningOnPhone=true isAppleConnection=false
+11-23 20:19:33.132  2738  2872 D MiuiEmbeddingWindow: MiuiEmbeddingWindowService: updateApplicationInfo for com.facebook.services, blacklistedAppRunningOnPhone updated: clear
+11-23 20:19:33.133  2738  2872 V GrammaticalInflectionUtils: AttributionSource: android.content.AttributionSource@36500798 does not have READ_SYSTEM_GRAMMATICAL_GENDER permission.
+11-23 20:19:33.136  1602  1602 I zygote64: PreZygoteFork(): stray_non_movable_objects_.size() = 65
+11-23 20:19:33.143  1602  1602 D Zygote  : Forked child process 3518
+11-23 20:19:33.145  2738  2873 I ActivityManager: Start proc 3518:com.facebook.services/u0a110 for service {com.facebook.services/com.facebook.oxygen.services.fbns.PreloadedFbnsService} caller=com.instagram.android
+11-23 20:19:33.145  2738  2873 I ActivityManager: ProcessObserver broadcast disabled
+11-23 20:19:33.150  3518  3518 E Zygote  : process_name_ptr:3518 com.facebook.services
+11-23 20:19:33.151  3518  3518 E Zygote  : SetMemoryProtected process_name_ptr:3518 com.facebook.services
+11-23 20:19:33.151  1683  7692 E sensors-hal: handle_sns_client_event:57, har-sensor-hal: time=35907196841516 data 0.000000
+11-23 20:19:33.151  2738  2738 I NetworkAccelerateSwitchService: onSensorChanged:33171070
+11-23 20:19:33.151  2738  5278 I NetworkAccelerateSwitchService: onMovementSensorChanged State:false
+11-23 20:19:33.159  3518  3518 I cebook.services: Using generational CollectorTypeCMC GC.
+11-23 20:19:33.164  3518  3518 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+11-23 20:19:33.169  2738  9708 D MiuiForceVkService: shouldUseVk, pkg=com.facebook.services useVk 0
+11-23 20:19:33.169  3518  3518 I ActivityThread: Current dynamic renderEngine type=0
+11-23 20:19:33.173  2738  9708 I SmartPower: com.facebook.services/10110(3518): died->background(2620ms) R(process start ) adj=-10000.
+11-23 20:19:33.174  2738  9708 D CompatibilityInfo: mCompatibilityFlags - 0
+11-23 20:19:33.175  2738  9708 D CompatibilityInfo: applicationDensity - 480
+11-23 20:19:33.175  2738  9708 D CompatibilityInfo: applicationScale - 1.0
+11-23 20:19:33.177  2738  3891 I MiuiNetworkPolicy: updateUidState uid = 10110, uidState = 19
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: Foreground UID status:
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10148 is in foreground: true
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10152 is in foreground: true
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10167 is in foreground: true
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10261 is in foreground: true
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10273 is in foreground: true
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10321 is in foreground: false
+11-23 20:19:33.178  8513 17499 D ForegroundUtils: UID: 10435 is in foreground: false
+11-23 20:19:33.178  2738  3996 D DouyinContentPagePolicy:  setRefreshRate:-1
+11-23 20:19:33.178  4582  4582 D HidDeviceService: handleMessage(): msg.what=8
+11-23 20:19:33.178  4582  4582 D HidDeviceService: unregisterAppUid(): uid=10110
+11-23 20:19:33.178  4582  4582 D HidDeviceService: unregisterAppUid(): caller UID doesn't match user UID
+11-23 20:19:33.180  3518  3518 I ActivityThread: Relaunch all activities: onCoreSettingsChange
+11-23 20:19:33.180  3518  3532 D MiuiDownscaleImpl: set override inverted scale : 1.0
+11-23 20:19:33.182  3518  3518 I RENDER_TURBO: onActivityThreadCreate not in white list, pkg=com.facebook.services, type=garnet
+11-23 20:19:33.187 21369  2169 D AudioTrackImpl: [audioTrackData][mute] 14s(f:0 m:14969 s:0 k:14969 z:0) : pid 21369 uid 10321 sessionId 1785 sr 44100 ch 2 fmt 1
+11-23 20:19:33.187 21369  2284 I MediaCodec: [mId: 8] [audio-debug-dec] state 6 mFlags 2048 Stats 5005ms:Client:com.instagram.android,Component:c2.android.aac.decoder,Qin:0,DQin:0/5,Render:0,Drop:0,DQout:0/0
+11-23 20:19:33.192  3518  3518 D ActivityThread: setEmbeddedParam packageName=com.facebook.services processName=com.facebook.services isEmbedded=false isIsolated=false
+11-23 20:19:33.201  3518  3518 D nativeloader: Configuring clns-10 for other apk /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64:/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.facebook.services
+11-23 20:19:33.204 21369  2070 D AudioTrackImpl: [audioTrackData][fine] 15s(f:15216 m:0 s:0 k:0 z:0) : pid 21369 uid 10321 sessionId 1777 sr 44100 ch 2 fmt 1 maxAmplitude 6768
+11-23 20:19:33.205  3518  3518 I cebook.services: AssetManager2(0xb40000734219a298) locale list changing from [] to [es-US]
+11-23 20:19:33.206  3518  3518 E MiuiPreloadClassImpl: invoke error.
+11-23 20:19:33.206  3518  3518 D MiuiMonitorThread: Shared singleton Thread for stability monitor start
+11-23 20:19:33.207  1683  3761 I sensors-hal: handle_sns_std_sensor_event:65, light_event: ts=35907249050734, lux: 29.2, extra_info=60 
+11-23 20:19:33.208  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.208  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.208  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:485.016479,G:477.516205,B:260.008820, lux: 32.128090
+11-23 20:19:33.208  2630  3850 I libsensor-displayalgo: ##### the value of lux: 30.902189, cct: 0.000000
+11-23 20:19:33.208  2630  3850 I libsensor-ssccalapi: value of set_lux: 30.902189
+11-23 20:19:33.208  2630  3850 I libsensor-ssccalapi: value of set cct: 0.000000
+11-23 20:19:33.208  2630  3850 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-23 20:19:33.208  3518  3533 I Perf    : Connecting to perf service.
+11-23 20:19:33.209  2630  3808 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-23 20:19:33.209  3518  3537 D ActivityThread: the event that target app starts is : AppLaunchEvent{mType='441', mProcessName='com.facebook.services', mPackageName='com.facebook.services', mIsMainProcess='true', mVersionCode='1118625948', mVersionName='', mLaunchTime='2026-11-23'}
+11-23 20:19:33.209  2630  3808 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() 216a7950
+11-23 20:19:33.209  2630  3808 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-23 20:19:33.210  3518  3518 D HWUI    : [HWUI] Flag vulkan_enhance_pipeline_cache enabled
+11-23 20:19:33.209  8466 13797 W MQSEventManager: 441 occur
+11-23 20:19:33.210  3518  3518 D HWUI    : [HWUI] EnhanceVkPipelineCache is disabled
+11-23 20:19:33.210  3518  3518 D HWUI    : [HWUI] Flag ddre enabled
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment: Currently set values for:
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment: com.facebook.services is not listed in per-application setting
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment: ANGLE allowlist from config: 
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment: com.facebook.services is not listed in ANGLE allowlist or settings, returning default
+11-23 20:19:33.210  3518  3518 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+11-23 20:19:33.211  3518  3533 I ActivityThread: TrafficStats init done
+11-23 20:19:33.215  3518  3533 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+11-23 20:19:33.215  3518  3533 I ForceDarkHelperStubImpl: initialize for com.facebook.services , ForceDarkOrigin
+11-23 20:19:33.216  3518  3533 D nativeloader: Load libforcedarkimpl.so using system ns (caller=/system_ext/framework/miui-framework.jar): ok
+11-23 20:19:33.216  3518  3533 D HWUI    : JNI_OnLoad success
+11-23 20:19:33.216  3518  3533 I MiuiForceDarkConfig: setConfig density:3.000000, mainRule:0, secondaryRule:0, tertiaryRule:0
+11-23 20:19:33.221  3518  3533 I ActivityThread: Miui Feature Init done
+11-23 20:19:33.223  3518  3518 I NativeTurboSchedManager: Load libmiui_runtime
+11-23 20:19:33.223  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.223  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.218  3518  3518 W cebook.services: type=1400 audit(0.0:50066): avc:  denied  { read write } for  name="metis" dev="tmpfs" ino=1213 scontext=u:r:priv_app:s0:c512,c768 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0 app=com.facebook.services
+11-23 20:19:33.224  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.224  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.218  3518  3518 W cebook.services: type=1400 audit(0.0:50067): avc:  denied  { read write } for  name="metis" dev="tmpfs" ino=1213 scontext=u:r:priv_app:s0:c512,c768 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0 app=com.facebook.services
+11-23 20:19:33.228  3518  3518 D d       : ExceptionHandlerManager not explicitly initialized, using default mode
+11-23 20:19:33.228  3518  3518 D d       : initializing exception handler manager, prioritized=true
+11-23 20:19:33.231  3518  3518 W SoLoader: Initializing SoLoader: 0
+11-23 20:19:33.231  3518  3518 W SoLoader: context.getApplicationContext returned null, holding reference to original context.ApplicationSoSource fallbacks to: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64
+11-23 20:19:33.231  3518  3518 I SoLoader: Recording new base apk path: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk
+11-23 20:19:33.231  3518  3518 I SoLoader: Previously recorded 0 base apk paths.
+11-23 20:19:33.232  3518  3518 I SoLoader: Preparing SO source: DirectorySoSource[root = /vendor/lib64 flags = 2]
+11-23 20:19:33.232  3518  3518 I SoLoader: Preparing SO source: DirectorySoSource[root = /system_ext/lib64 flags = 2]
+11-23 20:19:33.232  3518  3518 I SoLoader: Preparing SO source: DirectorySoSource[root = /system/lib64 flags = 2]
+11-23 20:19:33.232  3518  3518 I SoLoader: Preparing SO source: DirectApkSoSource[root = [/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a]]
+11-23 20:19:33.233  3518  3518 I SoLoader: Preparing SO source: ApplicationSoSource[DirectorySoSource[root = /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64 flags = 1]]
+11-23 20:19:33.233  3518  3518 W SoLoader: SoLoader initialized: 8
+11-23 20:19:33.234  3518  3518 W PreloadsBreakpadWrapper: Starting breakpad manager
+11-23 20:19:33.234  3518  3518 W SoLoader: Loading breakpad on the main thread
+11-23 20:19:33.234  4624  7742 D JavaheapMonitor: Java heap used=6M max=256M, proc: .qtidataservices
+11-23 20:19:33.234  4624  7742 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-23 20:19:33.235  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libbreakpad.so, this can be slow
+11-23 20:19:33.235  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libandroid_aware_dlopen.so, this can be slow
+11-23 20:19:33.236  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libforce_dlopen.so, this can be slow
+11-23 20:19:33.238  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libforce_dlopen.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.239  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libandroid_aware_dlopen.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.240  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libc++_shared.so, this can be slow
+11-23 20:19:33.242  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libc++_shared.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.243  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libsigmux.so, this can be slow
+11-23 20:19:33.244  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libsigmux.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.245  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libbreakpad.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.245  3518  3518 W SoLoader: Loading breakpad_cpp_helper on the main thread
+11-23 20:19:33.246  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libbreakpad_cpp_helper.so, this can be slow
+11-23 20:19:33.247  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libbreakpad_cpp_helper.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.249  3518  3518 W PreloadsBreakpadWrapper: Enabling java stream
+11-23 20:19:33.251  3518  3543 W SoLoader: Running a recovery step for libacra.so due to com.facebook.soloader.SoLoaderDSONotFoundError: couldn't find DSO to load: libacra.so
+11-23 20:19:33.251  3518  3543 W SoLoader: 	existing SO sources: 
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 0: ApplicationSoSource[DirectorySoSource[root = /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64 flags = 1]]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 1: DirectApkSoSource[root = [/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a]]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 2: DirectorySoSource[root = /system/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 3: DirectorySoSource[root = /system_ext/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 4: DirectorySoSource[root = /vendor/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 	Native lib dir: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64
+11-23 20:19:33.251  3518  3518 D ResMonitorStub: The current process type is: system_app, process name is: com.facebook.services
+11-23 20:19:33.251  3518  3543 W soloader.recovery.CheckBaseApkExists: Base apk exists: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk
+11-23 20:19:33.251  3518  3543 W SoLoader: Running a recovery step for libacra.so due to com.facebook.soloader.SoLoaderDSONotFoundError: couldn't find DSO to load: libacra.so
+11-23 20:19:33.251  3518  3543 W SoLoader: 	existing SO sources: 
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 0: ApplicationSoSource[DirectorySoSource[root = /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64 flags = 1]]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 1: DirectApkSoSource[root = [/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a]]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 2: DirectorySoSource[root = /system/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 3: DirectorySoSource[root = /system_ext/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 		SoSource 4: DirectorySoSource[root = /vendor/lib64 flags = 2]
+11-23 20:19:33.251  3518  3543 W SoLoader: 	Native lib dir: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64
+11-23 20:19:33.251  3518  3543 E SoLoader: Checking /data/app missing libraries.
+11-23 20:19:33.251  3518  3543 E SoLoader: Successfully recovered from /data/app disk failure.
+11-23 20:19:33.252  3518  3543 W SoLoader: Running a recovery step for libacra.so due to com.facebook.soloader.SoLoaderDSONotFoundError: couldn't find DSO to load: libacra.so
+11-23 20:19:33.252  3518  3543 W SoLoader: 	existing SO sources: 
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 0: ApplicationSoSource[DirectorySoSource[root = /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64 flags = 1]]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 1: DirectApkSoSource[root = [/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a]]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 2: DirectorySoSource[root = /system/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 3: DirectorySoSource[root = /system_ext/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 4: DirectorySoSource[root = /vendor/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 	Native lib dir: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64
+11-23 20:19:33.252  3518  3543 E SoLoader: Checking /data/data missing libraries.
+11-23 20:19:33.252  3518  3543 E SoLoader: No libraries missing from unpacking so paths while recovering /data/data failure
+11-23 20:19:33.252  3518  3543 W SoLoader: Running a recovery step for libacra.so due to com.facebook.soloader.SoLoaderDSONotFoundError: couldn't find DSO to load: libacra.so
+11-23 20:19:33.252  3518  3543 W SoLoader: 	existing SO sources: 
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 0: ApplicationSoSource[DirectorySoSource[root = /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64 flags = 1]]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 1: DirectApkSoSource[root = [/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a]]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 2: DirectorySoSource[root = /system/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 3: DirectorySoSource[root = /system_ext/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 		SoSource 4: DirectorySoSource[root = /vendor/lib64 flags = 3]
+11-23 20:19:33.252  3518  3543 W SoLoader: 	Native lib dir: /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/lib/arm64
+11-23 20:19:33.252  3518  3543 W SoLoader: Failed to recover
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: Java heap leak ratio threshold from RMS: 80%, Max: 256M, Process name: com.facebook.services
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: Java heap loop intervals: (Count: 5)
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: 0: 0.0, 300s
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: 1: 0.2, 180s
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: 2: 0.4, 60s
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: 3: 0.6, 30s
+11-23 20:19:33.252  3518  3518 I JavaheapMonitor: 4: 0.8, 10s
+11-23 20:19:33.253  3518  3518 I JavaheapMonitor: Java heap monitor start in proc: com.facebook.services
+11-23 20:19:33.253  3518  3518 D ResMonitorStub: The current process type supports enabling Java heap monitoring
+11-23 20:19:33.256  1723  2145 I SDM     : HWEventsDRM::SetEventState: Setup vsync event for CRTC 104, Connector 57
+11-23 20:19:33.260  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.260  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.254  3518  3518 W cebook.services: type=1400 audit(0.0:50068): avc:  denied  { read write } for  name="metis" dev="tmpfs" ino=1213 scontext=u:r:priv_app:s0:c512,c768 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0 app=com.facebook.services
+11-23 20:19:33.261  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.261  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.258  3518  3518 W cebook.services: type=1400 audit(0.0:50069): avc:  denied  { read write } for  name="metis" dev="tmpfs" ino=1213 scontext=u:r:priv_app:s0:c512,c768 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0 app=com.facebook.services
+11-23 20:19:33.262  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.262  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.263  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.263  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.268  2738  3891 I MiuiNetworkPolicy: updateUidState uid = 10110, uidState = 10
+11-23 20:19:33.269  3518  3518 W libc    : Access denied finding property "vendor.boostfwk.frameprefetcher"
+11-23 20:19:33.271  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.helium.trampoline.HeliumSandboxedService} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.271  3518  3518 D FramePredict: FramePredict init: false
+11-23 20:19:33.271  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.helium.trampoline.HeliumSandboxedService0} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.272  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.helium.trampoline.HeliumSandboxedService1} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.293  2738  3891 I MiuiNetworkPolicy: updateUidState uid = 10126, uidState = 10
+11-23 20:19:33.294  2738  3419 I SmartPower: com.facebook.appmanager/10126(1759): idle->background(18241ms) R(content provider start ContentProviderRecord{b23d94f u0 com.facebook.appmanager/com.facebook.oxygen.appmanager.firstparty.settings.FirstPartySettingsProvider}) adj=0.
+11-23 20:19:33.294  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.295  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.297  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.298  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.307  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.307  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.307  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1127.538330,R:482.516388,G:480.016296,B:262.508911, lux: 32.511524
+11-23 20:19:33.308  2738  3996 D ScrollScenario: ScrollState: fling end on com.miui.home
+11-23 20:19:33.308  2738  3998 D SchedBoost: handleSceneBoost type: 19, active :false
+11-23 20:19:33.308  2738  3998 I ProcessManager: getRenderThreadTidByPid, caller=2738
+11-23 20:19:33.308  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.308  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.308  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1120.038086,R:482.516388,G:475.016113,B:260.008820, lux: 31.975235
+11-23 20:19:33.308  2738  3998 D SchedBoostThread: thread tid=4353, priority is set to -10
+11-23 20:19:33.309  2738  3998 D SchedBoostThread: thread tid=5140, priority is set to -10
+11-23 20:19:33.314  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.314  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.315  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.storage.provider.StorageProvider} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.315  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.storage.provider.SharedStorageProvider} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.316  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.316  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.330  3518  3518 D DesktopModeFlags: Toggle override initialized to: OVERRIDE_UNSET
+11-23 20:19:33.330  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.330  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.330  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.330  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.331  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.331  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.332  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.332  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.332  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.333  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.334  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.334  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.336  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.336  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.338  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.338  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.345  1759  3560 D JavaheapMonitor: Java heap used=3M max=256M, proc: com.facebook.appmanager
+11-23 20:19:33.345  1759  3560 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-23 20:19:33.348  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.348  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.351  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.351  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.354  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.354  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.354  4582  8079 I AdapterProperties: getBondedDevices: length=0
+11-23 20:19:33.355  4582  8079 I AdapterProperties: getBondedDevices: length=0
+11-23 20:19:33.356  4582  8079 I AdapterProperties: getBondedDevices: length=0
+11-23 20:19:33.356  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.357  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.367  4353  5169 D JavaheapMonitor: Java heap used=27M max=512M, proc: com.miui.home
+11-23 20:19:33.367  4353  5169 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-23 20:19:33.368  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.368  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.370  3518  3518 E TurboSchedMonitor: failed to find setSchedAffinity method com.facebook.services
+11-23 20:19:33.370  3518  3518 E NativeTurboSchedManagerJni: open /dev/metis failed!
+11-23 20:19:33.391  3562  3562 W dumpsys : Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: cpuinfo
+11-23 20:19:33.396 10301 12997 I libc    : kill: send 15 to pid 3562
+11-23 20:19:33.396 10301 12997 I libc    : debug pid reuse, real pid 3562
+11-23 20:19:33.413  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.413  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.413  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1132.538452,R:487.516541,G:482.516388,B:262.508911, lux: 32.754036
+11-23 20:19:33.413  2630  3850 I libsensor-displayalgo: ##### the value of lux: 32.511524, cct: 0.000000
+11-23 20:19:33.413  2630  3850 I libsensor-ssccalapi: value of set_lux: 32.511524
+11-23 20:19:33.413  2630  3850 I libsensor-ssccalapi: value of set cct: 0.000000
+11-23 20:19:33.413  2630  3850 I sensors : send_request:296,  send_request suid high 48dd16bd suid low 2c177798
+11-23 20:19:33.414  2630  3808 I sensors : handle_resp_cb:364, _fifo_resp not empty
+11-23 20:19:33.414  2630  3808 I sensors : handle_resp_cb:377,  handle_resp_cb suid high 48dd16bd suid low 2c177798,_fifo_resp.begin() 216a7950
+11-23 20:19:33.414  2630  3808 I sensors : handle_resp_cb:379, _fifo_resp still not empty
+11-23 20:19:33.415  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.415  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.415  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:487.516541,G:480.016296,B:262.508911, lux: 32.106327
+11-23 20:19:33.415  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.415  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.415  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:485.016479,G:480.016296,B:265.009003, lux: 32.426525
+11-23 20:19:33.415  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.415  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.415  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:487.516541,G:480.016296,B:262.508911, lux: 32.106327
+11-23 20:19:33.478   917   917 E KeymasterUtils: rsp_header->status: -28
+11-23 20:19:33.478   917   917 E KeyMasterHalDevice: abort_operation
+11-23 20:19:33.478   917   917 E KeyMasterHalDevice: ret: -28
+11-23 20:19:33.494   917   917 E KeymasterUtils: rsp_header->status: -28
+11-23 20:19:33.494   917   917 E KeyMasterHalDevice: abort_operation
+11-23 20:19:33.494   917   917 E KeyMasterHalDevice: ret: -28
+11-23 20:19:33.498  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.filestorage.provider.FileStorageProvider} enabled state: 1 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.498  2738  3419 D PackageManager: set app component=ComponentInfo{com.facebook.services/com.facebook.oxygen.services.filestorage.provider.SharedFileStorageProvider} enabled state: 2 from com.facebook.services,uid=10110,pid=3518
+11-23 20:19:33.507  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.507  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.508  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1135.038574,R:490.016632,G:482.516388,B:265.009003, lux: 32.669044
+11-23 20:19:33.508  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.508  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.508  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:485.016479,G:482.516388,B:265.009003, lux: 32.489750
+11-23 20:19:33.609  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.609  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.609  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1137.538574,R:487.516541,G:480.016296,B:265.009003, lux: 32.905827
+11-23 20:19:33.609  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.609  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.609  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1120.038086,R:482.516388,G:477.516205,B:260.008820, lux: 32.038456
+11-23 20:19:33.609  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.609  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.609  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1135.038574,R:490.016632,G:482.516388,B:265.009003, lux: 32.669044
+11-23 20:19:33.610  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.610  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.610  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:482.516388,G:480.016296,B:262.508911, lux: 32.316696
+11-23 20:19:33.610  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.610  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.610  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:485.016479,G:477.516205,B:262.508911, lux: 31.953457
+11-23 20:19:33.692 21369 21437 W MultiSignalANRDetectorLacrima: Pausing error state checks
+11-23 20:19:33.709  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.710  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.710  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1135.038574,R:490.016632,G:482.516388,B:267.509094, lux: 32.494411
+11-23 20:19:33.710  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.710  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.710  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:485.016479,G:475.016113,B:262.508911, lux: 31.890234
+11-23 20:19:33.710  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.710  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.710  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1132.538452,R:487.516541,G:482.516388,B:265.009003, lux: 32.579403
+11-23 20:19:33.711  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.711  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.711  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:482.516388,G:480.016296,B:262.508911, lux: 32.316696
+11-23 20:19:33.711  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.711  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.711  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:482.516388,G:475.016113,B:265.009003, lux: 31.820789
+11-23 20:19:33.729  3441  3441 I screencap: hook_module_exit libgui_unisoc_utils.so over, handle:0x0
+11-23 20:19:33.770 28136 28136 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:dumpsys notification --noredact'
+11-23 20:19:33.780  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.781  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.781  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.781  3518  3518 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+11-23 20:19:33.782  3518  3518 W SoLoader: Loading notifgateway-jni on the main thread
+11-23 20:19:33.784  3518  3518 W SoLoader[NativeDeps]: Falling back to custom ELF parsing when loading libnotifgateway.so, this can be slow
+11-23 20:19:33.788  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-23 20:19:33.789  1668  5446 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+11-23 20:19:33.789  1668  5446 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+11-23 20:19:33.789  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-23 20:19:33.791  3568  3568 W dumpsys : Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: notification
+11-23 20:19:33.800  3518  3518 D nativeloader: Load /data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk!/lib/arm64-v8a/libnotifgateway.so using class loader ns clns-10 (caller=/data/app/~~51jm3zeB-4aN7KkHLJcfUw==/com.facebook.services-lkZfj-tz2gvv_MEIzvuXKQ==/base.apk): ok
+11-23 20:19:33.800  3518  3518 W SoLoader: Loading simplejni on the main thread
+11-23 20:19:33.800  3518  3518 W SoLoader: Loading simplejni on the main thread
+11-23 20:19:33.806  3518  3518 W DGW     : W[reportSoftError:36] pingInterval: value 43200000 outside valid range [5000, 600000]
+11-23 20:19:33.806  3518  3518 W DGW     : W[reportSoftError:36] bgPingInterval: value 43200000ms outside valid range [5000ms, 600000ms]
+11-23 20:19:33.808  3518  3584 W DGW     : W[setEnabled:243] StreamGroupPinger[notifgateway]: setEnabled: 0
+11-23 20:19:33.811  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.812  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.812  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:490.016632,G:480.016296,B:262.508911, lux: 32.390789
+11-23 20:19:33.813  2738  3907 D ConnectivityService: NetReassign [no changes] [c 0] [a 2] [i 1]
+11-23 20:19:33.821  2738  9708 E AlarmManager: not align this alarm: Alarm{20b14d3 type 2 origWhen 36507866 whenElapsed 36507866 com.facebook.services}, reason=0
+11-23 20:19:33.830 15807 15988 I PermissionManagerProvider: call method : 14 Binder.getCallingUid() 10238 Binder.getCallingUid() 15807
+11-23 20:19:33.830 15807 15988 I PermissionManagerProvider: call method : 14 Binder.getCallingUid() 10238 Binder.getCallingUid() 15807
+11-23 20:19:33.831  2738  2872 W BroadcastQueueInjector: Unable to launch app com.instagram.barcelona/10085 for broadcast Intent { act=com.facebook.rti.intent.ACTION_FBNS_STARTED flg=0x10 xflg=0x4 pkg=com.instagram.barcelona (has extras) }: process is not permitted to  auto start
+11-23 20:19:33.869  1668  5446 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-23 20:19:33.869  1668  5446 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+11-23 20:19:33.897   917   917 E KeymasterUtils: rsp_header->status: -28
+11-23 20:19:33.897   917   917 E KeyMasterHalDevice: abort_operation
+11-23 20:19:33.897   917   917 E KeyMasterHalDevice: ret: -28
+11-23 20:19:33.898  3518  3584 W DGW     : W[setEnabled:243] StreamGroupPinger[notifgateway]: setEnabled: 1
+11-23 20:19:33.910  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.910  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.910  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:487.516541,G:480.016296,B:265.009003, lux: 32.321342
+11-23 20:19:33.910  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.910  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.910  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:485.016479,G:482.516388,B:265.009003, lux: 32.489750
+11-23 20:19:33.911  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.911  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.911  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:482.516388,G:480.016296,B:262.508911, lux: 32.316696
+11-23 20:19:33.911  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:33.911  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:33.911  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1130.038330,R:490.016632,G:480.016296,B:265.009003, lux: 32.216156
+11-23 20:19:33.924  8405 11249 D JavaheapMonitor: Java heap used=14M max=512M, proc: com.google.android.googlequicksearchbox:interactor
+11-23 20:19:33.924  8405 11249 V JavaheapMonitor: Check java heap usage finished! Next check delay: 300000
+11-23 20:19:34.011  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.011  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.011  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:485.016479,G:477.516205,B:260.008820, lux: 32.322922
+11-23 20:19:34.011  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.011  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.011  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1127.538330,R:485.016479,G:480.016296,B:262.508911, lux: 32.406338
+11-23 20:19:34.012  3518  3584 W DGW     : W[onSuccessfulResponse:973] StreamGroupTransport[notifgateway] on successful response. DGW is now connected.
+11-23 20:19:34.012  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.012  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.012  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1127.538330,R:487.516541,G:480.016296,B:262.508911, lux: 32.301155
+11-23 20:19:34.012  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.012  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.012  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:485.016479,G:477.516205,B:262.508911, lux: 32.148285
+11-23 20:19:34.013  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.013  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.013  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1132.538452,R:487.516541,G:485.016479,B:262.508911, lux: 32.817257
+11-23 20:19:34.019  1668  5221 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+11-23 20:19:34.108  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.108  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.108  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1120.038086,R:482.516388,G:475.016113,B:260.008820, lux: 31.975235
+11-23 20:19:34.108  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.108  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.108  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1132.538452,R:485.016479,G:480.016296,B:267.509094, lux: 32.446728
+11-23 20:19:34.109  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.109  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.109  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1125.038208,R:485.016479,G:477.516205,B:265.009003, lux: 31.973652
+11-23 20:19:34.109  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.109  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.109  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1122.538086,R:482.516388,G:475.016113,B:265.009003, lux: 31.820789
+11-23 20:19:34.109  2630  3850 I libsensor-displayalgo: the value of channelCali C:571.059194,R:280.136374,G:220.266412,B:134.979138,scales C:0.945315,R:0.943761,G:0.928708,B:0.897967, hsv: -1.000000, ScreenId: 1
+11-23 20:19:34.109  2630  3850 E libsensor-displayalgo: value of coefs 5,850.073000,4.965174,-2.685090,1.640057,-4.685160, line 101
+11-23 20:19:34.109  2630  3850 D libsensor-displayalgo: brightness:277.000000,R:1225.295124,G:1334.857461,B:1576.967602,EVENT C:1135.038574,R:487.516541,G:482.516388,B:265.009003, lux: 32.774231
+11-23 20:19:34.117 28136 28136 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color:export ANDROID_LOG_TAGS=''; exec logcat '-d' '-t' '600''

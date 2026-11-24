@@ -825,3 +825,20 @@ Nota de evidencia: el parser del timeline solo capturaba la forma plural `riders
 
 **Estado:** commit local atómico, sin `amend` y sin `push`.
 
+### CORTE 2B — FCM live, ACL/rate limit/idempotencia y NotificationRouting — 2026-11-23
+
+**Credencial real, sin Stub**: `FcmService` lee la clave **únicamente** desde `GOOGLE_APPLICATION_CREDENTIALS` (nunca desde `process.cwd()`). Verificado en caliente con `FCM_IS_LIVE=true` y cuatro envíos reales `success=1 failure=0`. `backend/service_account.json` sigue ignorado y fuera del commit. `firebase-admin@14.5.1` requirió dos ajustes de API posteriores al commit inicial: `admin.cert` en lugar de `admin.credential.cert` (`1bb2147`) y `getMessaging` de `firebase-admin/messaging` en lugar de `app.messaging()` (`7553813`).
+
+| Tarea | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| 1. FCM live | `backend/src/lib/fcm.ts` | env-only + `cert()` + `isLive()` + log `FCM_LIVE` | `FCM_IS_LIVE=true` + `success=1 failure=0` (4 pushes reales) |
+| 2. Casing de tipos | `backend/src/lib/notificationTypes.ts`, `fcm.ts` | `sos`, `ride_invitation`, `club_invitation`, `direct_message` en `data.type`, con su `channelId` | tests 2.1/2.2/2.8: canal por tipo en el spy FCM |
+| 3. Guardas de envío | `backend/src/app.ts`, `0023_notification_send_guard.sql`, `pool.ts` | `groupId`+`messageId` obligatorios, ACL de miembros, 10/h, idempotencia por receptor | tests 2.4/2.5 (403), 2.6 (sin duplicado), 2.7 (429); 403 real verificado en `:3001` |
+| 4. Tipos tácticos | `notificationTypes.ts`, `fcm.ts`, `NotificationRouting.kt`, `RutaBikerMessagingService.kt` | `TACTICAL_CHAT`/`CONVOY_SIGNAL` lowercase en `direct_message_channel`; SOS incluye `lat/lng` | test Android 6 (deep-links `START_TACTICAL_CHAT` / `START_RIDE_PREVIEW`) y test backend 2.8 |
+| 5. Hardware | `docs/evidence/corte2b_fcm_20261123/` | APK `standardDebug` en TECNO `098813734B105395` y Redmi `b2c398bb`; push con app en background (`stopped=false`) | TECNO y Redmi muestran `sos_channel` (importance 4) y `direct_message_channel` (importance 3) en rondas cruzadas |
+| 6. Documentación | este archivo + evidencia | tabla de entrega y enlace a capturas/dumpsys/logcat | `git show --stat` de `9ccda0e`, `1bb2147`, `7553813` y commit de evidencia |
+
+**Nota hardware**: `am force-stop` deja la app en `stopped=true` y Android no entrega FCM; la verificación válida usa `MainActivity` + HOME (`stopped=false`). Detalle y registros literales en `docs/evidence/corte2b_fcm_20261123/README.md`.
+
+**Estado:** commits locales atómicos, sin `amend` y sin `push`. Assets ajenos del working tree siguen sin stagear.
+
