@@ -1051,7 +1051,9 @@ data class RideServiceEligibility(
     val shouldPromoteToForeground: Boolean,
     val postNotificationsGranted: Boolean,
     /** P0: false cuando no se pudo obtener una clave de rodada firmada por el backend. */
-    val securityKeyReady: Boolean = true
+    val securityKeyReady: Boolean = true,
+    /** true cuando el guard de arranque suprimió una segunda solicitud idéntica. */
+    val duplicateStartSuppressed: Boolean = false
 )
 
 class RideService : Service() {
@@ -1064,6 +1066,9 @@ class RideService : Service() {
         @Volatile
         var instance: RideService? = null
             private set
+
+        /** Un único arranque por rodada: cubre los dos callers de UI que llegaban a <100 ms. */
+        private val rideStartDeduplicator = RideStartDeduplicator()
 
         suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState? {
             return instance?.restartWithBleMode(mode)
@@ -1267,6 +1272,13 @@ class RideService : Service() {
             rideSecretKey: ByteArray? = null
         ): RideServiceEligibility {
             val eligibility = evaluateContextEligibility(context, forceSimulated)
+            if (!rideStartDeduplicator.shouldStart(rideId)) {
+                Log.i(
+                    TAG,
+                    "RideStart duplicado ignorado rideId=$rideId (ventana ${RideStartDeduplicator.DEFAULT_WINDOW_MS} ms)"
+                )
+                return eligibility.copy(duplicateStartSuppressed = true)
+            }
             val safeKey = rideSecretKey?.takeIf { it.size == 32 }
             if (safeKey == null) {
                 Log.e(
@@ -1838,6 +1850,7 @@ class RideService : Service() {
                 }
             }
             ACTION_STOP_RIDE -> {
+                rideStartDeduplicator.reset()
                 serviceScope.launch {
                     val state = controller.onStopActionFromNotification()
                     _sharedState.value = state
@@ -1858,6 +1871,7 @@ class RideService : Service() {
                 }
             }
             ACTION_FORCE_STOP_RIDE -> {
+                rideStartDeduplicator.reset()
                 serviceScope.launch {
                     val state = controller.stopAll()
                     _sharedState.value = state

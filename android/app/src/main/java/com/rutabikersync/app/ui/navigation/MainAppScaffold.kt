@@ -836,6 +836,10 @@ private fun RidesReleaseHomeScreen(
                 forceSimulated = useSimulated,
                 rideSecretKey = authorized.rideSecretKey
             )
+            if (eligibility.duplicateStartSuppressed) {
+                // Segundo caller (cabina) llegó después del botón: no es un error para el usuario.
+                return@launch
+            }
             if (!eligibility.securityKeyReady) {
                 startErrorBroadcastMessage =
                     "Clave de rodada rechazada por el servicio. La malla BLE no se inició."
