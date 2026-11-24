@@ -43,4 +43,11 @@ describe('Registro de migraciones de arranque', () => {
     expect(sql).toContain(migrationSql('0022_sos_public_keys.sql'));
     expect(sql).toContain('sos_public_key BYTEA');
   });
+
+  it('registra 0023 para ACL, rate limit e idempotencia de notificaciones', () => {
+    const sql = readInitMigrationSql();
+    expect(sql).toContain(migrationSql('0023_notification_send_guard.sql'));
+    expect(sql).toContain('notification_send_receipts');
+    expect(sql).toContain('PRIMARY KEY (sender_user_id, message_id)');
+  });
 });

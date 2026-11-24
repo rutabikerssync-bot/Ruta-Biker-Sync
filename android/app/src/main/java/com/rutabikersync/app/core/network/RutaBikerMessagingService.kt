@@ -37,10 +37,10 @@ class RutaBikerMessagingService : FirebaseMessagingService() {
     companion object {
         private const val TAG = "RBS_FCM"
 
-        const val CHANNEL_SOS = "sos_channel"
-        const val CHANNEL_RIDE = "ride_invitation_channel"
-        const val CHANNEL_CLUB = "club_invitation_channel"
-        const val CHANNEL_CHAT = "direct_message_channel"
+        const val CHANNEL_SOS = NotificationRouting.CHANNEL_SOS
+        const val CHANNEL_RIDE = NotificationRouting.CHANNEL_RIDE
+        const val CHANNEL_CLUB = NotificationRouting.CHANNEL_CLUB
+        const val CHANNEL_CHAT = NotificationRouting.CHANNEL_CHAT
 
         private const val PREFS_FCM = "rbs_fcm_prefs"
         private const val KEY_CACHED_TOKEN = "cached_fcm_token"
@@ -195,9 +195,9 @@ class RutaBikerMessagingService : FirebaseMessagingService() {
         val data = remoteMessage.data
         val notification = remoteMessage.notification
 
-        val type = data["type"] ?: "direct_message"
-        val title = data["title"] ?: notification?.title ?: defaultTitleForType(type)
-        val body = data["body"] ?: notification?.body ?: defaultBodyForType(type)
+        val type = data["type"] ?: NotificationRouting.TYPE_DIRECT_MESSAGE
+        val title = data["title"] ?: notification?.title ?: NotificationRouting.defaultTitleForType(type)
+        val body = data["body"] ?: notification?.body ?: NotificationRouting.defaultBodyForType(type)
 
         showNotification(type, title, body, data)
     }
@@ -208,36 +208,22 @@ class RutaBikerMessagingService : FirebaseMessagingService() {
         body: String,
         data: Map<String, String> = emptyMap()
     ) {
-        val channelId = when (type) {
-            "sos" -> CHANNEL_SOS
-            "ride_invitation" -> CHANNEL_RIDE
-            "club_invitation" -> CHANNEL_CLUB
-            "direct_message" -> CHANNEL_CHAT
-            else -> CHANNEL_CHAT
-        }
+        val channelId = NotificationRouting.channelFor(type)
+        val deepLink = NotificationRouting.deepLinkFor(type, data)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("NOTIFICATION_TYPE", type)
-            when (type) {
-                "sos" -> {
-                    putExtra("START_RIDE_PREVIEW", true)
-                    putExtra("SOS_ALERT", true)
-                    putExtra("SOS_LAT", data["lat"])
-                    putExtra("SOS_LNG", data["lng"])
-                }
-                "ride_invitation" -> {
-                    putExtra("START_RIDE_PREVIEW", true)
-                    putExtra("RIDE_ID", data["rideId"])
-                }
-                "club_invitation" -> {
-                    putExtra("START_CLUB_TAB", true)
-                    putExtra("GROUP_ID", data["groupId"])
-                }
-                "direct_message" -> {
-                    putExtra("START_TACTICAL_CHAT", true)
-                }
+            if (deepLink.startRidePreview) putExtra("START_RIDE_PREVIEW", true)
+            if (deepLink.startTacticalChat) putExtra("START_TACTICAL_CHAT", true)
+            if (deepLink.startClubTab) putExtra("START_CLUB_TAB", true)
+            if (deepLink.sosAlert) {
+                putExtra("SOS_ALERT", true)
+                putExtra("SOS_LAT", deepLink.lat)
+                putExtra("SOS_LNG", deepLink.lng)
             }
+            deepLink.rideId?.let { putExtra("RIDE_ID", it) }
+            deepLink.groupId?.let { putExtra("GROUP_ID", it) }
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -255,7 +241,7 @@ class RutaBikerMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
 
-        if (type == "sos") {
+        if (channelId == CHANNEL_SOS) {
             builder.setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -273,21 +259,5 @@ class RutaBikerMessagingService : FirebaseMessagingService() {
         } catch (e: Exception) {
             Log.e(TAG, "Error mostrando notificación push: ${e.message}")
         }
-    }
-
-    private fun defaultTitleForType(type: String): String = when (type) {
-        "sos" -> "🚨 ALERTA SOS CERCANA"
-        "ride_invitation" -> "🏍️ Convocatoria a Rodada"
-        "club_invitation" -> "🛡️ Invitación de Hermandad"
-        "direct_message" -> "💬 Mensaje de Ruta"
-        else -> "Ruta Biker Sync"
-    }
-
-    private fun defaultBodyForType(type: String): String = when (type) {
-        "sos" -> "Emergencia en ruta reportada a menos de 5 km"
-        "ride_invitation" -> "Tienes una nueva invitación a rodar con tu club"
-        "club_invitation" -> "Has recibido una solicitud o invitación de membresía"
-        "direct_message" -> "Nuevo mensaje de radio / chat en tu grupo"
-        else -> "Nueva notificación disponible"
     }
 }

@@ -99,6 +99,7 @@ import {
   listAdminAuditLogs
 } from './lib/admin.js';
 import { FcmService, defaultFcmService, type SendResult } from './lib/fcm.js';
+import { NOTIFICATION_TYPES, type NotificationType } from './lib/notificationTypes.js';
 import { calculateBearingDegrees, degreesToCardinal, formatSosAlertText } from './lib/geo.js';
 import {
   getCanonicalRegions,
@@ -3376,10 +3377,14 @@ export async function buildApp({
     });
   });
 
+  const NOTIFICATION_SEND_MAX_PER_HOUR = 10;
+
   const SendNotificationSchema = z.object({
-    type: z.enum(['SOS_PROXIMITY', 'RIDE_INVITATION', 'CLUB_INVITATION', 'DIRECT_MESSAGE']),
+    type: z.enum(NOTIFICATION_TYPES),
+    groupId: z.string().uuid(),
+    messageId: z.string().uuid(),
     recipientUserIds: z.array(z.string().uuid()).min(1),
-    params: z.record(z.any())
+    params: z.record(z.any()).default({})
   });
 
   app.post('/v1/notifications/send', async (req, reply) => {
@@ -3391,17 +3396,99 @@ export async function buildApp({
       return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
     }
 
-    const { type, recipientUserIds, params } = parsed.data;
+    const { type, groupId, messageId, recipientUserIds, params } = parsed.data;
 
-    let allTokens: string[] = [];
-    for (const rId of recipientUserIds) {
-      const userTokens = await fcmService.getActiveTokensForUser(db, rId);
-      allTokens = allTokens.concat(userTokens);
+    const storeAndReply = async (response: Record<string, unknown>) => {
+      const inserted = await db.query(
+        `INSERT INTO notification_send_receipts
+           (sender_user_id, message_id, group_id, type, response)
+         VALUES ($1, $2, $3, $4, $5::jsonb)
+         ON CONFLICT (sender_user_id, message_id) DO NOTHING
+         RETURNING response`,
+        [uid, messageId, groupId, type, JSON.stringify(response)]
+      );
+      if (inserted.rows.length === 0) {
+        const existing = await db.query(
+          `SELECT response FROM notification_send_receipts
+           WHERE sender_user_id = $1 AND message_id = $2`,
+          [uid, messageId]
+        );
+        if (existing.rows.length > 0) {
+          return reply.code(200).send({
+            ...(existing.rows[0].response as Record<string, unknown>),
+            idempotentReplay: true
+          });
+        }
+      }
+      return reply.code(200).send(response);
+    };
+
+    // 1. Idempotencia: un messageId repetido NO vuelve a disparar FCM.
+    const receiptRes = await db.query(
+      `SELECT response FROM notification_send_receipts
+       WHERE sender_user_id = $1 AND message_id = $2`,
+      [uid, messageId]
+    );
+    if (receiptRes.rows.length > 0) {
+      return reply.code(200).send({
+        ...(receiptRes.rows[0].response as Record<string, unknown>),
+        idempotentReplay: true
+      });
     }
 
+    // 2. ACL: emisor y destinatarios deben ser miembros activos del club.
+    const isClubMember = async (userId: string): Promise<boolean> => {
+      const memberRes = await db.query(
+        `SELECT 1 FROM memberships
+          WHERE group_id = $1 AND user_id = $2
+            AND status_kind IN ('full', 'prospect') AND invite_state = 'accepted'
+         UNION
+         SELECT 1 FROM group_leaders WHERE group_id = $1 AND user_id = $2
+         LIMIT 1`,
+        [groupId, userId]
+      );
+      return memberRes.rows.length > 0;
+    };
+
+    if (!(await isClubMember(uid))) {
+      return reply.code(403).send({
+        error: 'NOT_CLUB_MEMBER',
+        message: 'El emisor no es miembro del club indicado'
+      });
+    }
+    for (const rId of recipientUserIds) {
+      if (!(await isClubMember(rId))) {
+        return reply.code(403).send({
+          error: 'NOT_CLUB_MEMBER',
+          message: 'Todos los destinatarios deben ser miembros del club indicado'
+        });
+      }
+    }
+
+    // 3. Rate limit específico: 10 envíos por hora y emisor.
+    const rateRes = await db.query(
+      `SELECT COUNT(*)::int AS count FROM notification_send_receipts
+       WHERE sender_user_id = $1 AND created_at > now() - interval '1 hour'`,
+      [uid]
+    );
+    if ((rateRes.rows[0]?.count ?? 0) >= NOTIFICATION_SEND_MAX_PER_HOUR) {
+      return reply.code(429).header('Retry-After', '3600').send({
+        error: 'RATE_LIMIT_EXCEEDED',
+        limit: NOTIFICATION_SEND_MAX_PER_HOUR,
+        windowSeconds: 3600
+      });
+    }
+
+    // 4. Despacho real (o stub inyectado en tests).
+    const allTokens = Array.from(new Set(
+      (await Promise.all(recipientUserIds.map((rId) => fcmService.getActiveTokensForUser(db, rId)))).flat()
+    ));
+
     if (allTokens.length === 0) {
-      return reply.code(200).send({
+      return storeAndReply({
         success: true,
+        type,
+        messageId,
         sentCount: 0,
         failureCount: 0,
         message: 'No hay tokens FCM activos o con consentimiento para los destinatarios'
@@ -3427,7 +3514,7 @@ export async function buildApp({
         break;
       case 'CLUB_INVITATION':
         result = await fcmService.sendClubInvitation(allTokens, {
-          groupId: params.groupId,
+          groupId: String(params.groupId ?? groupId),
           clubName: String(params.clubName ?? 'Club Biker'),
           inviterName: String(params.inviterName ?? 'Líder')
         });
@@ -3439,11 +3526,27 @@ export async function buildApp({
           preview: String(params.preview ?? 'Nuevo mensaje')
         });
         break;
+      case 'TACTICAL_CHAT':
+        result = await fcmService.sendTacticalChat(allTokens, {
+          groupId,
+          fromUserId: uid,
+          fromAlias: String(params.fromAlias ?? 'Compañero'),
+          preview: String(params.preview ?? 'Nuevo mensaje táctico')
+        });
+        break;
+      case 'CONVOY_SIGNAL':
+        result = await fcmService.sendConvoySignal(allTokens, {
+          rideId: String(params.rideId ?? ''),
+          signal: String(params.signal ?? 'REGROUP'),
+          fromAlias: String(params.fromAlias ?? 'Compañero')
+        });
+        break;
     }
 
-    return reply.code(200).send({
+    return storeAndReply({
       success: true,
       type,
+      messageId,
       sentCount: result.successCount,
       failureCount: result.failureCount
     });
@@ -3637,7 +3740,9 @@ export async function buildApp({
           sosId: sosEvent.id,
           distanceKm: dist.toString(),
           bearing: cardinal,
-          hasMedicalSheet: hasMedicalSheet ? 'true' : 'false'
+          hasMedicalSheet: hasMedicalSheet ? 'true' : 'false',
+          lat: latitude,
+          lng: longitude
         });
         notifiedCount++;
         notifiedUserIds.push(row.user_id);

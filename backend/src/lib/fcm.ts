@@ -1,13 +1,13 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import admin from 'firebase-admin';
 import type { DbExecutor } from '../db/pool.js';
+import {
+  NOTIFICATION_CHANNEL_ID,
+  NOTIFICATION_FCM_TYPE,
+  type NotificationType
+} from './notificationTypes.js';
 
-export type FcmNotificationType =
-  | 'SOS_PROXIMITY'
-  | 'RIDE_INVITATION'
-  | 'CLUB_INVITATION'
-  | 'DIRECT_MESSAGE';
+export type FcmNotificationType = NotificationType;
 
 export interface SendResult {
   successCount: number;
@@ -20,34 +20,42 @@ export class FcmService {
   private isLiveFirebase = false;
 
   constructor(serviceAccountPath?: string) {
-    const resolvedPath =
-      serviceAccountPath ??
-      path.join(process.cwd(), 'service_account.json');
+    // La credencial SIEMPRE viene de la variable de entorno. Nunca se asume
+    // process.cwd() para evitar usar una clave real en tests/CI por accidente.
+    const resolvedPath = serviceAccountPath ?? process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
 
-    if (fs.existsSync(resolvedPath)) {
-      try {
-        const raw = fs.readFileSync(resolvedPath, 'utf8');
-        const json = JSON.parse(raw);
-        if (
-          json.private_key &&
-          !json.private_key.includes('REPLACE_WITH_FIREBASE')
-        ) {
-          const credentialObj = (admin as any).credential ?? (admin as any).default?.credential;
-          if (credentialObj && typeof credentialObj.cert === 'function') {
-            this.app = admin.initializeApp({
-              credential: credentialObj.cert(json)
-            });
-            this.isLiveFirebase = true;
-            console.info('🔥 Firebase Admin SDK inicializado exitosamente.');
-          } else {
-            console.info('ℹ️ Firebase admin.credential.cert no disponible. Usando modo Stub/Test.');
-          }
-        } else {
-          console.info('ℹ️ Firebase service_account.json es una plantilla. Usando modo FcmService Stub/Test.');
-        }
-      } catch (err) {
-        console.warn('⚠️ No se pudo inicializar Firebase Admin desde service_account.json:', err);
+    if (!resolvedPath) {
+      console.info('ℹ️ GOOGLE_APPLICATION_CREDENTIALS no definida. Usando modo FcmService Stub/Test.');
+      return;
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      console.warn(`⚠️ GOOGLE_APPLICATION_CREDENTIALS apunta a un archivo inexistente. Usando modo FcmService Stub/Test: ${resolvedPath}`);
+      return;
+    }
+
+    try {
+      const json = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+      if (!json.private_key || json.private_key.includes('REPLACE_WITH_FIREBASE')) {
+        console.info('ℹ️ Firebase service_account.json es una plantilla. Usando modo FcmService Stub/Test.');
+        return;
       }
+
+      const credentialObj = (admin as any).credential ?? (admin as any).default?.credential;
+      if (!credentialObj || typeof credentialObj.cert !== 'function') {
+        console.info('ℹ️ Firebase admin.credential.cert no disponible. Usando modo Stub/Test.');
+        return;
+      }
+
+      // Reutiliza la app por defecto si el módulo ya fue inicializado (evita
+      // 'default app already exists' cuando se inyectan servicios en tests).
+      this.app = (admin as any).apps?.[0] ?? admin.initializeApp({
+        credential: credentialObj.cert(json)
+      });
+      this.isLiveFirebase = true;
+      console.info('🔥 FCM_LIVE: Firebase Admin SDK inicializado con GOOGLE_APPLICATION_CREDENTIALS.');
+    } catch (err) {
+      console.warn('⚠️ No se pudo inicializar Firebase Admin desde GOOGLE_APPLICATION_CREDENTIALS:', err);
     }
   }
 
@@ -134,7 +142,7 @@ export class FcmService {
         priority: priority === 'high' ? 'high' : 'normal',
         notification: {
           channelId,
-          sound: channelId === 'sos_channel' ? 'sos_alarm' : 'default',
+          sound: channelId === NOTIFICATION_CHANNEL_ID.SOS_PROXIMITY ? 'sos_alarm' : 'default',
           priority: priority === 'high' ? 'max' : 'default'
         }
       }
@@ -178,15 +186,17 @@ export class FcmService {
         body: `${distText} — Auxilio solicitado`
       },
       {
-        type: 'sos',
+        type: NOTIFICATION_FCM_TYPE.SOS_PROXIMITY,
         sosId: params.sosId ?? '',
         distanceKm: params.distanceKm ?? '0.0',
         bearing: params.bearing ?? 'Norte ⬆',
         hasMedicalSheet: params.hasMedicalSheet ?? 'false',
+        lat: String(params.lat ?? 0),
+        lng: String(params.lng ?? 0),
         ...(params.rideId ? { rideId: params.rideId } : {}),
         ...(params.senderUserId ? { senderUserId: params.senderUserId } : {})
       },
-      'sos_channel',
+      NOTIFICATION_CHANNEL_ID.SOS_PROXIMITY,
       'high'
     );
   }
@@ -209,11 +219,11 @@ export class FcmService {
         body: `Nueva rodada programada: "${params.rideTitle}"`
       },
       {
-        type: 'RIDE_INVITATION',
+        type: NOTIFICATION_FCM_TYPE.RIDE_INVITATION,
         rideId: params.rideId,
         clubName: params.clubName
       },
-      'ride_invitation_channel',
+      NOTIFICATION_CHANNEL_ID.RIDE_INVITATION,
       'high'
     );
   }
@@ -236,11 +246,11 @@ export class FcmService {
         body: `${params.inviterName} te ha invitado a unirte a ${params.clubName}`
       },
       {
-        type: 'CLUB_INVITATION',
+        type: NOTIFICATION_FCM_TYPE.CLUB_INVITATION,
         groupId: params.groupId,
         clubName: params.clubName
       },
-      'club_invitation_channel',
+      NOTIFICATION_CHANNEL_ID.CLUB_INVITATION,
       'normal'
     );
   }
@@ -263,11 +273,68 @@ export class FcmService {
         body: params.preview
       },
       {
-        type: 'DIRECT_MESSAGE',
+        type: NOTIFICATION_FCM_TYPE.DIRECT_MESSAGE,
         fromUserId: params.fromUserId,
         fromAlias: params.fromAlias
       },
-      'direct_message_channel',
+      NOTIFICATION_CHANNEL_ID.DIRECT_MESSAGE,
+      'normal'
+    );
+  }
+
+  /**
+   * 5. Chat táctico (Comparte canal con mensajes directos; NUNCA con SOS).
+   */
+  public async sendTacticalChat(
+    tokens: string[],
+    params: {
+      groupId: string;
+      fromUserId: string;
+      fromAlias: string;
+      preview: string;
+    }
+  ): Promise<SendResult> {
+    return this.sendMulticast(
+      tokens,
+      {
+        title: `💬 Chat táctico: ${params.fromAlias}`,
+        body: params.preview
+      },
+      {
+        type: NOTIFICATION_FCM_TYPE.TACTICAL_CHAT,
+        groupId: params.groupId,
+        fromUserId: params.fromUserId,
+        fromAlias: params.fromAlias
+      },
+      NOTIFICATION_CHANNEL_ID.TACTICAL_CHAT,
+      'normal'
+    );
+  }
+
+  /**
+   * 6. Señal de convoy (Comparte canal de chat; abre la cabina por deep-link).
+   */
+  public async sendConvoySignal(
+    tokens: string[],
+    params: {
+      rideId: string;
+      signal: string;
+      fromAlias: string;
+    }
+  ): Promise<SendResult> {
+    return this.sendMulticast(
+      tokens,
+      {
+        title: `🏍️ Señal de convoy: ${params.signal}`,
+        body: `${params.fromAlias} envió una señal al convoy`
+      },
+      {
+        type: NOTIFICATION_FCM_TYPE.CONVOY_SIGNAL,
+        rideId: params.rideId,
+        signal: params.signal,
+        fromAlias: params.fromAlias
+      },
+      NOTIFICATION_CHANNEL_ID.CONVOY_SIGNAL,
       'normal'
     );
   }

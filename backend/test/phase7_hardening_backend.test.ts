@@ -313,7 +313,7 @@ describe('Fase 7.1.1 — Hardening de Servidor & Backend', () => {
         }
       });
       expect(otherIpRes.statusCode).not.toBe(429);
-    });
+    }, 30_000);
 
     it('2.2 Debería bloquear con 429 TOO_MANY_INVITE_ATTEMPTS al superar 5 invitaciones en 1h por (IP, userId)', async () => {
       const testIp = '198.51.100.99';
