@@ -59,7 +59,9 @@ class MeshRelayEngine(
     val clubNetworkId: UInt = 0x52425301u,
     val deduplicationTable: DeduplicationTable = DeduplicationTable(),
     private val relayScope: CoroutineScope? = null,
-    private val onTransmitRelay: ((ByteArray) -> Unit)? = null
+    private val onTransmitRelay: ((ByteArray) -> Unit)? = null,
+    /** Cadencia real de emisión local; alimenta el suelo del timeout de peers (Fase 2). */
+    private val heartbeatIntervalProvider: () -> Long = { HEARTBEAT_INTERVAL_MS }
 ) {
     /**
      * Constructor secundario para la arquitectura Fase 6 (BLE Mesh Off-Grid, Hito 3).
@@ -149,6 +151,8 @@ class MeshRelayEngine(
         val isLost: Boolean,
         /** Instante en que se marcó perdido; alimenta la gracia visual del HUD (FIX B). */
         val lostSinceEpochMs: Long = 0L,
+        /** Timeout efectivo aplicado al peer; alimenta la gracia derivada de Fase 2. */
+        val effectiveTimeoutMs: Long = 0L,
         val lastHops: Int,
         val lastRssiDbm: Int? = null,
         /** Historial acotado con marca de tiempo; solo alimenta el indicador visual de barras. */
@@ -284,7 +288,9 @@ class MeshRelayEngine(
     }
 
     private val peerMap = mutableMapOf<UShort, PeerTrack>()
-    private val gapTracker = PeerGapTimeoutTracker()
+    private val gapTracker = PeerGapTimeoutTracker(
+        emissionIntervalProvider = heartbeatIntervalProvider
+    )
     private val relayQueue = PriorityQueue<QueuedRelay>()
     private val deviceModels = mutableMapOf(localDeviceModel to 1)
 
@@ -1828,6 +1834,7 @@ class MeshRelayEngine(
                         expectedBeats = maxOf(track.expectedBeats, beatsSinceStart),
                         isLost = track.isLost || lostNow,
                         lostSinceEpochMs = if (lostNow && !track.isLost) nowEpochMs else track.lostSinceEpochMs,
+                        effectiveTimeoutMs = timeoutMs,
                         consecutiveAfterLossBeats = 0
                     )
                     if (lostNow && !track.isLost) {
@@ -1837,6 +1844,7 @@ class MeshRelayEngine(
                     peerMap[id] = track.copy(
                         isLost = true,
                         lostSinceEpochMs = nowEpochMs,
+                        effectiveTimeoutMs = timeoutMs,
                         consecutiveAfterLossBeats = 0
                     )
                     newlyLost.add(id)
@@ -1984,6 +1992,7 @@ class MeshRelayEngine(
             lastHops = packet.hopsTaken,
             lastRssiDbm = rssi ?: existing?.lastRssiDbm,
             rssiSamples = rssiSamples,
+            effectiveTimeoutMs = gapTracker.timeoutFor(packet.shortId),
             lastPositionEpochMs = effectivePositionEpochMs,
             isPositionRetained = retainedPreviousPosition
         )

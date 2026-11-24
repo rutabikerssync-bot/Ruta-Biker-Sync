@@ -67,4 +67,41 @@ class PeerGapTimeoutIntegrationTest {
         )
         engine.stop()
     }
+
+    @Test
+    fun `cadencia real de 18 s y gap de 150 s fijan el timeout en 150 s`() = runTest(UnconfinedTestDispatcher()) {
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            rideSecretKey = secretKey,
+            heartbeatIntervalProvider = { 18_000L }
+        )
+        val t0 = 1_000_000L
+        val t1 = t0 + 150_000L
+        engine.onRawPacketReceived(heartbeat(2u, 1).toByteArray(), nowEpochMs = t0)
+        engine.onRawPacketReceived(heartbeat(2u, 2).toByteArray(), nowEpochMs = t1)
+
+        // El suelo por cadencia (54 s) no recorta el gap medido de 150 s.
+        assertEquals(150_000L, engine.peers.value.getValue(2u).effectiveTimeoutMs)
+        assertTrue(engine.evaluatePeerTimeouts(nowEpochMs = t1 + 100_000L).isEmpty())
+        assertEquals(listOf(2u.toUShort()), engine.evaluatePeerTimeouts(nowEpochMs = t1 + 150_000L))
+        engine.stop()
+    }
+
+    @Test
+    fun `gap de 200 s con cadencia 18 s respeta el techo de 180 s`() = runTest(UnconfinedTestDispatcher()) {
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            rideSecretKey = secretKey,
+            heartbeatIntervalProvider = { 18_000L }
+        )
+        val t0 = 1_000_000L
+        val t1 = t0 + 200_000L
+        engine.onRawPacketReceived(heartbeat(2u, 1).toByteArray(), nowEpochMs = t0)
+        engine.onRawPacketReceived(heartbeat(2u, 2).toByteArray(), nowEpochMs = t1)
+
+        assertEquals(180_000L, engine.peers.value.getValue(2u).effectiveTimeoutMs)
+        assertTrue(engine.evaluatePeerTimeouts(nowEpochMs = t1 + 179_999L).isEmpty())
+        assertEquals(listOf(2u.toUShort()), engine.evaluatePeerTimeouts(nowEpochMs = t1 + 180_000L))
+        engine.stop()
+    }
 }

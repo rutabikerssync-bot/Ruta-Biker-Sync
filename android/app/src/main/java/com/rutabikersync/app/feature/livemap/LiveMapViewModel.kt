@@ -531,11 +531,16 @@ class LiveMapController(
             )
         }
 
-        // FIX B: el motor marca `isLost` al vencer el timeout recalibrado, pero el HUD
-        // mantiene al peer en el conteo durante GRACE_MS mostrando "sin señal". Así un
-        // hueco BLE de 48-149 s no hace caer el HUD de "2 riders" a "1 rider".
+        // FIX B + Fase 2: el motor marca `isLost` al vencer el timeout recalibrado, pero el
+        // HUD mantiene al peer en el conteo durante una gracia derivada de ese timeout
+        // mostrando "sin señal". Así un hueco BLE prolongado no cae prematuramente a
+        // "1 rider". La isla/SOS no depende de esta gracia: usa el `isLost` real.
         fun countsAsConnected(track: MeshRelayEngine.PeerTrack): Boolean =
-            !track.isLost || PeerGracePolicy.isInGrace(nowEpochMs, track.lostSinceEpochMs)
+            !track.isLost || PeerGracePolicy.isInGrace(
+                nowEpochMs = nowEpochMs,
+                lostSinceEpochMs = track.lostSinceEpochMs,
+                graceMs = PeerGracePolicy.graceMsFor(track.effectiveTimeoutMs)
+            )
 
         val connectedPeers = latestPeersFromMesh.values.count(::countsAsConnected)
         val lostPeers = latestPeersFromMesh.size - connectedPeers

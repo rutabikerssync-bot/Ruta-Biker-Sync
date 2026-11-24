@@ -178,11 +178,11 @@ class LiveMapViewModelTest {
         val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
         assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
         assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
-        // FIX B: al vencer el timeout se muestra "sin señal", pero los 3 peers siguen
-        // contando durante la gracia visual de 60 s; solo después baja a 1 (local).
+        // FIX B + Fase 2: al vencer el timeout se muestra "sin señal", pero los 3 peers
+        // siguen contando durante la gracia derivada del timeout; solo después baja a 1.
         assertEquals(4, afterTimeoutFrame.ridersCount)
         val afterGraceFrame = mapController.flushMapFrame(
-            nowEpochMs = lossAtMs + PeerGracePolicy.GRACE_MS + 1L,
+            nowEpochMs = lossAtMs + PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L,
             force = true
         )
         assertEquals(1, afterGraceFrame.ridersCount)
@@ -342,8 +342,8 @@ class LiveMapViewModelTest {
         assertEquals(2, twoPeers.ridersCount)
         assertEquals("2 riders", ConvoyRiderCountFormatter.format(twoPeers.ridersCount))
 
-        // FIX B: al vencer el timeout el marcador sigue visible y el HUD mantiene
-        // "2 riders" durante la gracia; tras 60 s sin señal baja a 1.
+        // FIX B + Fase 2: al vencer el timeout el marcador sigue visible y el HUD mantiene
+        // "2 riders" durante la gracia derivada; solo después baja a 1.
         val nowMs = System.currentTimeMillis()
         val lossAtMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS
         engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
@@ -352,7 +352,7 @@ class LiveMapViewModelTest {
         assertEquals(2, inGrace.ridersCount)
         assertEquals("2 riders", ConvoyRiderCountFormatter.format(inGrace.ridersCount))
         val lostPeer = controller.flushMapFrame(
-            nowEpochMs = lossAtMs + PeerGracePolicy.GRACE_MS + 1L,
+            nowEpochMs = lossAtMs + PeerGracePolicy.graceMsFor(MeshRelayEngine.LOST_TIMEOUT_MS) + 1L,
             force = true
         )
         assertEquals(2, lostPeer.markers.size)

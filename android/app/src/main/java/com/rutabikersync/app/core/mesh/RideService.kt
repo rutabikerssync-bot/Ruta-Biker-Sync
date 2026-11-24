@@ -272,7 +272,12 @@ class RideSessionController(
             transport = selectedTransport,
             rideSecretKey = effectiveRideSecretKey,
             relayEnabled = relayEnabled,
-            relayScope = scope
+            relayScope = scope,
+            // Fase 2: el suelo del timeout sigue al intervalo real del scheduler, que se
+            // crea más abajo. El lambda se evalúa tarde, así que no hay orden de init frágil.
+            heartbeatIntervalProvider = {
+                heartbeatScheduler?.currentIntervalMs ?: HEARTBEAT_INTERVAL_MS
+            }
         )
         // P0 cierre final: el manifiesto verificado es la única fuente de pertenencia
         // al convoy Y de las claves públicas SOS. Sin resolver, SOS/ACK se descartan.

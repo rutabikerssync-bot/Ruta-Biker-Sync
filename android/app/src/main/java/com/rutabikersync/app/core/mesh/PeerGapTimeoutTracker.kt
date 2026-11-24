@@ -3,9 +3,14 @@ package com.rutabikersync.app.core.mesh
 /**
  * Ventana deslizante de gaps de llegada por peer. Se alimenta en cada heartbeat recibido
  * y [timeoutFor] devuelve el timeout recalibrado que debe usar `evaluatePeerTimeouts`.
+ *
+ * El proveedor de cadencia permite que el suelo del timeout siga al intervalo real del
+ * `HeartbeatScheduler` (3/5/10 s nominales, pero ralentizable por carga en campo) sin
+ * acoplar este tracker al servicio.
  */
 class PeerGapTimeoutTracker(
-    private val windowSize: Int = PeerGapTimeoutPolicy.DEFAULT_WINDOW_SIZE
+    private val windowSize: Int = PeerGapTimeoutPolicy.DEFAULT_WINDOW_SIZE,
+    private val emissionIntervalProvider: () -> Long = { PeerGapTimeoutPolicy.DEFAULT_EMISSION_INTERVAL_MS }
 ) {
     private val gaps = mutableMapOf<UShort, ArrayDeque<Long>>()
 
@@ -19,7 +24,10 @@ class PeerGapTimeoutTracker(
 
     @Synchronized
     fun timeoutFor(shortId: UShort): Long =
-        PeerGapTimeoutPolicy.resolve(gaps[shortId]?.toList().orEmpty())
+        PeerGapTimeoutPolicy.resolveWithCadence(
+            gaps[shortId]?.toList().orEmpty(),
+            emissionIntervalProvider()
+        )
 
     @Synchronized
     fun reset() {
