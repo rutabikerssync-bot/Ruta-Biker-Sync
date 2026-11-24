@@ -1101,12 +1101,16 @@ class MeshRelayEngine(
         if (pktFlow != null) {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 pktFlow.collect { pkt ->
+                    // La edad del peer debe medirse desde que el motor PROCESA el paquete,
+                    // no desde el timestamp que trae el transporte: la cola del SharedFlow
+                    // puede entregar paquetes minutos después (medido en TECNO/REDMI).
+                    val receivedAtEpochMs = System.currentTimeMillis()
                     // Descifrar antes de elegir la ruta: el sobre sensible mide 52/120 B.
                     val wire = unwrapIncomingFrame(pkt.bytes) ?: return@collect
                     if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
                         onRawPacketReceived(
                             raw = wire,
-                            nowEpochMs = pkt.timestampEpochMs,
+                            nowEpochMs = receivedAtEpochMs,
                             rssi = pkt.rssi,
                             senderAddressSuffix = pkt.senderAddressSuffix,
                             scanTimestampNanos = pkt.scanTimestampNanos
