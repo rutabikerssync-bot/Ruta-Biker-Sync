@@ -1,6 +1,7 @@
 package com.rutabikersync.app.feature.mesh
 
 import com.rutabikersync.app.core.mesh.MeshHeader
+import com.rutabikersync.app.core.mesh.PeerPresenceState
 import com.rutabikersync.app.core.mesh.text.FriendNodeBuffer
 import com.rutabikersync.app.core.mesh.text.TextMessageCrypto
 import com.rutabikersync.app.core.mesh.text.TextMessagePacket
@@ -144,7 +145,10 @@ class MeshConvoyStatusScreenTest {
         assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(emptyList(), now))
         assertEquals(
             GlobalMeshStatus.DOWN,
-            GlobalMeshStatus.evaluate(listOf(healthyPeers.first().copy(isLost = true)), now)
+            GlobalMeshStatus.evaluate(
+                listOf(healthyPeers.first().copy(presenceState = PeerPresenceState.LOST)),
+                now
+            )
         )
     }
 
@@ -276,7 +280,8 @@ class MeshConvoyStatusScreenTest {
 
         // PLR alto sin historial RSSI no degrada el semáforo: la pérdida es solo por timeout.
         assertEquals(GlobalMeshStatus.ACTIVE, GlobalMeshStatus.evaluate(listOf(peer), now))
-        assertFalse(peer.isLost)
+        assertEquals(PeerPresenceState.ACTIVE, peer.presenceState)
+        assertEquals("En línea", presenceBadgeFor(peer.presenceState).label)
         assertEquals("No disponible", formatConvoyRole(peer.roleInConvoy))
         assertNull(RssiSignalLevel.fromDbmOrNull(peer.rssiDbm))
     }
@@ -366,11 +371,95 @@ class MeshConvoyStatusScreenTest {
         val degradeado = mapPeerTrackToMeshPeerLiveState(
             lostTrack(now - 20_000L), nowEpochMs = now
         )
-        assertFalse("Dentro de la gracia no es pérdida confirmada", degradeado.isLost)
+        assertEquals("Dentro de la gracia", PeerPresenceState.STALE_GRACE, degradeado.presenceState)
 
         val confirmado = mapPeerTrackToMeshPeerLiveState(
             lostTrack(now - 100_000L), nowEpochMs = now
         )
-        assertTrue("Fuera de la gracia sí es pérdida confirmada", confirmado.isLost)
+        assertEquals("Fuera de la gracia", PeerPresenceState.LOST, confirmado.presenceState)
+    }
+
+    @Test
+    fun `insignia de presencia refleja los tres estados`() {
+        assertEquals("En línea", presenceBadgeFor(PeerPresenceState.ACTIVE).label)
+        assertEquals("Sin señal temporal", presenceBadgeFor(PeerPresenceState.STALE_GRACE).label)
+        assertEquals(
+            "Sin señal / Fuera de malla",
+            presenceBadgeFor(PeerPresenceState.LOST).label
+        )
+
+        assertFalse(
+            "STALE_GRACE nunca debe mostrarse como En línea",
+            presenceBadgeFor(PeerPresenceState.STALE_GRACE).label.contains("En línea")
+        )
+        assertFalse(
+            "LOST nunca debe mostrarse como En línea",
+            presenceBadgeFor(PeerPresenceState.LOST).label.contains("En línea")
+        )
+    }
+
+    @Test
+    fun `topologia e insignia no se contradicen ante un peer perdido`() {
+        val now = 1_700_000_000_000L
+        val lostPeer = MeshPeerLiveState(
+            shortId = 5u,
+            hopCount = 0,
+            batteryPercent = 60,
+            presenceState = PeerPresenceState.LOST
+        )
+
+        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(listOf(lostPeer), now))
+        assertFalse(
+            "La tarjeta de un peer LOST no puede decir En línea",
+            presenceBadgeFor(lostPeer.presenceState).label.contains("En línea")
+        )
+
+        val stalePeer = lostPeer.copy(presenceState = PeerPresenceState.STALE_GRACE)
+        assertNotEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(listOf(stalePeer), now))
+        assertFalse(
+            "La tarjeta en gracia no puede decir En línea",
+            presenceBadgeFor(stalePeer.presenceState).label.contains("En línea")
+        )
+    }
+
+    @Test
+    fun `recuperacion vuelve a En linea solo cuando la politica confirma ACTIVE`() {
+        val now = 1_700_000_000_000L
+        fun lostTrack(lostSinceEpochMs: Long) =
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack(
+                shortId = 5u,
+                lastLatitude = 19.3,
+                lastLongitude = -99.1,
+                lastSpeedKmh = 40,
+                lastBatteryPercent = 70,
+                isSos = false,
+                lastSeenEpochMs = now - 100_000L,
+                firstSequence = 1,
+                lastSequence = 10,
+                expectedBeats = 10,
+                receivedBeats = 8,
+                consecutiveAfterLossBeats = 0,
+                isLost = true,
+                lostSinceEpochMs = lostSinceEpochMs,
+                effectiveTimeoutMs = com.rutabikersync.app.core.mesh.MeshRelayEngine.LOST_TIMEOUT_MS,
+                lastHops = 1
+            )
+
+        val lost = mapPeerTrackToMeshPeerLiveState(lostTrack(now - 100_000L), nowEpochMs = now)
+        assertEquals(PeerPresenceState.LOST, lost.presenceState)
+        assertEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(listOf(lost), now))
+        assertFalse(presenceBadgeFor(lost.presenceState).label.contains("En línea"))
+
+        val recovered = mapPeerTrackToMeshPeerLiveState(
+            lostTrack(now - 100_000L).copy(
+                isLost = false,
+                lastSeenEpochMs = now,
+                consecutiveAfterLossBeats = 2
+            ),
+            nowEpochMs = now
+        )
+        assertEquals(PeerPresenceState.ACTIVE, recovered.presenceState)
+        assertEquals("En línea", presenceBadgeFor(recovered.presenceState).label)
+        assertNotEquals(GlobalMeshStatus.DOWN, GlobalMeshStatus.evaluate(listOf(recovered), now))
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.core.mesh.MeshRelayEngine
 import com.rutabikersync.app.core.mesh.PeerPresencePolicy
+import com.rutabikersync.app.core.mesh.PeerPresenceState
 import com.rutabikersync.app.ui.theme.*
 import kotlin.math.max
 
@@ -71,12 +72,14 @@ enum class GlobalMeshStatus(val label: String, val color: Color, val emoji: Stri
         const val MIN_RSSI_SAMPLES_FOR_WEAK: Int = 3
 
         /**
-         * Evalúa el semáforo usando SOLO pérdida confirmada (timeout + gracia) y el promedio
-         * de RSSI de los últimos 10 s para "malla débil". El estado IP y el PLR no intervienen:
-         * el PLR sigue visible como métrica, pero no declara estado.
+         * Evalúa el semáforo usando SOLO pérdida confirmada por [PeerPresencePolicy] y el
+         * promedio de RSSI de los últimos 10 s para "malla débil". El estado IP y el PLR no
+         * intervienen: el PLR sigue visible como métrica, pero no declara estado.
          */
         fun evaluate(peers: List<MeshPeerLiveState>, nowEpochMs: Long): GlobalMeshStatus {
-            if (peers.isEmpty() || peers.all { it.isLost }) return DOWN
+            if (peers.isEmpty() || peers.all {
+                    PeerPresencePolicy.isConfirmedLost(it.presenceState)
+                }) return DOWN
             val windowStart = nowEpochMs - WEAK_RSSI_WINDOW_MS
             val samplesInWindow = peers
                 .flatMap { it.rssiSamples }
@@ -90,6 +93,22 @@ enum class GlobalMeshStatus(val label: String, val color: Color, val emoji: Stri
             return if (avgRssi != null && avgRssi < WEAK_RSSI_THRESHOLD_DBM) WEAK else ACTIVE
         }
     }
+}
+
+/**
+ * Insignia de presencia del peer. Se deriva de [PeerPresenceState], la misma fuente que
+ * usa el semáforo global, para que la tarjeta nunca contradiga a la topología.
+ */
+data class MeshPeerPresenceBadge(
+    val label: String,
+    val color: Color,
+    val emoji: String
+)
+
+fun presenceBadgeFor(state: PeerPresenceState): MeshPeerPresenceBadge = when (state) {
+    PeerPresenceState.ACTIVE -> MeshPeerPresenceBadge("En línea", EmeraldMesh, "🟢")
+    PeerPresenceState.STALE_GRACE -> MeshPeerPresenceBadge("Sin señal temporal", WarningAmber, "⚠")
+    PeerPresenceState.LOST -> MeshPeerPresenceBadge("Sin señal / Fuera de malla", RescueRed, "🔴")
 }
 
 /**
@@ -134,7 +153,8 @@ data class MeshPeerLiveState(
     val receivedBeats: Int? = null,
     /** Solo alimenta el indicador de barras; la pérdida se decide por timeout de heartbeats. */
     val rssiSamples: List<com.rutabikersync.app.core.mesh.MeshRelayEngine.RssiSample> = emptyList(),
-    val isLost: Boolean = false
+    /** Estado derivado por [PeerPresencePolicy]; única fuente para insignia y topología. */
+    val presenceState: PeerPresenceState = PeerPresenceState.ACTIVE
 )
 
 /**
@@ -601,6 +621,7 @@ fun PeerConvoyCard(
     }
     val rssiText = peer.rssiDbm?.let { "$it dBm" } ?: "No disponible"
     val rssiColor = signalLevel?.color ?: TextMuted
+    val presenceBadge = presenceBadgeFor(peer.presenceState)
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -699,13 +720,13 @@ fun PeerConvoyCard(
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = DarkSlate950,
-                            border = BorderStroke(1.dp, EmeraldMesh)
+                            border = BorderStroke(1.dp, presenceBadge.color)
                         ) {
                             Text(
-                                text = "🟢 En línea",
+                                text = "${presenceBadge.emoji} ${presenceBadge.label}",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = EmeraldMesh,
+                                color = presenceBadge.color,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -871,6 +892,7 @@ fun mapPeerTrackToMeshPeerLiveState(
     } else {
         0
     }
+    val presenceState = PeerPresencePolicy.stateFor(track, nowEpochMs)
     return MeshPeerLiveState(
         shortId = track.shortId,
         name = "No disponible",
@@ -887,10 +909,8 @@ fun mapPeerTrackToMeshPeerLiveState(
         expectedBeats = expected,
         receivedBeats = received,
         rssiSamples = track.rssiSamples,
-        // Monitor de malla: solo pérdida confirmada (misma regla que HUD, mapa y anuncios).
-        isLost = PeerPresencePolicy.isConfirmedLost(
-            PeerPresencePolicy.stateFor(track, nowEpochMs)
-        )
+        // Monitor de malla: un único estado para la insignia y el semáforo global.
+        presenceState = presenceState
     )
 }
 
