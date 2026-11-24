@@ -1,0 +1,19 @@
+﻿=== PROTOCOLO CAMPO 35 MIN - MOVIMIENTO REAL - APK AUTORIZADA ===
+INICIO: 2026-11-23 23:08:38
+APK: D:\Ruta-Biker-Sync\android\app\build\outputs\apk\standard\debug\app-standard-debug.apk SHA256=ED0359AD0BCEF0310D2902E0C18E876D8707B1A618FB3D96F721EFF66C8AD59E (idÃ©ntica en ambos dispositivos)
+RIDE_ID: 43a2efba-8f15-46d7-9d88-4eb85655015d
+INSTRUMENTACION: logcat en dispositivo (-f /sdcard/rbs_field_log.txt -v threadtime -s BleMeshService:I BleAdvTransport:I RideService:I HeartbeatTx:I)
+BACKEND: Fastify :3100 con credential real; adb reverse tcp:3000->3100; tÃºnel Cloudflare apunta a :3100
+HARNESS: PILOT_RIDE_ID inyectado en el build (commit 292cd01); crypto fix 8006a7a
+TECNO logcat pid=25357
+REDMI logcat pid=5965
+MUESTRA 0/7 t=+0 min hora=23:08:38 | TECNO: HUD=2 riders vel=7 km/h LOG[lines=278 adv=66 reasm=12 hbtx=5 hbrx=0 rssi=[-57..-39]] NOTIF=presente | REDMI: HUD=2 riders vel=0 km/h LOG[lines=291 adv=81 reasm=12 hbtx=6 hbrx=0 rssi=[-67..-48]] NOTIF=presente
+MUESTRA 1/7 t=+5 min hora=23:13:46 | TECNO: HUD=? riders vel=4 km/h LOG[lines=1247 adv=334 reasm=54 hbtx=18 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=1307 adv=350 reasm=54 hbtx=16 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 2/7 t=+10 min hora=23:18:53 | TECNO: HUD=2 riders vel=3 km/h LOG[lines=2110 adv=606 reasm=85 hbtx=34 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=1861 adv=574 reasm=55 hbtx=36 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 3/7 t=+15 min hora=23:23:59 | TECNO: HUD=2 riders vel=2 km/h LOG[lines=2932 adv=879 reasm=108 hbtx=51 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=2378 adv=785 reasm=55 hbtx=62 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 4/7 t=+20 min hora=23:29:05 | TECNO: HUD=2 riders vel=3 km/h LOG[lines=3760 adv=1151 reasm=134 hbtx=68 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=2895 adv=989 reasm=56 hbtx=88 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 5/7 t=+25 min hora=23:34:11 | TECNO: HUD=2 riders vel=1 km/h LOG[lines=4580 adv=1423 reasm=160 hbtx=85 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=3374 adv=1184 reasm=56 hbtx=112 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 6/7 t=+30 min hora=23:39:17 | TECNO: HUD=2 riders vel=1 km/h LOG[lines=5404 adv=1696 reasm=189 hbtx=102 hbrx=0 rssi=[-59..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=3852 adv=1382 reasm=56 hbtx=137 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+MUESTRA 7/7 t=+35 min hora=23:44:23 | TECNO: HUD=2 riders vel=0 km/h LOG[lines=6215 adv=1968 reasm=217 hbtx=119 hbrx=0 rssi=[-61..-28]] NOTIF=presente | REDMI: HUD=? riders vel=0 km/h LOG[lines=4365 adv=1588 reasm=56 hbtx=163 hbrx=0 rssi=[-77..-38]] NOTIF=presente
+FIN: 2026-11-23 23:44:30
+=== FIN PROTOCOLO ===
