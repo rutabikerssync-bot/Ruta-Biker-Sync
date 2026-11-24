@@ -59,8 +59,24 @@ cualquier cambio en esas constantes globales afectaría también a voz.
 | **C. No envolver POSITION en el sobre AEAD** | Restaura 20 B y un solo fragmento. | **Violaría la autorización de cifrado P0** y degradaría seguridad. Solo con autorización explícita nueva. |
 | **D. Aceptar ~18 s y mantener Fase 2** | Sin cambios de código. | Fase 1 sigue sin validar; Commit 4 continúa diferido. |
 
-Recomendación: **A**, acotada a `POSITION` y con nueva corrida de campo de 35 min antes de
-considerar Commit 4. No implementada: pendiente de autorización.
+### Resultado de la opción A (autorizada el 24 nov)
+
+| Perfil POSITION | Airtime/heartbeat | Cadencia TX medida | Recepción en REDMI |
+|---|---|---|---|
+| Estándar 1000/120/2 | 8,96 s | ~18 s | estable (Fase 2: 67 reasm) |
+| 300/20/1 | 1,28 s | **~4,6 s** ✅ | **4 reasm de 34 TX** ❌ — HUD en 1 rider |
+| **1000/120/1 (adoptado)** | 4,48 s | **~10 s** ✅ | **32 reasm, 12/16 heartbeats** ✅ |
+
+El perfil 300/20/1 arregló la cadencia pero rompió la recepción: nRF Connect en REDMI veía el
+anunciante de la malla (`76:8D:61:6A:2D:74`, manufacturer `0x5242`, `0xA55A…`, RSSI -55 dBm)
+sin intervalo de advertising calculable (`N/A`), mientras otros dispositivos mostraban 50–106 ms.
+Los scanners (nRF Connect y la propia app) capturaban sesiones de 4 fragmentos incompletas.
+Se descartó y se sustituyó por **1000/120/1**: conserva la ráfaga de 1 s que sí entregaba los 4
+fragmentos y elimina una repetición. Ambos móviles convergieron a `2 riders` y mantienen
+recepción. Código en `c2bebec` + `3eedd26`.
+
+Queda pendiente la corrida de campo de 35 min con el perfil adoptado antes de considerar
+Commit 4.
 
 ## Estado
 
