@@ -1165,3 +1165,14 @@ Con autorización explícita del usuario se corrigió `Ed25519SosCrypto.persistK
 
 Se añadió `androidx.test:runner:1.6.2` al APK de tests porque el runner configurado no estaba presente. El archivo estaba limpio en `HEAD` y la APK anterior coincidía con la documentada, así que no hubo código ajeno ni revert. Stack, causa y detalle: `docs/evidence/crypto_iv_fix_20261123/README.md`. Sin `push` ni `amend`. Redmi se desconectó durante la instrumentación y queda pendiente allí.
 
+### FASE 1 — doble `RideStarted` y desfase de `lastSeenEpochMs` — 2026-11-24
+
+Con autorización explícita se corrigieron los dos bugs detectados en los logs de la rodada de Prueba D. Sin `amend` ni `push`; commits atómicos separados por fix y evidencia.
+
+| Bug | Archivo | Cambio | Test |
+| --- | --- | --- | --- |
+| `RideStarted` duplicado a 36–102 ms | `RideStartDeduplicator.kt` (nuevo), `RideService.kt`, `MainAppScaffold.kt` | Guard de 500 ms en `dispatchStartRide` (punto común de los dos callers de UI), `reset()` al detener rodada | `RideStartDeduplicatorTest` (5/5) |
+| `at=` / `lastSeenEpochMs` atrasado | `MeshRelayEngine.kt` | `start()` usa `System.currentTimeMillis()` al procesar el heartbeat, no `IncomingPacket.timestampEpochMs` | `MeshRelayIngressTimestampTest` (2/2) |
+
+Suite canónica: **622 tests, 0 fallos, 0 errores**. APK `standardDebug` firmado con `PILOT_RIDE_ID` real, SHA-256 `0BCD4CE332991A25957A990B12C5CD90B8A9DB2B4BCFC851488B4EB2E73DF35B`, instalado y verificado en TECNO y REDMI. En rodada continua de ~10 min: **1 solo `RideStarted` por equipo**, **delta 0 s entre `at=` y el reloj del logcat en los 58 heartbeats recibidos**, HUD sin `sin señal` falso; TECNO `2 riders` en 54/54 muestras y REDMI en 33/54 (pérdida real de reensamblado tras 16:30). Detalle, capturas y logs: `docs/evidence/fase1_fixes_20261124/README.md`. Fase 1 sigue **NO validada** y Commit 4 diferido: faltan velocidad/separación reales, pérdida/recuperación y SOS controlado de la Prueba D.
+
