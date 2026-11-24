@@ -27,7 +27,8 @@ class RecalculateRouteUseCase(
         origin: LatLngPoint,
         destination: LatLngPoint,
         destinationName: String
-    ) -> RouteAlternative?
+    ) -> RouteAlternative?,
+    private val isReturnPhase: () -> Boolean = { false }
 ) {
     suspend operator fun invoke(
         currentLocation: LatLngPoint?,
@@ -37,7 +38,14 @@ class RecalculateRouteUseCase(
         if (!isOnline()) return RecalculateRouteOutcome.OFFLINE
 
         val origin = currentLocation ?: return RecalculateRouteOutcome.NO_ROUTE
-        val target = destination ?: return RecalculateRouteOutcome.NO_ROUTE
+        val returnPhase = isReturnPhase()
+        val target = if (returnPhase) {
+            RideScheduleRepository.currentRide.value
+                ?.let { RouteOrientation.effectiveDestination(it, isReturnPhase = true) }
+                ?: destination
+        } else {
+            destination
+        } ?: return RecalculateRouteOutcome.NO_ROUTE
 
         val recalculated = fetchRoadRoute(
             origin,
@@ -46,7 +54,9 @@ class RecalculateRouteUseCase(
         ) ?: return RecalculateRouteOutcome.NO_ROUTE
 
         RideScheduleRepository.updateSelectedRoute(recalculated)
-        RouteDeviationDetector.setActiveRoutePolyline(recalculated.waypoints)
+        RouteDeviationDetector.setActiveRoutePolyline(
+            RouteOrientation.effectiveWaypoints(recalculated.waypoints, returnPhase)
+        )
 
         // Reevaluar contra la nueva polilínea para que el banner desaparezca si el
         // piloto ya quedó dentro del corredor recalculado.

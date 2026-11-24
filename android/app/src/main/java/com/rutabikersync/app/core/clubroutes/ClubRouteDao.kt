@@ -18,6 +18,17 @@ interface ClubRouteDao {
     )
     suspend fun getRoutes(groupId: String): List<ClubRouteEntity>
 
+    /**
+     * Elimina del caché las rutas que el backend ya no publica. Sin esta
+     * reconciliación, una ruta borrada en el servidor sigue pareciendo la
+     * "próxima" en el móvil y su roster no carga (no existe en el backend).
+     */
+    @Query("DELETE FROM club_routes_cache WHERE groupId = :groupId AND id NOT IN (:keepIds)")
+    suspend fun deleteStaleRoutes(groupId: String, keepIds: List<String>)
+
+    @Query("DELETE FROM club_routes_cache WHERE groupId = :groupId")
+    suspend fun deleteAllRoutesForGroup(groupId: String)
+
     @Query("DELETE FROM club_route_rsvps_cache WHERE routeId = :routeId")
     suspend fun deleteRsvpsForRoute(routeId: String)
 
@@ -55,6 +66,15 @@ class InMemoryClubRouteDao : ClubRouteDao {
         routes.values
             .filter { it.groupId == groupId }
             .sortedWith(compareBy<ClubRouteEntity> { it.startsAt == null }.thenBy { it.startsAt })
+
+    override suspend fun deleteStaleRoutes(groupId: String, keepIds: List<String>) {
+        val keep = keepIds.toSet()
+        routes.entries.removeAll { (_, route) -> route.groupId == groupId && route.id !in keep }
+    }
+
+    override suspend fun deleteAllRoutesForGroup(groupId: String) {
+        routes.entries.removeAll { (_, route) -> route.groupId == groupId }
+    }
 
     override suspend fun deleteRsvpsForRoute(routeId: String) {
         rsvps.keys.removeAll { it.first == routeId }

@@ -1,0 +1,130 @@
+﻿
+11-23 19:07:31.535 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:31.535 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913027
+11-23 19:07:31.536 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:31.536 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913053
+11-23 19:07:31.541 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:31.541 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913054
+11-23 19:07:31.541 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:31.541 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913056
+11-23 19:07:34.507 28613 28613 W RideService: RideLifecycleEventTx abortado: no hay relayEngine activo
+11-23 19:07:34.584 28613 28613 D WM-WorkerWrapper: Starting work for 
+com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxWorker
+11-23 19:07:35.610 25004 25105 E Kolun.PackageInfoUtils: isAppExistAndEnabled NameNotFoundException -> pkg : 
+com.transsion.wallet.tecno
+11-23 19:07:36.131 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:07:36.133 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:07:36.135 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:07:39.605 28613 28649 I WM-WorkerWrapper: Worker result RETRY for Work [ 
+id=f18d8fd3-1e80-4602-9474-c973f1bc5155, tags={ com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxWorker } ]
+11-23 19:07:42.542  3358  3358 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:uiautomator dump 
+/sdcard/p2_arrive_offline.xml'
+11-23 19:07:54.628 28613 28613 D WM-WorkerWrapper: Starting work for 
+com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxWorker
+11-23 19:07:54.852   848  1231 W ActivityManager: java.lang.SecurityException: Permission Denial: not allowed to send 
+broadcast com.hoffnung.wake_up_action from pid=-1, uid=10168
+11-23 19:07:55.512 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.512 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001897407
+11-23 19:07:55.512 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.512 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001911630
+11-23 19:07:55.521 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.521 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001911633
+11-23 19:07:55.521 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.521 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001911632
+11-23 19:07:55.529 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.529 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913053
+11-23 19:07:55.529 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.529 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913027
+11-23 19:07:55.538 26845  7736 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.538 26845  7736 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913054
+11-23 19:07:55.538 26845 31830 E DatabaseUtils: Writing exception to parcel
+11-23 19:07:55.538 26845 31830 E DatabaseUtils: java.lang.IllegalArgumentException: Unrecognized uri: 
+content://com.transsion.camera.SpecialTypesProvider/type/1001913056
+11-23 19:07:57.055 28613 28651 I WM-WorkerWrapper: Worker result SUCCESS for Work [ 
+id=f18d8fd3-1e80-4602-9474-c973f1bc5155, tags={ com.rutabikersync.app.core.clubroutes.RideLifecycleOutboxWorker } ]
+11-23 19:07:58.130 25004 25105 E Kolun.PackageInfoUtils: isAppExistAndEnabled NameNotFoundException -> pkg : 
+com.transsion.wallet.tecno
+11-23 19:07:58.648 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:07:58.650 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:07:58.652 25004 25105 D ManifestUtil: getSuportItems: e = com.alibaba.fastjson.JSONException: syntax error, 
+pos 1213, json : {"cardId":57,"contentId":20000,"data":{"cardContent":{"id":20000,"labelImage":{"bitmap":{"type":1,"uri
+":"@drawable/play_soundrecord"}},"mainInfo":{"content":"@string/card_record_title","textColor":-3407872},"primaryInfo":
+{"content":"@string/card_record_instructions","textColor":-3407872,"textLabel":{"backgroundColor":-16776961,"labelColor
+":-1,"labelText":"µáçþ¡¥"}},"secondaryInfo":{"content":"õ║îþ║ºÞ¥àÕè®õ┐íµü»1","textColor":1711276032}},"cardOperation":{
+"actions":[{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"url":"guide://sound_record_activ
+ity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videocallenhancer","minVersion":1,"ur
+l":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"},{"deeplink":{"appPackage":"com.transsion.videoca
+llenhancer","minVersion":1,"url":"guide://sound_record_activity/deeplink"},"webUrl":"www.baidu.com"}],"buttonTitles":["
+µîëÚÆ«11","µîëÚÆ«22","µîëÚÆ«33"]},"cardResSource":{"packageName":"com.transsion.videocallenhancer","prefixes":"@","type
+":1}},"languageTag":"zh-CN","packId":1000,"macroKey":"ro.os_social_turbo_play_recordintro_support","extraKey":"ro.os_so
+cial_turbo_record","limitValues":"0/1","blockFilters":[{countries: RS,ME,MK,XK,BA,AL,PH,EG}],"systemUserKey":0}
+11-23 19:08:17.208  3358  3358 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:uiautomator dump 
+/sdcard/p2_arrive_synced.xml'
+
+

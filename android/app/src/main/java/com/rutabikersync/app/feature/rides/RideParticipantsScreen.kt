@@ -78,6 +78,11 @@ fun RideParticipantsScreen(
                 fontWeight = FontWeight.Black
             )
             Text(
+                text = "Ruta ${roster.routeId.take(8)}… · Salida: ${ClubRsvpUi.formatRouteDateTime(roster.startsAt, full = false)}",
+                color = BikerColors.TextSecondary,
+                fontSize = 11.sp
+            )
+            Text(
                 text = "Solo tu fila es interactiva; las demás muestran el estado real del club.",
                 color = BikerColors.TextSecondary,
                 fontSize = 11.sp
@@ -168,17 +173,29 @@ fun RideParticipantsScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Abrir mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
-                        Button(
-                            onClick = { onArriveDestination?.invoke(roster.routeId) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF38BDF8),
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Check, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Llegamos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        if (currentUserIsLeader) {
+                            Button(
+                                onClick = { onArriveDestination?.invoke(roster.routeId) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF38BDF8),
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Llegamos", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            // El endpoint /arrive-destination es leader-only: no ofrecer un
+                            // botón que inevitablemente devolvería 403 al miembro.
+                            Text(
+                                text = "El líder confirma la llegada",
+                                color = BikerColors.TextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 } else {

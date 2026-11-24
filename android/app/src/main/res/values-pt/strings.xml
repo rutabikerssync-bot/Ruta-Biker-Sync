@@ -130,8 +130,7 @@
     <string name="rides_route_empty">Sem rota ativa</string>
     <string name="rides_route_empty_desc">Carregue um arquivo GPX ou mapa offline para navegar com o comboio.</string>
     <string name="rides_btn_view_map">Ver mapa</string>
-    <string name="rides_btn_start_active_cockpit">Iniciar Rolê (Cabine Ativa)</string>
-    <string name="rides_btn_start_free_ride">Iniciar Rolê Livre</string>
+    <string name="rides_btn_start_free_ride">Iniciar Rota Livre</string>
 
     <!-- Tela 6: Cabine de Rolê Ativa -->
     <string name="cockpit_hud_leader_format">Líder a %1$d m ↗</string>
@@ -239,7 +238,6 @@
     <string name="rides_btn_create_route_desc">Traçar e planejar uma nova rota no mapa</string>
     <string name="rides_btn_check_route_map">🗺 Checar Rota no Mapa</string>
     <string name="rides_btn_create_route_card">🗺 + Criar Rota no Mapa</string>
-    <string name="rides_btn_start_ride_preview">🏍 Iniciar Percurso</string>
     <string name="rides_map_snapshot_title">SNAPSHOT DO MAPA DE DESTINO (AUTOMÁTICO)</string>
     <string name="rides_destination_label">🏁 Destino: %1$s</string>
     <string name="rides_status_called">✓ Convocada</string>

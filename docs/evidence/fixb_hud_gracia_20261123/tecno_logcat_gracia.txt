@@ -1,0 +1,232 @@
+﻿
+11-23 18:25:53.932 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:54.017 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:54.022   848  1226 D os.notification.SuspendJobManager: create job  
+com.transsion.util.SuspendJobManager$JobInfo@183ec0 key:NotificationRecord(0x0062a843: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@5f167f9 sn:-1 owner:{}
+11-23 18:25:54.023  2653  2664 D os.notification: onNotifyNotification 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=null shortcut=null contentView=null vibrate=null 
+sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10389 
+NotificationChannel:NotificationChannel{mId='rbs_active_ride_mesh_channel', mName=Rodada Activa y Mesh BLE, 
+mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, 
+mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, 
+mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, 
+mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION 
+content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, 
+mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, 
+mDemoted=false, mImportantConvo=false} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@981eef6 
+sn:167916
+11-23 18:25:54.024  2653  2664 D os_noti_center_rule: match = false, sendPkg = com.rutabikersync.app, dbChannel = 
+null, chName = Rodada Activa y Mesh BLE, chId = rbs_active_ride_mesh_channel
+11-23 18:25:54.027   848  1226 D os.notification.SuspendJobManager: done  
+com.transsion.util.SuspendJobManager$JobInfo@183ec0 key:NotificationRecord(0x0062a843: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@5f167f9 sn:167916 
+owner:{2653} for  app-2653-request
+11-23 18:25:54.028   848  2618 D os.notification: onEnqueueNotificationInternal 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+callingUid:10389 sn:167916 res:true
+11-23 18:25:54.251 29453 29453 D NotificationListener: onNotificationPosted: 
+StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x6a color=0x00000000 actions=3 vis=PRIVATE))
+11-23 18:25:54.255  2676  2676 I SmartPanel_SmartPanelService: SP_NOTI_CHANAGE_STATUS isPost = true  bean 
+NotificationBean{packageName='com.rutabikersync.app', tag='null', channelId='rbs_active_ride_mesh_channel', 
+category='null', extraTitle='Rodada activa ┬À 0 riders conectados', id=3201, mUserId=0, defaults=0, when=1795472754017}
+11-23 18:25:54.259 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:25:54.259 29453 29453 D InterruptionStateProvider: No heads up: unimportant notification: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:25:54.271 29453 29511 D PeopleSpaceWidgetMgr: Sbn doesn't contain valid PeopleTileKey: 
+null/0/com.rutabikersync.app
+11-23 18:25:54.931 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:55.267 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:55.300 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:56.753 23464 23464 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-23 18:25:56.761 23464 23464 I AndroidRuntime: Using default boot image
+11-23 18:25:56.761 23464 23464 I AndroidRuntime: Leaving lock profiling enabled
+11-23 18:25:56.946 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:57.058   848  1226 D os.notification.SuspendJobManager: create job  
+com.transsion.util.SuspendJobManager$JobInfo@a18d7f0 key:NotificationRecord(0x02ee2833: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@1ff4169 sn:-1 owner:{}
+11-23 18:25:57.059  2653  2664 D os.notification: onNotifyNotification 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=null shortcut=null contentView=null vibrate=null 
+sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10389 
+NotificationChannel:NotificationChannel{mId='rbs_active_ride_mesh_channel', mName=Rodada Activa y Mesh BLE, 
+mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, 
+mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, 
+mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, 
+mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION 
+content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, 
+mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, 
+mDemoted=false, mImportantConvo=false} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@b65e2f7 
+sn:167917
+11-23 18:25:57.060  2653  2664 D os_noti_center_rule: match = false, sendPkg = com.rutabikersync.app, dbChannel = 
+null, chName = Rodada Activa y Mesh BLE, chId = rbs_active_ride_mesh_channel
+11-23 18:25:57.063   848  1226 D os.notification.SuspendJobManager: done  
+com.transsion.util.SuspendJobManager$JobInfo@a18d7f0 key:NotificationRecord(0x02ee2833: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@1ff4169 sn:167917 
+owner:{2653} for  app-2653-request
+11-23 18:25:57.063 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:57.069   848  2618 D os.notification: onEnqueueNotificationInternal 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+callingUid:10389 sn:167917 res:true
+11-23 18:25:57.281 29453 29453 D NotificationListener: onNotificationPosted: 
+StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x6a color=0x00000000 actions=3 vis=PRIVATE))
+11-23 18:25:57.283  2676  2676 I SmartPanel_SmartPanelService: SP_NOTI_CHANAGE_STATUS isPost = true  bean 
+NotificationBean{packageName='com.rutabikersync.app', tag='null', channelId='rbs_active_ride_mesh_channel', 
+category='null', extraTitle='Rodada activa ┬À 0 riders conectados', id=3201, mUserId=0, defaults=0, when=1795472757053}
+11-23 18:25:57.288 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:25:57.288 29453 29453 D InterruptionStateProvider: No heads up: unimportant notification: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:25:57.299 29453 29511 D PeopleSpaceWidgetMgr: Sbn doesn't contain valid PeopleTileKey: 
+null/0/com.rutabikersync.app
+11-23 18:25:57.775 23464 23464 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-23 18:25:57.845   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:57.845   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:57.845   687   687 I Layer   : name=c09732 com.rutabikersync.app/com.rutabikersync.app.MainActivity, 
+id=85243, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | 
+LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-23 18:25:57.845   687   687 I Layer   : 
+name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=85248, visible=1, 
+DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-23 18:25:57.845   848   873 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app 
+refreshMode=0 is90HZ=false
+11-23 18:25:57.845   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:57.861   687   687 I Layer   : name=c09732 com.rutabikersync.app/com.rutabikersync.app.MainActivity, 
+id=85243, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | 
+LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-23 18:25:57.861   687   687 I Layer   : 
+name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=85248, visible=1, 
+DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-23 18:25:57.929 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:58.944 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:25:59.051   848  1511 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.052   848  1511 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.052   848  1511 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app 
+refreshMode=0 is90HZ=false
+11-23 18:25:59.052   848  1511 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.060   687   687 I Layer   : name=c09732 com.rutabikersync.app/com.rutabikersync.app.MainActivity, 
+id=85243, visible=1, DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL | KEEP_SCREEN_ON | 
+LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+11-23 18:25:59.061   687   687 I Layer   : 
+name=SurfaceView[com.rutabikersync.app/com.rutabikersync.app.MainActivity](BLAST)#0, id=85248, visible=1, 
+DrawingState.flags=0x100, paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+11-23 18:25:59.064   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.064   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.064   848   873 E HighRefreshRateBlacklist: isWhiteListed packageName=com.rutabikersync.app 
+refreshMode=0 is90HZ=false
+11-23 18:25:59.064   848   873 V WindowManager: updateFrameRateSelectionPriorityIfNeeded refreshRate=0.0  
+package=com.rutabikersync.app
+11-23 18:25:59.065 23464 23464 D AndroidRuntime: Shutting down VM
+11-23 18:25:59.944 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:26:00.095 22933 22939 I tabikersync.ap: Method exceeds compiler instruction limit: 25275 in void com.rutabiker
+sync.app.feature.livemap.LiveMapScreenKt.LiveMapScreen(com.rutabikersync.app.feature.livemap.LiveMapViewModel, 
+kotlin.jvm.functions.Function0, boolean, boolean, boolean, androidx.compose.ui.Modifier, 
+androidx.compose.runtime.Composer, int, int)
+11-23 18:26:00.101   848  1226 D os.notification.SuspendJobManager: create job  
+com.transsion.util.SuspendJobManager$JobInfo@79aaabd key:NotificationRecord(0x0fcd8214: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@80e78b2 sn:-1 owner:{}
+11-23 18:26:00.102  2653 19875 D os.notification: onNotifyNotification 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=null shortcut=null contentView=null vibrate=null 
+sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) callingUid:10389 
+NotificationChannel:NotificationChannel{mId='rbs_active_ride_mesh_channel', mName=Rodada Activa y Mesh BLE, 
+mDescription=hasDescription , mImportance=2, mBypassDnd=false, mLockscreenVisibility=-1000, 
+mSound=content://settings/system/notification_sound, mLights=false, mLightColor=0, mVibration=null, 
+mUserLockedFields=0, mFgServiceShown=true, mVibrationEnabled=false, mShowBadge=false, mDeleted=false, 
+mDeletedTimeMs=-1, mGroup='null', mAudioAttributes=AudioAttributes: usage=USAGE_NOTIFICATION 
+content=CONTENT_TYPE_SONIFICATION flags=0x800 tags= bundle=null, mBlockableSystem=false, mAllowBubbles=-1, 
+mImportanceLockedByOEM=false, mImportanceLockedDefaultApp=false, mOriginalImp=2, mParent=null, mConversationId=null, 
+mDemoted=false, mImportantConvo=false} receipt:com.transsion.app.IEnqueueNotificationReceipt$Stub$Proxy@7931564 
+sn:167918
+11-23 18:26:00.103  2653 19875 D os_noti_center_rule: match = false, sendPkg = com.rutabikersync.app, dbChannel = 
+null, chName = Rodada Activa y Mesh BLE, chId = rbs_active_ride_mesh_channel
+11-23 18:26:00.108   848  1226 D os.notification.SuspendJobManager: done  
+com.transsion.util.SuspendJobManager$JobInfo@79aaabd key:NotificationRecord(0x0fcd8214: pkg=com.rutabikersync.app 
+user=UserHandle{0} id=3201 tag=null importance=2 key=0|com.rutabikersync.app|3201|null|10389: 
+Notification(channel=rbs_active_ride_mesh_channel shortcut=null contentView=null vibrate=null sound=null defaults=0x0 
+flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+data:com.android.server.notification.NotificationManagerService$$ExternalSyntheticLambda10@80e78b2 sn:167918 
+owner:{2653} for  app-2653-request
+11-23 18:26:00.109   848  2537 D os.notification: onEnqueueNotificationInternal 
+StatusBarNotification:StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x4a color=0x00000000 actions=3 vis=PRIVATE)) 
+callingUid:10389 sn:167918 res:true
+11-23 18:26:00.339  2676  2676 I SmartPanel_SmartPanelService: SP_NOTI_CHANAGE_STATUS isPost = true  bean 
+NotificationBean{packageName='com.rutabikersync.app', tag='null', channelId='rbs_active_ride_mesh_channel', 
+category='null', extraTitle='Rodada activa ┬À 0 riders conectados', id=3201, mUserId=0, defaults=0, when=1795472760095}
+11-23 18:26:00.341 29453 29453 D NotificationListener: onNotificationPosted: 
+StatusBarNotification(pkg=com.rutabikersync.app user=UserHandle{0} id=3201 tag=null 
+key=0|com.rutabikersync.app|3201|null|10389: Notification(channel=rbs_active_ride_mesh_channel shortcut=null 
+contentView=null vibrate=null sound=null defaults=0x0 flags=0x6a color=0x00000000 actions=3 vis=PRIVATE))
+11-23 18:26:00.348 29453 29453 D InterruptionStateProvider: No bubble up: not allowed to bubble: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:26:00.349 29453 29453 D InterruptionStateProvider: No heads up: unimportant notification: 
+0|com.rutabikersync.app|3201|null|10389
+11-23 18:26:00.359 29453 29511 D PeopleSpaceWidgetMgr: Sbn doesn't contain valid PeopleTileKey: 
+null/0/com.rutabikersync.app
+
+

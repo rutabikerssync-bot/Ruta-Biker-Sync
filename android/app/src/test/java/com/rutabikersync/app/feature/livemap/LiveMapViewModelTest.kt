@@ -178,8 +178,14 @@ class LiveMapViewModelTest {
         val rider4Lost = afterTimeoutFrame.markers.first { it.shortId == 4u.toUShort() }
         assertEquals(RiderRouteStatus.OFF_MESH_LOST, rider4Lost.routeStatus)
         assertEquals("✕ Sin señal", rider4Lost.routeStatus.symbolAndLabel)
-        // FIX contador HUD: los peers sin señal no cuentan; queda solo el local.
-        assertEquals(1, afterTimeoutFrame.ridersCount)
+        // FIX B: al vencer el timeout se muestra "sin señal", pero los 3 peers siguen
+        // contando durante la gracia visual de 60 s; solo después baja a 1 (local).
+        assertEquals(4, afterTimeoutFrame.ridersCount)
+        val afterGraceFrame = mapController.flushMapFrame(
+            nowEpochMs = lossAtMs + PeerGracePolicy.GRACE_MS + 1L,
+            force = true
+        )
+        assertEquals(1, afterGraceFrame.ridersCount)
 
         // Rider 2 activa SOS -> actualización inmediata sin esperar al tick de 1 s
         engines.getValue(2u).emitLocalPosition(19.4410, -99.1332, 0, 180f, 88, isSos = true, ttl = 4)
@@ -336,10 +342,19 @@ class LiveMapViewModelTest {
         assertEquals(2, twoPeers.ridersCount)
         assertEquals("2 riders", ConvoyRiderCountFormatter.format(twoPeers.ridersCount))
 
-        // El peer se pierde: su marcador fantasma sigue visible, pero el HUD baja a 1.
+        // FIX B: al vencer el timeout el marcador sigue visible y el HUD mantiene
+        // "2 riders" durante la gracia; tras 60 s sin señal baja a 1.
         val nowMs = System.currentTimeMillis()
-        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS)
-        val lostPeer = controller.flushMapFrame(nowEpochMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS, force = true)
+        val lossAtMs = nowMs + MeshRelayEngine.LOST_TIMEOUT_MS
+        engines.getValue(1u).evaluatePeerTimeouts(nowEpochMs = lossAtMs)
+        val inGrace = controller.flushMapFrame(nowEpochMs = lossAtMs + 30_000L, force = true)
+        assertEquals(2, inGrace.markers.size)
+        assertEquals(2, inGrace.ridersCount)
+        assertEquals("2 riders", ConvoyRiderCountFormatter.format(inGrace.ridersCount))
+        val lostPeer = controller.flushMapFrame(
+            nowEpochMs = lossAtMs + PeerGracePolicy.GRACE_MS + 1L,
+            force = true
+        )
         assertEquals(2, lostPeer.markers.size)
         assertEquals(1, lostPeer.ridersCount)
         assertEquals("1 rider", ConvoyRiderCountFormatter.format(lostPeer.ridersCount))

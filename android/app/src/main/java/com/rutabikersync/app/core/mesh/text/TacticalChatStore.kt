@@ -12,7 +12,30 @@ object TacticalChatStore {
     private val _messages = MutableStateFlow<List<TacticalChatMessage>>(emptyList())
     val messages: StateFlow<List<TacticalChatMessage>> = _messages.asStateFlow()
 
+    /**
+     * Proveedor dinámico opcional para resolver nombres y avatares reales desde el directorio de la rodada.
+     * Retorna Pair(nombreVisible, avatarBase64?).
+     */
+    var peerProfileResolver: ((UShort) -> Pair<String, String?>?)? = null
+
+    // Búfer LRU en memoria para deduplicar mensajes idénticos recibidos por ráfagas RF de retransmisión
+    private val recentIncomingKeys = mutableMapOf<String, Long>()
+    private const val DEDUPLICATION_WINDOW_MS = 10_000L
+
     fun addMessage(message: TacticalChatMessage) {
+        if (!message.isOutgoing) {
+            val key = "${message.senderShortId}:${message.targetShortId}:${message.text.trim()}"
+            val now = System.currentTimeMillis()
+            synchronized(recentIncomingKeys) {
+                recentIncomingKeys.entries.removeAll { now - it.value > DEDUPLICATION_WINDOW_MS }
+                val lastSeen = recentIncomingKeys[key]
+                if (lastSeen != null && now - lastSeen < DEDUPLICATION_WINDOW_MS) {
+                    android.util.Log.d("TacticalChatStore", "Mensaje duplicado descartado por ráfaga RF: $key")
+                    return
+                }
+                recentIncomingKeys[key] = now
+            }
+        }
         val list = _messages.value.toMutableList()
         list.add(message)
         _messages.value = list
@@ -39,6 +62,9 @@ object TacticalChatStore {
     }
 
     fun purgeR12() {
+        synchronized(recentIncomingKeys) {
+            recentIncomingKeys.clear()
+        }
         _messages.value = emptyList()
     }
 }

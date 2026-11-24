@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rutabikersync.app.core.clubroutes.ClubRouteEntity
+import com.rutabikersync.app.core.clubroutes.RideLifecycleRequestResult
+import com.rutabikersync.app.core.clubroutes.RideLifecycleStatePolicy
+import com.rutabikersync.app.core.clubroutes.RideLifecycleTransition
 import com.rutabikersync.app.core.clubroutes.RideRoster
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.ui.components.skeleton.UiState
@@ -180,28 +183,61 @@ class Phase1ViewModel(
         }
     }
 
+    /**
+     * Aplica SOLO consecuencias de un resultado ya confirmado por el servidor.
+     * El roster/fase se recargan desde el backend; nunca se escriben timestamps
+     * locales antes del ACK (H3).
+     */
+    private suspend fun applyLifecycleResult(
+        routeId: String,
+        event: RideLifecycleTransition,
+        result: RideLifecycleRequestResult
+    ) {
+        when (result) {
+            is RideLifecycleRequestResult.Applied ->
+                _rideRosterError.value = null
+            is RideLifecycleRequestResult.Rejected ->
+                _rideRosterError.value = "No se pudo ${event.name}: ${result.reason}"
+            is RideLifecycleRequestResult.Queued ->
+                _rideRosterError.value = "⏳ ${event.name} pendiente de sincronizar."
+        }
+        if (RideLifecycleStatePolicy.shouldMutateRoster(result)) loadRideRoster(routeId)
+        if (RideLifecycleStatePolicy.shouldBroadcastMesh(result)) {
+            val meshEvent = when (event) {
+                RideLifecycleTransition.START_OUTBOUND ->
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND
+                RideLifecycleTransition.ARRIVE_DESTINATION ->
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION
+                RideLifecycleTransition.START_RETURN ->
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN
+                RideLifecycleTransition.COMPLETE_RIDE ->
+                    com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE
+                RideLifecycleTransition.ARRIVE -> null
+            }
+            if (meshEvent != null) {
+                runCatching {
+                    com.rutabikersync.app.core.mesh.RideService.dispatchSendRideLifecycleEvent(meshEvent)
+                }
+            }
+        }
+    }
+
     fun startRide(routeId: String, onStarted: () -> Unit) {
         if (_isStartingRide.value) return
         _isStartingRide.value = true
         _rideRosterError.value = null
-        RideScheduleRepository.setReturnPhase(false)
         viewModelScope.launch {
             try {
-                // P0/H4: primero autoriza el backend; solo después se propaga por BLE.
-                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
-                    restCall = { repository.clubRoutes.startRoute(routeId) },
-                    authorized = { it.isSuccess || it.statusCode == 409 },
-                    onAuthorized = {
-                        loadRideRoster(routeId)
-                        onStarted()
-                    },
-                    onDenied = { response, _ ->
-                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
-                            ?: if (response != null) "No se pudo iniciar la ruta (${response.statusCode})."
-                            else "Sin conexión: inicio no autorizado por el servidor. La malla no propagó el evento."
-                    },
-                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND
+                val result = repository.clubRoutes.requestRideLifecycle(
+                    routeId,
+                    RideLifecycleTransition.START_OUTBOUND
                 )
+                applyLifecycleResult(routeId, RideLifecycleTransition.START_OUTBOUND, result)
+                if (RideLifecycleStatePolicy.shouldOpenCockpit(
+                        RideLifecycleTransition.START_OUTBOUND,
+                        result
+                    )
+                ) onStarted()
             } finally {
                 _isStartingRide.value = false
             }
@@ -211,22 +247,11 @@ class Phase1ViewModel(
     fun arriveDestination(routeId: String) {
         viewModelScope.launch {
             try {
-                // P0/H4: REST decide; el estado local y la malla solo cambian tras éxito.
-                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
-                    restCall = { repository.clubRoutes.arriveDestination(routeId) },
-                    authorized = { it.isSuccess },
-                    onAuthorized = {
-                        val nowIso = Instant.now().toString()
-                        _rideRoster.value = _rideRoster.value?.copy(destinationReachedAt = nowIso)
-                        loadRideRoster(routeId)
-                    },
-                    onDenied = { response, _ ->
-                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
-                            ?: if (response != null) "No se pudo marcar llegada a destino (${response.statusCode})."
-                            else "Sin conexión: llegada no autorizada por el servidor. La malla no propagó el evento."
-                    },
-                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.ARRIVE_DESTINATION
+                val result = repository.clubRoutes.requestRideLifecycle(
+                    routeId,
+                    RideLifecycleTransition.ARRIVE_DESTINATION
                 )
+                applyLifecycleResult(routeId, RideLifecycleTransition.ARRIVE_DESTINATION, result)
             } catch (_: Exception) {
                 _rideRosterError.value = "Error al marcar llegada a destino."
             }
@@ -236,26 +261,34 @@ class Phase1ViewModel(
     fun startReturn(routeId: String, onStarted: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                // P0/H4: la inversión de ruta solo se aplica si el servidor autoriza.
-                com.rutabikersync.app.core.mesh.RestFirstLifecycleGate.runAfterRest(
-                    restCall = { repository.clubRoutes.startReturnRoute(routeId) },
-                    authorized = { it.isSuccess || it.statusCode == 409 },
-                    onAuthorized = {
-                        RideScheduleRepository.setReturnPhase(true)
-                        val nowIso = Instant.now().toString()
-                        _rideRoster.value = _rideRoster.value?.copy(returnStartedAt = nowIso)
-                        loadRideRoster(routeId)
-                        onStarted()
-                    },
-                    onDenied = { response, _ ->
-                        _rideRosterError.value = response?.body?.get("error")?.jsonPrimitive?.contentOrNull
-                            ?: if (response != null) "No se pudo iniciar el retorno (${response.statusCode})."
-                            else "Sin conexión: retorno no autorizado por el servidor. La malla no propagó el evento."
-                    },
-                    lifecycleEvent = com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_RETURN
+                val result = repository.clubRoutes.requestRideLifecycle(
+                    routeId,
+                    RideLifecycleTransition.START_RETURN
                 )
+                applyLifecycleResult(routeId, RideLifecycleTransition.START_RETURN, result)
+                if (RideLifecycleStatePolicy.shouldOpenCockpit(
+                        RideLifecycleTransition.START_RETURN,
+                        result
+                    )
+                ) onStarted()
             } catch (_: Exception) {
                 _rideRosterError.value = "Error al iniciar el retorno."
+            }
+        }
+    }
+
+    /** Cierre formal de la rodada; el backend valida RETURN_NOT_STARTED (409). */
+    fun completeRide(routeId: String, onCompleted: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val result = repository.clubRoutes.requestRideLifecycle(
+                    routeId,
+                    RideLifecycleTransition.COMPLETE_RIDE
+                )
+                applyLifecycleResult(routeId, RideLifecycleTransition.COMPLETE_RIDE, result)
+                if (result is RideLifecycleRequestResult.Applied) onCompleted()
+            } catch (_: Exception) {
+                _rideRosterError.value = "Error al completar la ruta."
             }
         }
     }

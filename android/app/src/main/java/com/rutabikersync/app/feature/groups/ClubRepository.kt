@@ -52,7 +52,13 @@ class ClubRepository(
             "ClubRoutesRepository requiere ClubApiClient.initContext(context)"
         }
         val db = AppDatabase.getInstance(ctx)
-        ClubRoutesRepository(apiClient, db.clubRouteDao(), db.rsvpOutboxDao(), ctx)
+        ClubRoutesRepository(
+            apiClient,
+            db.clubRouteDao(),
+            db.rsvpOutboxDao(),
+            ctx,
+            db.rideLifecycleOutboxDao()
+        )
     }
 
     private val _rsvpPendingCount = MutableStateFlow(0)
@@ -61,7 +67,8 @@ class ClubRepository(
 
     suspend fun refreshRsvpPendingCount() {
         clubRoutes.refreshPendingCount()
-        _rsvpPendingCount.value = clubRoutes.pendingCount.value
+        _rsvpPendingCount.value =
+            clubRoutes.pendingCount.value + clubRoutes.lifecyclePendingCount.value
     }
 
     private val _devOverrides = MutableStateFlow(DevPanelOverrides())
@@ -367,6 +374,7 @@ class ClubRepository(
                 countryCode = country,
                 accountType = acct
             )
+            directoryUsers[_currentUser.value.id] = _currentUser.value
         }
         return Result.success(Unit)
     }

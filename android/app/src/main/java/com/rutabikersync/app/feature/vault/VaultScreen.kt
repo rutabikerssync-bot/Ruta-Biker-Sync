@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.app.DatePickerDialog
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.rutabikersync.app.R
 import com.rutabikersync.app.core.mesh.RideService
@@ -549,10 +550,34 @@ fun VaultScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color(0xFF0F172A))
                             .border(1.dp, Color(0xFF334155), RoundedCornerShape(14.dp))
-                            .padding(28.dp),
-                        contentAlignment = Alignment.Center
                     ) {
+                        // Imagen a sangre en toda la tarjeta: blindaje, hermandad y documentos.
+                        Image(
+                            painter = painterResource(id = R.drawable.card_boveda_vacia),
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            alignment = Alignment.Center,
+                            contentScale = ContentScale.Crop
+                        )
+                        // Degradado inferior: respeta la imagen y asegura la lectura del texto.
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color(0xFF0F172A).copy(alpha = 0.55f),
+                                            Color(0xFF0F172A)
+                                        )
+                                    )
+                                )
+                        )
                         Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
@@ -672,93 +697,131 @@ fun VaultScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             val isBright = HeritageTheme.isBrightRider
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Franja táctica: la misma imagen queda detrás del encabezado y de grupo sanguíneo/donante.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    HeritageEmblemBadge(
-                        imageVector = Icons.Default.LocalHospital,
-                        contentDescription = null,
-                        badgeSize = 36.dp,
-                        iconSize = 18.dp,
-                        glowColor = Color(0xFFEF4444)
-                    )
-                    Column {
-                        Text(
-                            text = "Ficha Médica de Emergencia",
-                            color = HeritageLeatherBrown,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
+                Image(
+                    painter = painterResource(id = R.drawable.card_ficha_medica_emergencia),
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Degradado idéntico al de la Bóveda: foto nítida arriba y fundido a Dark Slate abajo.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color(0xFF0F172A).copy(alpha = 0.55f),
+                                    Color(0xFF0F172A)
+                                )
+                            )
                         )
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(85.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        HeritageEmblemBadge(
+                            imageVector = Icons.Default.LocalHospital,
+                            contentDescription = null,
+                            badgeSize = 36.dp,
+                            iconSize = 18.dp,
+                            glowColor = Color(0xFFEF4444)
+                        )
+                        Column {
+                            Text(
+                                text = "Ficha Médica de Emergencia",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "Solo visible para líderes en caso de SOS (R10.2)",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    val isMedicalComplete = remember(medicalSheet) {
+                        MedicalSheetValidator.isComplete(medicalSheet)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (isMedicalComplete) {
+                                    if (isBright) Color(0xFFE8F8F0) else Color(0xFF10B981).copy(alpha = 0.15f)
+                                } else {
+                                    if (isBright) Color(0xFFFEF3C7) else Color(0xFFF59E0B).copy(alpha = 0.15f)
+                                }
+                            )
+                            .border(
+                                1.dp,
+                                if (isMedicalComplete) {
+                                    if (isBright) Color(0xFFA7F3D0) else Color(0xFF10B981).copy(alpha = 0.4f)
+                                } else {
+                                    if (isBright) Color(0xFFFDE68A) else Color(0xFFF59E0B).copy(alpha = 0.4f)
+                                },
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
                         Text(
-                            text = "Solo visible para líderes en caso de SOS (R10.2)",
-                            color = HeritageLeatherMuted,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
+                            text = if (isMedicalComplete) "🟢 Ficha Completa" else "🟡 Ficha Incompleta",
+                            color = if (isMedicalComplete) {
+                                if (isBright) Color(0xFF059669) else Color(0xFF34D399)
+                            } else {
+                                if (isBright) Color(0xFFD97706) else Color(0xFFFBBF24)
+                            },
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
+                    }
 
-                val isMedicalComplete = remember(medicalSheet) {
-                    MedicalSheetValidator.isComplete(medicalSheet)
-                }
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (isMedicalComplete) {
-                                if (isBright) Color(0xFFE8F8F0) else Color(0xFF10B981).copy(alpha = 0.15f)
-                            } else {
-                                if (isBright) Color(0xFFFEF3C7) else Color(0xFFF59E0B).copy(alpha = 0.15f)
-                            }
-                        )
-                        .border(
-                            1.dp,
-                            if (isMedicalComplete) {
-                                if (isBright) Color(0xFFA7F3D0) else Color(0xFF10B981).copy(alpha = 0.4f)
-                            } else {
-                                if (isBright) Color(0xFFFDE68A) else Color(0xFFF59E0B).copy(alpha = 0.4f)
-                            },
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = if (isMedicalComplete) "🟢 Ficha Completa" else "🟡 Ficha Incompleta",
-                        color = if (isMedicalComplete) {
-                            if (isBright) Color(0xFF059669) else Color(0xFF34D399)
-                        } else {
-                            if (isBright) Color(0xFFD97706) else Color(0xFFFBBF24)
-                        },
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Fila de Grupo Sanguíneo y Donante (con alturas, esquinas y bordes perfectamente simétricos)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Max),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Badge Tipo de Sangre
+                    // Fila de Grupo Sanguíneo y Donante sobre la misma imagen de fondo.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Max)
+                            .padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                // Badge Tipo de Sangre: sin opacidad, la foto se ve nítida detrás.
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(HeritageCardWarm)
-                        .border(1.dp, HeritageBorder, RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(12.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Row(
@@ -789,7 +852,7 @@ fun VaultScreen(
                             )
                             Text(
                                 text = medicalSheet.bloodType,
-                                color = HeritageLeatherBrown,
+                                color = Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -797,14 +860,13 @@ fun VaultScreen(
                     }
                 }
 
-                // Badge Donante de Órganos
+                // Badge Donante de Órganos: sin opacidad, mismo trato que el de sangre.
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(HeritageCardWarm)
-                        .border(1.dp, HeritageBorder, RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFD4AF37), RoundedCornerShape(12.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 ) {
                     Row(
@@ -837,13 +899,15 @@ fun VaultScreen(
                             )
                             Text(
                                 text = if (medicalSheet.isOrganDonor) "Registrado" else "No especificado",
-                                color = HeritageLeatherBrown,
+                                color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+                    }
+                    }
                     }
                 }
             }

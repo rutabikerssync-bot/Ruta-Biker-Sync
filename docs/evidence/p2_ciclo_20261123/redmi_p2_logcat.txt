@@ -1,0 +1,85 @@
+﻿
+11-23 19:13:59.881  2738  9732 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.891  2738  5771 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.908  2738  4967 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.914  2738  4967 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.923  2738  2832 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.927  2738  4967 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.931  2738  4967 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.934  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.943  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.951  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.959  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.967  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.976  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.985  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:13:59.993  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.003  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.011  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.028  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.034  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.039  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.043  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.051  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.059  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.068  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.076  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.086  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.094  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.111  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.127  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.143  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.160  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.178  2738  4536 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.203  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:00.236  2738  5147 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:04.556 16820 16820 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-23 19:14:04.577 16820 16820 I AndroidRuntime: Using default boot image
+11-23 19:14:04.577 16820 16820 I AndroidRuntime: Leaving lock profiling enabled
+11-23 19:14:04.898 16820 16820 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-23 19:14:05.599  2738  5771 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:06.045  2738  5771 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:06.085  2738  5771 D BarFollowAnimation: pairAppearanceRegionAndWin win=Window{7d8879 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+11-23 19:14:07.250 16820 16820 D AndroidRuntime: callMain: return with no error.
+11-23 19:14:07.250 16820 16820 D AndroidRuntime: Shutting down VM
+11-23 19:14:08.333  1887  1887 I SurfaceFlinger: SF-MICapture: mode:0, 
+layerName:com.rutabikersync.app/com.rutabikersync.app.MainActivity#3981
+
+

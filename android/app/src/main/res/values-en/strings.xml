@@ -130,7 +130,6 @@
     <string name="rides_route_empty">No active route</string>
     <string name="rides_route_empty_desc">Load a GPX file or offline map to navigate with the convoy.</string>
     <string name="rides_btn_view_map">View map</string>
-    <string name="rides_btn_start_active_cockpit">Start Ride (Active Cockpit)</string>
     <string name="rides_btn_start_free_ride">Start Free Ride</string>
 
     <!-- Screen 6: Active Cockpit -->
@@ -239,7 +238,6 @@
     <string name="rides_btn_create_route_desc">Plot and plan a new route on the map</string>
     <string name="rides_btn_check_route_map">🗺 Check Route on Map</string>
     <string name="rides_btn_create_route_card">🗺 + Create Route on Map</string>
-    <string name="rides_btn_start_ride_preview">🏍 Start Ride</string>
     <string name="rides_map_snapshot_title">DESTINATION MAP SNAPSHOT (AUTOMATIC)</string>
     <string name="rides_destination_label">🏁 Destination: %1$s</string>
     <string name="rides_status_called">✓ Called</string>

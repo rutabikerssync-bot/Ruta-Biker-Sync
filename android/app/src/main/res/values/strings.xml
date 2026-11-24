@@ -118,8 +118,7 @@
     <string name="rides_route_empty">Sin ruta activa</string>
     <string name="rides_route_empty_desc">Carga un archivo GPX o mapa offline para navegar con el convoy.</string>
     <string name="rides_btn_view_map">Ver mapa</string>
-    <string name="rides_btn_start_active_cockpit">Iniciar Rodada (Cabina Activa)</string>
-    <string name="rides_btn_start_free_ride">Iniciar Rodada Libre</string>
+    <string name="rides_btn_start_free_ride">Iniciar Ruta Libre</string>
 
     <!-- Pantalla 6: Cabina de Rodada Activa -->
     <string name="cockpit_hud_leader_format">Líder a %1$d m ↗</string>
@@ -243,7 +242,6 @@
     <string name="rides_btn_create_route_desc">Trazar y planificar una nueva ruta en el mapa</string>
     <string name="rides_btn_check_route_map">🗺 Chequear Ruta en Mapa</string>
     <string name="rides_btn_create_route_card">🗺 + Crear Ruta en Mapa</string>
-    <string name="rides_btn_start_ride_preview">🏍️ Iniciar</string>
     <string name="rides_map_snapshot_title">SNAPSHOT MAPA DESTINO (AUTOMÁTICO)</string>
     <string name="rides_destination_label">🏁 Destino: %1$s</string>
     <string name="rides_status_called">✓ Convocada</string>

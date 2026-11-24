@@ -11,16 +11,16 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -43,8 +42,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -83,7 +80,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -102,15 +101,12 @@ import com.rutabikersync.app.feature.groups.GroupsMainTabScreen
 import com.rutabikersync.app.feature.groups.Phase1ViewModel
 import com.rutabikersync.app.feature.groups.ProfileAndAuthTabScreen
 import com.rutabikersync.app.feature.livemap.LiveMapScreen
-import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.theme.BikerColors
 import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.feature.routes.ScheduledRide
-import com.rutabikersync.app.feature.routes.AttendanceStatus
 import com.rutabikersync.app.feature.rides.RideParticipantsScreen
 import com.rutabikersync.app.feature.routes.ScheduleRideMapScreen
 import com.rutabikersync.app.feature.routes.RideHistoryScreen
-import com.rutabikersync.app.feature.routes.CorridorOfflineManager
 import com.rutabikersync.app.feature.vault.VaultScreen
 
 import androidx.compose.foundation.clickable
@@ -149,6 +145,9 @@ fun MainAppScaffold(
     }
 
     var selectedTab by remember { mutableIntStateOf(initialSelectedTab) }
+    // Ruta elegida en RUTAS DEL CLUB: se fija antes de navegar a PARTICIPANTES
+    // para que el efecto de Rodadas no la sustituya por la "próxima" al entrar.
+    var requestedRosterRouteId by remember { mutableStateOf<String?>(null) }
     var showLiveMapPreview by remember { mutableStateOf(initialStartRidePreview) }
     var showDevPanel by remember { mutableStateOf(false) }
     var showModeratorDialog by remember { mutableStateOf(false) }
@@ -217,9 +216,17 @@ fun MainAppScaffold(
                     0 -> RidesReleaseHomeScreen(
                         phase1ViewModel = phase1ViewModel,
                         onStartLiveMapPreview = { showLiveMapPreview = true },
-                        initialOpenRideHistory = initialStartRideHistory
+                        initialOpenRideHistory = initialStartRideHistory,
+                        requestedRosterRouteId = requestedRosterRouteId
                     )
-                    1 -> GroupsMainTabScreen(viewModel = phase1ViewModel)
+                    1 -> GroupsMainTabScreen(
+                        viewModel = phase1ViewModel,
+                        onOpenParticipants = { routeId ->
+                            requestedRosterRouteId = routeId
+                            phase1ViewModel.loadRideRoster(routeId)
+                            selectedTab = 0
+                        }
+                    )
                     2 -> VaultScreen(phase1ViewModel = phase1ViewModel)
                     else -> com.rutabikersync.app.feature.profile.ProfileScreen(onLogout = onLogout)
                 }
@@ -690,7 +697,8 @@ private fun VaultDocBevelCard(
 private fun RidesReleaseHomeScreen(
     phase1ViewModel: Phase1ViewModel,
     onStartLiveMapPreview: () -> Unit,
-    initialOpenRideHistory: Boolean = false
+    initialOpenRideHistory: Boolean = false,
+    requestedRosterRouteId: String? = null
 ) {
     val context = LocalContext.current
     val startRideScope = rememberCoroutineScope()
@@ -713,10 +721,13 @@ private fun RidesReleaseHomeScreen(
         group.principalLeaderId == currentUser.id || group.leaderIds.contains(currentUser.id)
     } == true
 
-    LaunchedEffect(currentRide?.clubRouteId, primaryGroup?.id) {
-        val publishedRouteId = currentRide?.clubRouteId
-        if (publishedRouteId != null) {
-            phase1ViewModel.loadRideRoster(publishedRouteId)
+    LaunchedEffect(currentRide?.clubRouteId, requestedRosterRouteId, primaryGroup?.id) {
+        // La ruta elegida explícitamente en RUTAS DEL CLUB gana: abrir el roster
+        // de una rodada vieja no debe llevar a la última convocada. La rodada
+        // vigente solo se usa cuando no hubo una selección explícita.
+        val routeId = requestedRosterRouteId ?: currentRide?.clubRouteId
+        if (routeId != null) {
+            phase1ViewModel.loadRideRoster(routeId)
         } else if (primaryGroup != null) {
             phase1ViewModel.loadUpcomingRideRoster(primaryGroup.id)
         }
@@ -897,8 +908,8 @@ private fun RidesReleaseHomeScreen(
                 HeritageEmblemBadge(
                     painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_logo_ruta_biker_sync),
                     contentDescription = "Club",
-                    badgeSize = 46.dp,
-                    iconSize = 34.dp,
+                    badgeSize = 58.dp,
+                    iconSize = 44.dp,
                     glowColor = Color(0xFFF3C766)
                 )
                 Column {
@@ -917,236 +928,176 @@ private fun RidesReleaseHomeScreen(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Botón + Crear Ruta
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFFF6CE74), Color(0xFFDF9E32), Color(0xFFB8781B))
-                            )
+            // Botón: 📖 Bitácora de Rodadas (Historial y Estadísticas de Club)
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF2E1C0C), Color(0xFF1E2129))
                         )
-                        .border(1.dp, Color(0xFFFFEEBA), RoundedCornerShape(10.dp))
-                        .clickable {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_CREATE_ROUTE", "btn_crear_ruta")
-                            showScheduleMapPlanner = true
-                        }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
+                    )
+                    .border(1.2.dp, Color(0xFFDF9E32), RoundedCornerShape(10.dp))
+                    .clickable {
+                        UxTestTracker.logEvent("RODADAS_HOME", "TAP_RIDE_HISTORY", "btn_bitacora_rodadas")
+                        showRideHistoryDialog = true
+                    }
+                    .padding(horizontal = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Text("📖", fontSize = 14.sp)
                     Text(
-                        text = "+ Crear Ruta",
-                        color = Color(0xFF101216),
+                        text = "Bitácora de Rodadas",
+                        color = Color(0xFFFFEEBA),
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         maxLines = 1,
                         softWrap = false
                     )
                 }
-
-                // Botón 🔍 (Historial y Búsqueda)
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF1E2129))
-                        .border(1.dp, Color(0xFF383D4D), CircleShape)
-                        .clickable {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_RIDE_HISTORY", "btn_historial")
-                            showRideHistoryDialog = true
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Historial y Búsqueda",
-                        tint = Color(0xFFE5B869),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
             }
         }
 
+        // Normalización: sin club no hay convocatoria ni ruta oficial que crear.
+        // Bitácora, permisos, offline y Ruta Libre siguen disponibles para todos.
+        if (primaryGroup != null) {
         // Tarjeta: Próxima Rodada (Biselada y viva)
         HeritageBevelCard(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(14.dp)
+            contentPadding = PaddingValues(0.dp)
         ) {
-            if (currentRide != null) {
-                val ride = currentRide!!
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(id = R.string.rides_next_ride),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Text(
-                            text = ride.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "${ride.dateSchedule} · ${ride.departureTime}",
-                            color = Color(0xFFE5B869),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = "${ride.origin.name} \u2192 ${ride.destination.name}",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "${ride.distanceKm} km · ${ride.estimatedMinutes} min",
-                            color = Color(0xFF9CA3AF),
-                            fontSize = 12.sp
-                        )
-                        if (!ride.description.isNullOrBlank()) {
-                            Text(
-                                text = ride.description,
-                                color = Color(0xFF9CA3AF),
-                                fontSize = 11.sp,
-                                maxLines = 2,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF10B981).copy(alpha = 0.2f))
-                            .border(1.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "✓ Convocada",
-                            color = Color(0xFF34D399),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            val tituloConvocatoria = if (currentRide != null) {
+                stringResource(id = R.string.rides_next_ride)
             } else {
+                "Próxima Convocatoria de Club"
+            }
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 250.dp)) {
+                CardBackdropImage(imageRes = R.drawable.card_convocatoria_club)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().align(Alignment.TopStart).padding(14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(id = R.string.rides_next_ride),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Text(
-                            text = stringResource(id = R.string.rides_no_scheduled),
-                            color = Color(0xFFE5B869),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = stringResource(id = R.string.rides_no_scheduled_desc),
-                            color = Color(0xFF8E95A5),
-                            fontSize = 11.sp
-                        )
-                    }
+                    Text(
+                        text = tituloConvocatoria,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    CardStatusBadge(
+                        text = if (currentRide != null) "✓ Convocada" else "Sin programar"
+                    )
+                }
+                Column(modifier = Modifier.fillMaxWidth().align(Alignment.BottomStart).padding(14.dp)) {
+                    if (currentRide != null) {
+                        val ride = currentRide!!
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = ride.title,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${ride.dateSchedule} · ${ride.departureTime}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "${ride.origin.name} \u2192 ${ride.destination.name}",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Text(
+                                    text = "${ride.distanceKm} km · ${ride.estimatedMinutes} min",
+                                    color = Color.White,
+                                    fontSize = 12.sp
+                                )
+                                if (!ride.description.isNullOrBlank()) {
+                                    Text(
+                                        text = ride.description,
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        maxLines = 2,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF242732))
-                            .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "Sin programar",
-                            color = Color(0xFF8E95A5),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(id = R.string.rides_no_scheduled),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    text = "Exclusivo de la directiva del club para trazar rutas oficiales y convocar a los miembros.",
+                                    color = Color.White,
+                                    fontSize = 11.sp
+                                )
+                            }
+
+                        }
+
                     }
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                HeritageBrassButton(
-                    text = "🗺️ + Crear Ruta en Mapa",
-                    onClick = { showScheduleMapPlanner = true },
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
 
-        // Tarjeta: Participantes Convocados (Biselada) - Solo si hay rodada convocada
-        if (currentRide != null && rideRoster == null) {
-            HeritageBevelCard(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(14.dp)
-            ) {
-                val confirmations = currentRide!!.confirmations
-                val confirmedCount = confirmations.count { it.attendanceStatus == AttendanceStatus.CONFIRMED }
+        // Botón fuera de la tarjeta con imagen.
+        if (currentRide == null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            HeritageBrassButton(
+                text = "🗺️ + Crear Ruta Oficial de Club",
+                onClick = { showScheduleMapPlanner = true },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Participantes Convocados ($confirmedCount/${confirmations.size})",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = "$confirmedCount confirmados",
-                        color = Color(0xFF34D399),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(androidx.compose.foundation.rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    confirmations.forEach { participant ->
-                        ParticipantAvatar(
-                            name = participant.displayName.split(" ").firstOrNull() ?: participant.displayName,
-                            isLead = participant.attendanceStatus == AttendanceStatus.CONFIRMED
-                        )
-                    }
-                }
-            }
+        // Sección 1: Rodada de Club (roster real, RSVP y arranque del líder).
+        if (primaryGroup != null && rideRoster != null) {
+            Text(
+                text = "Rodada de Club",
+                color = BikerColors.PrimaryAmber,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+            )
         }
 
         // Participantes reales de la rodada publicada, también para miembros sin copia local del mapa.
-        rideRoster?.let { roster ->
+        rideRoster?.takeIf { primaryGroup != null }?.let { roster ->
             HeritageBevelCard(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(0.dp)
             ) {
+                // Cabecera decorativa (card3.2.png): sin botón, sin acción.
+                ParticipantsHeaderBanner()
                 RideParticipantsScreen(
                     roster = roster,
                     currentUserId = currentUser.id,
@@ -1189,167 +1140,19 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // Tarjeta: Ruta y Corredor Vial (Biselada)
+        // Sección 2: Ruta Libre. Siempre visible: con club, sin club y con/sin ruta local.
+        Spacer(modifier = Modifier.height(8.dp))
         HeritageBevelCard(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(14.dp)
+            contentPadding = PaddingValues(0.dp)
         ) {
-            if (currentRide != null) {
-                val isOfflineDownloaded = remember(currentRide) {
-                    val routeId = currentRide?.selectedRoute?.id ?: "route-tovar-directa"
-                    CorridorOfflineManager.isCorridorDownloaded(context, routeId) ||
-                        CorridorOfflineManager.isRegionDownloaded(context, "caracas-junquito-tovar")
+            RutaLibreCard(
+                onPlan = { showScheduleMapPlanner = true },
+                onStart = {
+                    onStartLiveMapPreview()
+                    startRideServiceNow(useSimulated = forceSimulated)
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = currentRide!!.selectedRoute.name.ifBlank { stringResource(id = R.string.rides_route_title) },
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isOfflineDownloaded) "✓ Offline Listo" else "En Línea",
-                        color = if (isOfflineDownloaded) Color(0xFF10B981) else Color(0xFFE5B869),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_VIEW_MAP", "btn_ver_mapa")
-                            onStartLiveMapPreview()
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFE5B869)
-                        ),
-                        border = BorderStroke(1.dp, Color(0xFFC99A45))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NearMe,
-                            contentDescription = "Ver Mapa",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFFE5B869)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Ver Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_trazar_ruta")
-                            showScheduleMapPlanner = true
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF38BDF8)
-                        ),
-                        border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Trazar",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color(0xFF38BDF8)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Trazar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.rides_route_title),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF242732))
-                            .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "Sin ruta",
-                            color = Color(0xFF8E95A5),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Selecciona origen y destino para calcular y guardar el trazado de la ruta sobre la vía.",
-                    color = Color(0xFF8E95A5),
-                    fontSize = 11.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_PLAN_ROUTE", "btn_crear_ruta_mapa")
-                            showScheduleMapPlanner = true
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFF38BDF8)
-                        ),
-                        border = BorderStroke(1.dp, Color(0xFF38BDF8))
-                    ) {
-                        Text("🗺️ + Crear Ruta", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
-
-                    Button(
-                        onClick = {
-                            UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_recorrido")
-                            onStartLiveMapPreview()
-                            startRideServiceNow(useSimulated = forceSimulated)
-                        },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFDF6E32),
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.rides_btn_start_ride_preview),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
+            )
         }
 
         // Manejo de advertencias de permisos o errores
@@ -1388,74 +1191,37 @@ private fun RidesReleaseHomeScreen(
             }
         }
 
-        // La puerta real de inicio vive en el roster para líderes; miembros no líderes
-        // conservan la activación de cabina/malla sin llamar a /v1/routes/:id/start.
-        if (rideRoster == null || !canPublishClubRoute) {
-            HeritageBrassButton(
-                text = stringResource(id = R.string.rides_btn_start_active_cockpit),
-                onClick = {
-                    UxTestTracker.logEvent("RODADAS_HOME", "TAP_START_RIDE", "btn_iniciar_rodada")
-                    onStartLiveMapPreview()
-                    startRideServiceNow(useSimulated = forceSimulated)
-                },
-                icon = Icons.Default.PlayArrow
-            )
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        // Botón Rutas y Corredor sin señal
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1E2129))
-                .border(1.dp, Color(0xFFC99A45).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                .clickable {
-                    showScheduleMapPlanner = true
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🗺️ Rutas y Corredor sin señal",
-                color = Color(0xFFE5B869),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
         Spacer(modifier = Modifier.height(80.dp))
     }
 }
 
+/** Etiqueta negra alineada al título en negrita de cada tarjeta de rodadas. */
 @Composable
-private fun ParticipantAvatar(name: String, isLead: Boolean) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+private fun CardStatusBadge(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black)
+            .border(1.dp, Color(0xFF3E4455), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(46.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF1F222A))
-                .border(2.dp, if (isLead) Color(0xFF10B981) else Color(0xFF4B5563), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = if (isLead) Icons.Default.Shield else AppIcons.TabProfile,
-                contentDescription = name,
-                tint = if (isLead) Color(0xFF34D399) else Color(0xFFD1D5DB),
-                modifier = Modifier.size(24.dp)
-            )
-        }
         Text(
-            text = name,
-            color = if (isLead) Color(0xFF34D399) else Color(0xFF9CA3AF),
+            text = text,
+            color = Color.White,
             fontSize = 10.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
+            fontWeight = FontWeight.Bold
         )
     }
+}
+
+/** Fondo decorativo de las tarjetas de rodadas: imagen nítida, recortada desde el borde superior. */
+@Composable
+private fun BoxScope.CardBackdropImage(imageRes: Int) {
+    Image(
+        painter = painterResource(id = imageRes),
+        contentDescription = null,
+        modifier = Modifier.matchParentSize(),
+        alignment = Alignment.TopCenter,
+        contentScale = ContentScale.Crop
+    )
 }

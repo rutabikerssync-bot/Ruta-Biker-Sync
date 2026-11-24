@@ -1,0 +1,23 @@
+﻿{
+    "route":  {
+                  "id":  "d03593b8-a5ae-4e56-a8d2-56bdc474d1f1",
+                  "group_id":  "e3988eba-26e8-425a-80ac-2a65aeda8484",
+                  "starts_at":  "2026-11-24T16:27:00.000Z",
+                  "outbound_started_at":  null,
+                  "destination_reached_at":  null,
+                  "return_started_at":  null,
+                  "completed_at":  null
+              },
+    "participants":  [
+                         {
+                             "userId":  "b5d0228d-8ab9-49fd-9cc7-efa452a484f2",
+                             "displayName":  "El Rutero Bikers",
+                             "clubRole":  "Presidente",
+                             "isLeader":  true,
+                             "status":  "pending",
+                             "onSiteAt":  null,
+                             "homeAt":  null,
+                             "respondedAt":  null
+                         }
+                     ]
+}

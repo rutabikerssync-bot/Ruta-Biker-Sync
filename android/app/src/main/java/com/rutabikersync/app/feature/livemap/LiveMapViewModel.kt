@@ -531,14 +531,25 @@ class LiveMapController(
             )
         }
 
-        val connectedPeers = latestPeersFromMesh.values.count { !it.isLost }
-        val lostPeers = latestPeersFromMesh.values.count { it.isLost }
+        // FIX B: el motor marca `isLost` al vencer el timeout recalibrado, pero el HUD
+        // mantiene al peer en el conteo durante GRACE_MS mostrando "sin señal". Así un
+        // hueco BLE de 48-149 s no hace caer el HUD de "2 riders" a "1 rider".
+        fun countsAsConnected(track: MeshRelayEngine.PeerTrack): Boolean =
+            !track.isLost || PeerGracePolicy.isInGrace(nowEpochMs, track.lostSinceEpochMs)
+
+        val connectedPeers = latestPeersFromMesh.values.count(::countsAsConnected)
+        val lostPeers = latestPeersFromMesh.size - connectedPeers
         val totalPeers = latestPeersFromMesh.size
 
         // El HUD usa los mismos riders activos y con posición válida que pinta el mapa.
         // Sin fix local no se puede afirmar "1 rider" ni dibujar un avatar en (0,0).
-        val ridersCount = updatedMarkers.count {
-            it.routeStatus != RiderRouteStatus.OFF_MESH_LOST
+        val ridersCount = updatedMarkers.count { marker ->
+            if (marker.isSelf) {
+                true
+            } else {
+                val track = latestPeersFromMesh[marker.shortId]
+                track == null || countsAsConnected(track)
+            }
         }
 
         val connectivityState = when {

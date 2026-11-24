@@ -75,6 +75,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -124,6 +125,11 @@ enum class RoutePlanningStep {
     SET_ORIGIN,
     SET_DESTINATION,
     ROUTES_SELECTION
+}
+
+enum class RouteSelectionPhase {
+    CHOOSE_TRACK,   // 3A: Escoger Ruta 1, 2 o 3 (Mapa 75% libre)
+    INPUT_DETAILS   // 3B: Convocatoria y Guardar (Nombre, fecha, hora, descripción)
 }
 
 data class SearchPlaceResult(
@@ -216,6 +222,7 @@ fun ScheduleRideMapScreen(
     var isCalculatingRoutes by remember { mutableStateOf(false) }
     val collapseRoutes = activityIntent?.getBooleanExtra("COLLAPSE_ROUTES", false) ?: false
     var isRoutesBoxExpanded by remember { mutableStateOf(!collapseRoutes) }
+    var routeSelectionPhase by remember { mutableStateOf(RouteSelectionPhase.CHOOSE_TRACK) }
 
     // Foco de búsqueda activa para autocompletado ("origin", "destination", o null)
     var activeSearchTarget by remember { mutableStateOf<String?>(null) }
@@ -1036,7 +1043,10 @@ fun ScheduleRideMapScreen(
                                 val stepTitle = when (currentStep) {
                                     RoutePlanningStep.SET_ORIGIN -> "Paso 1: Lugar de Salida 🟢"
                                     RoutePlanningStep.SET_DESTINATION -> "Paso 2: Lugar de Llegada 🏁"
-                                    RoutePlanningStep.ROUTES_SELECTION -> "Paso 3: Escoge tu Ruta (1, 2 o 3)"
+                                    RoutePlanningStep.ROUTES_SELECTION -> if (routeSelectionPhase == RouteSelectionPhase.CHOOSE_TRACK)
+                                        "Paso 3A: Escoge tu Ruta (1, 2 o 3)"
+                                    else
+                                        "Paso 3B: Convocatoria y Salida"
                                 }
                                 Text(
                                     text = stepTitle,
@@ -1045,9 +1055,12 @@ fun ScheduleRideMapScreen(
                                     fontSize = 13.sp
                                 )
                                 Text(
-                                    text = if (currentStep == RoutePlanningStep.ROUTES_SELECTION)
-                                        "3 rutas trazadas sobre vías reales"
-                                    else "Toca el mapa o escribe para ubicar el punto",
+                                    text = if (currentStep == RoutePlanningStep.ROUTES_SELECTION) {
+                                        if (routeSelectionPhase == RouteSelectionPhase.CHOOSE_TRACK)
+                                            "3 rutas trazadas sobre vías reales"
+                                        else
+                                            "Define los datos oficiales para compartir con el club"
+                                    } else "Toca el mapa o escribe para ubicar el punto",
                                     color = HeritageLeatherMuted,
                                     fontSize = 10.sp
                                 )
@@ -1409,72 +1422,45 @@ fun ScheduleRideMapScreen(
                     .padding(horizontal = 10.dp, vertical = 8.dp)
                     .animateContentSize(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.82f)),
+                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.92f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                border = BorderStroke(1.dp, HeritageBorder.copy(alpha = 0.70f))
+                border = BorderStroke(1.2.dp, HeritageBorder.copy(alpha = 0.85f))
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // PESTAÑA / HANDLE INTERACTIVA PARA BAJAR O MOSTRAR EL PANEL SEGÚN NECESIDAD
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { isRoutesBoxExpanded = !isRoutesBoxExpanded }
-                            .padding(vertical = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                    if (routeSelectionPhase == RouteSelectionPhase.CHOOSE_TRACK) {
+                        // === SUBFASE 3A: SELECCIÓN DE TRAZADO (MAPA 75% LIBRE) ===
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Tirador visual tipo pastilla (drag handle)
-                            Box(
-                                modifier = Modifier
-                                    .width(44.dp)
-                                    .height(5.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(HeritageCopper.copy(alpha = 0.85f))
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
+                            Column {
                                 Text(
-                                    text = if (isRoutesBoxExpanded) "Carreteras y Avenidas Disponibles:" else "📍 ${currentSelectedRoute?.name ?: "Ruta Seleccionada"} (${currentSelectedRoute?.distanceKm ?: 0.0} km)",
+                                    text = "Carreteras y Avenidas Disponibles:",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = HeritageLeatherBrown
                                 )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                ) {
-                                    Text(
-                                        text = if (isRoutesBoxExpanded) "Bajar para ver mapa" else "Mostrar 3 rutas",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = HeritageCopper
-                                    )
-                                    Icon(
-                                        imageVector = if (isRoutesBoxExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                                        contentDescription = if (isRoutesBoxExpanded) "Bajar panel de rutas" else "Mostrar panel de rutas",
-                                        tint = HeritageCopper,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
+                                Text(
+                                    text = "Toca para resaltar el trazado en el mapa",
+                                    fontSize = 10.sp,
+                                    color = HeritageLeatherMuted
+                                )
                             }
+                            Text(
+                                text = "📍 ${currentSelectedRoute?.name?.substringBefore("·")?.trim() ?: "Ruta"} (${currentSelectedRoute?.distanceKm ?: 0.0} km)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = HeritageCopper
+                            )
                         }
-                    }
 
-                    // VISTA EXPANDIDA (Todas las alternativas y detalles de viaje)
-                    if (isRoutesBoxExpanded) {
-                        // Selector de las 3 Rutas (Ruta 1, Ruta 2, Ruta 3)
+                        // Selector horizontal compacto de las 3 Rutas
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1493,7 +1479,7 @@ fun ScheduleRideMapScreen(
                                     modifier = Modifier
                                         .width(180.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) HeritageCardWarm.copy(alpha = 0.92f) else HeritageCard.copy(alpha = 0.72f))
+                                        .background(if (isSelected) HeritageCardWarm.copy(alpha = 0.95f) else HeritageCard.copy(alpha = 0.72f))
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
                                             color = if (isSelected) routeBadgeColor else HeritageBorder.copy(alpha = 0.6f),
@@ -1536,7 +1522,7 @@ fun ScheduleRideMapScreen(
                                             text = route.subtitle,
                                             color = HeritageLeatherMuted,
                                             fontSize = 10.sp,
-                                            maxLines = 2,
+                                            maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
@@ -1544,7 +1530,7 @@ fun ScheduleRideMapScreen(
                             }
                         }
 
-                        // Resumen de la ruta activa seleccionada
+                        // Resumen y botón de confirmación de trazado
                         val activeRoute = currentSelectedRoute
                         if (activeRoute != null) {
                             Row(
@@ -1552,32 +1538,102 @@ fun ScheduleRideMapScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Column {
-                                    Text(
-                                        text = "${activeRoute.name} · ${activeRoute.distanceKm} km",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = HeritageLeatherBrown
-                                    )
-                                    Text(
-                                        text = activeRoute.roadCondition,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF1B4D3E),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
+                                Text(
+                                    text = activeRoute.roadCondition,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFF1B4D3E),
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 OutlinedButton(
                                     onClick = { showAdditionalDetailsModal = true },
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                    modifier = Modifier.height(32.dp)
+                                    modifier = Modifier.height(28.dp)
                                 ) {
                                     Text("⚙ Retorno", fontSize = 10.sp, color = HeritageLeatherBrown)
                                 }
                             }
                         }
 
-                        // Metadatos de la misma rodada, dentro del resumen del mapa existente.
+                        // Descarga offline visible para todos desde que hay un trazado elegido.
+                        OutlinedButton(
+                            onClick = { showCorridorDownloadDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm),
+                            border = BorderStroke(1.2.dp, HeritageCopper),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth().height(42.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    tint = HeritageCopperDark,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "📥 Guardar Mapa Offline (PMTiles)",
+                                    color = HeritageCopperDark,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Button(
+                            onClick = { routeSelectionPhase = RouteSelectionPhase.INPUT_DETAILS },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDF6E32)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                        ) {
+                            Text(
+                                text = "Aceptar Trazado y Definir Salida ➔",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+                    } else {
+                        // === SUBFASE 3B: FORMULARIO DE CONVOCATORIA (ALTO CONTRASTE) ===
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TextButton(
+                                onClick = { routeSelectionPhase = RouteSelectionPhase.CHOOSE_TRACK },
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Volver",
+                                    tint = HeritageCopper,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "← Cambiar Trazado",
+                                    color = HeritageCopper,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            currentSelectedRoute?.let { activeRoute ->
+                                Text(
+                                    text = "${activeRoute.name.substringBefore("·").trim()} (${activeRoute.distanceKm} km)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HeritageLeatherBrown
+                                )
+                            }
+                        }
+
+                        // Metadatos de la rodada (Nombre, Fecha, Hora, Descripción)
                         RideMetadataEditor(
                             title = rideTitle,
                             onTitleChange = { rideTitle = it },
@@ -1588,32 +1644,6 @@ fun ScheduleRideMapScreen(
                             errorMessage = rideMetadataError,
                             onClearError = { rideMetadataError = null }
                         )
-
-                        // Botón Secundario: Descarga explícita de mapa offline (PMTiles)
-                        OutlinedButton(
-                            onClick = {
-                                if (currentSelectedRoute != null) {
-                                    showCorridorDownloadDialog = true
-                                }
-                            },
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm),
-                            border = BorderStroke(1.2.dp, HeritageCopper),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth().height(42.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Default.CloudDownload, contentDescription = null, tint = HeritageCopperDark, modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = "📥 Guardar Mapa Offline (PMTiles)",
-                                    color = HeritageCopperDark,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
 
                         // Botón Principal: GUARDAR RUTA Y COMPARTIR CON EL CLUB
                         Button(
@@ -1690,72 +1720,6 @@ fun ScheduleRideMapScreen(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
-                            }
-                        }
-                    } else {
-                        // VISTA MINIMIZADA (Para ver el mapa al 100% sin obstrucción)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            val sel = currentSelectedRoute
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "${sel?.name?.substringBefore("·")?.trim() ?: "Ruta"} · ${sel?.estimatedMinutes ?: 0} min (${sel?.distanceKm ?: 0.0} km)",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color(0xFF2563EB)
-                                )
-                                Text(
-                                    text = sel?.roadCondition ?: "Vía seleccionada",
-                                    fontSize = 9.sp,
-                                    color = HeritageLeatherMuted,
-                                    maxLines = 1
-                                )
-                            }
-                            Button(
-                                onClick = {
-                                    val finalRoute = currentSelectedRoute ?: return@Button
-                                    val metadata = validatedRideMetadata() ?: return@Button
-                                    RouteDeviationDetector.setActiveRoutePolyline(finalRoute.waypoints)
-                                    val chunks = RoutePolylineMeshRelay.fragmentRouteForMesh(finalRoute)
-                                    chunks.forEach { RoutePolylineMeshRelay.processIncomingChunk(it) }
-                                    RideScheduleRepository.scheduleNewRide(
-                                        title = metadata.title,
-                                        originName = originName,
-                                        originLat = originLat,
-                                        originLon = originLon,
-                                        destinationName = destinationName,
-                                        destinationLat = destinationLat,
-                                        destinationLon = destinationLon,
-                                        selectedRoute = finalRoute,
-                                        availableRoutes = availableRoutes,
-                                        returnStrategy = returnStrategy,
-                                        dispersionPointName = dispersionPointName,
-                                        dispersionLat = dispersionLat,
-                                        dispersionLon = dispersionLon,
-                                        meetingTime = meetingTime,
-                                        departureTime = departureTime,
-                                        dateSchedule = dateSchedule,
-                                        distanceKm = finalRoute.distanceKm,
-                                        estimatedMinutes = finalRoute.estimatedMinutes,
-                                        description = metadata.description,
-                                        startsAt = metadata.startsAt
-                                    )
-                                    onPublishClubRoute?.invoke(metadata.title, metadata.startsAt.toString(), metadata.description)
-                                    shareRouteSummary(finalRoute)
-                                    Toast.makeText(context, "✓ Ruta guardada offline y compartida.", Toast.LENGTH_SHORT).show()
-                                    onRideSaved()
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = HeritageCopper),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                modifier = Modifier.height(34.dp)
-                            ) {
-                                Icon(Icons.Default.Share, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Guardar", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

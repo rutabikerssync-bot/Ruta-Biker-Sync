@@ -140,12 +140,19 @@ class MainActivity : ComponentActivity() {
                         }
                         is AuthState.Ready -> {
                             androidx.compose.runtime.LaunchedEffect(state.profile.uid) {
-                                com.rutabikersync.app.feature.groups.ClubRepository
+                                val clubRepository = com.rutabikersync.app.feature.groups.ClubRepository
                                     .getInstance()
-                                    .syncWithLocalProfile(applicationContext)
-                                com.rutabikersync.app.core.network.ClubApiClient
+                                clubRepository.syncWithLocalProfile(applicationContext)
+                                val apiClient = com.rutabikersync.app.core.network.ClubApiClient
                                     .getInstance()
-                                    .ensureAuthenticatedUser()
+                                // El UID local de rbs_auth_prefs no existe en PostgreSQL: sin esta
+                                // reconciliación el backend responde 403 al crear clubes y la app
+                                // revierte la creación. Reautenticar con el email guardado para
+                                // usar el UID real del backend en x-user-id / Bearer.
+                                if (apiClient.attemptSilentReauth()) {
+                                    clubRepository.syncWithRealBackend()
+                                }
+                                apiClient.ensureAuthenticatedUser()
                             }
                             MainAppScaffold(
                                 isDarkMode = isDarkMode,
