@@ -179,17 +179,31 @@ android {
             debugBaseUrl.startsWith("https://", ignoreCase = true)
     ) { "BASE_URL debug inválida: $debugBaseUrl" }
 
+    // UUID de una rodada real creada en el backend. No se versiona: se inyecta
+    // mediante -Prbs.pilot.rideId o RBS_PILOT_RIDE_ID al compilar el APK piloto.
+    val pilotRideId = (
+        providers.gradleProperty("rbs.pilot.rideId").orNull ?: System.getenv("RBS_PILOT_RIDE_ID") ?: ""
+    ).trim()
+    val rideUuidPattern = Regex(
+        "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+    require(pilotRideId.isBlank() || rideUuidPattern.matches(pilotRideId)) {
+        "RBS_PILOT_RIDE_ID debe ser un UUID válido o estar vacío"
+    }
+
     buildTypes {
         debug {
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "true")
             buildConfigField("boolean", "ALLOW_DEFAULT_TEST_RIDE_KEY", "true")
             // T-02 (B1-4): localhost/HTTP solo en debug (overlay cleartext habilitado en src/debug).
             buildConfigField("String", "BASE_URL", "\"$debugBaseUrl\"")
+            buildConfigField("String", "PILOT_RIDE_ID", "\"$pilotRideId\"")
         }
         release {
             signingConfig = signingConfigs.getByName("release")
             // T-02/B1-4: BASE_URL release (prop rbs.prod.url > env RBS_PROD_URL > fallback .invalid que bloquea release).
             buildConfigField("String", "BASE_URL", "\"$releaseBaseUrl\"")
+            buildConfigField("String", "PILOT_RIDE_ID", "\"\"")
             isMinifyEnabled = true       // ofuscaci?n R8 (app de c?digo cerrado)
             isShrinkResources = true
             buildConfigField("boolean", "DEV_PANEL_ENABLED", "false")

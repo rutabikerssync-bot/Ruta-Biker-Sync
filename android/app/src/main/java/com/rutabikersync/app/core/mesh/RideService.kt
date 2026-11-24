@@ -1865,7 +1865,7 @@ class RideService : Service() {
     suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState {
         val current = _sharedState.value
         if (current.lifecycleState != RideLifecycleState.RUNNING) return current
-        val rideId = current.rideId ?: "ride-live-01"
+        val rideId = current.rideId ?: PilotRideConfig.rideId
         val shortId = current.localShortId
         val expected = current.expectedPeerShortIds.map { it.toUShort() }.toSet()
         val isSim = current.isUsingSimulatedTransport

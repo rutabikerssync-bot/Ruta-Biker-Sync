@@ -820,7 +820,7 @@ private fun RidesReleaseHomeScreen(
             // P0: la malla solo arranca con clave verificada del manifiesto firmado.
             // Sin backend/manifiesto válido se muestra la causa y no se fabrica clave.
             val authorized = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(
-                rideId = "ride-live-01",
+                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                 currentUserId = currentUser.id
             )
             if (authorized == null) {
@@ -831,7 +831,7 @@ private fun RidesReleaseHomeScreen(
             }
             val eligibility = RideService.dispatchStartRide(
                 context = context,
-                rideId = "ride-live-01",
+                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                 localShortId = authorized.localShortId.toInt(),
                 forceSimulated = useSimulated,
                 rideSecretKey = authorized.rideSecretKey
