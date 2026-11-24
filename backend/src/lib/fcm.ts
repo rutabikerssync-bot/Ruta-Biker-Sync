@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import admin from 'firebase-admin';
+import { getMessaging } from 'firebase-admin/messaging';
 import type { DbExecutor } from '../db/pool.js';
 import {
   NOTIFICATION_CHANNEL_ID,
@@ -159,7 +160,9 @@ export class FcmService {
       }
     };
 
-    const response = await this.app.messaging().sendEachForMulticast(message);
+    // firebase-admin v14: messaging vive en el subpaquete modular.
+    const messaging = getMessaging(this.app);
+    const response = await messaging.sendEachForMulticast(message);
     const messageIds: string[] = [];
     response.responses.forEach((res: any) => {
       if (res.messageId) messageIds.push(res.messageId);
