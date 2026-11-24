@@ -10,7 +10,6 @@ import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
 import java.security.PublicKey
-import java.security.SecureRandom
 import java.security.Signature
 import java.security.SignatureException
 import java.security.spec.PKCS8EncodedKeySpec
@@ -241,10 +240,17 @@ class Ed25519SosCrypto(
 
     private fun persistKeyPair(prefs: SharedPreferences, pair: KeyPair) {
         val kek = getOrCreateKek()
-        val iv = ByteArray(GCM_IV_BYTES).also { SecureRandom().nextBytes(it) }
 
+        // AndroidKeyStore exige generar el IV durante init() cuando la KEK usa
+        // cifrado aleatorio (randomizedEncryptionRequired = true, valor por defecto).
+        // Pasar un GCMParameterSpec aqui lanza InvalidAlgorithmParameterException
+        // ("Caller-provided IV not permitted") y mata la app al publicar la clave SOS.
         val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, kek, GCMParameterSpec(GCM_TAG_BITS, iv))
+        cipher.init(Cipher.ENCRYPT_MODE, kek)
+        val iv = cipher.iv
+        check(iv.size == GCM_IV_BYTES) {
+            "IV generado por AndroidKeyStore inesperado: ${iv.size} bytes"
+        }
         val wrappedPriv = cipher.doFinal(pair.private.encoded)
 
         prefs.edit()

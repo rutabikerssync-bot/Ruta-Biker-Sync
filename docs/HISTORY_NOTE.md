@@ -1153,3 +1153,15 @@ Los timeouts iniciales de la suite backend se debieron a procesos y daemonso res
 
 Detalle, capturas, dumps, logcat e IDs de mensaje: `docs/evidence/corte2b_fcm_20261123/README.md`. El asset suelto `card_iniciar_cabina.webp` se respaldo en `%TEMP%/opencode/` y se retiro del working tree porque `RodadasCockpitCardContractTest` exige que no exista; no fue commiteado. Estado: commit de evidencia separado, sin `amend` y sin `push`.
 
+### FIX IV de AndroidKeyStore en la identidad SOS — 2026-11-23
+
+Con autorización explícita del usuario se corrigió `Ed25519SosCrypto.persistKeyPair()`: `cipher.init(ENCRYPT_MODE, kek, GCMParameterSpec(...iv))` lanzaba `InvalidAlgorithmParameterException: Caller-provided IV not permitted` en TECNO al abrir el mapa, porque la KEK AES-256-GCM de `AndroidKeyStore` usa cifrado aleatorio por defecto. Ahora `init()` recibe solo la KEK, se lee `cipher.iv`, se valida su tamaño de 12 bytes y ese IV se persiste para el descifrado. No se desactivó `randomizedEncryptionRequired`.
+
+| Verificación | Resultado |
+| --- | --- |
+| `testStandardDebugUnitTest` + `assembleStandardDebug` + `assembleStandardDebugAndroidTest` | **BUILD SUCCESSFUL**, 584 tests JVM sin fallos |
+| Instrumentación real en TECNO (`Ed25519SosCryptoKeystoreInstrumentedTest`) | **OK (1 test)**: genera IV, persiste, recarga y firma/verifica |
+| APK debug | SHA-256 `46C5E85EE2025E2CA52B363C7B9D53D7C8EEBCAA89973C950005AF48143C25E7` |
+
+Se añadió `androidx.test:runner:1.6.2` al APK de tests porque el runner configurado no estaba presente. El archivo estaba limpio en `HEAD` y la APK anterior coincidía con la documentada, así que no hubo código ajeno ni revert. Stack, causa y detalle: `docs/evidence/crypto_iv_fix_20261123/README.md`. Sin `push` ni `amend`. Redmi se desconectó durante la instrumentación y queda pendiente allí.
+

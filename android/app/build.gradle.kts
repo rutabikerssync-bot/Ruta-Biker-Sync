@@ -343,4 +343,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.test.ext)
+    // testInstrumentationRunner apunta a AndroidJUnitRunner: debe estar en el APK de tests.
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }

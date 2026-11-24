@@ -1,0 +1,44 @@
+﻿11-23 21:53:47.337 12337 12337 E AndroidRuntime: FATAL EXCEPTION: main
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: Process: com.rutabikersync.app, PID: 12337
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: java.security.InvalidAlgorithmParameterException: Caller-provided IV not permitted
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.security.keystore2.KeyStoreCryptoOperationUtils.getExceptionForCipherInit(KeyStoreCryptoOperationUtils.java:150)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.security.keystore2.AndroidKeyStoreCipherSpiBase.ensureKeystoreOperationInitialized(AndroidKeyStoreCipherSpiBase.java:339)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.security.keystore2.AndroidKeyStoreCipherSpiBase.engineInit(AndroidKeyStoreCipherSpiBase.java:234)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher.tryTransformWithProvider(Cipher.java:2997)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher.tryCombinations(Cipher.java:2908)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher$SpiAndProviderUpdater.updateAndGetSpiAndProvider(Cipher.java:2813)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher.chooseProvider(Cipher.java:792)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher.init(Cipher.java:1307)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at javax.crypto.Cipher.init(Cipher.java:1242)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto.persistKeyPair(Ed25519SosCrypto.kt:247)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto.getOrCreateLocalKeyPair(Ed25519SosCrypto.kt:150)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.mesh.sos.SosSigningHub.localPublicKeyRawBase64(SosSigningHub.kt:39)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.crypto.RideManifestKeyProvider.publishLocalSosKey(RideManifestKeyProvider.kt:91)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(RideManifestKeyProvider.kt:108)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve$default(RideManifestKeyProvider.kt:95)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.rutabikersync.app.ui.navigation.MainAppScaffoldKt$RidesReleaseHomeScreen$startRideServiceNow$1.invokeSuspend(MainAppScaffold.kt:822)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at androidx.compose.ui.platform.AndroidUiDispatcher.performTrampolineDispatch(AndroidUiDispatcher.android.kt:81)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at androidx.compose.ui.platform.AndroidUiDispatcher.access$performTrampolineDispatch(AndroidUiDispatcher.android.kt:41)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at androidx.compose.ui.platform.AndroidUiDispatcher$dispatchCallback$1.doFrame(AndroidUiDispatcher.android.kt:68)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.view.Choreographer$CallbackRecord.run(Choreographer.java:1036)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.view.Choreographer.doCallbacks(Choreographer.java:846)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.view.Choreographer.doFrame(Choreographer.java:776)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.view.Choreographer$FrameDisplayEventReceiver.run(Choreographer.java:1023)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.os.Handler.handleCallback(Handler.java:938)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.os.Looper.loopOnce(Looper.java:201)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.os.Looper.loop(Looper.java:288)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at android.app.ActivityThread.main(ActivityThread.java:7996)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at java.lang.reflect.Method.invoke(Native Method)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:553)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:1003)
+11-23 21:53:47.337 12337 12337 E AndroidRuntime: 	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [androidx.compose.ui.platform.MotionDurationScaleImpl@6372f66, androidx.compose.runtime.BroadcastFrameClock@4d472a7, StandaloneCoroutine{Cancelling}@d8de354, AndroidUiDispatcher@7a592fd]
+11-23 21:53:47.413  1643  1703 I TABE.CrashHandler: Exception Info{Name='Ruta Biker Sync', Pkg='com.rutabikersync.app', EType='crash', ProcessType='data_app', EClassName='java.security.InvalidAlgorithmParameterException', EMessage='Caller provided IV not permitted', IsFG=1, TimeStamp='2026-11-23 21:53:47', Version='0.1.0', Installer='unk', LastUpdate=2026-11-23 21:28, Abi='arm64-v8a'} ,isApp=true ,crashsplit=false
+11-23 21:53:47.498   848  2778 I ActivityManager: Process com.rutabikersync.app (pid 12337) has died: fg  TOP
+11-23 21:53:53.588 14768 14768 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+11-23 21:53:53.597 14768 14768 I AndroidRuntime: Using default boot image
+11-23 21:53:53.597 14768 14768 I AndroidRuntime: Leaving lock profiling enabled
+11-23 21:53:54.600 14768 14768 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+11-23 21:53:55.859 14768 14768 D AndroidRuntime: Shutting down VM
