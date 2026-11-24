@@ -41,16 +41,27 @@ export class FcmService {
         return;
       }
 
-      const credentialObj = (admin as any).credential ?? (admin as any).default?.credential;
-      if (!credentialObj || typeof credentialObj.cert !== 'function') {
-        console.info('ℹ️ Firebase admin.credential.cert no disponible. Usando modo Stub/Test.');
+      // firebase-admin v14 expone `cert` directamente en el default import;
+      // versiones anteriores lo exponen como `credential.cert`. Soportamos ambas.
+      const adminAny = admin as any;
+      const certFn =
+        adminAny.credential?.cert ??
+        adminAny.cert ??
+        adminAny.default?.credential?.cert ??
+        adminAny.default?.cert;
+      const initFn = adminAny.initializeApp ?? adminAny.default?.initializeApp;
+      if (typeof certFn !== 'function' || typeof initFn !== 'function') {
+        console.info('ℹ️ Firebase admin cert/initializeApp no disponible. Usando modo Stub/Test.');
         return;
       }
 
       // Reutiliza la app por defecto si el módulo ya fue inicializado (evita
       // 'default app already exists' cuando se inyectan servicios en tests).
-      this.app = (admin as any).apps?.[0] ?? admin.initializeApp({
-        credential: credentialObj.cert(json)
+      const apps = typeof adminAny.getApps === 'function'
+        ? adminAny.getApps()
+        : adminAny.apps ?? [];
+      this.app = apps[0] ?? initFn({
+        credential: certFn(json)
       });
       this.isLiveFirebase = true;
       console.info('🔥 FCM_LIVE: Firebase Admin SDK inicializado con GOOGLE_APPLICATION_CREDENTIALS.');
