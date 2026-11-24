@@ -1,0 +1,262 @@
+--------- beginning of main
+11-24 05:37:31.464 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=158 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:31.476 24987 24987 I BleAdvTransport: FragmentRxRaw session=29 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:37:31.511 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=158
+11-24 05:37:32.409 24987 24987 I BleAdvTransport: FragmentRxRaw session=29 idx=1 total=4 bytes=24 rssi=-47
+11-24 05:37:32.594 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=159 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:32.642 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=159
+11-24 05:37:33.721 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=160 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:33.739 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=160
+11-24 05:37:33.964 24987 24987 I BleAdvTransport: FragmentRxRaw session=29 idx=2 total=4 bytes=24 rssi=-44
+11-24 05:37:34.846 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=161 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:34.915 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=161
+11-24 05:37:35.936 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=0 total=4 bytes=24 rssi=-45
+11-24 05:37:35.981 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=162 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:36.040 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=162
+11-24 05:37:36.223 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:37:37.005 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:37.107 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=163 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:37.156 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=163
+11-24 05:37:37.539 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:38.189 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=2 total=4 bytes=24 rssi=-49
+11-24 05:37:38.241 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=164 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:38.305 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=164
+11-24 05:37:38.454 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=2 total=4 bytes=24 rssi=-43
+11-24 05:37:39.373 24987 24987 I RideService: ConvoySignalTx emitido por malla: kind=REGROUP code=3
+11-24 05:37:39.374 24987 24987 I BleAdvTransport: FragmentTx session=30 bytes=52 fragments=4 maxBytes=24 priority=PEER_EVENT
+11-24 05:37:39.375 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=165 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:39.438 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=165
+11-24 05:37:39.903 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=3 total=4 bytes=12 rssi=-43
+11-24 05:37:39.904 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-43
+11-24 05:37:40.519 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=166 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:40.560 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=166
+11-24 05:37:40.687 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=0 total=4 bytes=24 rssi=-44
+11-24 05:37:41.317 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:41.644 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=167 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:41.692 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=167
+11-24 05:37:41.726 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=1 total=4 bytes=24 rssi=-46
+11-24 05:37:42.151 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:42.499 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=2 total=4 bytes=24 rssi=-46
+11-24 05:37:42.770 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=168 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:42.784 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=2 total=4 bytes=24 rssi=-43
+11-24 05:37:42.833 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=168
+11-24 05:37:43.899 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=169 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:43.953 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=169
+11-24 05:37:44.210 24987 24987 I BleAdvTransport: FragmentRxRaw session=30 idx=3 total=4 bytes=12 rssi=-43
+11-24 05:37:44.210 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-43
+11-24 05:37:45.035 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=170 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:45.099 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=170
+11-24 05:37:45.498 24987 24987 I BleAdvTransport: FragmentRxRaw session=31 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:37:46.167 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=171 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:46.233 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=171
+11-24 05:37:47.301 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=172 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:47.363 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=172
+11-24 05:37:47.747 24987 24987 I BleAdvTransport: FragmentRxRaw session=31 idx=2 total=4 bytes=24 rssi=-45
+11-24 05:37:48.435 24987 24987 I RideService: ConvoySignalTx emitido por malla: kind=REDUCE_SPEED code=2
+11-24 05:37:48.437 24987 24987 I BleAdvTransport: FragmentTx session=31 bytes=52 fragments=4 maxBytes=24 priority=PEER_EVENT
+11-24 05:37:48.439 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=173 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:48.495 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=173
+11-24 05:37:49.196 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=0 total=4 bytes=24 rssi=-49
+11-24 05:37:49.566 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=174 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:49.644 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=174
+11-24 05:37:50.643 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=1 total=4 bytes=24 rssi=-51
+11-24 05:37:50.697 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=175 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:50.760 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=175
+11-24 05:37:50.911 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=1 total=4 bytes=24 rssi=-44
+11-24 05:37:51.826 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=176 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:51.841 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=2 total=4 bytes=24 rssi=-47
+11-24 05:37:51.874 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=176
+11-24 05:37:52.961 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=177 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:53.028 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=177
+11-24 05:37:53.780 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=0 total=4 bytes=24 rssi=-43
+11-24 05:37:54.089 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=178 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:54.109 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=178
+11-24 05:37:54.616 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:37:55.226 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=179 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:55.240 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:55.290 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=179
+11-24 05:37:55.788 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=1 total=4 bytes=24 rssi=-43
+11-24 05:37:56.360 24987 24987 I BleAdvTransport: BleAdvTransport.send burst#=180 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:37:56.421 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=180
+11-24 05:37:57.355 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=3 total=4 bytes=12 rssi=-61
+11-24 05:37:57.355 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-61
+11-24 05:37:57.489 24987 25039 I BleAdvTransport: FragmentTx session=32 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-24 05:37:57.491 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=181 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:37:57.492 24987 24987 I RideService: ConvoySignalTx emitido por malla: kind=OBSTACLE code=1
+11-24 05:37:57.536 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=181
+11-24 05:37:57.621 24987 24987 I BleAdvTransport: FragmentRxRaw session=32 idx=3 total=4 bytes=12 rssi=-49
+11-24 05:37:58.616 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=182 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:37:58.654 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=0 total=4 bytes=24 rssi=-45
+11-24 05:37:58.669 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=182
+11-24 05:37:58.935 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=0 total=4 bytes=24 rssi=-51
+11-24 05:37:59.433 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-53
+11-24 05:37:59.743 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=183 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:37:59.801 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=183
+11-24 05:37:59.967 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-55
+11-24 05:38:00.236 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-77
+11-24 05:38:00.753 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=2 total=4 bytes=24 rssi=-51
+11-24 05:38:00.868 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=184 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:00.917 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=184
+11-24 05:38:01.793 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-48
+11-24 05:38:01.794 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-48
+11-24 05:38:01.995 24987 25077 I BleAdvTransport: FragmentTx session=33 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-24 05:38:01.996 24987 25039 I HeartbeatTx: rideId=43a2efba-8f15-46d7-9d88-4eb85655015d startedAtEpochMs=1795512849330 elapsedSec=194s packetsEmitted=23
+11-24 05:38:01.996 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=185 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:02.034 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=185
+11-24 05:38:02.074 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-43
+11-24 05:38:02.475 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-44
+11-24 05:38:02.975 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=0 total=4 bytes=24 rssi=-44
+11-24 05:38:03.122 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=186 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:03.183 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=186
+11-24 05:38:03.248 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=0 total=4 bytes=24 rssi=-50
+11-24 05:38:04.018 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-58
+11-24 05:38:04.249 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=187 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:04.290 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=187
+11-24 05:38:04.425 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-44
+11-24 05:38:04.840 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=1 total=4 bytes=24 rssi=-44
+11-24 05:38:05.215 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=2 total=4 bytes=24 rssi=-49
+11-24 05:38:05.216 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-49
+11-24 05:38:05.375 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=188 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:05.429 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=188
+11-24 05:38:05.478 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=2 total=4 bytes=24 rssi=-61
+11-24 05:38:05.897 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=2 total=4 bytes=24 rssi=-46
+11-24 05:38:06.399 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-45
+11-24 05:38:06.500 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=189 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:06.545 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=189
+11-24 05:38:06.664 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-51
+11-24 05:38:06.946 24987 24987 I BleAdvTransport: FragmentRxRaw session=33 idx=3 total=4 bytes=12 rssi=-62
+11-24 05:38:07.446 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-62
+11-24 05:38:07.625 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=190 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:07.678 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=190
+11-24 05:38:07.728 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:38:08.129 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-51
+11-24 05:38:08.628 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-51
+11-24 05:38:08.751 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=191 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:08.828 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=191
+11-24 05:38:08.894 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-62
+11-24 05:38:09.161 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-44
+11-24 05:38:09.677 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=2 total=4 bytes=24 rssi=-44
+11-24 05:38:09.876 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=192 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:09.927 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=192
+11-24 05:38:10.478 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=2 total=4 bytes=24 rssi=-71
+11-24 05:38:10.859 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=3 total=4 bytes=12 rssi=-59
+11-24 05:38:10.860 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-59
+11-24 05:38:11.003 24987 25039 I BleAdvTransport: FragmentTx session=34 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-24 05:38:11.004 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=193 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:11.011 24987 25077 I RideService: ConvoySignalRx recibido por BLE Mesh: from=26216 kind=POLICE_CHECKPOINT
+11-24 05:38:11.061 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=193
+11-24 05:38:11.250 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=3 total=4 bytes=12 rssi=-60
+11-24 05:38:11.530 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=3 total=4 bytes=12 rssi=-63
+11-24 05:38:11.886 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-65
+11-24 05:38:12.130 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=194 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:12.175 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-48
+11-24 05:38:12.192 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=194
+11-24 05:38:12.707 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=0 total=4 bytes=24 rssi=-61
+11-24 05:38:13.090 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-48
+11-24 05:38:13.255 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=195 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:13.308 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=195
+11-24 05:38:13.342 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-63
+11-24 05:38:13.757 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=1 total=4 bytes=24 rssi=-60
+11-24 05:38:14.384 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=196 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:14.440 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=196
+11-24 05:38:15.323 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=3 total=4 bytes=12 rssi=-62
+11-24 05:38:15.509 24987 25039 I BleAdvTransport: FragmentTx session=35 bytes=52 fragments=4 maxBytes=24 priority=PEER_EVENT
+11-24 05:38:15.511 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=197 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:15.512 24987 25077 I HeartbeatTx: rideId=43a2efba-8f15-46d7-9d88-4eb85655015d startedAtEpochMs=1795512849330 elapsedSec=235s packetsEmitted=24
+11-24 05:38:15.554 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=197
+11-24 05:38:15.589 24987 24987 I BleAdvTransport: FragmentRxRaw session=34 idx=3 total=4 bytes=12 rssi=-61
+11-24 05:38:16.637 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=0 total=4 bytes=24 rssi=-60
+11-24 05:38:16.639 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=198 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:16.686 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=198
+11-24 05:38:17.054 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=0 total=4 bytes=24 rssi=-62
+11-24 05:38:17.764 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=199 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:17.820 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=199
+11-24 05:38:17.820 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=1 total=4 bytes=24 rssi=-46
+11-24 05:38:18.890 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=200 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:18.935 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=200
+11-24 05:38:19.419 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=2 total=4 bytes=24 rssi=-57
+11-24 05:38:19.920 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=3 total=4 bytes=12 rssi=-57
+11-24 05:38:19.921 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-57
+11-24 05:38:20.017 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=201 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:20.067 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=201
+11-24 05:38:20.191 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=3 total=4 bytes=12 rssi=-44
+11-24 05:38:21.144 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=202 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:21.164 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=202
+11-24 05:38:21.632 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=0 total=4 bytes=24 rssi=-45
+11-24 05:38:22.269 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=203 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:22.284 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=1 total=4 bytes=24 rssi=-57
+11-24 05:38:22.334 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=203
+11-24 05:38:22.949 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=1 total=4 bytes=24 rssi=-54
+11-24 05:38:23.397 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=204 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:23.449 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=204
+11-24 05:38:23.881 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=2 total=4 bytes=24 rssi=-52
+11-24 05:38:23.882 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-52
+11-24 05:38:24.522 24987 25039 I BleAdvTransport: FragmentTx session=36 bytes=52 fragments=4 maxBytes=24 priority=POSITION
+11-24 05:38:24.525 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=205 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:24.531 24987 25077 I RideService: ConvoySignalRx recibido por BLE Mesh: from=26216 kind=GAS_STOP
+11-24 05:38:24.580 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=205
+11-24 05:38:24.891 24987 24987 I BleAdvTransport: FragmentRxRaw session=35 idx=3 total=4 bytes=12 rssi=-53
+11-24 05:38:25.652 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=206 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:25.689 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=0 total=4 bytes=24 rssi=-61
+11-24 05:38:25.705 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=206
+11-24 05:38:26.088 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=0 total=4 bytes=24 rssi=-44
+11-24 05:38:26.780 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=207 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:26.828 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=207
+11-24 05:38:26.878 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=1 total=4 bytes=24 rssi=-53
+11-24 05:38:27.280 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=1 total=4 bytes=24 rssi=-53
+11-24 05:38:27.906 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=208 mode=LEGACY_1M delivery=BURST priority=POSITION
+11-24 05:38:27.961 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=208
+11-24 05:38:28.844 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=3 total=4 bytes=12 rssi=-44
+11-24 05:38:29.031 24987 25077 I BleAdvTransport: FragmentTx session=37 bytes=52 fragments=4 maxBytes=24 priority=PEER_EVENT
+11-24 05:38:29.032 24987 25039 I HeartbeatTx: rideId=43a2efba-8f15-46d7-9d88-4eb85655015d startedAtEpochMs=1795512849330 elapsedSec=249s packetsEmitted=25
+11-24 05:38:29.033 24987 25077 I BleAdvTransport: BleAdvTransport.send burst#=209 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:29.076 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=209
+11-24 05:38:30.144 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=0 total=4 bytes=24 rssi=-51
+11-24 05:38:30.161 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=210 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:30.208 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=210
+11-24 05:38:31.288 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=211 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:31.343 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=1 total=4 bytes=24 rssi=-44
+11-24 05:38:31.343 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=211
+11-24 05:38:31.626 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=1 total=4 bytes=24 rssi=-51
+11-24 05:38:32.414 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=212 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:32.476 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=212
+11-24 05:38:33.542 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=213 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:33.558 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=3 total=4 bytes=12 rssi=-45
+11-24 05:38:33.607 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=213
+11-24 05:38:33.839 24987 24987 I BleAdvTransport: FragmentRxRaw session=36 idx=3 total=4 bytes=12 rssi=-46
+11-24 05:38:34.623 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=0 total=4 bytes=24 rssi=-45
+11-24 05:38:34.669 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=214 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:34.692 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=214
+11-24 05:38:35.797 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=215 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:35.847 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=215
+11-24 05:38:35.914 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=1 total=4 bytes=24 rssi=-45
+11-24 05:38:36.923 24987 25039 I BleAdvTransport: BleAdvTransport.send burst#=216 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:36.996 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=216
+11-24 05:38:38.050 24987 25038 I BleAdvTransport: FragmentTx session=38 bytes=52 fragments=4 maxBytes=24 priority=PEER_EVENT
+11-24 05:38:38.052 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=217 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:38.058 24987 25039 I RideService: ConvoySignalRx recibido por BLE Mesh: from=26216 kind=REGROUP
+11-24 05:38:38.104 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=217
+11-24 05:38:39.177 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=218 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:39.228 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=218
+11-24 05:38:39.610 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=0 total=4 bytes=24 rssi=-48
+11-24 05:38:40.242 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=1 total=4 bytes=24 rssi=-45
+11-24 05:38:40.302 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=219 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:40.358 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=219
+11-24 05:38:41.430 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=220 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:41.447 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=2 total=4 bytes=24 rssi=-46
+11-24 05:38:41.480 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=220
+11-24 05:38:41.848 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=2 total=4 bytes=24 rssi=-44
+11-24 05:38:42.116 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=2 total=4 bytes=24 rssi=-44
+11-24 05:38:42.556 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=221 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:42.613 24987 24987 I BleAdvTransport: FragmentRxRaw session=37 idx=3 total=4 bytes=12 rssi=-46
+11-24 05:38:42.613 24987 24987 I BleAdvTransport: FragmentReassembled bytes=52 rssi=-46
+11-24 05:38:42.614 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=221
+11-24 05:38:43.681 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=222 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:43.696 24987 24987 I BleAdvTransport: FragmentRxRaw session=38 idx=0 total=4 bytes=24 rssi=-46
+11-24 05:38:43.730 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=222
+11-24 05:38:44.808 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=223 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:44.828 24987 24987 I BleAdvTransport: FragmentRxRaw session=38 idx=1 total=4 bytes=24 rssi=-46
+11-24 05:38:44.862 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=223
+11-24 05:38:45.935 24987 25038 I BleAdvTransport: BleAdvTransport.send burst#=224 mode=LEGACY_1M delivery=BURST priority=PEER_EVENT
+11-24 05:38:45.960 24987 24987 I BleAdvTransport: FragmentRxRaw session=38 idx=2 total=4 bytes=24 rssi=-49
+11-24 05:38:45.994 24987 24987 I BleAdvTransport: Legacy burst advertise started successfully burst#=224

@@ -1,0 +1,35 @@
+=== ANALISIS DE LOGS - VENTANA 05:38:47..06:14:39 (35 min) ===
+Fuente: TECNO_log_t35.txt y REDMI_log_t35.txt (pull acumulativo de /sdcard/rbs_field_log.txt).
+Filtro: lineas con timestamp dentro de la ventana de captura.
+
+TECNO (098813734B105395)
+  lineas en ventana        = 6925
+  HeartbeatTx              = 156
+  HeartbeatTx gaps (s)     = min 13.509 | p50 13.518 | p95 13.527 | max 31.545 | >40s: 0
+  FragmentReassembled      = 252
+  Reasm gaps (s)           = min 2.739 | p50 7.593 | p95 15.195 | max 37.682 | >40s: 0
+  Primera reasm            = 05:38:51
+  Ultima reasm             = 06:14:22
+  ConvoySignalRx           = 2 (05:39:00, 05:39:14)
+  RSSI observado (dBm)     = -82 .. -43 (n=2649)
+
+REDMI (b2c398bb)
+  lineas en ventana        = 3308
+  HeartbeatTx              = 268
+  HeartbeatTx gaps (s)     = min 7.522 | p50 7.555 | p95 7.564 | max 31.690 | >40s: 0
+  FragmentReassembled      = 13
+  Reasm gaps (s)           = min 3.357 | p50 14.303 | p95 378.509 | max 456.201 | >40s: 4
+  Primera reasm            = 05:38:56
+  Ultima reasm             = 05:59:13
+  ConvoySignalRx           = 1 (05:38:58)
+  RSSI observado (dBm)     = -89 .. -50 (n=359)
+
+HUD (uiautomator, 8 muestras cada 5 min)
+  TECNO: 2 riders en 8/8 muestras.
+  REDMI: 2 riders en 1/8 muestras; 1 rider desde t=+5 min hasta t=+35 min.
+  Velocidad mostrada: 0 km/h en 16/16 lecturas (no hay evidencia de desplazamiento en el HUD).
+
+Nota: HeartbeatRx=0 en ambos dispositivos porque el tag no esta incluido en el filtro de logcat
+de la captura; la recepcion se mide con FragmentReassembled (frames completos de 52 B / 4
+fragmentos), no con ese contador.
+=== FIN ===
