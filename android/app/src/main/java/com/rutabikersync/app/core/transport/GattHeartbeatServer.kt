@@ -11,14 +11,18 @@ import android.bluetooth.BluetoothGattServerCallback
 import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertisingSet
 import android.bluetooth.le.AdvertisingSetCallback
 import android.bluetooth.le.AdvertisingSetParameters
 import android.content.Context
+import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.sync.Mutex
@@ -44,6 +48,7 @@ class GattHeartbeatServer(
         const val TAG = "GattHeartbeat"
         val SERVICE_UUID: UUID = UUID.fromString("0000b1d2-0000-1000-8000-00805f9b34fb")
         val TX_CHAR_UUID: UUID = UUID.fromString("0000b1d3-0000-1000-8000-00805f9b34fb")
+        val RX_CHAR_UUID: UUID = UUID.fromString("0000b1d4-0000-1000-8000-00805f9b34fb")
         val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
         const val DEFAULT_MTU = 23
@@ -63,10 +68,32 @@ class GattHeartbeatServer(
             (localShortId.toInt() shr 8).toByte(),
             (localShortId.toInt() and 0xFF).toByte()
         )
+
+        /**
+         * Framing compartido Server↔Client: `[totalChunks, chunkIndex] + chunk`.
+         */
+        fun framesForPayload(payload: ByteArray, negotiatedMtu: Int = DEFAULT_MTU): List<ByteArray> {
+            require(payload.isNotEmpty()) { "GattHeartbeat payload vacío" }
+            val usable = (negotiatedMtu - ATT_HEADER_BYTES - TRANSPORT_HEADER_BYTES).coerceAtLeast(1)
+            val chunks = mutableListOf<ByteArray>()
+            var offset = 0
+            while (offset < payload.size) {
+                val end = minOf(offset + usable, payload.size)
+                chunks += payload.copyOfRange(offset, end)
+                offset = end
+            }
+            require(chunks.size <= MAX_CHUNKS) { "GattHeartbeat payload demasiado grande: ${payload.size}B" }
+            return chunks.mapIndexed { index, chunk ->
+                byteArrayOf(chunks.size.toByte(), index.toByte()) + chunk
+            }
+        }
     }
 
     private val notifyMutex = Mutex()
     private val subscribers = ConcurrentHashMap.newKeySet<String>()
+    private val rxReassemblers = ConcurrentHashMap<String, HeartbeatFrameReassembler>()
+    private val _incoming = MutableSharedFlow<Transport.IncomingPacket>(extraBufferCapacity = 128)
+    val incomingPackets: Flow<Transport.IncomingPacket> = _incoming.asSharedFlow()
 
     @Volatile
     private var mtu: Int = DEFAULT_MTU
@@ -95,7 +122,23 @@ class GattHeartbeatServer(
 
     fun onClientDisconnected(address: String) {
         subscribers.remove(address)
+        rxReassemblers.remove(address)
         log("GattHeartbeat disconnected device=$address")
+    }
+
+    fun onCharacteristicWrite(address: String, value: ByteArray) {
+        val reassembler = rxReassemblers.getOrPut(address) { HeartbeatFrameReassembler() }
+        val payload = reassembler.feed(value) ?: return
+        val suffix = GattHeartbeatClient.addressSuffix(address)
+        val emitted = _incoming.tryEmit(
+            Transport.IncomingPacket(
+                bytes = payload,
+                rssi = null,
+                timestampEpochMs = System.currentTimeMillis(),
+                senderAddressSuffix = suffix
+            )
+        )
+        log("GattHeartbeat onCharacteristicWrite bytes=${payload.size} suffix=$suffix emitted=$emitted")
     }
 
     fun onMtuChanged(newMtu: Int) {
@@ -112,21 +155,8 @@ class GattHeartbeatServer(
      * Framing de transporte: `[totalChunks, chunkIndex] + chunk`. El receptor concatena los
      * chunks en orden y obtiene exactamente los bytes originales de la trama.
      */
-    fun framesFor(payload: ByteArray, negotiatedMtu: Int = mtu): List<ByteArray> {
-        require(payload.isNotEmpty()) { "GattHeartbeat payload vacío" }
-        val usable = (negotiatedMtu - ATT_HEADER_BYTES - TRANSPORT_HEADER_BYTES).coerceAtLeast(1)
-        val chunks = mutableListOf<ByteArray>()
-        var offset = 0
-        while (offset < payload.size) {
-            val end = minOf(offset + usable, payload.size)
-            chunks += payload.copyOfRange(offset, end)
-            offset = end
-        }
-        require(chunks.size <= MAX_CHUNKS) { "GattHeartbeat payload demasiado grande: ${payload.size}B" }
-        return chunks.mapIndexed { index, chunk ->
-            byteArrayOf(chunks.size.toByte(), index.toByte()) + chunk
-        }
-    }
+    fun framesFor(payload: ByteArray, negotiatedMtu: Int = mtu): List<ByteArray> =
+        framesForPayload(payload, negotiatedMtu)
 
     /** Envía el heartbeat a todos los clientes suscritos. Devuelve el número de frames entregados. */
     suspend fun notifyHeartbeat(payload: ByteArray): Int = notifyMutex.withLock {
@@ -178,27 +208,38 @@ class HeartbeatGattRoutingTransport(
 
     override suspend fun send(payload: ByteArray, priority: Transport.Priority) {
         if (priority == Transport.Priority.POSITION) {
-            // Corte estricto: ninguna posición vuelve al advertising (ni la retransmitida).
-            heartbeatServer?.notifyHeartbeat(payload)
+            val serverSent = heartbeatServer?.notifyHeartbeat(payload) ?: 0
+            val clientSent = heartbeatClient?.writeHeartbeat(payload) ?: 0
+            if (serverSent + clientSent == 0) {
+                delegate.send(payload, priority)
+            }
         } else {
             delegate.send(payload, priority)
         }
     }
 
     override suspend fun sendHeartbeat(payload: ByteArray, priority: Transport.Priority) {
-        // Nunca se delega al advertising: este wrapper solo existe en la migración GATT.
-        heartbeatServer?.notifyHeartbeat(payload)
+        val serverSent = heartbeatServer?.notifyHeartbeat(payload) ?: 0
+        val clientSent = heartbeatClient?.writeHeartbeat(payload) ?: 0
+        if (serverSent + clientSent == 0) {
+            delegate.sendHeartbeat(payload, priority)
+        }
     }
 
     override val incoming: Flow<ByteArray> get() = delegate.incoming
 
-    /** El engine recibe los heartbeats GATT por el mismo flow que los de advertising. */
-    override val incomingPackets: Flow<Transport.IncomingPacket>? get() = when {
-        heartbeatClient != null -> merge(
-            delegate.incomingPackets ?: emptyFlow(),
-            heartbeatClient.incomingPackets
-        )
-        else -> delegate.incomingPackets
+    /** El engine recibe los heartbeats GATT (Server y Client) por el mismo flow que los de advertising. */
+    override val incomingPackets: Flow<Transport.IncomingPacket>? get() {
+        val flows = buildList {
+            delegate.incomingPackets?.let { add(it) }
+            heartbeatClient?.incomingPackets?.let { add(it) }
+            heartbeatServer?.incomingPackets?.let { add(it) }
+        }
+        return when (flows.size) {
+            0 -> null
+            1 -> flows.first()
+            else -> merge(*flows.toTypedArray())
+        }
     }
 }
 
@@ -216,6 +257,7 @@ private class AndroidHeartbeatGattServerBackend(
     private var heartbeatServer: GattHeartbeatServer? = null
     private var gattServer: BluetoothGattServer? = null
     private var txCharacteristic: BluetoothGattCharacteristic? = null
+    private var rxCharacteristic: BluetoothGattCharacteristic? = null
     private var advertisingCallback: AdvertisingSetCallback? = null
 
     fun attach(server: GattHeartbeatServer) {
@@ -248,6 +290,14 @@ private class AndroidHeartbeatGattServerBackend(
         service.addCharacteristic(tx)
         txCharacteristic = tx
 
+        val rx = BluetoothGattCharacteristic(
+            GattHeartbeatServer.RX_CHAR_UUID,
+            BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE,
+            BluetoothGattCharacteristic.PERMISSION_WRITE
+        )
+        service.addCharacteristic(rx)
+        rxCharacteristic = rx
+
         val added = runCatching { gatt.addService(service) }.getOrDefault(false)
         if (!added) Log.e(GattHeartbeatServer.TAG, "GattHeartbeat no se pudo añadir el servicio")
         return added
@@ -256,9 +306,13 @@ private class AndroidHeartbeatGattServerBackend(
     @SuppressLint("MissingPermission")
     override fun startConnectableAdvertising(): Boolean {
         val advertiser = adapter?.bluetoothLeAdvertiser ?: return false
+        // BLE Legacy límite = 31 B: UUID 128-bit en advData (21 B con Flags) y ServiceData en scanResponse (20 B).
         val advData = AdvertiseData.Builder()
             .setIncludeDeviceName(false)
             .addServiceUuid(ParcelUuid(GattHeartbeatServer.SERVICE_UUID))
+            .build()
+        val scanResponse = AdvertiseData.Builder()
+            .setIncludeDeviceName(false)
             .addServiceData(
                 ParcelUuid(GattHeartbeatServer.SERVICE_UUID),
                 GattHeartbeatServer.shortIdServiceData(localShortId)
@@ -283,7 +337,7 @@ private class AndroidHeartbeatGattServerBackend(
         }
         advertisingCallback = callback
         return runCatching {
-            advertiser.startAdvertisingSet(params, advData, null, null, null, 0, 0, callback)
+            advertiser.startAdvertisingSet(params, advData, scanResponse, null, null, 0, 0, callback)
             true
         }.getOrDefault(false)
     }
@@ -296,11 +350,21 @@ private class AndroidHeartbeatGattServerBackend(
         advertisingCallback = null
     }
 
+    @SuppressLint("MissingPermission")
+    @Suppress("DEPRECATION")
     override fun notify(address: String, value: ByteArray): Boolean {
         val device = devices[address] ?: return false
         val characteristic = txCharacteristic ?: return false
         val gatt = gattServer ?: return false
-        return runCatching { gatt.notifyCharacteristicChanged(device, characteristic, false) }.getOrDefault(false)
+        return runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                gatt.notifyCharacteristicChanged(device, characteristic, false, value) ==
+                    BluetoothStatusCodes.SUCCESS
+            } else {
+                characteristic.value = value
+                gatt.notifyCharacteristicChanged(device, characteristic, false)
+            }
+        }.getOrDefault(false)
     }
 
     @SuppressLint("MissingPermission")
@@ -309,6 +373,7 @@ private class AndroidHeartbeatGattServerBackend(
         gattServer = null
         devices.clear()
         txCharacteristic = null
+        rxCharacteristic = null
     }
 
     private val serverCallback = object : BluetoothGattServerCallback() {
@@ -347,6 +412,27 @@ private class AndroidHeartbeatGattServerBackend(
                 heartbeatServer?.onSubscribed(address, enabled)
             }
             descriptor?.value = value ?: BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+            if (responseNeeded) {
+                runCatching {
+                    gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onCharacteristicWriteRequest(
+            device: BluetoothDevice?,
+            requestId: Int,
+            characteristic: BluetoothGattCharacteristic?,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray?
+        ) {
+            val address = device?.address
+            if (address != null && value != null && characteristic?.uuid == GattHeartbeatServer.RX_CHAR_UUID) {
+                heartbeatServer?.onCharacteristicWrite(address, value)
+            }
             if (responseNeeded) {
                 runCatching {
                     gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)

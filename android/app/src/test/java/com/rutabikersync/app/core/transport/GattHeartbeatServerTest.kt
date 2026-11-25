@@ -1,7 +1,10 @@
 package com.rutabikersync.app.core.transport
 
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -189,7 +192,7 @@ class GattHeartbeatServerTest {
     }
 
     @Test
-    fun `routing sin servidor no devuelve POSITION al advertising`() = runBlocking {
+    fun `routing sin servidor hace fallback de POSITION al advertising cuando GATT envia 0`() = runBlocking {
         val adv = FakeTransport()
         val routing = HeartbeatGattRoutingTransport(adv, null)
         val payload = ByteArray(24) { 4 }
@@ -197,13 +200,13 @@ class GattHeartbeatServerTest {
         routing.sendHeartbeat(payload, Transport.Priority.POSITION)
         routing.send(payload, Transport.Priority.POSITION)
 
-        assertTrue(adv.heartbeats.isEmpty())
-        assertTrue(adv.sends.isEmpty())
+        assertEquals(1, adv.heartbeats.size)
+        assertEquals(1, adv.sends.size)
         assertTrue(!routing.name.contains("gatt-hb"))
     }
 
     @Test
-    fun `routing con solo cliente descarta POSITION pero mantiene SOS`() = runBlocking {
+    fun `routing con solo cliente no conectado hace fallback de POSITION y mantiene SOS`() = runBlocking {
         val clientBackend = object : HeartbeatGattClientBackend {
             override fun startScanning() = true
             override fun stopScanning() = Unit
@@ -221,8 +224,62 @@ class GattHeartbeatServerTest {
         routing.send(payload, Transport.Priority.POSITION)
         routing.send(payload, Transport.Priority.SOS)
 
-        assertTrue(adv.sends.single().second == Transport.Priority.SOS)
-        assertEquals(1, adv.sends.size)
+        assertEquals(2, adv.sends.size)
+        assertEquals(Transport.Priority.POSITION, adv.sends[0].second)
+        assertEquals(Transport.Priority.SOS, adv.sends[1].second)
         assertTrue(routing.name.contains("gatt-hb"))
+    }
+
+    @Test
+    fun `servidor recibe escritura RX del cliente y emite en incomingPackets`() = runBlocking {
+        val backend = FakeBackend()
+        val server = GattHeartbeatServer(backend)
+        server.start()
+        val payload = ByteArray(24) { (it + 3).toByte() }
+        val frames = server.framesFor(payload, negotiatedMtu = 23) // 2 chunks
+
+        val received = async(start = CoroutineStart.UNDISPATCHED) {
+            server.incomingPackets.first()
+        }
+        server.onCharacteristicWrite("AA:BB:CC:DD:EE:09", frames[0])
+        server.onCharacteristicWrite("AA:BB:CC:DD:EE:09", frames[1])
+        val pkt = received.await()
+
+        assertArrayEquals(payload, pkt.bytes)
+        assertEquals("EE:09", pkt.senderAddressSuffix)
+    }
+
+    @Test
+    fun `routing con cliente conectado envia POSITION por writeHeartbeat`() = runBlocking {
+        val writes = mutableListOf<ByteArray>()
+        val clientBackend = object : HeartbeatGattClientBackend {
+            override fun startScanning() = true
+            override fun stopScanning() = Unit
+            override fun connect(address: String) = true
+            override fun requestMtu(mtu: Int) = true
+            override fun subscribe() = true
+            override fun write(value: ByteArray): Boolean {
+                writes += value.copyOf()
+                return true
+            }
+            override fun discoverServices() = true
+            override fun close() = Unit
+        }
+        val client = GattHeartbeatClient(clientBackend, 1u, setOf(2u))
+        client.onConnected("AA:BB:CC:DD:EE:02")
+        client.onMtuChanged(64)
+        client.onServicesDiscovered(hasTxCharacteristic = true, hasRxCharacteristic = true)
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = true)
+
+        val adv = FakeTransport()
+        val routing = HeartbeatGattRoutingTransport(adv, null, client)
+        val payload = ByteArray(24) { 9 }
+
+        routing.sendHeartbeat(payload, Transport.Priority.POSITION)
+
+        assertEquals(1, writes.size)
+        assertArrayEquals(payload, reassemble(writes))
+        assertTrue(adv.heartbeats.isEmpty())
+        assertTrue(adv.sends.isEmpty())
     }
 }

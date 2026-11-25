@@ -28,6 +28,12 @@ class GattHeartbeatClientTest {
             private set
         var connectedAddress: String? = null
 
+        val connectedAddresses = mutableListOf<String>()
+        val discoveredAddresses = mutableListOf<String>()
+        val subscribedAddresses = mutableListOf<String>()
+        val writes = mutableListOf<Pair<String, ByteArray>>()
+        var requestMtuResult = true
+
         override fun startScanning(): Boolean {
             scanStarts++
             return true
@@ -40,12 +46,13 @@ class GattHeartbeatClientTest {
         override fun connect(address: String): Boolean {
             connectCalls++
             connectedAddress = address
+            connectedAddresses += address
             return true
         }
 
         override fun requestMtu(mtu: Int): Boolean {
             mtuRequests += mtu
-            return true
+            return requestMtuResult
         }
 
         override fun subscribe(): Boolean {
@@ -53,8 +60,25 @@ class GattHeartbeatClientTest {
             return true
         }
 
+        override fun subscribe(address: String): Boolean {
+            subscribeCalls++
+            subscribedAddresses += address
+            return true
+        }
+
+        override fun write(address: String, value: ByteArray): Boolean {
+            writes += address to value.copyOf()
+            return true
+        }
+
         override fun discoverServices(): Boolean {
             discoverCalls++
+            return true
+        }
+
+        override fun discoverServices(address: String): Boolean {
+            discoverCalls++
+            discoveredAddresses += address
             return true
         }
 
@@ -112,23 +136,25 @@ class GattHeartbeatClientTest {
 
         assertEquals(1, backend.connectCalls)
         assertEquals("AA:BB:CC:DD:EE:02", backend.connectedAddress)
+        assertEquals(0, backend.scanStops)
+        client.onConnected("AA:BB:CC:DD:EE:02")
         assertEquals(1, backend.scanStops)
         assertTrue(logs.any { it.contains("CLIENT_CONNECT") })
         assertTrue(logs.any { it.contains("PEER_SKIP") })
     }
 
     @Test
-    fun `conectado negocia MTU y suscribe la characteristic TX`() {
+    fun `conectado negocia MTU y descubre servicios inmediatamente`() {
         val backend = FakeBackend()
         val logs = mutableListOf<String>()
         val client = GattHeartbeatClient(backend, 1u, setOf(2u), logs::add)
 
         client.onConnected("AA:BB:CC:DD:EE:02")
-        client.onServicesDiscovered(hasTxCharacteristic = true)
+        client.onServicesDiscovered(hasTxCharacteristic = true, address = "AA:BB:CC:DD:EE:02")
 
         assertEquals(listOf(GattHeartbeatClient.REQUESTED_MTU), backend.mtuRequests)
         assertEquals(1, backend.subscribeCalls)
-        assertEquals(0, backend.discoverCalls)
+        assertEquals(1, backend.discoverCalls)
         assertTrue(logs.any { it.contains("GattHeartbeat connected") })
     }
 
@@ -194,5 +220,93 @@ class GattHeartbeatClientTest {
         client.stopClient()
 
         assertEquals(1, backend.closes)
+    }
+
+    @Test
+    fun `writeHeartbeat fragmenta segun MTU negociado`() = runBlocking {
+        val writes = mutableListOf<ByteArray>()
+        val backend = object : HeartbeatGattClientBackend {
+            override fun startScanning() = true
+            override fun stopScanning() = Unit
+            override fun connect(address: String) = true
+            override fun requestMtu(mtu: Int) = true
+            override fun subscribe() = true
+            override fun write(value: ByteArray): Boolean {
+                writes += value.copyOf()
+                return true
+            }
+            override fun discoverServices() = true
+            override fun close() = Unit
+        }
+        val client = GattHeartbeatClient(backend, 1u, setOf(2u))
+        client.onConnected("AA:BB:CC:DD:EE:02")
+        client.onMtuChanged(23, "AA:BB:CC:DD:EE:02")
+        client.onServicesDiscovered(hasTxCharacteristic = true, hasRxCharacteristic = true, address = "AA:BB:CC:DD:EE:02")
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = true)
+
+        val payload = ByteArray(24) { it.toByte() }
+        val sent = client.writeHeartbeat(payload)
+
+        assertEquals(2, sent)
+        assertEquals(2, writes.size)
+    }
+
+    @Test
+    fun `cliente se conecta a 2 peers simultaneamente y no detiene escaneo hasta establecer ambos`() = runBlocking {
+        val backend = FakeBackend()
+        val client = GattHeartbeatClient(backend, 1u, setOf(2u, 3u))
+        client.startClient()
+
+        client.onPeerDiscovered("AA:BB:CC:DD:EE:02", 2u)
+        client.onConnected("AA:BB:CC:DD:EE:02")
+        assertEquals(0, backend.scanStops)
+
+        client.onPeerDiscovered("AA:BB:CC:DD:EE:03", 3u)
+        assertEquals(listOf("AA:BB:CC:DD:EE:02", "AA:BB:CC:DD:EE:03"), backend.connectedAddresses)
+        assertEquals(0, backend.scanStops)
+
+        client.onConnected("AA:BB:CC:DD:EE:03")
+        assertEquals(1, backend.scanStops)
+
+        client.onServicesDiscovered(true, true, "AA:BB:CC:DD:EE:02")
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = true)
+        client.onServicesDiscovered(true, true, "AA:BB:CC:DD:EE:03")
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:03", success = true)
+
+        val sent = client.writeHeartbeat(ByteArray(10) { 1 })
+        assertEquals(2, sent)
+        assertEquals(2, backend.writes.size)
+    }
+
+    @Test
+    fun `writeHeartbeat espera a que onDescriptorWrite complete`() = runBlocking {
+        val backend = FakeBackend()
+        val client = GattHeartbeatClient(backend, 1u, setOf(2u))
+        client.onConnected("AA:BB:CC:DD:EE:02")
+        client.onServicesDiscovered(hasTxCharacteristic = true, hasRxCharacteristic = true, address = "AA:BB:CC:DD:EE:02")
+
+        assertEquals(0, client.writeHeartbeat(ByteArray(10) { 1 }))
+        assertTrue(backend.writes.isEmpty())
+
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = false)
+        assertEquals(0, client.writeHeartbeat(ByteArray(10) { 1 }))
+
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = true)
+        assertEquals(1, client.writeHeartbeat(ByteArray(10) { 1 }))
+        assertEquals(1, backend.writes.size)
+    }
+
+    @Test
+    fun `si onMtuChanged no llega o requestMtu falla los servicios se descubren igual`() = runBlocking {
+        val backend = FakeBackend().apply { requestMtuResult = false }
+        val client = GattHeartbeatClient(backend, 1u, setOf(2u))
+
+        client.onConnected("AA:BB:CC:DD:EE:02")
+        assertEquals(listOf("AA:BB:CC:DD:EE:02"), backend.discoveredAddresses)
+
+        client.onServicesDiscovered(hasTxCharacteristic = true, hasRxCharacteristic = true, address = "AA:BB:CC:DD:EE:02")
+        client.onDescriptorWrite("AA:BB:CC:DD:EE:02", success = true)
+        val sent = client.writeHeartbeat(ByteArray(24) { 2 })
+        assertEquals(2, sent)
     }
 }
