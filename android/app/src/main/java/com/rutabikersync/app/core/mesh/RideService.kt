@@ -280,7 +280,12 @@ class RideSessionController(
         )
         activeTransport = selectedTransport
 
-        val effectiveExpectedPeers = expectedPeerShortIds.filter { it != localShortId }.toSet()
+        val manifestPeers = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)
+            ?.authorizedShortIds
+            .orEmpty()
+        val effectiveExpectedPeers = (if (expectedPeerShortIds.isNotEmpty()) expectedPeerShortIds else manifestPeers)
+            .filter { it != localShortId }
+            .toSet()
         val heartbeatPlan = GattHeartbeatClient.planFor(localShortId, effectiveExpectedPeers)
 
         // Opción B: el heartbeat sale por GATT; SOS/eventos/discovery siguen en BleAdvTransport.
@@ -1705,10 +1710,12 @@ class RideService : Service() {
 
     lateinit var controller: RideSessionController
         private set
+    private lateinit var rideStateStore: RideServiceStateStore
 
     override fun onCreate() {
         instance = this
         super.onCreate()
+        rideStateStore = RideServiceStateStore(applicationContext)
         createNotificationChannelIfNeeded()
         controller = RideSessionController(
             scope = serviceScope,
@@ -1774,120 +1781,73 @@ class RideService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_RIDE -> {
-                val rideId = intent.getStringExtra(EXTRA_RIDE_ID) ?: "ride-local-default"
-                val shortId = intent.getIntExtra(EXTRA_LOCAL_SHORT_ID, 1).toUShort()
-                val requestedForceSim = intent.getBooleanExtra(EXTRA_FORCE_SIMULATED, false)
-                val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(
-                    intent.getStringExtra(EXTRA_BLE_MODE_OVERRIDE)
-                )
-                val advertisingBurstDurationMs = intent.getIntExtra(
-                    EXTRA_ADVERTISING_BURST_DURATION_MS,
-                    BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS
-                )
-                val expectedPeerShortIds = intent.getIntArrayExtra(EXTRA_EXPECTED_PEER_SHORT_IDS)
-                    ?.map { it.toUShort() }
-                    ?.toSet()
-                    ?: emptySet()
-                val relayEnabled = intent.getBooleanExtra(EXTRA_RELAY_ENABLED, true)
-                val txRxRole = BleAdvTransport.TxRxRole.fromCode(intent.getStringExtra(EXTRA_TX_RX_ROLE))
-                val unfilteredScanDiagnostic = intent.getBooleanExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, false)
-                val advertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.fromCode(
-                    intent.getStringExtra(EXTRA_ADVERTISING_DELIVERY_MODE)
-                )
-                val manifestKey = decodeManifestKey(intent.getStringExtra(EXTRA_RIDE_SECRET_KEY_HEX))
+                val manifestKeyHex = intent.getStringExtra(EXTRA_RIDE_SECRET_KEY_HEX)
+                val manifestKey = decodeManifestKey(manifestKeyHex)
                     ?: run {
                         Log.e(TAG, "ACTION_START_RIDE rechazado: clave del manifiesto ausente o inválida")
                         return START_NOT_STICKY
                     }
-                activeManifestKey = manifestKey
-                val eligibility = evaluateContextEligibility(this, requestedForceSim)
-                val effectiveForceSim = eligibility.effectiveForceSimulated
-
-                val initialSnapshot = controller.state.value.notification.copy(
-                    title = "Iniciando rodada · Mesh activa",
-                    contentText = if (effectiveForceSim) {
-                        "Simulación en app activa (sin Foreground Service)..."
-                    } else {
-                        "Preparando mesh BLE real..."
-                    },
-                    isUsingSimulatedTransport = effectiveForceSim
+                val params = PersistedRideParams(
+                    rideId = intent.getStringExtra(EXTRA_RIDE_ID) ?: "ride-local-default",
+                    localShortId = intent.getIntExtra(EXTRA_LOCAL_SHORT_ID, 1).toUShort(),
+                    manifestKeyHex = manifestKeyHex!!,
+                    expectedPeerShortIds = intent.getIntArrayExtra(EXTRA_EXPECTED_PEER_SHORT_IDS)
+                        ?.map { it.toUShort() }
+                        ?.toSet()
+                        ?: emptySet(),
+                    forceSimulated = intent.getBooleanExtra(EXTRA_FORCE_SIMULATED, false),
+                    bleModeOverrideCode = intent.getStringExtra(EXTRA_BLE_MODE_OVERRIDE),
+                    advertisingBurstDurationMs = intent.getIntExtra(
+                        EXTRA_ADVERTISING_BURST_DURATION_MS,
+                        BleAdvTransport.DEFAULT_ADVERTISING_BURST_DURATION_MS
+                    ),
+                    relayEnabled = intent.getBooleanExtra(EXTRA_RELAY_ENABLED, true),
+                    txRxRoleCode = intent.getStringExtra(EXTRA_TX_RX_ROLE),
+                    unfilteredScanDiagnostic = intent.getBooleanExtra(EXTRA_UNFILTERED_SCAN_DIAGNOSTIC, false),
+                    advertisingDeliveryModeCode = intent.getStringExtra(EXTRA_ADVERTISING_DELIVERY_MODE)
                 )
-
-                if (eligibility.shouldPromoteToForeground) {
-                    // CRÍTICO (Android 14/15 targetSdk=35): startForeground() en hilo principal dentro de onStartCommand
-                    val promoted = promoteToForeground(
-                        snapshot = initialSnapshot,
-                        fgsTypes = eligibility.foregroundServiceTypes
-                    )
-                    if (!promoted) {
-                        return START_NOT_STICKY
-                    }
-                    isPromotedToForeground = true
-                    acquireWakeLockIfNeeded()
-                } else {
-                    // Modo simulado: corre dentro de la app visible sin Foreground Service
-                    isPromotedToForeground = false
-                    Log.i(TAG, "Starting RideService in simulated in-app mode (no Foreground Service)")
-                }
-
-                // Fase 5 (R10.1, R10.2): Inicializar criptografía efímera de rescate médico
-                SosRepository.getInstance(applicationContext).initRideCrypto()
-
-                // Fase 5 (R10.5): Detector inercial de caídas activo durante la rodada
-                try {
-                    fallDetector?.stop()
-                    fallDetector = FallDetector(applicationContext) { triggerType ->
-                        Log.w(TAG, "Caída detectada por sensor inercial en rodada activa ($triggerType)")
-                        serviceScope.launch(Dispatchers.Main) {
-                            SosCountdownManager.getInstance(applicationContext) { confirmedTrigger ->
-                                serviceScope.launch {
-                                    controller.triggerSos(active = true)
-                                    _sharedState.value = controller.state.value
-                                }
-                            }.startCountdown(triggerType)
-                        }
-                    }.also { it.start() }
-                } catch (e: Exception) {
-                    Log.e(TAG, "No se pudo iniciar FallDetector: ${e.message}")
-                }
-
-                controller.recordStartError(null)
-                // FIX distancia al líder: sembrar posición real ANTES del primer heartbeat.
-                seedLocalTelemetryFromCache()
-                serviceScope.launch {
-                    val state = controller.startRide(
-                        rideId = rideId,
-                        localShortId = shortId,
-                        rideSecretKey = manifestKey,
-                        forceSimulatedTransport = effectiveForceSim,
-                        bleModeOverride = bleModeOverride,
-                        advertisingBurstDurationMs = advertisingBurstDurationMs,
-                        expectedPeerShortIds = expectedPeerShortIds,
-                        relayEnabled = relayEnabled,
-                        txRxRole = txRxRole,
-                        unfilteredScanDiagnostic = unfilteredScanDiagnostic,
-                        advertisingDeliveryMode = advertisingDeliveryMode
-                    )
-                    _sharedState.value = state
-                    drainPendingLifecycleEvents()
-                    if (isPromotedToForeground) {
-                        updateForegroundNotification(state.notification)
-                    }
-                    val isExtended = bleModeOverride == null ||
-                        bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_1M ||
-                        bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY
-                    if (isExtended) {
-                        autoFallbackJob?.cancel()
-                        autoFallbackJob = serviceScope.launch {
-                            delay(30_000)
-                            val eng = controller.relayEngine
-                            if (eng != null && eng.peers.value.isEmpty()) {
-                                Log.w("RideService", "Auto-fallback BLE: sin peers en 30s, cambiando a LEGACY_1M")
-                                runCatching { restartWithBleMode(BleAdvTransport.TransportModeOverride.LEGACY_1M) }
+                rideStateStore.save(params)
+                return startOrRestoreRide(params, manifestKey)
+            }
+            null -> {
+                var restoredResult = START_NOT_STICKY
+                val handler = StickyRideRecoveryHandler(
+                    store = rideStateStore,
+                    startForegroundFirst = { params ->
+                        val eligibility = evaluateContextEligibility(this, params.forceSimulated)
+                        if (eligibility.shouldPromoteToForeground) {
+                            val snapshot = controller.state.value.notification.copy(
+                                title = "Restaurando rodada · Mesh activa",
+                                contentText = "Reconstruyendo mesh BLE tras reinicio del sistema...",
+                                isUsingSimulatedTransport = eligibility.effectiveForceSimulated
+                            )
+                            val promoted = promoteToForeground(snapshot, eligibility.foregroundServiceTypes)
+                            if (promoted) {
+                                isPromotedToForeground = true
+                                acquireWakeLockIfNeeded()
                             }
+                            promoted
+                        } else {
+                            true
                         }
+                    },
+                    restoreRide = { params ->
+                        val manifestKey = decodeManifestKey(params.manifestKeyHex)
+                        if (manifestKey != null) {
+                            Log.w(TAG, "START_STICKY intent==null: restaurando rodada=${params.rideId}")
+                            restoredResult = launchRestoredRideSession(params, manifestKey)
+                        } else {
+                            rideStateStore.clear()
+                            stopSelf()
+                        }
+                    },
+                    stopWithoutRide = {
+                        Log.i(TAG, "START_STICKY intent==null sin rodada activa persistida: deteniendo servicio")
+                        stopSelf()
                     }
-                }
+                )
+                handler.handleNullIntent()
+                return restoredResult
             }
             ACTION_TRIGGER_SOS -> {
                 serviceScope.launch {
@@ -1907,6 +1867,7 @@ class RideService : Service() {
                     val state = controller.onStopActionFromNotification()
                     _sharedState.value = state
                     if (state.lifecycleState == RideLifecycleState.STOPPED) {
+                        rideStateStore.clear()
                         fallDetector?.stop()
                         fallDetector = null
                         SosRepository.getInstance(applicationContext).clearAllOnRideFinished()
@@ -1924,6 +1885,7 @@ class RideService : Service() {
             }
             ACTION_FORCE_STOP_RIDE -> {
                 rideStartDeduplicator.reset()
+                rideStateStore.clear()
                 serviceScope.launch {
                     val state = controller.stopAll()
                     _sharedState.value = state
@@ -1939,6 +1901,100 @@ class RideService : Service() {
                         isPromotedToForeground = false
                     }
                     stopSelf()
+                }
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun startOrRestoreRide(params: PersistedRideParams, manifestKey: ByteArray): Int {
+        val eligibility = evaluateContextEligibility(this, params.forceSimulated)
+        val effectiveForceSim = eligibility.effectiveForceSimulated
+        val initialSnapshot = controller.state.value.notification.copy(
+            title = "Iniciando rodada · Mesh activa",
+            contentText = if (effectiveForceSim) {
+                "Simulación en app activa (sin Foreground Service)..."
+            } else {
+                "Preparando mesh BLE real..."
+            },
+            isUsingSimulatedTransport = effectiveForceSim
+        )
+        if (eligibility.shouldPromoteToForeground) {
+            val promoted = promoteToForeground(
+                snapshot = initialSnapshot,
+                fgsTypes = eligibility.foregroundServiceTypes
+            )
+            if (!promoted) {
+                return START_NOT_STICKY
+            }
+            isPromotedToForeground = true
+            acquireWakeLockIfNeeded()
+        } else {
+            isPromotedToForeground = false
+            Log.i(TAG, "Starting RideService in simulated in-app mode (no Foreground Service)")
+        }
+        return launchRestoredRideSession(params, manifestKey)
+    }
+
+    private fun launchRestoredRideSession(params: PersistedRideParams, manifestKey: ByteArray): Int {
+        activeManifestKey = manifestKey
+        val eligibility = evaluateContextEligibility(this, params.forceSimulated)
+        val effectiveForceSim = eligibility.effectiveForceSimulated
+        val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(params.bleModeOverrideCode)
+        val txRxRole = BleAdvTransport.TxRxRole.fromCode(params.txRxRoleCode)
+        val advertisingDeliveryMode = BleAdvTransport.AdvertisingDeliveryMode.fromCode(params.advertisingDeliveryModeCode)
+
+        SosRepository.getInstance(applicationContext).initRideCrypto()
+        try {
+            fallDetector?.stop()
+            fallDetector = FallDetector(applicationContext) { triggerType ->
+                Log.w(TAG, "Caída detectada por sensor inercial en rodada activa ($triggerType)")
+                serviceScope.launch(Dispatchers.Main) {
+                    SosCountdownManager.getInstance(applicationContext) {
+                        serviceScope.launch {
+                            controller.triggerSos(active = true)
+                            _sharedState.value = controller.state.value
+                        }
+                    }.startCountdown(triggerType)
+                }
+            }.also { it.start() }
+        } catch (e: Exception) {
+            Log.e(TAG, "No se pudo iniciar FallDetector: ${e.message}")
+        }
+
+        controller.recordStartError(null)
+        seedLocalTelemetryFromCache()
+        serviceScope.launch {
+            val state = controller.startRide(
+                rideId = params.rideId,
+                localShortId = params.localShortId,
+                rideSecretKey = manifestKey,
+                forceSimulatedTransport = effectiveForceSim,
+                bleModeOverride = bleModeOverride,
+                advertisingBurstDurationMs = params.advertisingBurstDurationMs,
+                expectedPeerShortIds = params.expectedPeerShortIds,
+                relayEnabled = params.relayEnabled,
+                txRxRole = txRxRole,
+                unfilteredScanDiagnostic = params.unfilteredScanDiagnostic,
+                advertisingDeliveryMode = advertisingDeliveryMode
+            )
+            _sharedState.value = state
+            drainPendingLifecycleEvents()
+            if (isPromotedToForeground) {
+                updateForegroundNotification(state.notification)
+            }
+            val isExtended = bleModeOverride == null ||
+                bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_1M ||
+                bleModeOverride == BleAdvTransport.TransportModeOverride.EXTENDED_CODED_PHY
+            if (isExtended) {
+                autoFallbackJob?.cancel()
+                autoFallbackJob = serviceScope.launch {
+                    delay(30_000)
+                    val eng = controller.relayEngine
+                    if (eng != null && eng.peers.value.isEmpty()) {
+                        Log.w("RideService", "Auto-fallback BLE: sin peers en 30s, cambiando a LEGACY_1M")
+                        runCatching { restartWithBleMode(BleAdvTransport.TransportModeOverride.LEGACY_1M) }
+                    }
                 }
             }
         }
