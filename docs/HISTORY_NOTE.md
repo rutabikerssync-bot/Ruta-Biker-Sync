@@ -1193,3 +1193,102 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 **Verificación hardware PENDIENTE:** no se ha capturado logcat real con `GattHeartbeat connected`, `GattHeartbeat notifyHeartbeat` y `GattHeartbeat onCharacteristicChanged`, ni un HUD estable en `2 riders` posterior al cambio. No se inventa evidencia: Fase 1 sigue **NO validada** hasta que el usuario opere TECNO/REDMI con la APK recompilada.
 
+
+### Diagnóstico `bitchat-android`, recuperación de entorno y activación de `authorizedShortIds` para `GattHeartbeat` — 2026-11-25
+
+1. **Análisis arquitectónico de `bitchat-android` (solo análisis, sin copiar código GPLv3):**
+   - Se documentó en `docs/analysis/bitchat_adaptation_20261124.md` el inventario completo (`MeshCore`, `PacketRelayManager`, `PowerManager`, `MessageRouter`, `GossipSyncManager`, `NoiseSession`) y se propuso un plan por fases respetando `docs/AGENTS.md` (descartando Noise XX, wire format `BitchatPacket` y Nostr).
+2. **Diagnóstico de conectividad y pantalla de Rodadas (TECNO + REDMI):**
+   - Se destrabó `adb.exe`, se mantuvo activa la sesión WSL (`PostgreSQL :5433` + `Fastify :3000`) y se restableció `adb reverse tcp:3000 tcp:3000` en ambos equipos (`098813734B105395` y `b2c398bb`), pasando ambos de `Fastify offline (timeout)` a `Fastify online (status: ok) · PostgreSQL 16`.
+   - Se verificó en `RUTAS DEL CLUB` del TECNO la ruta `6935451a` con `Participantes: 2` y se confirmó que el bloque `PARTICIPANTES (2)` con `card3.2` en Rodadas no estaba roto, sino oculto porque las rutas en BD tenían fechas pasadas (23–24 nov frente a 25 nov) y `rideRoster` quedaba en `null`.
+3. **Verificación inicial de `0c9e25a` y hallazgo de `expectedPeerShortIds` vacío:**
+   - Se apartó temporalmente en `git stash` el watchdog sin commitear de `BleAdvTransport.kt` / `BleAdvTransportWatchdogTest.kt`, se apagó WSL para correr `:app:testStandardDebugUnitTest` (`BUILD SUCCESSFUL`) y se compiló `standardDebug` con `-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d` (SHA-256 `349269CC68F1E3F4209691C319EEC40D56C227162D84C9C70E9B3C1B893DE92E`), instalado en ambos equipos.
+   - En la prueba en vivo con ambos móviles, `RideService` arrancó la rodada `43a2efba…`, TECNO mostró `Convoy: 2 riders` + señal de `#26216`, y REDMI recibió 13 `HeartbeatRx` (`seq=49..61`) antes de cortar RX por advertising a las `01:43:53` (recuperando `2 riders` tras salir y volver a entrar). El logcat confirmó **0 líneas de `GattHeartbeat`**: `LiveMapScreen` y `MainAppScaffold` no pasaban `expectedPeerShortIds`, por lo que `GattHeartbeatClient.planFor()` devolvía `isServer=false, isClient=false` y `RideService` caía a `BleAdvTransport` puro.
+4. **Cableado autorizado de `authorizedShortIds` y rebuild para prueba GATT:**
+   - Con autorización explícita del usuario, se pasó `expectedPeerShortIds = authorized.authorizedShortIds` en `LiveMapScreen.kt:351` y `MainAppScaffold.kt:832`, más respaldo en `RideService.kt:283` desde `RideManifestKeyProvider.cached(rideId)?.authorizedShortIds`. Sin tocar GATT, cifrado, `HeartbeatFrame`, PTT ni liderazgo.
+   - Con el watchdog apartado en stash y WSL apagado: `.\gradlew.bat :app:testStandardDebugUnitTest --no-daemon --console=plain` → **`BUILD SUCCESSFUL`** (1 m 3 s).
+   - Rebuild `standardDebug` con `-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d` → **`BUILD SUCCESSFUL`** (59 s), SHA-256 **`BAFB36C0714C615749EE9D440C62CBF4751222B11489B3DF269364A8BC66B0A6`**, instalado y verificado con `sha256sum` idéntico en TECNO (`098813734B105395`) y REDMI (`b2c398bb`), con `adb reverse tcp:3000 tcp:3000` y `/health` en `{"status":"ok"}`.
+   - Se restauró el stash del watchdog de `BleAdvTransport.kt` en el working tree sin incluirlo en el APK.
+
+**Estado:** sin commit y sin push. Verificación en hardware de `GattHeartbeat` con la nueva APK `BAFB36C0…` **pendiente** de arranque de rodada en TECNO y REDMI.
+
+### 2026-11-25 — Integridad BD/backoffice: fin del modo degradado y de los datos demo (autorización explícita del usuario)
+
+**Motivo:** el análisis del usuario y la auditoría independiente confirmaron que `/health` respondía `ok` incluso con PostgreSQL caído (`backend/src/index.ts` sustituía el pool por un `db.query` que devolvía `rows: []`), y que `backend/src/lib/admin.ts` + el frontend del panel rellenaban KPIs/clubes/tickets inventados (`1,420` usuarios, `84` grupos, `Halcones del Asfalto MC`). Eso explica el síntoma “la BD no la toma completamente”: hoy la BD real sí se usa, pero cualquier `ECONNREFUSED` reactivaba la cadena de datos falsos sin que `/health` lo delatara.
+
+**Cambios autorizados (alcance “Arreglo completo”):**
+- `backend/src/index.ts`: arranque **fail-fast**. Si `SELECT 1` o las migraciones fallan, se cierra el pool y se lanza el error; se eliminó el `DbExecutor` ficticio que devolvía filas vacías.
+- `backend/src/app.ts`: `/health` ejecuta `SELECT 1` y devuelve `{"status":"ok","db":"ok"}` o `503 {"status":"degraded","db":"error"}`; nuevo `/readyz` con `{"status":"ready","db":"ok"}` / `503 {"status":"not_ready","db":"error"}`.
+- `backend/src/lib/admin.ts`: eliminados `DEMO_GROUPS`/`DEMO_USERS`/`DEMO_REPORTS`/`DEMO_TICKETS`/`DEMO_SOS_LOGS` y todos sus fallbacks, así como estimaciones no observadas (`completionRatePct=100` con 0 rodadas, `offlineRatioPct=42`, `totalHeartbeatsLogged = métricas×140`, `avgResponseMinutes=4.8`, cancelaciones SOS derivadas). Acciones sobre registros inexistentes devuelven `false`/`null` en vez de mutar datos demo.
+- `admin-dashboard/js/api.js` y copia sincronizada `backend/public/js/api.js`: `fetchWithFallback` ya no devuelve datasets demo; ante fallo HTTP/red muestra banner rojo fijo `SIN CONEXIÓN CON LA BD / DATOS NO DISPONIBLES — …` y deja listas/vacíos y KPIs en 0. Se eliminaron los 5 `success: true` falsos para operaciones fallidas.
+- `admin-dashboard/js/admin.js` y copia sincronizada `backend/public/js/admin.js`: el botón de prueba usa `api.isLiveApi`; el texto “Modo de Demostración Activo” se sustituyó por “Sin conexión con la BD / datos no disponibles”.
+- `backend/test/health.test.ts`: actualizado al contrato nuevo de `/health` y `/readyz`.
+- `backend/test/db_integrity_health.test.ts` (nuevo, 4 tests): salud con BD disponible/caída, ausencia de datasets demo con BD vacía y rechazo de acciones sobre registros inexistentes.
+
+**Verificación:**
+- `npm run typecheck` → sin errores.
+- `npx vitest run test/db_integrity_health.test.ts` → 4/4.
+- `PG_TEST_URL=postgres://rbs:rbs_dev_password@127.0.0.1:5433/rbs_test npm test` → **26 archivos / 176 tests, 0 fallos** (base aislada `rbs_test`, según `docs/AGENTS.md`).
+- Endpoints en vivo tras recarga: `/health` 200 `{"status":"ok","db":"ok"}`, `/readyz` 200 `{"status":"ready","db":"ok"}`, `/v1/admin/analytics/overview` con clave → `users=86`, `groups=12`, `rides=1`, `totalHeartbeatsLogged=0`. La BD real `rbs` quedó con `users=86`, `groups=12`, `rides=1`, `club_routes=0`, `ephemeral_telemetry=1734` (sin filtración de datos de test).
+- Nota operativa: el relay localhost→WSL se cayó durante la primera pasada de tests (distro `Stopped` y `:5433` sin listener); se mantuvo una sesión WSL activa para estabilizarlo. `C:\Users\ozmar\.wslconfig` contiene `autoMemoryReclaim=gradual`, clave no reconocida por la versión de WSL instalada (aviso al ejecutar `wsl.exe`); no se modificó ese archivo.
+
+**Sin tocar:** Android/GATT, cifrado, `HeartbeatFrame`, PTT, liderazgo, `BASE_URL`, Cloudflare ni OTA. **Sin commit y sin push.** Quedan pendientes de decisión del usuario: URL pública HTTPS, distribución de APK (Firebase App Distribution vs endpoint propio) y telemetría de malla/logs remotos, además de la validación hardware del fix RPA con la APK `62A508CF…`.
+
+### 2026-11-25 — Validación BLE en vivo cerrada y backend sin cable
+
+**Contexto:** quedaban dos síntomas abiertos del REDMI: `Malla caída` y cierre de la app al hacer swipe desde recientes. La causa de la dependencia USB era `BASE_URL=http://127.0.0.1:3000` + `adb reverse`; la de `Malla caída` era un APK con `PILOT_RIDE_ID` vacío que caía en `ride-live-01` (HTTP 500) y nunca arrancaba `RideService`.
+
+**Cambios de configuración autorizados:** túnel público HTTPS de Cloudflare quick tunnel `https://adjust-cuisine-mainstream-marvel.trycloudflare.com` (temporal; no apto como solución final para 10 riders). Se descartó Tailscale funnel: `omartinezpaz.tail6f67b0.ts.net` daba NXDOMAIN en `8.8.8.8`, el REDMI no tiene Tailscale y `curl` fallaba con `Could not resolve host`; funnel desactivado (`No serve config`).
+
+**APK de validación:** recompilada con ambos flags en el mismo comando:
+`.\gradlew.bat :app:assembleStandardDebug --no-daemon --console=plain '-Prbs.debug.url=https://adjust-cuisine-mainstream-marvel.trycloudflare.com' '-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d'` → `BUILD SUCCESSFUL`. `BuildConfig.java` verificado con `BASE_URL` del túnel y `PILOT_RIDE_ID` real. SHA-256 **`5375C30A102BE19FD9BE2F295975AD13CE1F0B7DDB45ACFB5C4A39E76EBA9DF0`**, idéntico por `sha256sum` en TECNO `098813734B105395` y REDMI `b2c398bb`. Sin `adb reverse` en ninguno de los dos.
+
+**Evidencia instrumentada (archivos en `C:\Users\ozmar\AppData\Local\Temp\opencode\`):**
+- `rbs_gatt_tecno_final.txt`: TECNO `08:59:19 CLIENT_STARTED node=26079 targets=[26216] scan=true`, `08:59:27 CLIENT_CONNECT peer=26216 address=41:7E:62:54:88:1E ok=true`, `08:59:28 GattHeartbeat connected`, `08:59:30 CLIENT_MTU mtu=64`, `08:59:30 SUBSCRIBE ok=true rxWrite=true`, `onCharacteristicChanged bytes=52 suffix=88:1E emitted=true` y `HeartbeatRx shortId=26216` continuos.
+- `rbs_gatt_redmi_postswipe.txt`: REDMI `notifyHeartbeat bytes=52 chunks=1 targets=1 sent=1`, `onCharacteristicWrite bytes=52`, `HeartbeatRx shortId=26079`; `HeartbeatTx` con `rideId=43a2efba-…` en ambos equipos.
+- Swipe confirmado a las `09:05:20.314` (`ActivityTaskManager: removetask notifyTaskRemoved … handleSwipeKill`). Después: PID `20840` sin cambios, `RideService` con `isForeground=true foregroundId=3201 types=0x18 startCommandResult=1` y `createTime == restartTime`, **43 `HeartbeatTx` posteriores** (20/19/4 en 09:05/09:06/09:07, último `seq=155`), 0 líneas de `Force stopping`/`died`.
+- Backend sin cable desde el REDMI: `adb reverse --list` vacío y `curl https://adjust-cuisine-mainstream-marvel.trycloudflare.com/health` → `{"status":"ok","db":"ok"}`. `/health` y `/readyz` del túnel → 200 desde Windows y desde el móvil.
+
+**Conclusión:** GATT bidireccional, HUD observado por el usuario con ambos móviles y `RideService` vivo tras el swipe. No se logró captura instrumentada del texto literal `2 riders`: el conteo se infiere de `LiveMapViewModel.kt:551-557` (self + peers con posición válida) y de la observación del usuario «se ven ambos móviles». La notificación `Rodada activa · 1 riders conectados` cuenta solo peers (`RideService.kt:1043`), no es el HUD. Aviso no bloqueante repetido en ambos móviles: `ARTWarning: Method exceeds compiler instruction limit: 25485 in LiveMapScreenKt.LiveMapScreen(...)`.
+
+**Sin tocar:** GATT, cifrado, `HeartbeatFrame`, PTT, liderazgo. **Sin commit y sin push.**
+
+### 2026-11-25 — Fase 1 del plan de navegación MapLibre: cámara inteligente (autorizada)
+
+**Contexto:** el usuario confirmó explícitamente el plan (`plan-before-build`) y avisó de tres riesgos: filtrar `reason == REASON_API_GESTURE`, no rotar `bearing` por debajo de 5 km/h y recompilar pasando de nuevo los dos flags. Los tres se incorporaron y verificaron.
+
+**Cambios:**
+- `CameraModeManager.kt` (nuevo): máquina JVM pura `FOLLOW_HEADING_3D` / `ROUTE_OVERVIEW` / `FREE_INSPECT`; transiciones ante GPS, gesto, overview, re-centrar y fin de rodada; auto-zoom con histeresis (`16.5` / `15.0` / `13.8`, entradas 30/70 y salidas 27/65); `zoomForBounds`; `bearingForSpeedKmh` congela el rumbo bajo `5 km/h`; tilt `45°` siguiendo y `0°` en overview/inspección.
+- `LiveMapViewModel.kt`: nuevos campos `navCameraMode`, `cameraTargetLat/Lon`, `navigationBearingDegrees`, `navigationTiltDegrees`, `overviewBounds`, `isCleanRideMode`, **independientes** de `cameraLatitude/cameraLongitude` (estos siguen siendo la posición real del piloto que usan SOS, radar y telemetría). Acciones `onMapGesture`, `requestRouteOverview`, `recenterOnRider`, `toggleCleanRideMode`, `onRideEnded`; `followLeader` conserva sus 10 s y gana sobre el overview; al expirar vuelve a `FREE_INSPECT` para no recapturar el gesto.
+- `NavigationCameraSurface.kt` (nuevo): `applyNavigationCamera` usa `animateCamera` (450 ms), `newLatLngBounds` con padding que respeta HUD/botonera y elimina la «cárcel» rectangular de Venezuela para el objetivo dinámico; `navigationBounds` construye bounds solo con waypoints y marcadores reales y descarta posiciones con más de 60 s de antigüedad.
+- `NavigationCameraControls.kt` (nuevo): botones «Vista general», «Re-centrar» y «Modo limpio/Completo», definidos fuera de `LiveMapScreen` para no engordar el método con aviso ART.
+- `LiveMapScreen.kt`: `REASON_API_GESTURE` → `onMapGesture` (verificado en el AAR de MapLibre 11.5.2 que la constante existe; `REASON_DEVELOPER_ANIMATION` NO congela); `applyLocation` ya no saca al usuario de overview/inspección; modo limpio oculta batería, badge offline, monitor de malla y toggle de cabina, pero **conserva** polilínea, marcadores, velocímetro, SOS y PTT (3 acciones ≥72 dp intactas) forzando visible la botonera de seguridad.
+
+**Tests:** `.\gradlew.bat :app:testStandardDebugUnitTest --no-daemon --console=plain` → **BUILD SUCCESSFUL**, 114 archivos XML / **656 tests / 0 fallos / 0 errores**. Nuevos `CameraModeManagerTest.kt` (8 tests: transiciones, bandas, histeresis, bearing en parado, bounds) y 3 regresiones en `LiveMapViewModelTest.kt` (gesto no altera coordenadas SOS, overview/recentrar, prioridad de líder). Dos fallos iniciales fueron de las asunciones del test (bandas de zoom invertidas y un bounds que sí era válido) y se corrigieron antes del verde.
+
+**APK:** recompilada con los dos flags vigentes (tunnel + ride ID) → `BUILD SUCCESSFUL`; `BuildConfig.java` verificado. SHA-256 **`DF173699D3D6093EB7DFCCC96BC45C375EE2AD0BD51D2ED85015798801DC6725`**. El túnel respondió `/health` 200 `{"status":"ok","db":"ok"}` justo antes del build.
+
+**Pendiente:** validación en hardware de fluidez y ausencia de peleas cámara/gesto con la APK `DF173699…`; el usuario opera los móviles y avisa «voy a iniciar» antes de capturar. Fases 2-3 del plan de navegación siguen sin iniciar. **Sin commit y sin push.**
+
+### 2026-11-25 — Corrección de 4 fallos de lógica GATT, START_STICKY y marcadores fuera de viewport
+
+**Contexto:** tras analizar los logs de campo (`tecno_field_log.txt` y `redmi_field_log.txt`, APK `5375C30A…`), se autorizó corregir 4 fallos de lógica en `GattHeartbeatClient`, `GattHeartbeatServer`, `RideService` y `LiveMapScreen`.
+
+**Cambios y evidencia de tests:**
+1. **Fallo 1 y 2 (`GattHeartbeatClient.kt`, `GattHeartbeatServer.kt`):**
+   - Múltiples `BluetoothGatt` simultáneos en `AndroidHeartbeatGattClientBackend` (`ConcurrentHashMap<String, PeerGattLink>`), eliminando `if (gatt != null) return true` y deteniendo el escaneo solo cuando todos los peers esperados completan `onConnected`.
+   - Condición de carrera en `readyToWrite`: `onServicesDiscovered()` deja `readyToWrite = false` y solo `onDescriptorWrite()` (CCCD `0x2902` con `GATT_SUCCESS`) habilita `readyToWrite = true`.
+   - Descubrimiento sin depender de `onMtuChanged`: `onConnected()` llama a `discoverServices(target)` directamente aunque `requestMtu()` falle o no responda.
+   - `autoConnect=false` verificado y fallback en `HeartbeatGattRoutingTransport` al transporte de advertising cuando GATT envía `0` frames.
+   - Tests: `GattHeartbeatClientTest` + `GattHeartbeatServerTest` verdes.
+2. **Fallo 3 (`RideServiceStateStore.kt`, `RideService.kt`):**
+   - Persistencia de `PersistedRideParams` al iniciar rodada y limpieza al detener. En `onStartCommand(intent == null)`, `StickyRideRecoveryHandler` restaura los parámetros, promueve a `startForeground()` antes de reconstruir el motor/GATT y relanza la sesión.
+   - Test: `RideServiceStickyRecoveryTest` verde.
+3. **Fallo 4 (`ViewportEdgeMarker.kt`, `LiveMapScreen.kt`):**
+   - `ViewportEdgeProjector` + `ViewportEdgeMarker` en archivo separado para no engordar `LiveMapScreen`; cuando un rider queda fuera del viewport se proyecta en el borde con indicador direccional.
+   - Test: `ViewportEdgeMarkerTest` + `RiderViewportLayoutTest` verdes.
+
+**Build y hardware:**
+- `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug "-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d"` → `BUILD SUCCESSFUL`.
+- APK SHA-256: `C4E11DA2B8348497F9D008606B64557C08A1FD90D490195712993A84287976DC`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`).
+- **Pendiente de campo:** al abrir `LiveMapScreen` en ambos equipos, `RideService` no arrancó (`Malla BLE no iniciada: manifiesto firmado no disponible`) porque PostgreSQL (`:5433`) y el backend (`:3000`) están apagados en esta sesión. La prueba en vivo de GATT multi-peer, `START_STICKY` tras force-stop y borde de viewport queda lista para ejecutarse apenas se levante el backend.
