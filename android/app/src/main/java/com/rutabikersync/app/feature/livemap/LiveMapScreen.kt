@@ -353,6 +353,7 @@ fun LiveMapScreen(
                     rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                     localShortId = authorized.localShortId.toInt(),
                     forceSimulated = false,
+                    expectedPeerShortIds = authorized.authorizedShortIds,
                     rideSecretKey = authorized.rideSecretKey
                 )
             } else {
@@ -783,11 +784,14 @@ fun LiveMapScreen(
             location = LatLngPoint(loc.latitude, loc.longitude),
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6f) else 0f
         )
-        // No recapturar el gesto manual del mapa en cada callback de GPS.
-        if (!com.rutabikersync.app.core.mesh.MeshTelemetry.isValidPosition(
+        // No recapturar el gesto manual del mapa en cada callback de GPS. Tampoco
+        // sacar al usuario de la vista general ni de la inspección libre: solo el
+        // modo de seguimiento puede recentrarse automáticamente.
+        if (state.navCameraMode == NavCameraMode.FOLLOW_HEADING_3D &&
+            (!com.rutabikersync.app.core.mesh.MeshTelemetry.isValidPosition(
                 state.cameraLatitude,
                 state.cameraLongitude
-            ) || state.cameraMode == CameraMode.CENTERED_ON_SELF
+            ) || state.cameraMode == CameraMode.CENTERED_ON_SELF)
         ) {
             liveMapViewModel.controller.centerOnMyLocation()
         }
@@ -923,6 +927,10 @@ fun LiveMapScreen(
             onMapClick = {
                 isBottomCockpitExpanded = !isBottomCockpitExpanded
             },
+            onMapGesture = { liveMapViewModel.controller.onMapGesture() },
+            onOverview = { bounds -> liveMapViewModel.controller.requestRouteOverview(bounds) },
+            onRecenter = { liveMapViewModel.controller.recenterOnRider() },
+            onToggleClean = { liveMapViewModel.controller.toggleCleanRideMode() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -998,20 +1006,22 @@ fun LiveMapScreen(
                 }
             )
 
-            // Cápsula 3: Nivel de batería real del dispositivo
-            val battery = realBatteryLevel.coerceIn(1, 100)
-            HudStatusChip(
-                icon = AppIcons.BatteryStd,
-                iconTint = when {
-                    battery <= 15 -> Color(0xFFEF4444)
-                    battery <= 30 -> Color(0xFFEAB308)
-                    else -> Color(0xFF10B981)
-                },
-                text = "$battery%",
-                onClick = {
-                    actionFeedback = "Batería del dispositivo: $battery% disponible"
-                }
-            )
+            // Cápsula 3: Nivel de batería real del dispositivo (se oculta en modo limpio)
+            if (!state.isCleanRideMode) {
+                val battery = realBatteryLevel.coerceIn(1, 100)
+                HudStatusChip(
+                    icon = AppIcons.BatteryStd,
+                    iconTint = when {
+                        battery <= 15 -> Color(0xFFEF4444)
+                        battery <= 30 -> Color(0xFFEAB308)
+                        else -> Color(0xFF10B981)
+                    },
+                    text = "$battery%",
+                    onClick = {
+                        actionFeedback = "Batería del dispositivo: $battery% disponible"
+                    }
+                )
+            }
         }
 
         // 2.5 Badge de Corredor Offline PMTiles a la izquierda
@@ -1023,34 +1033,36 @@ fun LiveMapScreen(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF16181F).copy(alpha = 0.92f))
-                .border(
-                    1.2.dp,
-                    if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
-                    RoundedCornerShape(20.dp)
-                )
-                .clickable { showOfflineMapsScreen = true }
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF9CA3AF))
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (nearestOfflineCorridor != null) "OFFLINE: ${nearestOfflineCorridor.name}" else "MAPAS OFFLINE",
-                    color = if (nearestOfflineCorridor != null) EmeraldMesh else Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
+        if (!state.isCleanRideMode) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                    .border(
+                        1.2.dp,
+                        if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .clickable { showOfflineMapsScreen = true }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF9CA3AF))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (nearestOfflineCorridor != null) "OFFLINE: ${nearestOfflineCorridor.name}" else "MAPAS OFFLINE",
+                        color = if (nearestOfflineCorridor != null) EmeraldMesh else Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
@@ -1103,7 +1115,7 @@ fun LiveMapScreen(
                 HeritageSand
             )
         }
-        val effectiveCockpitBg = if (isBottomCockpitExpanded) {
+        val effectiveCockpitBg = if (isBottomCockpitExpanded || state.isCleanRideMode) {
             Brush.verticalGradient(cockpitBgColors)
         } else {
             Brush.verticalGradient(listOf(Color.Transparent, Color(0x33000000)))
@@ -1672,41 +1684,44 @@ fun LiveMapScreen(
                 }
             }
 
-            // Control visual interactivo: Toca para subir/ocultar la botonera
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(DarkCardElevated.copy(alpha = 0.92f))
-                    .border(
-                        1.dp,
-                        if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
-                        RoundedCornerShape(12.dp)
-                    )
-                    .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+            // Control visual interactivo: Toca para subir/ocultar la botonera.
+            // En modo limpio se oculta, pero las 3 acciones de seguridad NO.
+            if (!state.isCleanRideMode) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(DarkCardElevated.copy(alpha = 0.92f))
+                        .border(
+                            1.dp,
+                            if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                        contentDescription = null,
-                        tint = HeritageBrassGold,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
-                        color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            contentDescription = null,
+                            tint = HeritageBrassGold,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
+                            color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
 
             // Sección auto-ocultable de acciones de cabina (despeja 100% el mapa)
             AnimatedVisibility(
-                visible = isBottomCockpitExpanded,
+                visible = isBottomCockpitExpanded || state.isCleanRideMode,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {
@@ -1715,31 +1730,33 @@ fun LiveMapScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 4.5. Botón flotante Monitor de Malla (esquina inferior derecha, encima del botón SOS)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 4.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
+                    // 4.5. Monitor de Malla: tarjeta secundaria, se oculta en modo limpio.
+                    if (!state.isCleanRideMode) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(HeritageCardWarm.copy(alpha = 0.95f))
-                                .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
-                                .clickable { showMeshMonitor = true }
-                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                .fillMaxWidth()
+                                .padding(end = 4.dp),
+                            horizontalArrangement = Arrangement.End
                         ) {
-                            Text("📡", fontSize = 14.sp)
-                            Text(
-                                text = "MONITOR MALLA",
-                                color = EmeraldMesh,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(HeritageCardWarm.copy(alpha = 0.95f))
+                                    .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
+                                    .clickable { showMeshMonitor = true }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("📡", fontSize = 14.sp)
+                                Text(
+                                    text = "MONITOR MALLA",
+                                    color = EmeraldMesh,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
                     }
 
@@ -2515,6 +2532,10 @@ private fun MapLibreCorridorSurface(
     selfShortId: UShort,
     onSelectRider: (UShort?) -> Unit,
     onMapClick: () -> Unit = {},
+    onMapGesture: () -> Unit = {},
+    onOverview: (MapBounds?) -> Unit = {},
+    onRecenter: () -> Unit = {},
+    onToggleClean: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2528,7 +2549,8 @@ private fun MapLibreCorridorSurface(
     }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var cameraProjectionRevision by remember { mutableIntStateOf(0) }
-    var lastRequestedCamera by remember { mutableStateOf<CameraPosition?>(null) }
+    // Fase 1: estado de renderizado de cámara fuera del cuerpo de LiveMapScreen.
+    val navCameraRenderState = remember { NavCameraRenderState() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -2582,6 +2604,14 @@ private fun MapLibreCorridorSurface(
                                 true
                             }
                             map.addOnCameraIdleListener { cameraProjectionRevision++ }
+                            map.addOnCameraMoveStartedListener { reason ->
+                                // Solo un gesto real del usuario entra en inspección libre.
+                                // REASON_DEVELOPER_ANIMATION (nuestro animateCamera) NO
+                                // debe congelar el seguimiento: era un riesgo de bucle.
+                                if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
+                                    onMapGesture()
+                                }
+                            }
                         }
                         map.setStyle(state.styleAssetUri) {
                             map.uiSettings.isAttributionEnabled = true
@@ -2653,27 +2683,15 @@ private fun MapLibreCorridorSurface(
             },
             update = { view ->
                 view.getMapAsync { map ->
-                    val currentCamera = map.cameraPosition
-                    // Solo mover cámara dinámicamente si la telemetría reporta una posición real fija
-                    if (MeshTelemetry.isValidPosition(state.cameraLatitude, state.cameraLongitude) &&
-                        state.cameraLatitude in 0.5..13.0 && state.cameraLongitude in -74.0..-59.0
-                    ) {
-                        val targetCamera = CameraPosition.Builder()
-                            .target(LatLng(state.cameraLatitude, state.cameraLongitude))
-                            .zoom(state.cameraZoom)
-                            .bearing(currentCamera?.bearing ?: 0.0)
-                            .tilt(currentCamera?.tilt ?: 0.0)
-                            .build()
-                        val cameraHasSameTarget = currentCamera?.target?.let {
-                            kotlin.math.abs(it.latitude - state.cameraLatitude) < 1e-10 &&
-                                kotlin.math.abs(it.longitude - state.cameraLongitude) < 1e-10 &&
-                                kotlin.math.abs(currentCamera.zoom - state.cameraZoom) < 1e-6
-                        } == true
-                        if (!cameraHasSameTarget && lastRequestedCamera != targetCamera) {
-                            lastRequestedCamera = targetCamera
-                            map.moveCamera(CameraUpdateFactory.newCameraPosition(targetCamera))
-                        }
-                    }
+                    // Fase 1: la cámara de navegación decide objetivo, zoom, bearing y
+                    // tilt. FREE_INSPECT se congela; el overview usa bounds reales sin
+                    // la "cárcel" rectangular de Venezuela del código anterior.
+                    applyNavigationCamera(
+                        map = map,
+                        state = state,
+                        density = context.resources.displayMetrics.density,
+                        renderState = navCameraRenderState
+                    )
                     val desiredRouteKey = "${activeRoute?.id}:${if (isReturnPhase) "return" else "outbound"}"
                     if (desiredRouteKey != lastDrawnRouteId.value) {
                         drawRouteOnMap(map, activeWaypoints)
@@ -2682,6 +2700,20 @@ private fun MapLibreCorridorSurface(
                 }
             },
             modifier = Modifier.fillMaxSize()
+        )
+
+        // Fase 1 — controles de cámara. Definidos en otro archivo para no engordar
+        // LiveMapScreen (ARTWarning: Method exceeds compiler instruction limit).
+        NavigationCameraControls(
+            navCameraMode = state.navCameraMode,
+            isCleanRideMode = state.isCleanRideMode,
+            onOverview = { onOverview(navigationBounds(activeWaypoints, state.markers)) },
+            onRecenter = onRecenter,
+            onToggleClean = onToggleClean,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 118.dp)
+                .fillMaxWidth(0.82f)
         )
 
         // Convoy sobre la vía: se proyectan los peers reales sobre la polilínea activa.
@@ -2707,7 +2739,18 @@ private fun MapLibreCorridorSurface(
             val displayLat = placement?.latitude ?: marker.displayLatitude
             val displayLon = placement?.longitude ?: marker.displayLongitude
             val point = mapLibreMap?.projection?.toScreenLocation(LatLng(displayLat, displayLon))
-            if (point == null || !RiderViewportLayout.isPointVisible(point.x, point.y, widthPx, heightPx)) {
+            if (point == null) {
+                return@forEach
+            }
+            if (!RiderViewportLayout.isPointVisible(point.x, point.y, widthPx, heightPx)) {
+                val edgePlacement = ViewportEdgeProjector.project(point.x, point.y, widthPx, heightPx)
+                if (edgePlacement != null) {
+                    ViewportEdgeMarker(
+                        marker = marker,
+                        placement = edgePlacement,
+                        onClick = { onSelectRider(marker.shortId) }
+                    )
+                }
                 return@forEach
             }
 
