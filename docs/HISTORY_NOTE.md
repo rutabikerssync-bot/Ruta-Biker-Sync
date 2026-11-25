@@ -1292,3 +1292,15 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug "-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d"` → `BUILD SUCCESSFUL`.
 - APK SHA-256: `C4E11DA2B8348497F9D008606B64557C08A1FD90D490195712993A84287976DC`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`).
 - **Pendiente de campo:** al abrir `LiveMapScreen` en ambos equipos, `RideService` no arrancó (`Malla BLE no iniciada: manifiesto firmado no disponible`) porque PostgreSQL (`:5433`) y el backend (`:3000`) están apagados en esta sesión. La prueba en vivo de GATT multi-peer, `START_STICKY` tras force-stop y borde de viewport queda lista para ejecutarse apenas se levante el backend.
+
+### 2026-11-25 — Limpieza de controles de cámara y unificación PTT en cabina
+
+**Cambios:**
+- `NavigationCameraControls.kt`: eliminados los chips «Vista general» (dejaba el mapa gris en offline) y «Modo limpio / Modo completo» (redundaba con el toque en mapa). Queda únicamente el botón compacto **`Re-centrar`** arriba a la derecha debajo de la brújula `N`.
+- `LiveMapScreen.kt`: eliminadas todas las referencias a `state.isCleanRideMode`; la visibilidad de los 3 botones inferiores (`Hablar`, `Señal`, `SOS`) y `MONITOR MALLA` queda gobernada únicamente por `isBottomCockpitExpanded` (toque en el mapa o cápsula inferior).
+- `LiveMapScreen.kt` (PTT): `onTalkPttClick` unificado con `startCabinaPtt()`, asegurando `SosToneHub.setPttActive("cabina-ptt", true)` + `RideService.beginPttVoiceStream()` + `pttEngine.startTalking()` sin tocar `PttAudioEngine`, `VoiceCrypto` ni `VoicePacket`.
+
+**Tests y hardware:**
+- `:app:compileStandardDebugKotlin` y `:app:testStandardDebugUnitTest --tests "*LiveMapViewModelTest" --tests "*PttAudioEngine*"` → `BUILD SUCCESSFUL in 57s`.
+- `:app:assembleStandardDebug "-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d"` → `BUILD SUCCESSFUL in 59s`, SHA-256 `FC35B4B05907C878BB2EF5DB8E66052540E848B5D5AD6FDCE141E1D5741B4C82`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`).
+- UI verificada en dispositivo: `Re-centrar` visible bajo la brújula `N`, `Vista general` y `Modo limpio` ausentes, toque en mapa alterna `Controles de Cabina` / `Ocultar Controles`. Transmisión PTT en vivo pendiente de backend/manifiesto activo (`RideService.getActiveRelayEngine() != null`).

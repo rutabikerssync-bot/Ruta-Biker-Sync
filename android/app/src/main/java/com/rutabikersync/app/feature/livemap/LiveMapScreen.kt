@@ -928,9 +928,7 @@ fun LiveMapScreen(
                 isBottomCockpitExpanded = !isBottomCockpitExpanded
             },
             onMapGesture = { liveMapViewModel.controller.onMapGesture() },
-            onOverview = { bounds -> liveMapViewModel.controller.requestRouteOverview(bounds) },
             onRecenter = { liveMapViewModel.controller.recenterOnRider() },
-            onToggleClean = { liveMapViewModel.controller.toggleCleanRideMode() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -1006,22 +1004,20 @@ fun LiveMapScreen(
                 }
             )
 
-            // Cápsula 3: Nivel de batería real del dispositivo (se oculta en modo limpio)
-            if (!state.isCleanRideMode) {
-                val battery = realBatteryLevel.coerceIn(1, 100)
-                HudStatusChip(
-                    icon = AppIcons.BatteryStd,
-                    iconTint = when {
-                        battery <= 15 -> Color(0xFFEF4444)
-                        battery <= 30 -> Color(0xFFEAB308)
-                        else -> Color(0xFF10B981)
-                    },
-                    text = "$battery%",
-                    onClick = {
-                        actionFeedback = "Batería del dispositivo: $battery% disponible"
-                    }
-                )
-            }
+            // Cápsula 3: Nivel de batería real del dispositivo
+            val battery = realBatteryLevel.coerceIn(1, 100)
+            HudStatusChip(
+                icon = AppIcons.BatteryStd,
+                iconTint = when {
+                    battery <= 15 -> Color(0xFFEF4444)
+                    battery <= 30 -> Color(0xFFEAB308)
+                    else -> Color(0xFF10B981)
+                },
+                text = "$battery%",
+                onClick = {
+                    actionFeedback = "Batería del dispositivo: $battery% disponible"
+                }
+            )
         }
 
         // 2.5 Badge de Corredor Offline PMTiles a la izquierda
@@ -1033,21 +1029,20 @@ fun LiveMapScreen(
             )
         }
 
-        if (!state.isCleanRideMode) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF16181F).copy(alpha = 0.92f))
-                    .border(
-                        1.2.dp,
-                        if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
-                        RoundedCornerShape(20.dp)
-                    )
-                    .clickable { showOfflineMapsScreen = true }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                .border(
+                    1.2.dp,
+                    if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
+                    RoundedCornerShape(20.dp)
+                )
+                .clickable { showOfflineMapsScreen = true }
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
@@ -1064,7 +1059,6 @@ fun LiveMapScreen(
                     )
                 }
             }
-        }
 
         // 3. Brújula circular norte flotante a la derecha
         Box(
@@ -1115,7 +1109,7 @@ fun LiveMapScreen(
                 HeritageSand
             )
         }
-        val effectiveCockpitBg = if (isBottomCockpitExpanded || state.isCleanRideMode) {
+        val effectiveCockpitBg = if (isBottomCockpitExpanded) {
             Brush.verticalGradient(cockpitBgColors)
         } else {
             Brush.verticalGradient(listOf(Color.Transparent, Color(0x33000000)))
@@ -1685,43 +1679,40 @@ fun LiveMapScreen(
             }
 
             // Control visual interactivo: Toca para subir/ocultar la botonera.
-            // En modo limpio se oculta, pero las 3 acciones de seguridad NO.
-            if (!state.isCleanRideMode) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkCardElevated.copy(alpha = 0.92f))
-                        .border(
-                            1.dp,
-                            if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
-                            RoundedCornerShape(12.dp)
-                        )
-                        .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(DarkCardElevated.copy(alpha = 0.92f))
+                    .border(
+                        1.dp,
+                        if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
+                        RoundedCornerShape(12.dp)
+                    )
+                    .clickable { isBottomCockpitExpanded = !isBottomCockpitExpanded }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                            contentDescription = null,
-                            tint = HeritageBrassGold,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
-                            color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isBottomCockpitExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                        contentDescription = null,
+                        tint = HeritageBrassGold,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (isBottomCockpitExpanded) "Ocultar Controles (Toca el mapa)" else "👆 Controles de Cabina (PTT · Señales · SOS)",
+                        color = if (isBottomCockpitExpanded) HeritageCopper else TextWhite,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
                 }
             }
 
             // Sección auto-ocultable de acciones de cabina (despeja 100% el mapa)
             AnimatedVisibility(
-                visible = isBottomCockpitExpanded || state.isCleanRideMode,
+                visible = isBottomCockpitExpanded,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                 exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
             ) {
@@ -1730,33 +1721,31 @@ fun LiveMapScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // 4.5. Monitor de Malla: tarjeta secundaria, se oculta en modo limpio.
-                    if (!state.isCleanRideMode) {
+                    // 4.5. Monitor de Malla
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 4.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
                         Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(end = 4.dp),
-                            horizontalArrangement = Arrangement.End
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(HeritageCardWarm.copy(alpha = 0.95f))
+                                .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
+                                .clickable { showMeshMonitor = true }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(HeritageCardWarm.copy(alpha = 0.95f))
-                                    .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
-                                    .clickable { showMeshMonitor = true }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text("📡", fontSize = 14.sp)
-                                Text(
-                                    text = "MONITOR MALLA",
-                                    color = EmeraldMesh,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
+                            Text("📡", fontSize = 14.sp)
+                            Text(
+                                text = "MONITOR MALLA",
+                                color = EmeraldMesh,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
+                            )
                         }
                     }
 
@@ -1785,8 +1774,7 @@ fun LiveMapScreen(
                                 ) == PackageManager.PERMISSION_GRANTED
 
                                 if (hasMicPermission) {
-                                    RideService.beginPttVoiceStream()
-                                    pttEngine.startTalking()
+                                    startCabinaPtt()
                                     com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                                         "LIVE_MAP",
                                         "PTT_TRANSMIT_START",
@@ -2533,9 +2521,7 @@ private fun MapLibreCorridorSurface(
     onSelectRider: (UShort?) -> Unit,
     onMapClick: () -> Unit = {},
     onMapGesture: () -> Unit = {},
-    onOverview: (MapBounds?) -> Unit = {},
     onRecenter: () -> Unit = {},
-    onToggleClean: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2702,18 +2688,13 @@ private fun MapLibreCorridorSurface(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Fase 1 — controles de cámara. Definidos en otro archivo para no engordar
-        // LiveMapScreen (ARTWarning: Method exceeds compiler instruction limit).
+        // Control compacto de re-centrado bajo la brújula N (arriba a la derecha).
         NavigationCameraControls(
             navCameraMode = state.navCameraMode,
-            isCleanRideMode = state.isCleanRideMode,
-            onOverview = { onOverview(navigationBounds(activeWaypoints, state.markers)) },
             onRecenter = onRecenter,
-            onToggleClean = onToggleClean,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 118.dp)
-                .fillMaxWidth(0.82f)
+                .align(Alignment.TopEnd)
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 154.dp else 126.dp, end = 16.dp)
         )
 
         // Convoy sobre la vía: se proyectan los peers reales sobre la polilínea activa.
