@@ -29,6 +29,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -116,6 +118,17 @@ class BleAdvTransport(
         const val POSITION_FRAGMENT_BURST_MS = 1_000
         const val POSITION_FRAGMENT_GAP_MS = 120L
         const val POSITION_FRAGMENT_REPEATS = 1
+
+        /**
+         * Watchdog del ScanCallback (mitiga throttling vendor MIUI/HyperOS):
+         * - [SCAN_WATCHDOG_SILENCE_MS]: tiempo máximo sin recibir ningún anuncio antes de
+         *   reiniciar el scan. Debe ser mayor que T_nominal (~40.5 s) para no interferir
+         *   con gaps legítimos. Se elige 60 s = 1.5 × T.
+         * - [SCAN_WATCHDOG_CHECK_INTERVAL_MS]: con qué frecuencia comprueba el watchdog.
+         *   30 s da dos revisiones por ventana de silencio.
+         */
+        const val SCAN_WATCHDOG_SILENCE_MS: Long = 60_000L
+        const val SCAN_WATCHDOG_CHECK_INTERVAL_MS: Long = 30_000L
 
         /**
          * Voz PTT: MISMA lógica de espera (BURST_MS + GAP_MS) que el chat, pero con ráfaga
@@ -229,6 +242,16 @@ class BleAdvTransport(
     private var activeAdvertisingSetMode: String? = null
     private var currentAdvertisingPriority: Transport.Priority? = null
 
+    // --- Watchdog del ScanCallback ---
+    /** Epoch ms del último anuncio recibido por onScanResult. 0 = nunca ha recibido. */
+    @Volatile internal var lastScanRxEpochMs: Long = 0L
+    /** Número de veces que el watchdog reinició el scan por sequía. */
+    val scanWatchdogRestartCount = AtomicInteger(0)
+    /** Job del watchdog; vive entre start() y stop(). */
+    private var scanWatchdogJob: kotlinx.coroutines.Job? = null
+    /** Scope inyectable para tests; en producción se crea en start(). */
+    @Volatile internal var watchdogScope: kotlinx.coroutines.CoroutineScope? = null
+
     /**
      * Notificación de la dirección Bluetooth completa de un peer de malla. La usa
      * GattVoiceTransport para elegir rol y conectarse SIN iniciar un escaneo adicional,
@@ -340,6 +363,7 @@ class BleAdvTransport(
             settingsBuilder.setPhy(BluetoothDevice.PHY_LE_1M)
         }
 
+            lastScanRxEpochMs = System.currentTimeMillis() // base: se considera "justo arrancado"
             scanStartsCount++
             Log.i(TAG, "startScan (invocation #$scanStartsCount) mode=$mode diagnostic=$unfilteredScanDiagnostic")
             runCatching {
@@ -350,13 +374,85 @@ class BleAdvTransport(
                 lastScanFailure = desc
                 Log.e(TAG, "scanner.startScan threw exception", ex)
             }
+
+            // Lanzar watchdog en el scope inyectado (tests) o crear uno ad-hoc con IO dispatcher
+            val scope = watchdogScope
+                ?: kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+                    .also { watchdogScope = it }
+            scanWatchdogJob?.cancel()
+            scanWatchdogJob = scope.launch {
+                startScanWatchdog()
+            }
         } else {
             Log.i(TAG, "startScan omitido: rol TX_ONLY activo")
         }
     }
 
+    /**
+     * Watchdog de sequía del ScanCallback.
+     *
+     * Se ejecuta cada [SCAN_WATCHDOG_CHECK_INTERVAL_MS] y, si detecta que no ha llegado
+     * ningún anuncio en los últimos [SCAN_WATCHDOG_SILENCE_MS], reinicia el scan con
+     * `stopScan`+`startScan`. Mitiga el throttling del stack BT vendor (MIUI/HyperOS)
+     * que silencia el ScanCallback sin reportar `SCAN_FAILED_SCANNING_TOO_FREQUENTLY`.
+     *
+     * Se loguea con nivel `W` para que sea capturable en campo con el filtro habitual
+     * (`BleAdvTransport:W` o superior).
+     */
+    @SuppressLint("MissingPermission")
+    internal suspend fun startScanWatchdog() {
+        while (kotlinx.coroutines.currentCoroutineContext().isActive) {
+            kotlinx.coroutines.delay(SCAN_WATCHDOG_CHECK_INTERVAL_MS)
+            if (txRxRole == TxRxRole.TX_ONLY) continue
+            val sc = scanner ?: continue
+            val silenceMs = System.currentTimeMillis() - lastScanRxEpochMs
+            if (silenceMs >= SCAN_WATCHDOG_SILENCE_MS) {
+                val restartNum = scanWatchdogRestartCount.incrementAndGet()
+                Log.w(
+                    TAG,
+                    "ScanWatchdog: silencio de ${silenceMs}ms >= ${SCAN_WATCHDOG_SILENCE_MS}ms — " +
+                        "reiniciando ScanCallback (restart #$restartNum)"
+                )
+                runCatching { sc.stopScan(scanCallback) }
+                    .onFailure { Log.w(TAG, "ScanWatchdog stopScan falló: ${it.message}") }
+                lastScanRxEpochMs = System.currentTimeMillis()
+                runCatching {
+                    scanStartsCount++
+                    sc.startScan(listOf(ScanFilter.Builder().build()), buildScanSettings(), scanCallback)
+                }.onFailure { ex ->
+                    scanFailuresCount++
+                    val desc = "WATCHDOG_RESTART_SCAN_THREW: ${ex.message}"
+                    lastScanFailure = desc
+                    Log.e(TAG, "ScanWatchdog: startScan falló", ex)
+                }
+            }
+        }
+    }
+
+    /** Construye los [ScanSettings] con los mismos parámetros que [start], reutilizable por el watchdog. */
+    @SuppressLint("MissingPermission")
+    internal fun buildScanSettings(): ScanSettings {
+        val adapter = bluetoothAdapter
+        val builder = ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setReportDelay(0L)
+            .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
+            .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
+            .setNumOfMatches(ScanSettings.MATCH_NUM_MAX_ADVERTISEMENT)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && adapter != null) {
+            if (adapter.isLeExtendedAdvertisingSupported) {
+                builder.setLegacy(false).setPhy(ScanSettings.PHY_LE_ALL_SUPPORTED)
+            } else {
+                builder.setLegacy(true).setPhy(BluetoothDevice.PHY_LE_1M)
+            }
+        }
+        return builder.build()
+    }
+
     @SuppressLint("MissingPermission")
     override suspend fun stop() {
+        scanWatchdogJob?.cancel()
+        scanWatchdogJob = null
         runCatching {
             scanner?.stopScan(scanCallback)
             activeLegacyCallback?.let { advertiser?.stopAdvertising(it) }
@@ -808,6 +904,9 @@ class BleAdvTransport(
             val sr = result?.scanRecord
             val raw = sr?.getManufacturerSpecificData(0x5242) ?: return
             val rssi = result.rssi
+            // Registrar timestamp para el watchdog: cualquier anuncio con nuestro manufacturer ID
+            // reinicia el contador de sequía, evitando un restart innecesario.
+            lastScanRxEpochMs = System.currentTimeMillis()
             logFragmentRxDiag(raw, rssi)
             val bytes = fragmentReassembler.feed(raw) ?: return
             if (bytes !== raw) {
