@@ -834,6 +834,7 @@ private fun RidesReleaseHomeScreen(
                 rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
                 localShortId = authorized.localShortId.toInt(),
                 forceSimulated = useSimulated,
+                expectedPeerShortIds = authorized.authorizedShortIds,
                 rideSecretKey = authorized.rideSecretKey
             )
             if (eligibility.duplicateStartSuppressed) {
