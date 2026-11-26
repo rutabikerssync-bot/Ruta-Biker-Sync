@@ -1390,3 +1390,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-26 — Imagen hero Chopper/Custom en cuadro principal de Garage
 - `drawable-nodpi/garage_odometro_hero.png` + `BikeGarageSection.kt`: integrada la imagen estilo Chopper/Custom como fondo del cuadro **ODÓMETRO · GARAGE** con velo horizontal graduado (`0xD90E131D` → `0x59121824`) para mantener contraste en el odómetro y semáforos. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 22s`).
+
+### 2026-11-26 — Fix de wrap vertical en filas largas de Garage (TECNO)
+- `BikeGarageSection.kt`: aplicado `weight(1f, fill = false)` en títulos de componente (`Rodamientos (Rueda Delantera)`) y `maxLines = 1, softWrap = false` en el badge de estado (`• Al día`) y `"Toca para editar"` para evitar expansión vertical en pantallas estrechas. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 12s`).
