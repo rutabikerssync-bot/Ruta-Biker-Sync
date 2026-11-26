@@ -3,6 +3,7 @@ package com.rutabikersync.app.feature.vault
 import android.os.Build
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -32,8 +33,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.rutabikersync.app.BuildConfig
+import com.rutabikersync.app.R
 import com.rutabikersync.app.ui.theme.HeritageBorder
 import com.rutabikersync.app.ui.theme.HeritageBrassGold
 import com.rutabikersync.app.ui.theme.HeritageCard
@@ -88,26 +93,57 @@ fun VaultBiometricGate(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
+                .padding(horizontal = 24.dp)
         ) {
-            // Icono de candado
+            // Tarjeta visual de Bóveda protegida (mismo estándar full-bleed + degradado)
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
+                    .fillMaxWidth()
+                    .height(210.dp)
+                    .clip(RoundedCornerShape(18.dp))
                     .background(HeritageCardWarm)
-                    .border(2.dp, HeritageBorder, CircleShape),
-                contentAlignment = Alignment.Center
+                    .border(1.2.dp, HeritageBorder, RoundedCornerShape(18.dp))
             ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "Bóveda bloqueada",
-                    tint = HeritageBrassGold,
-                    modifier = Modifier.size(40.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.card_boveda_protegida),
+                    contentDescription = "Bóveda protegida Ruta Biker Sync",
+                    modifier = Modifier.matchParentSize(),
+                    alignment = Alignment.Center,
+                    contentScale = ContentScale.Crop
                 )
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    HeritageSand.copy(alpha = 0.35f),
+                                    HeritageSand.copy(alpha = 0.90f)
+                                )
+                            )
+                        )
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(HeritageCardWarm.copy(alpha = 0.85f))
+                        .border(1.5.dp, HeritageBorder, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Bóveda bloqueada",
+                        tint = HeritageBrassGold,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             Text(
                 text = "Bóveda protegida",
