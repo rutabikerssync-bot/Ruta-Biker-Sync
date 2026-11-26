@@ -1414,3 +1414,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-26 — Registro de `CameraModeManager` (cámara de navegación del Mapa en Vivo)
 - `CameraModeManager.kt` + `CameraModeManagerTest.kt`: máquina de estados de cámara (`FOLLOW_HEADING_3D`, `ROUTE_OVERVIEW`, `FREE_INSPECT`), auto-zoom por velocidad con histéresis (`zoomForSpeedKmh`) y congelamiento de rumbo en parado (`MIN_BEARING_SPEED_KMH = 5.0`), integrada en `LiveMapViewModel.kt`. Suite `:app:testStandardDebugUnitTest` verde.
+
+### 2026-11-26 — Fase 1 Banners Promocionales (Backend PostgreSQL y API)
+- `0026_promo_banners.sql` + `backend/src/db/pool.ts` + `backend/src/lib/promoBanners.ts` + `backend/src/app.ts`: tabla `promo_banners` y endpoints `GET /v1/announcements/active` + CRUD admin `/v1/admin/promo-banners` (`requireAdminAuth`) para gestionar campañas desde Soporte / Backoffice.
+- `backend/test/promo_banners.test.ts`: pruebas de fail-closed admin (`401`), creación, edición, vigencia y eliminación contra PostgreSQL 16 real (`6/6` verdes con `migrations_registry.test.ts`, `tsc --noEmit` sin errores).

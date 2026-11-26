@@ -8,8 +8,8 @@
 
 | Fase | Nombre | Estado | Alcance |
 | :--- | :--- | :--- | :--- |
-| **Fase 1** | Backend PostgreSQL + Endpoints de Anuncios y Admin | ⏳ **Pendiente** | Migración `0026`, `backend/src/lib/promoBanners.ts`, rutas `/v1/announcements/active` y `/v1/admin/promo-banners`, tests Vitest |
-| **Fase 2** | Panel Admin (`admin-dashboard` + `backend/public`) | ⏳ **Pendiente** | Gestor visual de campañas (crear, activar/pausar, fechas, orden y eliminación) |
+| **Fase 1** | Backend PostgreSQL + Endpoints de Anuncios y Admin | ✅ **Completada** | `0026_promo_banners.sql`, `promoBanners.ts`, `app.ts`, `promo_banners.test.ts` (`6/6` verdes) |
+| **Fase 2** | Página de Soporte / Backoffice (`admin-dashboard` + `backend/public`) | ⏳ **Pendiente** | Agregar, editar/cambiar, activar/pausar y eliminar banners desde la página web de Soporte |
 | **Fase 3** | Android Compose (`PromoBannerModal` + frecuencia local) | ⏳ **Pendiente** | `HorizontalPager`, degradado *Dark Elite*, filtro `once_per_campaign` / `once_per_day`, bloqueo en rodada activa y tests JVM |
 
 ---
