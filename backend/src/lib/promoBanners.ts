@@ -88,12 +88,10 @@ export async function createPromoBanner(
   input: z.infer<typeof PromoBannerCreateSchema>
 ): Promise<PromoBannerRecord> {
   const id = randomUUID();
-  const startsAt = input.startsAt ?? new Date().toISOString();
-  const endsAt = input.endsAt ?? new Date(Date.now() + 7 * 24 * 3600_000).toISOString();
   const res = await db.query(
     `INSERT INTO promo_banners
        (id, title, subtitle, badge_text, image_url, accent_color_hex, cta_label, cta_target, frequency, priority, active, starts_at, ends_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, COALESCE($12::timestamptz, now()), COALESCE($13::timestamptz, now() + interval '7 days'))
      RETURNING *`,
     [
       id,
@@ -107,8 +105,8 @@ export async function createPromoBanner(
       input.frequency,
       input.priority,
       input.active,
-      startsAt,
-      endsAt
+      input.startsAt ?? null,
+      input.endsAt ?? null
     ]
   );
   return mapBannerRow(res.rows[0]);

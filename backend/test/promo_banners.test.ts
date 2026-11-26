@@ -14,6 +14,7 @@ describe('Fase 1 Banners Promocionales — /v1/announcements/active y /v1/admin/
     const pool = createPgPool();
     await pool.query('SELECT 1');
     await pool.query(readInitMigrationSql());
+    await pool.query('DELETE FROM promo_banners');
     db = pool;
     isDbOnline = true;
     app = await buildApp({ db, env: { ...process.env, ADMIN_API_KEY: TEST_ADMIN_KEY } });
