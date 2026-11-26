@@ -5,8 +5,6 @@
 import { randomUUID } from 'node:crypto';
 import type { DbExecutor } from '../db/pool.js';
 
-export const DEFAULT_ADMIN_KEY = 'rbs-dev-admin-secret-key-2026';
-
 export interface AdminAnalyticsOverview {
   users: {
     total: number;
@@ -106,262 +104,6 @@ export interface SupportTicketItem {
   messagesCount: number;
 }
 
-export const DEMO_GROUPS: AdminGroupSummary[] = [
-  {
-    id: 'g-001',
-    name: 'Halcones del Asfalto MC',
-    countryCode: 'MX',
-    tier: 'MC',
-    status: 'active',
-    principalLeader: 'u-001',
-    principalLeaderName: 'Comandante Águila',
-    principalLeaderEmail: 'aguila@halconesmc.mx',
-    memberCount: 24,
-    createdAt: '2026-04-18T10:00:00Z',
-    sponsorGroupId: null,
-    subscriptionState: 'active'
-  },
-  {
-    id: 'g-002',
-    name: 'Ángeles de la Sierra MG',
-    countryCode: 'CO',
-    tier: 'MG',
-    status: 'active',
-    principalLeader: 'u-002',
-    principalLeaderName: 'Carlos Montoya',
-    principalLeaderEmail: 'carlos@sierramg.co',
-    memberCount: 16,
-    createdAt: '2026-06-12T14:30:00Z',
-    sponsorGroupId: 'g-001',
-    subscriptionState: 'active'
-  },
-  {
-    id: 'g-003',
-    name: 'Riders del Valle RC',
-    countryCode: 'MX',
-    tier: 'RC',
-    status: 'active',
-    principalLeader: 'u-003',
-    principalLeaderName: 'Diana Morales',
-    principalLeaderEmail: 'diana@ridersvalle.com',
-    memberCount: 12,
-    createdAt: '2026-08-01T12:00:00Z',
-    sponsorGroupId: null,
-    subscriptionState: 'grace'
-  },
-  {
-    id: 'g-004',
-    name: 'Espartanos de la Ruta GANG',
-    countryCode: 'AR',
-    tier: 'GANG',
-    status: 'active',
-    principalLeader: 'u-004',
-    principalLeaderName: 'Mariano Rossi',
-    principalLeaderEmail: 'mariano@espartanos.ar',
-    memberCount: 18,
-    createdAt: '2026-09-10T16:20:00Z',
-    sponsorGroupId: 'g-001',
-    subscriptionState: 'active'
-  },
-  {
-    id: 'g-005',
-    name: 'Lobos Solitarios RC',
-    countryCode: 'CL',
-    tier: 'RC',
-    status: 'suspended',
-    principalLeader: 'u-005',
-    principalLeaderName: 'Ignacio Vega',
-    principalLeaderEmail: 'ignacio@lobos.cl',
-    memberCount: 6,
-    createdAt: '2026-10-02T11:15:00Z',
-    sponsorGroupId: null,
-    subscriptionState: 'expired'
-  }
-];
-
-export const DEMO_USERS: AdminUserSummary[] = [
-  {
-    id: 'u-001',
-    email: 'aguila@halconesmc.mx',
-    displayName: 'Comandante Águila',
-    countryCode: 'MX',
-    accountType: 'leader',
-    status: 'active',
-    createdAt: '2026-04-18T10:00:00Z',
-    currentClubName: 'Halcones del Asfalto MC',
-    currentClubRole: 'Presidente',
-    rankCode: 'leyenda',
-    totalXp: 8940,
-    totalKm: 18450.5
-  },
-  {
-    id: 'u-002',
-    email: 'carlos@sierramg.co',
-    displayName: 'Carlos Montoya',
-    countryCode: 'CO',
-    accountType: 'leader',
-    status: 'active',
-    createdAt: '2026-06-12T14:30:00Z',
-    currentClubName: 'Ángeles de la Sierra MG',
-    currentClubRole: 'Sargento de Armas',
-    rankCode: 'elite',
-    totalXp: 3420,
-    totalKm: 7890.0
-  },
-  {
-    id: 'u-003',
-    email: 'diana@ridersvalle.com',
-    displayName: 'Diana Morales',
-    countryCode: 'MX',
-    accountType: 'leader',
-    status: 'active',
-    createdAt: '2026-08-01T12:00:00Z',
-    currentClubName: 'Riders del Valle RC',
-    currentClubRole: 'Presidente',
-    rankCode: 'veterano',
-    totalXp: 1820,
-    totalKm: 3450.2
-  },
-  {
-    id: 'u-004',
-    email: 'mariano@espartanos.ar',
-    displayName: 'Mariano Rossi',
-    countryCode: 'AR',
-    accountType: 'leader',
-    status: 'active',
-    createdAt: '2026-09-10T16:20:00Z',
-    currentClubName: 'Espartanos de la Ruta GANG',
-    currentClubRole: 'Capitán de Ruta',
-    rankCode: 'rider',
-    totalXp: 480,
-    totalKm: 1200.0
-  },
-  {
-    id: 'u-005',
-    email: 'ignacio@lobos.cl',
-    displayName: 'Ignacio Vega',
-    countryCode: 'CL',
-    accountType: 'leader',
-    status: 'suspended',
-    createdAt: '2026-10-02T11:15:00Z',
-    currentClubName: 'Lobos Solitarios RC',
-    currentClubRole: 'Presidente',
-    rankCode: 'novato',
-    totalXp: 60,
-    totalKm: 180.0
-  },
-  {
-    id: 'u-006',
-    email: 'vale.cruz@gmail.com',
-    displayName: 'Valentina Cruz',
-    countryCode: 'MX',
-    accountType: 'member',
-    status: 'active',
-    createdAt: '2026-10-15T09:00:00Z',
-    currentClubName: 'Halcones del Asfalto MC',
-    currentClubRole: 'Oficial Médico',
-    rankCode: 'veterano',
-    totalXp: 1450,
-    totalKm: 2890.4
-  }
-];
-
-export const DEMO_REPORTS = [
-  {
-    id: 'rep-001',
-    reporter: 'u-002',
-    reported: 'u-005',
-    group_id: 'g-002',
-    ride_id: 'r-001',
-    reason: 'dangerous',
-    state: 'escalated',
-    resolution: null,
-    created_at: '2026-10-29T18:40:00Z',
-    reporter_email: 'carlos@sierramg.co',
-    reporter_name: 'Carlos Montoya',
-    reported_email: 'ignacio@lobos.cl',
-    reported_name: 'Ignacio Vega',
-    group_name: 'Ángeles de la Sierra MG'
-  },
-  {
-    id: 'rep-002',
-    reporter: 'u-003',
-    reported: 'u-004',
-    group_id: 'g-003',
-    ride_id: 'r-002',
-    reason: 'abuse',
-    state: 'escalated',
-    resolution: null,
-    created_at: '2026-10-30T11:10:00Z',
-    reporter_email: 'diana@ridersvalle.com',
-    reporter_name: 'Diana Morales',
-    reported_email: 'mariano@espartanos.ar',
-    reported_name: 'Mariano Rossi',
-    group_name: 'Riders del Valle RC'
-  }
-];
-
-export const DEMO_TICKETS: SupportTicketItem[] = [
-  {
-    id: 't-001',
-    userId: 'u-003',
-    userName: 'Diana Morales',
-    userEmail: 'diana@ridersvalle.com',
-    groupId: 'g-003',
-    groupName: 'Riders del Valle RC',
-    subject: 'Solicitud de prórroga por clima adverso en rodada de aniversario',
-    category: 'billing',
-    priority: 'high',
-    status: 'open',
-    createdAt: '2026-10-31T14:00:00Z',
-    updatedAt: '2026-10-31T14:30:00Z',
-    messagesCount: 2
-  },
-  {
-    id: 't-002',
-    userId: 'u-001',
-    userName: 'Comandante Águila',
-    userEmail: 'aguila@halconesmc.mx',
-    groupId: 'g-001',
-    groupName: 'Halcones del Asfalto MC',
-    subject: 'Consulta técnica sobre salto multihop BLE en cordillera montañosa',
-    category: 'technical',
-    priority: 'medium',
-    status: 'in_progress',
-    createdAt: '2026-10-30T09:15:00Z',
-    updatedAt: '2026-10-30T10:00:00Z',
-    messagesCount: 3
-  }
-];
-
-export const DEMO_SOS_LOGS = [
-  {
-    id: 'sos-001',
-    ride_id: 'r-001',
-    subject: 'u-006',
-    accessed_by: 'u-001',
-    reason: 'sos',
-    created_at: '2026-10-28T22:15:00Z',
-    subject_name: 'Valentina Cruz',
-    subject_email: 'vale.cruz@gmail.com',
-    accessor_name: 'Comandante Águila',
-    accessor_email: 'aguila@halconesmc.mx',
-    ride_title: 'Rodada Nocturna Cañón de Lobos'
-  },
-  {
-    id: 'sos-002',
-    ride_id: 'r-002',
-    subject: 'u-002',
-    accessed_by: 'u-003',
-    reason: 'leader_declared',
-    created_at: '2026-10-29T16:05:00Z',
-    subject_name: 'Carlos Montoya',
-    subject_email: 'carlos@sierramg.co',
-    accessor_name: 'Diana Morales',
-    accessor_email: 'diana@ridersvalle.com',
-    ride_title: 'Expedición Cordillera Central'
-  }
-];
 
 /**
  * Valida si la solicitud contiene la clave de administrador autorizada
@@ -370,8 +112,8 @@ export function verifyAdminAccess(
   providedKey: string | undefined,
   envKey: string | undefined = process.env.ADMIN_API_KEY
 ): boolean {
-  const expectedKey = envKey || DEFAULT_ADMIN_KEY;
-  if (!providedKey) return false;
+  const expectedKey = envKey?.trim();
+  if (!expectedKey || !providedKey) return false;
   return providedKey === expectedKey;
 }
 
@@ -470,7 +212,7 @@ export async function getAdminAnalyticsOverview(db: DbExecutor): Promise<AdminAn
 
   const kmRes = await db.query(`SELECT COALESCE(SUM(total_km), 0) AS total_km FROM rank_progress`);
   const totalKm = parseFloat(kmRes.rows[0]?.total_km ?? '0');
-  const completionRatePct = totalRides > 0 ? Math.round((completedRides / totalRides) * 100) : 100;
+  const completionRatePct = totalRides > 0 ? Math.round((completedRides / totalRides) * 100) : 0;
 
   // 4. Seguridad Vial y SOS
   const sosAuditRes = await db.query(
@@ -480,11 +222,11 @@ export async function getAdminAnalyticsOverview(db: DbExecutor): Promise<AdminAn
        COUNT(*) FILTER (WHERE reason = 'leader_declared') AS leader_reason
      FROM emergency_access_log`
   );
-  const totalSosLogs = parseInt(sosAuditRes.rows[0]?.total_accesses ?? '0', 10);
-  // Basado en las métricas de cancelación táctil de 20s en la app (estimado de telemetría y pruebas)
-  const cancelledAlerts = Math.max(0, Math.round(totalSosLogs * 0.35));
-  const confirmedAlerts = totalSosLogs;
-  const falseAlarmRatePct = totalSosLogs > 0 ? Math.round((cancelledAlerts / (totalSosLogs + cancelledAlerts)) * 100) : 0;
+  const sosAlerts = parseInt(sosAuditRes.rows[0]?.sos_reason ?? '0', 10);
+  // Solo se reportan valores observados: no hay columna de cancelación en 20s ni de tiempo de respuesta.
+  const cancelledAlerts = 0;
+  const confirmedAlerts = sosAlerts;
+  const falseAlarmRatePct = 0;
 
   // 5. Mesh Offline
   const meshRes = await db.query(
@@ -494,7 +236,7 @@ export async function getAdminAnalyticsOverview(db: DbExecutor): Promise<AdminAn
      FROM ride_mesh_metrics`
   );
   const metricsCount = parseInt(meshRes.rows[0]?.metrics_count ?? '0', 10);
-  const offlineRatioPct = totalRides > 0 ? Math.min(100, Math.round((metricsCount / totalRides) * 100)) : 42;
+  const offlineRatioPct = totalRides > 0 ? Math.min(100, Math.round((metricsCount / totalRides) * 100)) : 0;
 
   // 6. Suscripciones y Finanzas
   const subsRes = await db.query(
@@ -509,50 +251,6 @@ export async function getAdminAnalyticsOverview(db: DbExecutor): Promise<AdminAn
   const activeMemberSlots = parseInt(sRow.active_members ?? '0', 10);
   const inGracePeriod = parseInt(sRow.in_grace ?? '0', 10);
   const monthlyRevenue = (activeLeaders * 15.0) + (activeMemberSlots * 2.5);
-
-  if (totalUsers === 0 && parseInt(gRow.total ?? '0', 10) === 0) {
-    return {
-      users: {
-        total: 1420,
-        active: 1388,
-        suspended: 32,
-        ranks: { novato: 420, rider: 580, veterano: 280, elite: 112, leyenda: 28 }
-      },
-      groups: {
-        total: 84,
-        active: 81,
-        suspended: 3,
-        byTier: { rc: 46, mg: 24, gang: 10, mc: 4 },
-        byCountry: { MX: 52, CO: 18, AR: 8, CL: 6 }
-      },
-      rides: {
-        total: 2180,
-        completed: 2094,
-        active: 14,
-        planned: 72,
-        totalKm: 148560.4,
-        completionRatePct: 96
-      },
-      safetySos: {
-        totalAlerts: 34,
-        cancelledIn20s: 26,
-        confirmedEmergencies: 8,
-        falseAlarmRatePct: 76,
-        avgResponseMinutes: 3.8
-      },
-      meshOffline: {
-        ridesOfflineCount: 914,
-        offlineRatioPct: 42,
-        totalHeartbeatsLogged: 128400
-      },
-      subscriptions: {
-        activeLeaders: 84,
-        activeMemberSlots: 680,
-        monthlyEstimatedRevenueUsd: 2960.00,
-        inGracePeriod: 4
-      }
-    };
-  }
 
   return {
     users: {
@@ -592,12 +290,12 @@ export async function getAdminAnalyticsOverview(db: DbExecutor): Promise<AdminAn
       cancelledIn20s: cancelledAlerts,
       confirmedEmergencies: confirmedAlerts,
       falseAlarmRatePct,
-      avgResponseMinutes: 4.8
+      avgResponseMinutes: 0
     },
     meshOffline: {
       ridesOfflineCount: metricsCount,
       offlineRatioPct,
-      totalHeartbeatsLogged: metricsCount * 140
+      totalHeartbeatsLogged: 0
     },
     subscriptions: {
       activeLeaders,
@@ -692,25 +390,6 @@ export async function listAdminGroups(
     subscriptionState: r.subscription_state
   }));
 
-  if (total === 0 && groups.length === 0) {
-    let filtered = [...DEMO_GROUPS];
-    if (options.search) {
-      const s = options.search.toLowerCase();
-      filtered = filtered.filter(g => g.name.toLowerCase().includes(s) || g.principalLeaderEmail.toLowerCase().includes(s));
-    }
-    if (options.tier) {
-      filtered = filtered.filter(g => g.tier === options.tier);
-    }
-    if (options.status) {
-      filtered = filtered.filter(g => g.status === options.status);
-    }
-    if (options.countryCode) {
-      const code = options.countryCode.toUpperCase();
-      filtered = filtered.filter(g => g.countryCode === code);
-    }
-    return { groups: filtered.slice(offset, offset + limit), total: filtered.length };
-  }
-
   return { groups, total };
 }
 
@@ -725,56 +404,7 @@ export async function getAdminGroupDetails(db: DbExecutor, groupId: string) {
      WHERE g.id = $1`,
     [groupId]
   );
-  if (gRes.rows.length === 0) {
-    const demo = DEMO_GROUPS.find(g => g.id === groupId);
-    if (!demo) return null;
-    return {
-      group: {
-        id: demo.id,
-        name: demo.name,
-        country_code: demo.countryCode,
-        tier: demo.tier,
-        status: demo.status,
-        created_at: demo.createdAt,
-        principal_leader: demo.principalLeader,
-        leader_name: demo.principalLeaderName,
-        leader_email: demo.principalLeaderEmail,
-        sponsor_group_id: demo.sponsorGroupId
-      },
-      leaders: [
-        {
-          user_id: demo.principalLeader,
-          is_principal: true,
-          club_role: 'Presidente',
-          display_name: demo.principalLeaderName,
-          email: demo.principalLeaderEmail,
-          sub_state: demo.subscriptionState,
-          grace_until: null
-        }
-      ],
-      members: DEMO_USERS.filter(u => u.currentClubName === demo.name).map(u => ({
-        user_id: u.id,
-        status_kind: 'active',
-        club_role: u.currentClubRole,
-        invite_state: 'accepted',
-        created_at: u.createdAt,
-        display_name: u.displayName,
-        email: u.email,
-        xp: u.totalXp,
-        total_km: u.totalKm
-      })),
-      recentRides: [
-        {
-          id: 'r-001',
-          title: 'Rodada Oficial ' + demo.name,
-          state: 'closed',
-          starts_at: '2026-10-25T08:00:00Z',
-          closed_at: '2026-10-25T14:30:00Z',
-          participants_count: demo.memberCount
-        }
-      ]
-    };
-  }
+  if (gRes.rows.length === 0) return null;
   const group = gRes.rows[0];
 
   const leadersRes = await db.query(
@@ -829,11 +459,7 @@ export async function updateAdminGroupStatus(
     `UPDATE groups SET status = $1 WHERE id = $2 RETURNING id`,
     [status, groupId]
   );
-  if (res.rows.length === 0) {
-    const demo = DEMO_GROUPS.find(g => g.id === groupId);
-    if (demo) demo.status = status;
-    return true;
-  }
+  if (res.rows.length === 0) return false;
 
   await logAdminAction(db, {
     adminEmail,
@@ -860,11 +486,7 @@ export async function extendGroupGracePeriod(
     `SELECT principal_leader FROM groups WHERE id = $1`,
     [groupId]
   );
-  if (leaderRes.rows.length === 0) {
-    const demo = DEMO_GROUPS.find(g => g.id === groupId);
-    if (demo) demo.subscriptionState = 'grace';
-    return true;
-  }
+  if (leaderRes.rows.length === 0) return false;
   const leaderId = leaderRes.rows[0].principal_leader;
 
   const updateSub = await db.query(
@@ -963,18 +585,6 @@ export async function listAdminUsers(
     };
   });
 
-  if (total === 0 && users.length === 0) {
-    let filtered = [...DEMO_USERS];
-    if (options.search) {
-      const s = options.search.toLowerCase();
-      filtered = filtered.filter(u => u.email.toLowerCase().includes(s) || (u.displayName && u.displayName.toLowerCase().includes(s)));
-    }
-    if (options.status) {
-      filtered = filtered.filter(u => u.status === options.status);
-    }
-    return { users: filtered.slice(offset, offset + limit), total: filtered.length };
-  }
-
   return { users, total };
 }
 
@@ -989,11 +599,7 @@ export async function updateAdminUserStatus(
   reason: string
 ): Promise<boolean> {
   const res = await db.query(`UPDATE users SET status = $1 WHERE id = $2 RETURNING id`, [status, userId]);
-  if (res.rows.length === 0) {
-    const demo = DEMO_USERS.find(u => u.id === userId);
-    if (demo) demo.status = status;
-    return true;
-  }
+  if (res.rows.length === 0) return false;
 
   await logAdminAction(db, {
     adminEmail,
@@ -1035,9 +641,6 @@ export async function listEscalatedReports(db: DbExecutor, limit = 50) {
      LIMIT $1`,
     [limit]
   );
-  if (reportsRes.rows.length === 0) {
-    return DEMO_REPORTS;
-  }
   return reportsRes.rows;
 }
 
@@ -1058,14 +661,7 @@ export async function resolveEscalatedReport(
      RETURNING id, reported, group_id`,
     [resolution, reportId]
   );
-  if (updateRes.rows.length === 0) {
-    const demo = DEMO_REPORTS.find(r => r.id === reportId);
-    if (demo) {
-      demo.state = 'actioned';
-      (demo as any).resolution = resolution;
-    }
-    return true;
-  }
+  if (updateRes.rows.length === 0) return false;
 
   const reportedId = updateRes.rows[0].reported;
   if (resolution === 'platform_suspended') {
@@ -1159,14 +755,6 @@ export async function listSupportTickets(
     messagesCount: parseInt(r.messages_count ?? '0', 10)
   }));
 
-  if (total === 0 && tickets.length === 0) {
-    let filtered = [...DEMO_TICKETS];
-    if (options.status) filtered = filtered.filter(t => t.status === options.status);
-    if (options.category) filtered = filtered.filter(t => t.category === options.category);
-    if (options.priority) filtered = filtered.filter(t => t.priority === options.priority);
-    return { tickets: filtered.slice(offset, offset + limit), total: filtered.length };
-  }
-
   return { tickets, total };
 }
 
@@ -1185,43 +773,24 @@ export async function createSupportTicket(
   }
 ): Promise<string> {
   const ticketId = randomUUID();
-  try {
-    await db.query(
-      `INSERT INTO support_tickets (id, user_id, group_id, subject, category, priority, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW(), NOW())`,
-      [
-        ticketId,
-        params.userId,
-        params.groupId ?? null,
-        params.subject,
-        params.category,
-        params.priority ?? 'medium'
-      ]
-    );
+  await db.query(
+    `INSERT INTO support_tickets (id, user_id, group_id, subject, category, priority, status, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW(), NOW())`,
+    [
+      ticketId,
+      params.userId,
+      params.groupId ?? null,
+      params.subject,
+      params.category,
+      params.priority ?? 'medium'
+    ]
+  );
 
-    await db.query(
-      `INSERT INTO support_ticket_messages (id, ticket_id, sender_id, is_admin, message, created_at)
-       VALUES ($1, $2, $3, false, $4, NOW())`,
-      [randomUUID(), ticketId, params.userId, params.initialMessage]
-    );
-  } catch (_e) {
-    // In-memory demo insertion
-    DEMO_TICKETS.unshift({
-      id: ticketId,
-      userId: params.userId,
-      userName: 'Piloto Solicitante',
-      userEmail: 'usuario@rutabikersync.com',
-      groupId: params.groupId ?? null,
-      groupName: 'Club Local',
-      subject: params.subject,
-      category: params.category,
-      priority: params.priority ?? 'medium',
-      status: 'open',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      messagesCount: 1
-    });
-  }
+  await db.query(
+    `INSERT INTO support_ticket_messages (id, ticket_id, sender_id, is_admin, message, created_at)
+     VALUES ($1, $2, $3, false, $4, NOW())`,
+    [randomUUID(), ticketId, params.userId, params.initialMessage]
+  );
 
   return ticketId;
 }
@@ -1240,26 +809,17 @@ export async function addTicketMessage(
   }
 ): Promise<string> {
   const msgId = randomUUID();
-  try {
-    await db.query(
-      `INSERT INTO support_ticket_messages (id, ticket_id, sender_id, is_admin, message, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [msgId, params.ticketId, params.senderId, params.isAdmin, params.message]
-    );
+  await db.query(
+    `INSERT INTO support_ticket_messages (id, ticket_id, sender_id, is_admin, message, created_at)
+     VALUES ($1, $2, $3, $4, $5, NOW())`,
+    [msgId, params.ticketId, params.senderId, params.isAdmin, params.message]
+  );
 
-    const newStatus = params.nextStatus ?? (params.isAdmin ? 'waiting_user' : 'in_progress');
-    await db.query(
-      `UPDATE support_tickets SET status = $1, updated_at = NOW() WHERE id = $2`,
-      [newStatus, params.ticketId]
-    );
-  } catch (_e) {
-    const demo = DEMO_TICKETS.find(t => t.id === params.ticketId);
-    if (demo) {
-      demo.messagesCount++;
-      demo.status = params.nextStatus ?? (params.isAdmin ? 'waiting_user' : 'in_progress');
-      demo.updatedAt = new Date().toISOString();
-    }
-  }
+  const newStatus = params.nextStatus ?? (params.isAdmin ? 'waiting_user' : 'in_progress');
+  await db.query(
+    `UPDATE support_tickets SET status = $1, updated_at = NOW() WHERE id = $2`,
+    [newStatus, params.ticketId]
+  );
 
   return msgId;
 }
@@ -1276,40 +836,7 @@ export async function getSupportTicketDetails(db: DbExecutor, ticketId: string) 
      WHERE st.id = $1`,
     [ticketId]
   );
-  if (tRes.rows.length === 0) {
-    const demo = DEMO_TICKETS.find(t => t.id === ticketId);
-    if (!demo) return null;
-    return {
-      ticket: {
-        ...demo,
-        user_name: demo.userName,
-        user_email: demo.userEmail,
-        group_name: demo.groupName
-      },
-      messages: [
-        {
-          id: 'msg-001',
-          ticket_id: demo.id,
-          sender_id: demo.userId,
-          sender_name: demo.userName,
-          sender_email: demo.userEmail,
-          is_admin: false,
-          message: 'Hola equipo de soporte, requerimos su apoyo prioritario para este caso de nuestra comunidad.',
-          created_at: demo.createdAt
-        },
-        {
-          id: 'msg-002',
-          ticket_id: demo.id,
-          sender_id: 'admin-001',
-          sender_name: 'Soporte Ruta Biker Sync',
-          sender_email: 'soporte@rutabikersync.com',
-          is_admin: true,
-          message: 'Entendido. Hemos revisado los registros de telemetría y estamos atendiendo tu solicitud de inmediato.',
-          created_at: demo.updatedAt
-        }
-      ]
-    };
-  }
+  if (tRes.rows.length === 0) return null;
 
   const msgsRes = await db.query(
     `SELECT stm.*, u.display_name as sender_name, u.email as sender_email
@@ -1351,9 +878,6 @@ export async function listSosAccessAudit(db: DbExecutor, limit = 50) {
      LIMIT $1`,
     [limit]
   );
-  if (logsRes.rows.length === 0) {
-    return DEMO_SOS_LOGS;
-  }
   return logsRes.rows;
 }
 

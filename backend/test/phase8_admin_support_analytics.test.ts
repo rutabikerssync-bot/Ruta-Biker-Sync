@@ -3,8 +3,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildApp } from '../src/app.js';
 import { createPgPool, readInitMigrationSql, type DbExecutor } from '../src/db/pool.js';
-import { verifyAdminAccess, DEFAULT_ADMIN_KEY } from '../src/lib/admin.js';
+import { verifyAdminAccess } from '../src/lib/admin.js';
 import type { FastifyInstance } from 'fastify';
+
+const TEST_ADMIN_KEY = 'test-admin-key-rotada-2026';
 
 function resolveTestDatabaseUrl(): string | undefined {
   if (process.env.PG_TEST_URL || process.env.DATABASE_URL) {
@@ -37,11 +39,26 @@ async function createTestDb(): Promise<{ db: DbExecutor; usingRealPostgres: bool
 }
 
 describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
-  it('valida correctamente la autenticación de administrador por clave', () => {
-    expect(verifyAdminAccess(DEFAULT_ADMIN_KEY)).toBe(true);
-    expect(verifyAdminAccess('clave-incorrecta')).toBe(false);
-    expect(verifyAdminAccess(undefined)).toBe(false);
+  it('valida autenticación admin por ADMIN_API_KEY y falla cerrado sin variable de entorno', () => {
+    expect(verifyAdminAccess('cualquier-clave', undefined)).toBe(false);
+    expect(verifyAdminAccess('', '')).toBe(false);
+    expect(verifyAdminAccess('clave-incorrecta', TEST_ADMIN_KEY)).toBe(false);
+    expect(verifyAdminAccess(undefined, TEST_ADMIN_KEY)).toBe(false);
     expect(verifyAdminAccess('mi-clave-custom', 'mi-clave-custom')).toBe(true);
+  });
+
+  it('el panel admin HTML/JS no precarga ninguna clave secreta', () => {
+    const files = [
+      join(process.cwd(), 'public', 'admin.html'),
+      join(process.cwd(), 'public', 'admin', 'index.html'),
+      join(process.cwd(), 'public', 'js', 'api.js'),
+      join(process.cwd(), '..', 'admin-dashboard', 'index.html'),
+      join(process.cwd(), '..', 'admin-dashboard', 'js', 'api.js')
+    ];
+    for (const file of files) {
+      const content = readFileSync(file, 'utf8');
+      expect(content).not.toContain('rbs-dev-admin-secret-key-2026');
+    }
   });
 
   describe('Endpoints /v1/admin (Autenticación y Operaciones)', () => {
@@ -54,7 +71,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         const dbSetup = await createTestDb();
         db = dbSetup.db;
         isDbOnline = true;
-        app = await buildApp({ db });
+        app = await buildApp({ db, env: { ...process.env, ADMIN_API_KEY: TEST_ADMIN_KEY } });
         await app.ready();
       } catch (err: any) {
         console.warn('[phase8_admin_test] PostgreSQL test DB offline, testing with mock/fallback:', err?.message || err);
@@ -90,7 +107,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
           async end() {}
         };
         db = mockDb;
-        app = await buildApp({ db });
+        app = await buildApp({ db, env: { ...process.env, ADMIN_API_KEY: TEST_ADMIN_KEY } });
         await app.ready();
       }
     });
@@ -98,6 +115,24 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
     afterAll(async () => {
       if (app) await app.close();
       if (db && isDbOnline) await db.end();
+    });
+
+    it('falla cerrado (HTTP 401) cuando ADMIN_API_KEY no está configurada en el entorno', async () => {
+      const appWithoutEnv = await buildApp({ db, env: {} });
+      await appWithoutEnv.ready();
+      try {
+        const res = await appWithoutEnv.inject({
+          method: 'GET',
+          url: '/v1/admin/analytics/overview',
+          headers: {
+            'x-admin-key': TEST_ADMIN_KEY
+          }
+        });
+        expect(res.statusCode).toBe(401);
+        expect(res.json()).toHaveProperty('error', 'UNAUTHORIZED_ADMIN');
+      } finally {
+        await appWithoutEnv.close();
+      }
     });
 
     it('rechaza solicitudes no autorizadas sin clave de admin (HTTP 401)', async () => {
@@ -125,7 +160,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/analytics/overview',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -144,7 +179,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/groups?search=halcones',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -157,7 +192,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/support/reports',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -169,7 +204,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/support/tickets',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);
@@ -181,7 +216,7 @@ describe('Fase 8 — Sistema de Administración, Soporte y Analítica', () => {
         method: 'GET',
         url: '/v1/admin/audit/sos',
         headers: {
-          'x-admin-key': DEFAULT_ADMIN_KEY
+          'x-admin-key': TEST_ADMIN_KEY
         }
       });
       expect(res.statusCode).toBe(200);

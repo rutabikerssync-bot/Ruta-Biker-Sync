@@ -79,7 +79,6 @@ import {
   type SubscriptionState
 } from './lib/subscriptions.js';
 import {
-  DEFAULT_ADMIN_KEY,
   verifyAdminAccess,
   logAdminAction,
   getAdminAnalyticsOverview,
@@ -554,7 +553,28 @@ export async function buildApp({
     });
   }
 
-  app.get('/health', async () => ({ status: 'ok' }));
+  async function isDatabaseReady(): Promise<boolean> {
+    try {
+      await db.query('SELECT 1');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  app.get('/health', async (_req, reply) => {
+    if (!(await isDatabaseReady())) {
+      return reply.code(503).send({ status: 'degraded', db: 'error' });
+    }
+    return { status: 'ok', db: 'ok' };
+  });
+
+  app.get('/readyz', async (_req, reply) => {
+    if (!(await isDatabaseReady())) {
+      return reply.code(503).send({ status: 'not_ready', db: 'error' });
+    }
+    return { status: 'ready', db: 'ok' };
+  });
 
   // Verificación de versiones y control de actualización (D98)
   app.get('/v1/app/version', async () => ({
