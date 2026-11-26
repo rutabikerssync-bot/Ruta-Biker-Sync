@@ -1406,3 +1406,8 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Fase 3 Mi Club: UI «Agregar Cargo» y módulo «Decisiones» (Voto Secreto)
 - `ClubDecisionsSheet.kt` + `Phase1Screens.kt`: botón **Decisiones del Club** (con contador de votaciones abiertas, 4 plantillas rápidas, checkboxes de audiencia `Directiva` / `Fundadores` / `Full Members` / `Prospectos`, quórum opcional, emisión de voto secreto y cierre con barras de resultado) y sección **Cargos Personalizados** con botón **+ Agregar Cargo** y asignación excluyendo `guest` (P7).
 - Verificación: `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 32s`).
+
+### 2026-11-26 — Cierre de cambios previos de integridad BD, roster y watchdog BLE
+- `backend/src/index.ts` + `backend/test/health.test.ts` + `admin-dashboard/js/admin.js` + `backend/public/js/admin.js` (`ba0c7d9`): arranque fail-closed sin PostgreSQL (elimina mock vacío en runtime), validación de `/health` (`db: 'ok'`) y `/readyz`, y mensaje explícito `"🔴 Sin conexión con la BD"` en el backoffice. Suite `npm test` (`28/28` archivos, `185/185` tests) verde contra PostgreSQL 16 real.
+- `MainAppScaffold.kt` (`dc9995a`): inyección de `expectedPeerShortIds = authorized.authorizedShortIds` al iniciar rodada en `RidesReleaseHomeScreen`.
+- `BleAdvTransport.kt` + `BleAdvTransportWatchdogTest.kt` (`25d4de2`): watchdog de silencio en `ScanCallback` (`SCAN_WATCHDOG_SILENCE_MS = 60_000L`, `SCAN_WATCHDOG_CHECK_INTERVAL_MS = 30_000L`) para mitigar throttling de vendor MIUI/HyperOS. Suite `:app:testStandardDebugUnitTest` verde.
