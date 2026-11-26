@@ -10,7 +10,7 @@
 | :--- | :--- | :--- | :--- |
 | **Fase 1** | Backend PostgreSQL + Endpoints de Anuncios y Admin | ✅ **Completada** | `0026_promo_banners.sql`, `promoBanners.ts`, `app.ts`, `promo_banners.test.ts` (`6/6` verdes) |
 | **Fase 2** | Página de Soporte / Backoffice (`admin-dashboard` + `backend/public`) | ✅ **Completada** | Gestión completa (crear, editar, activar/pausar, eliminar) en `#tab-support`, `node --check` verde |
-| **Fase 3** | Android Compose (`PromoBannerModal` + frecuencia local) | ⏳ **Pendiente** | `HorizontalPager`, degradado *Dark Elite*, filtro `once_per_campaign` / `once_per_day`, bloqueo en rodada activa y tests JVM |
+| **Fase 3** | Android Compose (`PromoBannerModal` + frecuencia local) | ✅ **Completada** | `PromoBannerRepository`, `PromoBannerModal`, `MainAppScaffold`, `PromoBannerRepositoryTest`, APK (`1m 43s`) |
 
 ---
 

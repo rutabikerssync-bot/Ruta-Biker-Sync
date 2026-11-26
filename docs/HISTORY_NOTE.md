@@ -1421,3 +1421,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-26 — Fase 2 Banners Promocionales (Gestión en Página de Soporte / Backoffice)
 - `admin-dashboard/{index.html,js/api.js,js/admin.js}` + `backend/public/{admin.html,admin/index.html,js/api.js,js/admin.js}`: sección **Banners y Modales Promocionales** dentro de la pestaña de Soporte (`#tab-support`) para crear, editar/cambiar, activar/pausar y eliminar banners en vivo (`node --check` verde).
+
+### 2026-11-26 — Fase 3 Banners Promocionales (Android Compose y Frecuencia Local)
+- `ClubApiClient.kt` + `PromoBannerRepository.kt` + `PromoBannerModal.kt` + `MainAppScaffold.kt`: modal carrusel (`HorizontalPager` con `••`, botón `X`, degradado *Dark Elite*, CTA con apertura opcional de URL) bloqueado automáticamente si hay rodada activa (`!isFullscreenCockpit`).
+- `PromoBannerRepositoryTest.kt`: validación de frecuencias `once_per_campaign` y `once_per_day` (24 h) y fetch HTTP. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 43s`).
