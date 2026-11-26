@@ -203,6 +203,7 @@ fun HudStatusChip(
             .border(1.dp, HeritageBorder, RoundedCornerShape(20.dp))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -326,21 +327,25 @@ fun HeritageCircularGloveButton(
     modifier: Modifier = Modifier,
     isDanger: Boolean = false,
     isActive: Boolean = false,
+    enabled: Boolean = true,
     audioAmplitude: Float = 0f,
     diameter: androidx.compose.ui.unit.Dp = 76.dp
 ) {
     val haptics = LocalHapticFeedback.current
     val bgColor = when {
+        !enabled -> HeritageCardWarm.copy(alpha = 0.55f)
         isDanger -> HeritageRustRed
         isActive -> EmeraldMesh
         else -> HeritageCardWarm
     }
     val borderColor = when {
+        !enabled -> HeritageCopper.copy(alpha = 0.35f)
         isDanger -> HeritageRustRed
         isActive -> Color(0xFF34D399)
         else -> HeritageCopper
     }
     val iconColor = when {
+        !enabled -> HeritageLeatherBrown.copy(alpha = 0.45f)
         isDanger -> Color.White
         isActive -> Color.White
         else -> HeritageLeatherBrown
@@ -379,7 +384,7 @@ fun HeritageCircularGloveButton(
                     .clip(CircleShape)
                     .background(bgColor)
                     .border(if (isActive) 2.5.dp else 2.dp, borderColor, CircleShape)
-                    .clickable {
+                    .clickable(enabled = enabled) {
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         onClick()
                     }
@@ -439,6 +444,7 @@ fun HeritageCircularGloveButton(
 fun GlovesPrimaryActionBar(
     isSosActive: Boolean,
     isPttActive: Boolean = false,
+    isPttAvailable: Boolean = true,
     audioAmplitude: Float = 0f,
     pttSecondaryText: String? = null,
     onTalkPttClick: () -> Unit,
@@ -453,10 +459,18 @@ fun GlovesPrimaryActionBar(
     ) {
         HeritageCircularGloveButton(
             icon = AppIcons.PttMic,
-            primaryText = if (isPttActive) "Hablando" else "Hablar",
-            secondaryText = pttSecondaryText ?: (if (isPttActive) "EN VIVO" else "(PTT)"),
+            primaryText = when {
+                !isPttAvailable -> "PTT"
+                isPttActive -> "Hablando"
+                else -> "Hablar"
+            },
+            secondaryText = when {
+                !isPttAvailable -> "Inicia rodada"
+                else -> pttSecondaryText ?: (if (isPttActive) "EN VIVO" else "(PTT)")
+            },
             onClick = onTalkPttClick,
             isActive = isPttActive,
+            enabled = isPttAvailable || isPttActive,
             audioAmplitude = audioAmplitude,
             diameter = 76.dp
         )
