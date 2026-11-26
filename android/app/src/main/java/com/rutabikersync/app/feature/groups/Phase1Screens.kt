@@ -307,6 +307,13 @@ fun GroupsMainTabScreen(
                             onBack = { viewModel.selectMember(null) }
                         )
                     } else {
+                        val customRoles by viewModel.customRoles.collectAsState()
+                        val assignedCustomRoleByUserId by viewModel.assignedCustomRoleByUserId.collectAsState()
+                        val clubDecisions by viewModel.clubDecisions.collectAsState()
+                        LaunchedEffect(activeGroup.id) {
+                            viewModel.refreshCustomRolesAndDecisions(activeGroup.id)
+                        }
+
                         GroupDetailScreenD3(
                             group = activeGroup,
                             currentUser = data.currentUser,
@@ -333,6 +340,25 @@ fun GroupsMainTabScreen(
                             onOpenRoutes = { viewModel.openClubRoutes(activeGroup.id) },
                             onAssignOfficer = { role, memberUserId ->
                                 viewModel.updateDirectivaOfficer(activeGroup.id, role, memberUserId)
+                            },
+                            customRoles = customRoles,
+                            assignedCustomRoleByUserId = assignedCustomRoleByUserId,
+                            clubDecisions = clubDecisions,
+                            decisionsCoordinator = viewModel.decisionsCoordinator,
+                            onCreateCustomRole = { title, canCreateRide, canModerate ->
+                                viewModel.createCustomRole(activeGroup.id, title, canCreateRide, canModerate)
+                            },
+                            onAssignCustomRole = { member, roleId ->
+                                viewModel.assignCustomRoleToMember(activeGroup.id, member, roleId)
+                            },
+                            onCreateDecision = { title, desc, cat, opts, aud, quorum ->
+                                viewModel.createClubDecision(activeGroup.id, title, desc, cat, opts, aud, quorum)
+                            },
+                            onCastSecretVote = { decisionId, optionIndex ->
+                                viewModel.castSecretDecisionVote(activeGroup.id, decisionId, optionIndex)
+                            },
+                            onCloseDecision = { decisionId ->
+                                viewModel.closeClubDecision(activeGroup.id, decisionId)
                             },
                             onBack = { viewModel.selectGroup("OVERVIEW") }
                         )
@@ -1263,8 +1289,20 @@ private fun GroupDetailScreenD3(
     onPickClubLogo: (Uri) -> Unit = {},
     onAssignOfficer: (role: ClubRole, memberUserId: String) -> Unit = { _, _ -> },
     onOpenRoutes: () -> Unit = {},
+    customRoles: List<CustomClubRole> = emptyList(),
+    assignedCustomRoleByUserId: Map<String, String> = emptyMap(),
+    clubDecisions: List<ClubDecision> = emptyList(),
+    decisionsCoordinator: ClubDecisionsCoordinator? = null,
+    onCreateCustomRole: (title: String, canCreateRide: Boolean, canModerate: Boolean) -> Unit = { _, _, _ -> },
+    onAssignCustomRole: (member: ClubMemberModel, roleId: String?) -> Unit = { _, _ -> },
+    onCreateDecision: (title: String, description: String, category: DecisionCategory, options: List<String>, audiences: Set<DecisionAudience>, minQuorumPercent: Int) -> Unit = { _, _, _, _, _, _ -> },
+    onCastSecretVote: (decisionId: String, optionIndex: Int) -> Unit = { _, _ -> },
+    onCloseDecision: (decisionId: String) -> Unit = {},
     onBack: () -> Unit
 ) {
+    var showDecisionsDialog by remember { mutableStateOf(false) }
+    var showCreateCustomRoleDialog by remember { mutableStateOf(false) }
+    var assigningCustomRole by remember { mutableStateOf<CustomClubRole?>(null) }
     val context = LocalContext.current
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -1759,6 +1797,48 @@ private fun GroupDetailScreenD3(
             }
         }
 
+        // Botón Decisiones del Club (Votación Secreta)
+        val openDecisionsCount = clubDecisions.count { it.isOpen }
+        Surface(
+            onClick = { showDecisionsDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF1A2232).copy(alpha = 0.88f),
+            border = BorderStroke(1.dp, Color(0xFFE5B869).copy(alpha = 0.65f))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "🗳️ Decisiones del Club",
+                        color = Color(0xFFE5B869),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (openDecisionsCount > 0) {
+                            "$openDecisionsCount votación(es) secreta(s) abierta(s)"
+                        } else {
+                            "Votación secreta · Directiva, Fundadores, Full o Prospectos"
+                        },
+                        color = Color(0xFFCBD5E1),
+                        fontSize = 11.sp
+                    )
+                }
+                Text(
+                    text = if (openDecisionsCount > 0) "$openDecisionsCount activa(s) →" else "Abrir →",
+                    color = Color(0xFFE5B869),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
         // =========================================================================
         // BLOQUE 3: ACCIONES DESTACADAS DE INVITACIÓN (HERMANDAD Y RODADA)
         // =========================================================================
@@ -2106,8 +2186,112 @@ private fun GroupDetailScreenD3(
                             onClick = { if (isLeader || isPrincipalLeader) assigningOfficerRole = officers[5].role }
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🎖️ Cargos Personalizados (${customRoles.size})",
+                            color = Color(0xFFD4AF37),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isLeader || isPrincipalLeader) {
+                            Surface(
+                                onClick = { showCreateCustomRoleDialog = true },
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFD4AF37).copy(alpha = 0.18f),
+                                border = BorderStroke(1.dp, Color(0xFFD4AF37))
+                            ) {
+                                Text(
+                                    text = "+ Agregar Cargo",
+                                    color = Color(0xFFD4AF37),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    if (customRoles.isEmpty()) {
+                        Text(
+                            text = "Aún no hay cargos adicionales creados en este club.",
+                            color = Color(0xFF9E9285),
+                            fontSize = 11.sp
+                        )
+                    } else {
+                        customRoles.forEach { role ->
+                            val holders = group.members
+                                .filter { assignedCustomRoleByUserId[it.userId] == role.id }
+                                .joinToString(", ") { it.displayName }
+                                .ifBlank { "Sin asignar" }
+                            Surface(
+                                onClick = { if (isLeader || isPrincipalLeader) assigningCustomRole = role },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                color = Color(0xFF1F1A15),
+                                border = BorderStroke(1.dp, Color(0xFF8B6B3D).copy(alpha = 0.45f))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(role.title, color = Color(0xFFF5E6C8), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                        Text("Asignado a: $holders", color = Color(0xFF9E9285), fontSize = 11.sp)
+                                    }
+                                    if (isLeader || isPrincipalLeader) {
+                                        Text("Asignar →", color = Color(0xFFD4AF37), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        }
+
+        if (showCreateCustomRoleDialog) {
+            CreateCustomRoleDialog(
+                onDismiss = { showCreateCustomRoleDialog = false },
+                onCreate = { title, canCreateRide, canModerate ->
+                    onCreateCustomRole(title, canCreateRide, canModerate)
+                    showCreateCustomRoleDialog = false
+                }
+            )
+        }
+
+        assigningCustomRole?.let { role ->
+            AssignCustomRoleDialog(
+                role = role,
+                members = group.members,
+                onDismiss = { assigningCustomRole = null },
+                onAssign = { member ->
+                    onAssignCustomRole(member, role.id)
+                    assigningCustomRole = null
+                }
+            )
+        }
+
+        if (showDecisionsDialog && decisionsCoordinator != null) {
+            ClubDecisionsDialog(
+                group = group,
+                currentUserId = currentUser.id,
+                isLeader = isLeader || isPrincipalLeader,
+                decisions = clubDecisions,
+                coordinator = decisionsCoordinator,
+                onDismiss = { showDecisionsDialog = false },
+                onCreateDecision = onCreateDecision,
+                onCastVote = onCastSecretVote,
+                onCloseDecision = onCloseDecision
+            )
         }
 
         // =========================================================================
