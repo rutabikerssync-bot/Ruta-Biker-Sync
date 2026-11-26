@@ -1352,3 +1352,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-25 — Transparencia uniforme en banners, tarjeta de ruta por malla y diálogo de señales
 - `LiveMapScreen.kt`: aplicada transparencia (`alpha = 0.78f–0.84f`) al banner de estado (`actionFeedback`), tarjeta `"Ruta por Malla (Hash verificado)"` y diálogo `"SEÑALES RÁPIDAS DE CONVOY"`.
+
+### 2026-11-25 — Imagen hero en pantalla «Bóveda protegida»
+- `card_boveda_protegida.png` + `VaultBiometricGate.kt`: integrada la imagen de bóveda blindada siguiendo el estándar full-bleed con `ContentScale.Crop`, borde `HeritageBorder` y degradado inferior hacia `HeritageSand`.
