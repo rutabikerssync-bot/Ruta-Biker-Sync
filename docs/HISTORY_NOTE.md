@@ -1430,3 +1430,14 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - **Infraestructura:** clúster PostgreSQL `16 main 5433 online postgres` en WSL Ubuntu y backend local en `http://localhost:3000/health` (`{"status":"ok","db":"ok"}`).
 - **Fix (`backend/src/lib/promoBanners.ts`, `backend/test/promo_banners.test.ts`):** `createPromoBanner` generaba `starts_at`/`ends_at` con `new Date()` en Node (Windows), provocando fallo en `test/promo_banners.test.ts:60` cuando el reloj de PostgreSQL en WSL (`now()`) quedaba ligeramente detrás; se cambió a `COALESCE($12::timestamptz, now())` y `COALESCE($13::timestamptz, now() + interval '7 days')`, más limpieza previa `DELETE FROM promo_banners` en `beforeAll`.
 - **Verificación:** `npx tsc --noEmit` sin errores y `npm test` (`vitest run --no-file-parallelism`) en verde: **29 archivos / 187 tests pasados (0 fallos)** en 48.25s.
+
+### 2026-11-26 — Correcciones de Campo: Sincronización de Rutas de Club, Visibilidad de Peers y Cámara de Convoy
+- **Backend (`0027_club_routes_waypoints.sql`, `pool.ts`, `app.ts`):** se añadió la columna `waypoints_json JSONB` a `club_routes` y soporte en `POST /v1/groups/:id/routes`, `GET /v1/groups/:id/routes` y `PATCH /v1/routes/:id` para persistir y entregar el trazado completo de la ruta a todos los miembros del club (`tsc --noEmit` y `migrations_registry` + `club_routes_endpoints` 18/18 tests en verde).
+- **Android — Sincronización de ruta y manifiesto (`ClubRouteEntities.kt`, `AppDatabase.kt` v7 `MIGRATION_6_7`, `ClubApiClient.kt`, `ClubRoutesRepository.kt`, `ScheduleRideMapScreen.kt`, `Phase1ViewModel.kt`, `RideScheduleRepository.kt`, `MainAppScaffold.kt`, `LiveMapScreen.kt`, `RideManifestKeyProvider.kt`):**
+  - Se envían y cachean los `waypoints` al publicar la ruta del club y se hidratan en `RideScheduleRepository.syncFromClubRoute` al cargar el roster/rutas del grupo, para que todos los integrantes vean el trazado en mapa.
+  - Se utiliza el `clubRouteId` real (en lugar de `PilotRideConfig.rideId` estático `"ride-live-01"`) al resolver `RideManifestKeyProvider` y arrancar `RideService`.
+  - `buildSosPublicKeyResolver` ya no invalida todo el manifiesto si algún participante confirmado aún no publicó su clave SOS.
+- **Android — Cámara y ubicación de peers (`LiveMapViewModel.kt`, `NavigationCameraControls.kt`, `LiveMapScreen.kt`):**
+  - Añadido `focusOnPeer(shortId)` con seguimiento en tiempo real (`focusedPeerShortId`), conectado al toque en `ViewportEdgeMarker` y en cada fila del diálogo **Convoy**.
+  - Añadido chip **Convoy** en `NavigationCameraControls` para encuadrar con un toque todos los peers activos y la ruta (`ROUTE_OVERVIEW`).
+- **Verificación Android:** `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` (`-Prbs.debug.url=https://ruta-biker-sync.onrender.com`) en verde (`BUILD SUCCESSFUL in 1m 24s`).
