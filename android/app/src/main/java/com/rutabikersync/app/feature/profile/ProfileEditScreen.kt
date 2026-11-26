@@ -90,6 +90,7 @@ fun ProfileEditScreen(
     var motorcycleYear by remember { mutableStateOf(if (currentProfile.motorcycleYear > 0) currentProfile.motorcycleYear.toString() else "") }
     var motorcycleColor by remember { mutableStateOf(currentProfile.motorcycleColor) }
     var motorcycleSerial by remember { mutableStateOf(currentProfile.motorcycleSerial) }
+    var motorcyclePlate by remember { mutableStateOf(currentProfile.motorcyclePlate) }
 
     var motorcyclePhotoBase64 by remember { mutableStateOf<String?>(currentProfile.motorcyclePhotoBase64) }
     var motorcyclePhotoUrl by remember { mutableStateOf<String?>(currentProfile.motorcyclePhotoUrl) }
@@ -403,6 +404,21 @@ fun ProfileEditScreen(
                         )
                     }
 
+                    OutlinedTextField(
+                        value = motorcyclePlate,
+                        onValueChange = { motorcyclePlate = it.uppercase() },
+                        label = { Text("Número de Placa / Matrícula", color = Color(0xFF94A3B8)) },
+                        placeholder = { Text("Ej. AB123CD", color = Color(0xFF475569)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFFE5B869),
+                            unfocusedBorderColor = Color(0xFF333B4F)
+                        )
+                    )
+
                     // Foto de la Motocicleta
                     if (motoBitmap != null) {
                         Box(
@@ -464,6 +480,7 @@ fun ProfileEditScreen(
                         motorcycleYear = motorcycleYear.toIntOrNull() ?: 0,
                         motorcycleColor = motorcycleColor.trim(),
                         motorcycleSerial = motorcycleSerial.trim(),
+                        motorcyclePlate = motorcyclePlate.trim().uppercase(),
                         motorcyclePhotoBase64 = motorcyclePhotoBase64,
                         profileVisibility = profileVisibility,
                         motorcycleVisibility = motorcycleVisibility

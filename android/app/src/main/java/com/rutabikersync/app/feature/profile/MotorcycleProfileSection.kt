@@ -152,7 +152,14 @@ fun MotorcycleProfileSection(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     MotoDataField("Color", profile.motorcycleColor.ifBlank { "—" })
+                    MotoDataField("Placa", profile.motorcyclePlate.ifBlank { "—" })
                     MotoDataField("Serial / VIN", profile.motorcycleSerial.ifBlank { "—" })
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     MotoDataField("Odómetro", "$odometerKm km")
                 }
 

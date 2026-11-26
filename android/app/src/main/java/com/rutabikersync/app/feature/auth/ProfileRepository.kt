@@ -53,6 +53,7 @@ class ProfileRepository(context: Context) : IProfileRepository {
         private const val KEY_MOTO_YEAR = "motorcycle_year"
         private const val KEY_MOTO_COLOR = "motorcycle_color"
         private const val KEY_MOTO_SERIAL = "motorcycle_serial"
+        private const val KEY_MOTO_PLATE = "motorcycle_plate"
         private const val KEY_MOTO_PHOTO_URL = "motorcycle_photo_url"
         private const val KEY_USER_PHOTO_BASE64 = "user_photo_base64"
         private const val KEY_MOTO_PHOTO_BASE64 = "motorcycle_photo_base64"
@@ -112,6 +113,7 @@ class ProfileRepository(context: Context) : IProfileRepository {
         val motoYear = prefs.getInt(KEY_MOTO_YEAR, 0)
         val motoColor = prefs.getString(KEY_MOTO_COLOR, "") ?: ""
         val motoSerial = prefs.getString(KEY_MOTO_SERIAL, "") ?: ""
+        val motoPlate = prefs.getString(KEY_MOTO_PLATE, "") ?: ""
         val motoPhotoUrl = prefs.getString(KEY_MOTO_PHOTO_URL, null)
         val motoPhotoBase64 = prefs.getString(KEY_MOTO_PHOTO_BASE64, null)
         val profVis = Visibility.fromString(prefs.getString(KEY_PROFILE_VISIBILITY, "PUBLIC"))
@@ -133,6 +135,7 @@ class ProfileRepository(context: Context) : IProfileRepository {
             motorcycleYear = motoYear,
             motorcycleColor = motoColor,
             motorcycleSerial = motoSerial,
+            motorcyclePlate = motoPlate,
             motorcyclePhotoUrl = motoPhotoUrl,
             motorcyclePhotoBase64 = motoPhotoBase64,
             profileVisibility = profVis,
@@ -172,6 +175,7 @@ class ProfileRepository(context: Context) : IProfileRepository {
             .putInt(KEY_MOTO_YEAR, profile.motorcycleYear)
             .putString(KEY_MOTO_COLOR, profile.motorcycleColor.trim())
             .putString(KEY_MOTO_SERIAL, profile.motorcycleSerial.trim())
+            .putString(KEY_MOTO_PLATE, profile.motorcyclePlate.trim().uppercase())
             .putString(KEY_MOTO_PHOTO_URL, profile.motorcyclePhotoUrl)
             .putString(KEY_MOTO_PHOTO_BASE64, profile.motorcyclePhotoBase64)
             .putString(KEY_PROFILE_VISIBILITY, profile.profileVisibility.name)

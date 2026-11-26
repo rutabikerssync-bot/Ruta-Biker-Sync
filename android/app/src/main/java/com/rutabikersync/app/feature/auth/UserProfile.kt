@@ -65,6 +65,7 @@ data class UserProfile(
     val motorcycleYear: Int = 0,
     val motorcycleColor: String = "",
     val motorcycleSerial: String = "",
+    val motorcyclePlate: String = "",
     val motorcyclePhotoUrl: String? = null,
     val motorcyclePhotoBase64: String? = null,
 

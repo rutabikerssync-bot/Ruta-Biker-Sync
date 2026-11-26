@@ -1,14 +1,19 @@
 package com.rutabikersync.app.feature.profile
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,6 +25,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,48 +62,126 @@ fun BikeGarageSection(
     val critCount = evaluations.count { it.status == GarageStatus.CRITICAL }
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // 1. Odómetro y Resumen de Semáforos
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF161922).copy(alpha = 0.84f),
-            border = BorderStroke(1.dp, Color(0xFFD4AF37).copy(alpha = 0.65f))
+        // 1. Hero Dark Elite: Odómetro, Salud General y Semáforos
+        val totalEval = evaluations.size.coerceAtLeast(1)
+        val healthRatio = okCount.toFloat() / totalEval.toFloat()
+        val healthPct = (healthRatio * 100).toInt()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            Color(0xFF1E2636).copy(alpha = 0.92f),
+                            Color(0xFF111622).copy(alpha = 0.94f)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.2.dp,
+                    brush = Brush.horizontalGradient(
+                        listOf(Color(0xFFE5B869), Color(0xFF3B475C), Color(0xFFE5B869).copy(alpha = 0.6f))
+                    ),
+                    shape = RoundedCornerShape(18.dp)
+                )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "ODÓMETRO DE LA MOTO",
-                            color = Color(0xFF94A3B8),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${state.odometerKm} km",
-                            color = Color(0xFFE5B869),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        listOf(Color(0xFFE5B869).copy(alpha = 0.28f), Color(0xFF141821))
+                                    )
+                                )
+                                .border(1.2.dp, Color(0xFFE5B869).copy(alpha = 0.75f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "🔧", fontSize = 20.sp)
+                        }
+                        Column {
+                            Text(
+                                text = "ODÓMETRO · GARAGE",
+                                color = Color(0xFFCBD5E1),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            )
+                            Text(
+                                text = "${state.odometerKm} km",
+                                color = Color(0xFFE5B869),
+                                fontSize = 25.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
                     Surface(
                         onClick = { showOdometerDialog = true },
                         shape = RoundedCornerShape(10.dp),
-                        color = Color(0xFF1F2630).copy(alpha = 0.90f),
-                        border = BorderStroke(1.dp, Color(0xFFD4AF37))
+                        color = Color(0xFFE5B869).copy(alpha = 0.16f),
+                        border = BorderStroke(1.dp, Color(0xFFE5B869))
                     ) {
                         Text(
                             text = "Calibrar km",
-                            color = Color(0xFFD4AF37),
+                            color = Color(0xFFE5B869),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // Barra de salud mecánica global
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Estado general de la moto",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "$healthPct% óptimo",
+                            color = if (critCount > 0) Color(0xFFEF4444) else if (warnCount > 0) Color(0xFFF59E0B) else Color(0xFF34D399),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(7.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF0B0F17))
+                            .border(1.dp, Color(0xFF283244), RoundedCornerShape(4.dp))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(healthRatio.coerceIn(0.05f, 1f))
+                                .height(7.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        if (critCount > 0) listOf(Color(0xFFF59E0B), Color(0xFFEF4444))
+                                        else listOf(Color(0xFF34D399), Color(0xFFE5B869))
+                                    )
+                                )
                         )
                     }
                 }
@@ -611,22 +696,53 @@ private fun GarageGroupCard(
     title: String,
     content: @Composable () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF161922).copy(alpha = 0.82f),
-        border = BorderStroke(1.dp, Color(0xFF334155))
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF1A2130).copy(alpha = 0.86f),
+                        Color(0xFF121620).copy(alpha = 0.88f)
+                    )
+                )
+            )
+            .border(1.dp, Color(0xFF334155), RoundedCornerShape(16.dp))
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = title,
-                color = Color(0xFFE5B869),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(3.dp)
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color(0xFFE5B869))
+                    )
+                    Text(
+                        text = title,
+                        color = Color(0xFFE5B869),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "Toca para editar",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 10.sp
+                )
+            }
             content()
         }
     }
@@ -644,58 +760,90 @@ private fun GarageComponentRow(
         GarageStatus.WARNING -> Color(0xFFF59E0B)
         GarageStatus.CRITICAL -> Color(0xFFEF4444)
     }
+    val statusFill = when (eval.status) {
+        GarageStatus.OK -> 1f
+        GarageStatus.WARNING -> 0.45f
+        GarageStatus.CRITICAL -> 0.15f
+    }
     Surface(
         onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF0F172A).copy(alpha = 0.72f),
-        border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f))
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF0E1420).copy(alpha = 0.82f),
+        border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.42f))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 11.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
+                    modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(badgeColor)
+                    )
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = eval.title,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "• ${eval.status.label}",
+                                color = badgeColor,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = eval.summary,
+                            color = Color(0xFFCBD5E1),
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    onClick = onAction,
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF1F2937).copy(alpha = 0.92f),
+                    border = BorderStroke(1.dp, Color(0xFFE5B869).copy(alpha = 0.55f))
                 ) {
                     Text(
-                        text = eval.title,
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "• ${eval.status.label}",
-                        color = badgeColor,
+                        text = actionLabel,
+                        color = Color(0xFFE5B869),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = eval.summary,
-                    color = Color(0xFFCBD5E1),
-                    fontSize = 11.sp
-                )
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Surface(
-                onClick = onAction,
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF1F2937),
-                border = BorderStroke(1.dp, Color(0xFF475569))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.5.dp)
+                    .background(Color(0xFF1E293B))
             ) {
-                Text(
-                    text = actionLabel,
-                    color = Color(0xFFE5B869),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(statusFill)
+                        .height(2.5.dp)
+                        .background(badgeColor.copy(alpha = 0.85f))
                 )
             }
         }
