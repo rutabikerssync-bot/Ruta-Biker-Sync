@@ -765,7 +765,7 @@ fun LiveMapScreen(
             latitude = loc.latitude,
             longitude = loc.longitude,
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
-            bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
+            bearingDegrees = if (loc.hasBearing()) loc.bearing else 0f,
             batteryPercent = realBatteryLevel,
             observedAtEpochMs = loc.time
         )
@@ -776,7 +776,7 @@ fun LiveMapScreen(
             latitude = loc.latitude,
             longitude = loc.longitude,
             speedKmh = if (loc.hasSpeed()) (loc.speed * 3.6).roundToInt() else 0,
-            bearingDegrees = if (loc.hasBearing()) loc.bearing else 180f,
+            bearingDegrees = if (loc.hasBearing()) loc.bearing else 0f,
             batteryPercent = realBatteryLevel,
             observedAtEpochMs = loc.time
         )
@@ -929,7 +929,6 @@ fun LiveMapScreen(
             },
             onMapGesture = { liveMapViewModel.controller.onMapGesture() },
             onRecenter = { liveMapViewModel.controller.recenterOnRider() },
-            onToggleNorthLock = { liveMapViewModel.controller.toggleNorthLock() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -1033,7 +1032,8 @@ fun LiveMapScreen(
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, start = 16.dp)
+                .statusBarsPadding()
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 84.dp else 56.dp, start = 16.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFF16181F).copy(alpha = 0.92f))
                 .border(
@@ -1061,13 +1061,14 @@ fun LiveMapScreen(
                 }
             }
 
-        // 3. Brújula circular norte + Re-centrar + Norte fijo alineados en columna arriba a la derecha
+        // 3. Brújula circular norte + Re-centrar alineados en columna arriba a la derecha
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, end = 16.dp)
+                .statusBarsPadding()
+                .padding(top = if (BuildConfig.UX_TEST_MODE) 84.dp else 56.dp, end = 16.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -1100,9 +1101,7 @@ fun LiveMapScreen(
 
             NavigationCameraControls(
                 navCameraMode = state.navCameraMode,
-                isNorthLocked = state.isNorthLocked,
-                onRecenter = { liveMapViewModel.controller.recenterOnRider() },
-                onToggleNorthLock = { liveMapViewModel.controller.toggleNorthLock() }
+                onRecenter = { liveMapViewModel.controller.recenterOnRider() }
             )
         }
 
@@ -2542,7 +2541,6 @@ private fun MapLibreCorridorSurface(
     onMapClick: () -> Unit = {},
     onMapGesture: () -> Unit = {},
     onRecenter: () -> Unit = {},
-    onToggleNorthLock: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current

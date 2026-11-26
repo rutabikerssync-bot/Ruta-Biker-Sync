@@ -1319,3 +1319,10 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
    - Test: `PttCabinaGateTest` + `LiveMapViewModelTest`.
 
 **APK:** `47B725A34515977216342170D82D07DD96D327E8A21945BE0DEA1914FC05DA3D`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`). Verificado en UI: `Eres Líder`, `Re-centrar`, `Norte fijo`. Transmisión PTT en vivo pendiente de levantar PostgreSQL/backend.
+
+### 2026-11-25 — Limpieza de botón extra «Norte fijo», fix de bearing 180f y separación del HUD superior
+
+**Causa raíz:** cuando `loc.hasBearing()` era `false` (moto detenida), `LiveMapScreen.kt` pasaba `180f` como fallback a `updateLocalRiderPose` y `updateActiveLocalTelemetry`, girando el mapa 180° en uno de los teléfonos. Además, `MAPAS OFFLINE` y la brújula `N` (`top = 74.dp` sin `statusBarsPadding`) tocaban la fila superior del HUD.
+**Cambios:**
+- `NavigationCameraControls.kt` y `LiveMapScreen.kt`: eliminado el botón «Norte fijo» para mantener el mapa limpio (solo queda `Re-centrar` debajo de la brújula `N`); `isNorthLocked = true` y gestos de rotación deshabilitados siguen activos por código (`bearing = 0°`).
+- `LiveMapScreen.kt`: fallback de `loc.hasBearing()` cambiado de `180f` a `0f`; `MAPAS OFFLINE` y columna `N` + `Re-centrar` bajados con `statusBarsPadding()` + `padding(top = 56.dp)` para evitar solapamiento con el HUD superior.
