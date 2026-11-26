@@ -125,7 +125,8 @@ export function readInitMigrationSql(): string {
     '0023_notification_send_guard.sql',
     '0024_user_bike_garage.sql',
     '0025_club_custom_roles_and_decisions.sql',
-    '0026_promo_banners.sql'
+    '0026_promo_banners.sql',
+    '0027_club_routes_waypoints.sql'
   ];
   return migrationFiles
     .map((file) => path.join(migrationsDir, file))

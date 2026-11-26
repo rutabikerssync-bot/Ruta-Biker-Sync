@@ -229,10 +229,16 @@ const CreateGroupSchema = z.object({
     .regex(/^[0-9a-fA-F]{16}$/, 'logo_phash debe ser una huella de 64 bits (16 hex chars)')
 });
 
+const RouteWaypointSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lon: z.number().min(-180).max(180)
+});
+
 const CreateClubRouteSchema = z.object({
   title: z.string().min(3).max(140),
   description: z.string().max(2000).nullable().optional(),
   routeRef: z.string().max(200).nullable().optional(),
+  waypoints: z.array(RouteWaypointSchema).max(5000).nullable().optional(),
   startsAt: z.string().datetime(),
   endsAt: z.string().datetime().nullable().optional()
 });
@@ -243,7 +249,8 @@ const UpdateClubRouteSchema = z
     description: z.string().max(2000).nullable().optional(),
     startsAt: z.string().datetime().optional(),
     endsAt: z.string().datetime().nullable().optional(),
-    routeRef: z.string().max(200).nullable().optional()
+    routeRef: z.string().max(200).nullable().optional(),
+    waypoints: z.array(RouteWaypointSchema).max(5000).nullable().optional()
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'Al menos un campo debe actualizarse'
@@ -1867,9 +1874,9 @@ export async function buildApp({
       const { rows } = await withUserDb(rls, uid, (client) =>
         client.query(
           `INSERT INTO club_routes
-             (group_id, created_by, title, description, route_ref, starts_at, ends_at, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 'published')
-           RETURNING id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
+             (group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at, status)
+           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, 'published')
+           RETURNING id, group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at,
                      status, created_at, updated_at`,
           [
             groupId,
@@ -1877,6 +1884,7 @@ export async function buildApp({
             parsed.data.title,
             parsed.data.description ?? null,
             parsed.data.routeRef ?? null,
+            parsed.data.waypoints ? JSON.stringify(parsed.data.waypoints) : null,
             parsed.data.startsAt,
             parsed.data.endsAt ?? null
           ]
@@ -1904,7 +1912,7 @@ export async function buildApp({
 
     const { rows } = await withUserDb(rls, uid, (client) =>
       client.query(
-        `SELECT id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
+        `SELECT id, group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at,
                 status, created_at, updated_at, outbound_started_at, destination_reached_at,
                 return_started_at, completed_at
          FROM club_routes
@@ -2162,6 +2170,10 @@ export async function buildApp({
         updates.push(`route_ref = $${idx++}`);
         values.push(parsed.data.routeRef ?? null);
       }
+      if (Object.prototype.hasOwnProperty.call(parsed.data, 'waypoints')) {
+        updates.push(`waypoints_json = $${idx++}::jsonb`);
+        values.push(parsed.data.waypoints ? JSON.stringify(parsed.data.waypoints) : null);
+      }
       updates.push('updated_at = now()');
       values.push(routeId);
 
@@ -2169,7 +2181,7 @@ export async function buildApp({
         `UPDATE club_routes
          SET ${updates.join(', ')}
          WHERE id = $${idx}
-         RETURNING id, group_id, created_by, title, description, route_ref, starts_at, ends_at,
+         RETURNING id, group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at,
                    status, created_at, updated_at`,
         values
       );
