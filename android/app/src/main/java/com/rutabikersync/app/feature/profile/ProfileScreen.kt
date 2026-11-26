@@ -49,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +65,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rutabikersync.app.R
+import com.rutabikersync.app.core.network.ClubApiClient
 import com.rutabikersync.app.feature.auth.ProfileRepository
 import com.rutabikersync.app.feature.auth.UserProfile
 import com.rutabikersync.app.feature.auth.Visibility
@@ -78,6 +80,7 @@ import com.rutabikersync.app.ui.components.HeritageBevelCard
 import com.rutabikersync.app.ui.components.HeritageClubPatchBadge
 import com.rutabikersync.app.ui.components.HeritageEmblemBadge
 import com.rutabikersync.app.ui.components.HeritageMetricCard
+import kotlinx.coroutines.launch
 
 /**
  * Pantalla Principal de Perfil Oficial Heritage Rediseñada (D98).
@@ -91,10 +94,20 @@ fun ProfileScreen(
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val repository = remember { ProfileRepository(context) }
     val garageRepository = remember { BikeGarageRepository(context) }
+    val apiClient = remember { ClubApiClient.getInstance() }
     var garageState by remember { mutableStateOf(garageRepository.loadState()) }
     var activeSection by remember { mutableStateOf(0) } // 0: Piloto, 1: Mi Moto, 2: Garage
+
+    LaunchedEffect(activeSection) {
+        if (activeSection == 1 || activeSection == 2) {
+            garageRepository.syncFromBackend(apiClient)?.let { synced ->
+                garageState = synced
+            }
+        }
+    }
     var profile by remember {
         mutableStateOf(
             repository.getUserProfile() ?: UserProfile(
@@ -422,7 +435,9 @@ fun ProfileScreen(
                 coolingType = garageState.coolingType,
                 odometerKm = garageState.odometerKm,
                 onCoolingTypeChange = { newType ->
-                    garageState = garageRepository.saveState(garageState.copy(coolingType = newType))
+                    val updated = garageRepository.saveState(garageState.copy(coolingType = newType))
+                    garageState = updated
+                    scope.launch { garageRepository.pushToBackend(apiClient, updated) }
                 },
                 onEditProfile = { showEditScreen = true }
             )
@@ -431,7 +446,10 @@ fun ProfileScreen(
             BikeGarageSection(
                 state = garageState,
                 repository = garageRepository,
-                onStateChanged = { updated -> garageState = updated }
+                onStateChanged = { updated ->
+                    garageState = updated
+                    scope.launch { garageRepository.pushToBackend(apiClient, updated) }
+                }
             )
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -1,8 +1,11 @@
 package com.rutabikersync.app.feature.profile.garage
 
 import android.content.Context
+import com.rutabikersync.app.core.network.ClubApiClient
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.math.max
@@ -57,6 +60,31 @@ class BikeGarageRepository(
         val prefs = context?.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         prefs?.edit()?.putString(KEY_STATE_JSON, json.encodeToString(state))?.apply()
         return state
+    }
+
+    /**
+     * Fase 3 Garage: descarga el respaldo remoto si existe y actualiza la caché local.
+     * Offline-first: ante fallo de red retorna null y conserva el estado local intacto.
+     */
+    suspend fun syncFromBackend(apiClient: ClubApiClient): BikeGarageState? {
+        val res = apiClient.fetchBikeGarage().getOrNull() ?: return null
+        if (!res.isSuccess) return null
+        val remoteObj = res.body?.get("garageState") as? JsonObject ?: return null
+        return runCatching {
+            val decoded = json.decodeFromString<BikeGarageState>(remoteObj.toString())
+            saveState(decoded)
+        }.getOrNull()
+    }
+
+    /**
+     * Fase 3 Garage: sube el estado actual del Garage al backend (best-effort offline-first).
+     */
+    suspend fun pushToBackend(apiClient: ClubApiClient, state: BikeGarageState): Boolean {
+        val obj = runCatching {
+            json.parseToJsonElement(json.encodeToString(state)).jsonObject
+        }.getOrNull() ?: return false
+        val res = apiClient.saveBikeGarage(obj).getOrNull() ?: return false
+        return res.isSuccess
     }
 
     fun addRideDistanceKm(state: BikeGarageState, rideDistanceKm: Int): BikeGarageState {

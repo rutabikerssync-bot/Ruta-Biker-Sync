@@ -100,6 +100,20 @@ class ClubApiClient(
         )
     }
 
+    /** Fase 3 Garage: obtiene el respaldo remoto del Garage del usuario. */
+    suspend fun fetchBikeGarage(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/users/me/garage", null)
+    }
+
+    /** Fase 3 Garage: guarda el estado completo del Garage en PostgreSQL. */
+    suspend fun saveBikeGarage(garageState: JsonObject): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest(
+            "PUT",
+            "/v1/users/me/garage",
+            buildJsonObject { put("garageState", garageState) }
+        )
+    }
+
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
     var accessToken: String? = null
