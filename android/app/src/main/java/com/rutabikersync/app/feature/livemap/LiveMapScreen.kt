@@ -1258,9 +1258,9 @@ fun LiveMapScreen(
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
-                                    DarkSlate900.copy(alpha = 0.96f),
-                                    DarkCardElevated.copy(alpha = 0.96f),
-                                    DarkSlate900.copy(alpha = 0.96f)
+                                    DarkSlate900.copy(alpha = 0.78f),
+                                    DarkCardElevated.copy(alpha = 0.78f),
+                                    DarkSlate900.copy(alpha = 0.78f)
                                 )
                             )
                         )
@@ -1670,7 +1670,7 @@ fun LiveMapScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF1E2838))
+                        .background(Color(0xFF1E2838).copy(alpha = 0.78f))
                         .border(1.2.dp, Color(0xFF38BDF8), RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
@@ -1900,7 +1900,7 @@ fun LiveMapScreen(
         if (showSignalsDialog) {
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showSignalsDialog = false },
-                containerColor = HeritageSand,
+                containerColor = HeritageSand.copy(alpha = 0.84f),
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1923,7 +1923,7 @@ fun LiveMapScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.horizontalGradient(listOf(DarkCardElevated, DarkCardBg)))
+                                .background(Brush.horizontalGradient(listOf(DarkCardElevated.copy(alpha = 0.82f), DarkCardBg.copy(alpha = 0.82f))))
                                 .border(1.dp, HeritageCopper, RoundedCornerShape(12.dp))
                                 .clickable {
                                     showSignalsDialog = false
@@ -2184,7 +2184,7 @@ fun LiveMapScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.horizontalGradient(listOf(DarkCardElevated, DarkCardBg)))
+                                .background(Brush.horizontalGradient(listOf(DarkCardElevated.copy(alpha = 0.82f), DarkCardBg.copy(alpha = 0.82f))))
                                 .border(1.dp, EmeraldMesh, RoundedCornerShape(12.dp))
                                 .clickable {
                                     showConvoyDialog = false
