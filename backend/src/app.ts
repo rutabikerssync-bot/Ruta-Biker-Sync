@@ -97,6 +97,11 @@ import {
   listSosAccessAudit,
   listAdminAuditLogs
 } from './lib/admin.js';
+import {
+  GarageUpsertSchema,
+  getUserBikeGarage,
+  upsertUserBikeGarage
+} from './lib/garage.js';
 import { FcmService, defaultFcmService, type SendResult } from './lib/fcm.js';
 import { NOTIFICATION_TYPES, type NotificationType } from './lib/notificationTypes.js';
 import { calculateBearingDegrees, degreesToCardinal, formatSosAlertText } from './lib/geo.js';
@@ -1051,6 +1056,24 @@ export async function buildApp({
 
     await db.query(`UPDATE users SET sos_public_key = $1 WHERE id = $2`, [Buffer.from(raw), uid]);
     return reply.code(200).send({ updated: true, publicKeyBase64: raw.toString('base64') });
+  });
+
+  app.get('/v1/users/me/garage', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const record = await getUserBikeGarage(db, uid);
+    return reply.code(200).send(record);
+  });
+
+  app.put('/v1/users/me/garage', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const parsed = GarageUpsertSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const record = await upsertUserBikeGarage(db, uid, parsed.data.garageState);
+    return reply.code(200).send(record);
   });
 
   // PUT /v1/users/profile — Actualización integral de perfil de piloto y moto
