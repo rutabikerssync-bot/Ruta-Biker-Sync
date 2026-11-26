@@ -1418,3 +1418,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Fase 1 Banners Promocionales (Backend PostgreSQL y API)
 - `0026_promo_banners.sql` + `backend/src/db/pool.ts` + `backend/src/lib/promoBanners.ts` + `backend/src/app.ts`: tabla `promo_banners` y endpoints `GET /v1/announcements/active` + CRUD admin `/v1/admin/promo-banners` (`requireAdminAuth`) para gestionar campañas desde Soporte / Backoffice.
 - `backend/test/promo_banners.test.ts`: pruebas de fail-closed admin (`401`), creación, edición, vigencia y eliminación contra PostgreSQL 16 real (`6/6` verdes con `migrations_registry.test.ts`, `tsc --noEmit` sin errores).
+
+### 2026-11-26 — Fase 2 Banners Promocionales (Gestión en Página de Soporte / Backoffice)
+- `admin-dashboard/{index.html,js/api.js,js/admin.js}` + `backend/public/{admin.html,admin/index.html,js/api.js,js/admin.js}`: sección **Banners y Modales Promocionales** dentro de la pestaña de Soporte (`#tab-support`) para crear, editar/cambiar, activar/pausar y eliminar banners en vivo (`node --check` verde).
