@@ -1402,3 +1402,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Fase 2 Mi Club: Dominio, Cliente API y Coordinador Android
 - `ClubDecisionsModels.kt` + `ClubDecisionsCoordinator.kt` + `ClubApiClient.kt` + `Phase1ViewModel.kt`: modelos (`CustomClubRole`, `DecisionAudience`, `DecisionCategory`, `OFFICIAL_DECISION_TEMPLATES`, `ClubDecision`), 8 métodos HTTP (`/custom-roles`, `/decisions`, `/cast`, `/close`), validación P7 en cliente y regla de elegibilidad estricta por audiencia.
 - `ClubDecisionsCoordinatorTest.kt`: tests de elegibilidad, bloqueo P7 a `guest` y round-trip HTTP en JVM. Suite `:app:testStandardDebugUnitTest` verde (`BUILD SUCCESSFUL in 1m 32s`).
+
+### 2026-11-26 — Fase 3 Mi Club: UI «Agregar Cargo» y módulo «Decisiones» (Voto Secreto)
+- `ClubDecisionsSheet.kt` + `Phase1Screens.kt`: botón **Decisiones del Club** (con contador de votaciones abiertas, 4 plantillas rápidas, checkboxes de audiencia `Directiva` / `Fundadores` / `Full Members` / `Prospectos`, quórum opcional, emisión de voto secreto y cierre con barras de resultado) y sección **Cargos Personalizados** con botón **+ Agregar Cargo** y asignación excluyendo `guest` (P7).
+- Verificación: `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 32s`).
