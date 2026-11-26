@@ -12,10 +12,14 @@ import com.rutabikersync.app.feature.routes.RideScheduleRepository
 import com.rutabikersync.app.ui.components.skeleton.UiState
 import java.io.File
 import java.time.Instant
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -32,10 +36,20 @@ data class GroupsScreenData(
     val invitations: List<Invitation> = emptyList()
 )
 
+@OptIn(FlowPreview::class)
 class Phase1ViewModel(
     val repository: ClubRepository = ClubRepository.getInstance(),
-    val invitationRepository: InvitationRepository = repository.invitationRepository
+    val invitationRepository: InvitationRepository = repository.invitationRepository,
+    private val syncDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val groupsSyncIntervalMs: Long = DEFAULT_GROUPS_SYNC_INTERVAL_MS
 ) : ViewModel() {
+
+    companion object {
+        const val DEFAULT_GROUPS_SYNC_INTERVAL_MS = 65_000L
+        const val SYNC_DEBOUNCE_MS = 1_500L
+    }
+
+    private val syncTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     val invitations: StateFlow<List<Invitation>> = invitationRepository.invitations
 
@@ -347,20 +361,34 @@ class Phase1ViewModel(
             repository.resetToUxTestEmptyState(com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.value)
         }
         pingBackendServer()
-        // Ciclo reactivo de sincronización periódica con el backend
-        // Red en IO: evita reanudar sobre Dispatchers.Main después de que el test
-        // haya hecho resetMain (fatal "Main dispatcher failed to initialize").
-        viewModelScope.launch(Dispatchers.IO) {
+        // P1 auditoría 2026-11-25: sustituido el bucle infinito delay(1500) por
+        // un Flow con debounce para ráfagas de UI y polling condicional espaciado (65 s).
+        viewModelScope.launch(syncDispatcher) {
+            syncTrigger
+                .debounce(SYNC_DEBOUNCE_MS)
+                .collect {
+                    performBackendSync()
+                }
+        }
+        viewModelScope.launch(syncDispatcher) {
+            syncTrigger.tryEmit(Unit)
             while (isActive) {
-                try {
-                    repository.syncClubsAndInvitations()
-                } catch (_: Exception) {}
-                try {
-                    repository.refreshRsvpPendingCount()
-                } catch (_: Exception) {} // sin Context/init aún: no rompe el ciclo de sincronización
-                kotlinx.coroutines.delay(1500L)
+                kotlinx.coroutines.delay(groupsSyncIntervalMs)
+                if (!repository.devOverrides.value.useFakeBackend) {
+                    performBackendSync()
+                }
             }
         }
+    }
+
+    private suspend fun performBackendSync() {
+        if (repository.devOverrides.value.useFakeBackend) return
+        try {
+            repository.syncClubsAndInvitations()
+        } catch (_: Exception) {}
+        try {
+            repository.refreshRsvpPendingCount()
+        } catch (_: Exception) {} // sin Context/init aún: no rompe el ciclo de sincronización
     }
 
     fun pingBackendServer() {
@@ -384,11 +412,7 @@ class Phase1ViewModel(
     }
 
     fun syncWithBackend() {
-        viewModelScope.launch {
-            try {
-                repository.syncClubsAndInvitations()
-            } catch (_: Exception) {}
-        }
+        syncTrigger.tryEmit(Unit)
     }
 
     fun setForceSkeletonPreview(enabled: Boolean) {
