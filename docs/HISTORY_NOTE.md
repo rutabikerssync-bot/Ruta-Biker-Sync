@@ -1425,3 +1425,8 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Fase 3 Banners Promocionales (Android Compose y Frecuencia Local)
 - `ClubApiClient.kt` + `PromoBannerRepository.kt` + `PromoBannerModal.kt` + `MainAppScaffold.kt`: modal carrusel (`HorizontalPager` con `••`, botón `X`, degradado *Dark Elite*, CTA con apertura opcional de URL) bloqueado automáticamente si hay rodada activa (`!isFullscreenCockpit`).
 - `PromoBannerRepositoryTest.kt`: validación de frecuencias `once_per_campaign` y `once_per_day` (24 h) y fetch HTTP. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 43s`).
+
+### 2026-11-26 — Verificación Backend, PostgreSQL 16 y Fix de Clock Skew en `promo_banners`
+- **Infraestructura:** clúster PostgreSQL `16 main 5433 online postgres` en WSL Ubuntu y backend local en `http://localhost:3000/health` (`{"status":"ok","db":"ok"}`).
+- **Fix (`backend/src/lib/promoBanners.ts`, `backend/test/promo_banners.test.ts`):** `createPromoBanner` generaba `starts_at`/`ends_at` con `new Date()` en Node (Windows), provocando fallo en `test/promo_banners.test.ts:60` cuando el reloj de PostgreSQL en WSL (`now()`) quedaba ligeramente detrás; se cambió a `COALESCE($12::timestamptz, now())` y `COALESCE($13::timestamptz, now() + interval '7 days')`, más limpieza previa `DELETE FROM promo_banners` en `beforeAll`.
+- **Verificación:** `npx tsc --noEmit` sin errores y `npm test` (`vitest run --no-file-parallelism`) en verde: **29 archivos / 187 tests pasados (0 fallos)** en 48.25s.
