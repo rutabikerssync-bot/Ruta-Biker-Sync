@@ -688,6 +688,95 @@ class ClubApiClient(
     }
 
     // -------------------------------------------------------------------------
+    // Mi Club · Cargos Personalizados y Decisiones Secretas
+    // -------------------------------------------------------------------------
+
+    suspend fun getCustomRoles(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/custom-roles", null)
+    }
+
+    suspend fun createCustomRole(
+        groupId: String,
+        title: String,
+        badgeIcon: String = "shield",
+        canCreateRide: Boolean = false,
+        canModerate: Boolean = false
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("title", title)
+            put("badgeIcon", badgeIcon)
+            put("canCreateRide", canCreateRide)
+            put("canModerate", canModerate)
+        }
+        executeRequest("POST", "/v1/groups/$groupId/custom-roles", body)
+    }
+
+    suspend fun deleteCustomRole(groupId: String, roleId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("DELETE", "/v1/groups/$groupId/custom-roles/$roleId", null)
+    }
+
+    suspend fun assignCustomRole(
+        groupId: String,
+        userId: String,
+        customRoleId: String?
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            if (customRoleId == null) {
+                put("customRoleId", JsonNull)
+            } else {
+                put("customRoleId", customRoleId)
+            }
+        }
+        executeRequest("PATCH", "/v1/groups/$groupId/members/$userId/custom-role", body)
+    }
+
+    suspend fun getDecisions(groupId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/groups/$groupId/decisions", null)
+    }
+
+    suspend fun createDecision(
+        groupId: String,
+        title: String,
+        description: String,
+        category: String,
+        options: List<String>,
+        allowedAudiences: List<String>,
+        minQuorumPercent: Int,
+        durationHours: Int
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("title", title)
+            put("description", description)
+            put("category", category)
+            put(
+                "options",
+                kotlinx.serialization.json.JsonArray(options.map { JsonPrimitive(it) })
+            )
+            put(
+                "allowedAudiences",
+                kotlinx.serialization.json.JsonArray(allowedAudiences.map { JsonPrimitive(it) })
+            )
+            put("minQuorumPercent", minQuorumPercent)
+            put("durationHours", durationHours)
+        }
+        executeRequest("POST", "/v1/groups/$groupId/decisions", body)
+    }
+
+    suspend fun castSecretDecisionVote(
+        decisionId: String,
+        optionIndex: Int
+    ): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        val body = buildJsonObject {
+            put("optionIndex", optionIndex)
+        }
+        executeRequest("POST", "/v1/decisions/$decisionId/cast", body)
+    }
+
+    suspend fun closeDecision(decisionId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("POST", "/v1/decisions/$decisionId/close", buildJsonObject {})
+    }
+
+    // -------------------------------------------------------------------------
     // Fase 5 · Bóveda Biker E2EE (RULES.md §15, MEMORY.md D69)
     // -------------------------------------------------------------------------
 

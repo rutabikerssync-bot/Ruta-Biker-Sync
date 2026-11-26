@@ -98,6 +98,12 @@ class Phase1ViewModel(
     private val _isStartingRide = MutableStateFlow(false)
     val isStartingRide: StateFlow<Boolean> = _isStartingRide.asStateFlow()
 
+    val decisionsCoordinator: ClubDecisionsCoordinator = ClubDecisionsCoordinator(repository.apiClient)
+    val customRoles: StateFlow<List<CustomClubRole>> get() = decisionsCoordinator.customRoles
+    val assignedCustomRoleByUserId: StateFlow<Map<String, String>>
+        get() = decisionsCoordinator.assignedCustomRoleByUserId
+    val clubDecisions: StateFlow<List<ClubDecision>> get() = decisionsCoordinator.decisions
+
     fun openClubRoutes(groupId: String) {
         _showClubRoutes.value = true
         loadClubRoutes(groupId)
@@ -1738,6 +1744,98 @@ class Phase1ViewModel(
                     _statusBanner.value = "Error al votar: ${err.message}"
                 }
             )
+        }
+    }
+
+    fun refreshCustomRolesAndDecisions(groupId: String) {
+        viewModelScope.launch {
+            decisionsCoordinator.refreshCustomRoles(groupId)
+            decisionsCoordinator.refreshDecisions(groupId)
+        }
+    }
+
+    fun createCustomRole(
+        groupId: String,
+        title: String,
+        canCreateRide: Boolean = false,
+        canModerate: Boolean = false
+    ) {
+        viewModelScope.launch {
+            decisionsCoordinator.createCustomRole(groupId, title, "shield", canCreateRide, canModerate)
+                .onSuccess { role ->
+                    _statusBanner.value = "Cargo '${role.title}' creado"
+                }
+                .onFailure { err ->
+                    _statusBanner.value = "Error al crear cargo: ${err.message}"
+                }
+        }
+    }
+
+    fun assignCustomRoleToMember(
+        groupId: String,
+        member: ClubMemberModel,
+        customRoleId: String?
+    ) {
+        viewModelScope.launch {
+            decisionsCoordinator.assignCustomRole(groupId, member, customRoleId)
+                .onSuccess {
+                    _statusBanner.value = "Cargo actualizado para ${member.displayName}"
+                }
+                .onFailure { err ->
+                    _statusBanner.value = "No se pudo asignar cargo: ${err.message}"
+                }
+        }
+    }
+
+    fun createClubDecision(
+        groupId: String,
+        title: String,
+        description: String,
+        category: DecisionCategory,
+        options: List<String>,
+        allowedAudiences: Set<DecisionAudience>,
+        minQuorumPercent: Int = 0,
+        durationHours: Int = 48
+    ) {
+        viewModelScope.launch {
+            decisionsCoordinator.createDecision(
+                groupId = groupId,
+                title = title,
+                description = description,
+                category = category,
+                options = options,
+                allowedAudiences = allowedAudiences,
+                minQuorumPercent = minQuorumPercent,
+                durationHours = durationHours
+            ).onSuccess { decision ->
+                _statusBanner.value = "Decisión '${decision.title}' publicada (voto secreto)"
+            }.onFailure { err ->
+                _statusBanner.value = "Error al crear decisión: ${err.message}"
+            }
+        }
+    }
+
+    fun castSecretDecisionVote(groupId: String, decisionId: String, optionIndex: Int) {
+        viewModelScope.launch {
+            decisionsCoordinator.castSecretVote(groupId, decisionId, optionIndex)
+                .onSuccess {
+                    _statusBanner.value = "🔒 Voto secreto registrado"
+                }
+                .onFailure { err ->
+                    _statusBanner.value = "No se pudo votar: ${err.message}"
+                }
+        }
+    }
+
+    fun closeClubDecision(groupId: String, decisionId: String) {
+        viewModelScope.launch {
+            decisionsCoordinator.closeDecision(groupId, decisionId)
+                .onSuccess {
+                    _statusBanner.value = "Decisión cerrada y resultado publicado"
+                }
+                .onFailure { err ->
+                    _statusBanner.value = "Error al cerrar decisión: ${err.message}"
+                }
         }
     }
 }
