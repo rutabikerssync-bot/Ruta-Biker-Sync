@@ -102,6 +102,21 @@ import {
   getUserBikeGarage,
   upsertUserBikeGarage
 } from './lib/garage.js';
+import {
+  AssignCustomRoleSchema,
+  CastDecisionVoteSchema,
+  ClubDecisionError,
+  CreateCustomRoleSchema,
+  CreateDecisionSchema,
+  assignCustomRoleToMember,
+  castSecretVote,
+  closeDecision,
+  createCustomRole,
+  createDecision,
+  deleteCustomRole,
+  listCustomRoles,
+  listVisibleDecisionsForUser
+} from './lib/clubDecisions.js';
 import { FcmService, defaultFcmService, type SendResult } from './lib/fcm.js';
 import { NOTIFICATION_TYPES, type NotificationType } from './lib/notificationTypes.js';
 import { calculateBearingDegrees, degreesToCardinal, formatSosAlertText } from './lib/geo.js';
@@ -3156,6 +3171,121 @@ export async function buildApp({
     );
 
     return { votes: votesWithBallots };
+  });
+
+  // ---------------------------------------------------------------------------
+  // 10B. Cargos Personalizados y Módulo de Decisiones Secretas (Mi Club)
+  // ---------------------------------------------------------------------------
+  const handleDecisionError = (reply: FastifyReply, err: unknown) => {
+    if (err instanceof ClubDecisionError) {
+      return reply.code(err.statusCode).send({ error: err.code, message: err.message });
+    }
+    throw err;
+  };
+
+  app.get('/v1/groups/:id/custom-roles', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    const roles = await listCustomRoles(db, groupId);
+    return { roles };
+  });
+
+  app.post('/v1/groups/:id/custom-roles', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    const parsed = CreateCustomRoleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    try {
+      const role = await createCustomRole(db, groupId, uid, parsed.data);
+      return reply.code(201).send(role);
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
+  });
+
+  app.delete('/v1/groups/:id/custom-roles/:roleId', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId, roleId } = req.params as { id: string; roleId: string };
+    try {
+      const deleted = await deleteCustomRole(db, groupId, roleId, uid);
+      if (!deleted) return reply.code(404).send({ error: 'CUSTOM_ROLE_NOT_FOUND' });
+      return { deleted: true, id: roleId };
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
+  });
+
+  app.patch('/v1/groups/:id/members/:userId/custom-role', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId, userId: targetUserId } = req.params as { id: string; userId: string };
+    const parsed = AssignCustomRoleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    try {
+      const updated = await assignCustomRoleToMember(db, groupId, targetUserId, uid, parsed.data.customRoleId);
+      return updated;
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
+  });
+
+  app.get('/v1/groups/:id/decisions', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    const decisions = await listVisibleDecisionsForUser(db, groupId, uid);
+    return { decisions };
+  });
+
+  app.post('/v1/groups/:id/decisions', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { id: groupId } = req.params as { id: string };
+    const parsed = CreateDecisionSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    try {
+      const created = await createDecision(db, groupId, uid, parsed.data);
+      return reply.code(201).send(created);
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
+  });
+
+  app.post('/v1/decisions/:decisionId/cast', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { decisionId } = req.params as { decisionId: string };
+    const parsed = CastDecisionVoteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    try {
+      const result = await castSecretVote(db, decisionId, uid, parsed.data.optionIndex);
+      return result;
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
+  });
+
+  app.post('/v1/decisions/:decisionId/close', async (req, reply) => {
+    const uid = requireUserId(req, reply);
+    if (!uid) return;
+    const { decisionId } = req.params as { decisionId: string };
+    try {
+      const result = await closeDecision(db, decisionId, uid);
+      return result;
+    } catch (err) {
+      return handleDecisionError(reply, err);
+    }
   });
 
   // ---------------------------------------------------------------------------

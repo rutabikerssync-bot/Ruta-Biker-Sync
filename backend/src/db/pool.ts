@@ -119,7 +119,9 @@ export function readInitMigrationSql(): string {
     '0020_ride_lifecycle.sql',
     '0021_ride_manifest_secret.sql',
     '0022_sos_public_keys.sql',
-    '0023_notification_send_guard.sql'
+    '0023_notification_send_guard.sql',
+    '0024_user_bike_garage.sql',
+    '0025_club_custom_roles_and_decisions.sql'
   ];
   return migrationFiles
     .map((file) => path.join(__dirname, 'migrations', file))
