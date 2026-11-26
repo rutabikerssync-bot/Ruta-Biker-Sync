@@ -11,7 +11,7 @@
 | Fase | Nombre | Estado | Alcance |
 | :--- | :--- | :--- | :--- |
 | **Fase 1** | Backend SQL + Endpoints de Cargos Personalizados y Decisiones Secretas | ✅ **Completada** | `0025`, `clubDecisions.ts`, `app.ts`, `185/185` tests verdes (`npm test`) |
-| **Fase 2** | Dominio Android + Repositorio + `ClubApiClient` | ⏳ **Pendiente** | Modelos en `ClubDomain.kt`, métodos HTTP, reglas de elegibilidad y tests JVM |
+| **Fase 2** | Dominio Android + Repositorio + `ClubApiClient` | ✅ **Completada** | `ClubDecisionsModels`, `ClubDecisionsCoordinator`, `ClubApiClient`, `Phase1ViewModel`, `:app:testStandardDebugUnitTest` verde |
 | **Fase 3** | UI en **Mi Club**: botón «Agregar Cargo» y módulo «Decisiones» | ⏳ **Pendiente** | Pantallas/hojas *Dark Elite*, plantillas rápidas, votación secreta, resultados y APK |
 
 ---
