@@ -159,6 +159,16 @@ fun MainAppScaffold(
     val isRideActive = rideState.lifecycleState == RideLifecycleState.RUNNING || rideState.lifecycleState == RideLifecycleState.CONFIRMING_STOP
     val isFullscreenCockpit = isRideActive || showLiveMapPreview
 
+    val promoRepository = remember { com.rutabikersync.app.feature.promo.PromoBannerRepository(context) }
+    var visiblePromoBanners by remember { mutableStateOf<List<com.rutabikersync.app.feature.promo.PromoBanner>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        if (!isFullscreenCockpit) {
+            visiblePromoBanners = promoRepository.fetchEligibleBanners(
+                com.rutabikersync.app.core.network.ClubApiClient.getInstance()
+            )
+        }
+    }
+
     LaunchedEffect(selectedTab) {
         val screenName = when (selectedTab) {
             0 -> "RODADAS_HOME"
@@ -271,6 +281,30 @@ fun MainAppScaffold(
             DevPanelDialog(
                 viewModel = phase1ViewModel,
                 onDismiss = { showDevPanel = false }
+            )
+        }
+
+        if (!isFullscreenCockpit && visiblePromoBanners.isNotEmpty()) {
+            com.rutabikersync.app.feature.promo.PromoBannerModal(
+                banners = visiblePromoBanners,
+                onDismiss = {
+                    promoRepository.markAllSeen(visiblePromoBanners)
+                    visiblePromoBanners = emptyList()
+                },
+                onBannerAction = { banner ->
+                    promoRepository.markAllSeen(visiblePromoBanners)
+                    visiblePromoBanners = emptyList()
+                    val target = banner.ctaTarget.trim()
+                    if (target.startsWith("http://") || target.startsWith("https://")) {
+                        runCatching {
+                            val intent = android.content.Intent(
+                                android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse(target)
+                            )
+                            context.startActivity(intent)
+                        }
+                    }
+                }
             )
         }
 

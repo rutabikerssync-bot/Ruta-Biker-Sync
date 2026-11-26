@@ -114,6 +114,11 @@ class ClubApiClient(
         )
     }
 
+    /** Fase 3 Banners: obtiene los anuncios/modales promocionales vigentes. */
+    suspend fun fetchActivePromoBanners(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/announcements/active", null)
+    }
+
     // accessToken (30 min) vive exclusivamente en memoria volátil (D40)
     @Volatile
     var accessToken: String? = null
