@@ -341,10 +341,12 @@ fun LiveMapScreen(
     var viewingRescuePacket by remember { mutableStateOf<com.rutabikersync.app.feature.sos.EmergencyRescuePacket?>(null) }
 
     LaunchedEffect(Unit) {
+        val activeRideId = RideScheduleRepository.currentRide.value?.clubRouteId
+            ?: com.rutabikersync.app.core.mesh.PilotRideConfig.rideId
         // Asegurar que la malla BLE y el servicio en primer plano estén activos al estar en la cabina
         if (RideService.sharedState.value.lifecycleState != RideLifecycleState.RUNNING) {
             val authorized = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(
-                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
+                rideId = activeRideId,
                 currentUserId = com.rutabikersync.app.feature.groups.ClubRepository.getInstance().currentUser.value.id
             )
             if (authorized != null) {
@@ -356,7 +358,7 @@ fun LiveMapScreen(
                 )
                 RideService.dispatchStartRide(
                     context = context.applicationContext,
-                    rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
+                    rideId = activeRideId,
                     localShortId = authorized.localShortId.toInt(),
                     forceSimulated = false,
                     expectedPeerShortIds = authorized.authorizedShortIds,
@@ -370,7 +372,7 @@ fun LiveMapScreen(
             }
         } else {
             com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(
-                com.rutabikersync.app.core.mesh.PilotRideConfig.rideId
+                activeRideId
             )?.let { cachedAuth ->
                 val resolvedLeaderId = ConvoyLeaderResolver.resolveLeaderShortId(cachedAuth.manifest)
                     ?: cachedAuth.localShortId
@@ -941,6 +943,7 @@ fun LiveMapScreen(
             state = state,
             selfShortId = selfShortId,
             onSelectRider = { shortId -> liveMapViewModel.controller.selectRiderMarker(shortId) },
+            onFocusPeer = { shortId -> liveMapViewModel.controller.focusOnPeer(shortId) },
             onMapClick = {
                 isBottomCockpitExpanded = !isBottomCockpitExpanded
             },
@@ -1116,9 +1119,14 @@ fun LiveMapScreen(
                 }
             }
 
+            val activeRouteWaypoints = RideScheduleRepository.currentRide.value?.selectedRoute?.waypoints.orEmpty()
             NavigationCameraControls(
                 navCameraMode = state.navCameraMode,
-                onRecenter = { liveMapViewModel.controller.recenterOnRider() }
+                onRecenter = { liveMapViewModel.controller.recenterOnRider() },
+                onOverview = {
+                    val bounds = navigationBounds(activeRouteWaypoints, state.markers)
+                    liveMapViewModel.controller.requestRouteOverview(bounds)
+                }
             )
         }
 
@@ -2242,6 +2250,10 @@ fun LiveMapScreen(
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(HeritageCardWarm)
                                     .border(1.dp, HeritageBorder, RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        liveMapViewModel.controller.focusOnPeer(marker.shortId)
+                                        showConvoyDialog = false
+                                    }
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
@@ -2570,6 +2582,7 @@ private fun MapLibreCorridorSurface(
     state: LiveMapUiState,
     selfShortId: UShort,
     onSelectRider: (UShort?) -> Unit,
+    onFocusPeer: (UShort) -> Unit = {},
     onMapClick: () -> Unit = {},
     onMapGesture: () -> Unit = {},
     onRecenter: () -> Unit = {},
@@ -2778,7 +2791,10 @@ private fun MapLibreCorridorSurface(
                     ViewportEdgeMarker(
                         marker = marker,
                         placement = edgePlacement,
-                        onClick = { onSelectRider(marker.shortId) }
+                        onClick = {
+                            onSelectRider(marker.shortId)
+                            onFocusPeer(marker.shortId)
+                        }
                     )
                 }
                 return@forEach

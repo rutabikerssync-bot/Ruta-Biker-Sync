@@ -98,6 +98,7 @@ data class LiveMapUiState(
     val navigationTiltDegrees: Float = CameraModeManager.FOLLOW_TILT_DEGREES,
     val isNorthLocked: Boolean = true,
     val overviewBounds: MapBounds? = null,
+    val focusedPeerShortId: UShort? = null,
     val isCleanRideMode: Boolean = false,
     val followLeaderUntilEpochMs: Long? = null,
     val followLeaderRemainingSeconds: Int = 0,
@@ -645,6 +646,11 @@ class LiveMapController(
         }
         // Objetivo de la cámara de navegación. Se mantiene separado de cameraLatitude/
         // cameraLongitude: esos siguen siendo la posición del piloto para SOS/radar.
+        val focusedPeer = current.focusedPeerShortId?.let { targetId ->
+            updatedMarkers.firstOrNull {
+                it.shortId == targetId && MeshTelemetry.isValidPosition(it.targetLatitude, it.targetLongitude)
+            }
+        }
         val navTarget = when {
             navMode == NavCameraMode.FREE_INSPECT ->
                 current.cameraTargetLat to current.cameraTargetLon
@@ -652,6 +658,7 @@ class LiveMapController(
                 (current.overviewBounds?.centerLat ?: current.cameraTargetLat) to
                     (current.overviewBounds?.centerLon ?: current.cameraTargetLon)
             effectiveCameraMode == CameraMode.FOLLOWING_LEADER -> camLat to camLon
+            focusedPeer != null -> focusedPeer.targetLatitude to focusedPeer.targetLongitude
             else -> localLat to localLon
         }
 
@@ -727,6 +734,7 @@ class LiveMapController(
             cameraTargetLat = targetLat,
             cameraTargetLon = targetLon,
             overviewBounds = null,
+            focusedPeerShortId = null,
             followLeaderUntilEpochMs = untilEpoch,
             followLeaderRemainingSeconds = 10,
             statusBannerMessage = "Siguiendo al líder por 10 s"
@@ -776,6 +784,7 @@ class LiveMapController(
             cameraTargetLon = localLon,
             navigationBearingDegrees = if (current.isNorthLocked) 0f else localBearing,
             overviewBounds = null,
+            focusedPeerShortId = null,
             followLeaderUntilEpochMs = null,
             followLeaderRemainingSeconds = 0,
             statusBannerMessage = "Centrado en mi ubicación"
@@ -796,6 +805,7 @@ class LiveMapController(
                 NavCameraEvent.MAP_GESTURE
             ),
             overviewBounds = null,
+            focusedPeerShortId = null,
             statusBannerMessage = "Mapa libre · pulsa «Re-centrar» para seguir"
         )
         return _uiState.value
@@ -811,6 +821,7 @@ class LiveMapController(
                 NavCameraEvent.OVERVIEW_REQUESTED
             ),
             overviewBounds = bounds,
+            focusedPeerShortId = null,
             cameraTargetLat = bounds.centerLat,
             cameraTargetLon = bounds.centerLon,
             cameraZoom = CameraModeManager.zoomForBounds(bounds),
@@ -824,6 +835,32 @@ class LiveMapController(
 
     /** Re-centra en uno mismo y reanuda el seguimiento de navegación. */
     fun recenterOnRider(): LiveMapUiState = centerOnMyLocation()
+
+    /** Centra y sigue la cámara sobre un peer específico del convoy. */
+    fun focusOnPeer(shortId: UShort): LiveMapUiState {
+        if (shortId == localShortId) return centerOnMyLocation()
+        val current = _uiState.value
+        val marker = current.markers.firstOrNull {
+            it.shortId == shortId && MeshTelemetry.isValidPosition(it.targetLatitude, it.targetLongitude)
+        } ?: return current
+        _uiState.value = current.copy(
+            cameraMode = CameraMode.FREE,
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.RECENTER_REQUESTED
+            ),
+            focusedPeerShortId = shortId,
+            selectedRiderShortId = shortId,
+            cameraTargetLat = marker.targetLatitude,
+            cameraTargetLon = marker.targetLongitude,
+            cameraZoom = current.cameraZoom.coerceAtLeast(15.5),
+            overviewBounds = null,
+            followLeaderUntilEpochMs = null,
+            followLeaderRemainingSeconds = 0,
+            statusBannerMessage = "Ubicando a ${marker.fullName}"
+        )
+        return _uiState.value
+    }
 
     fun toggleNorthLock(locked: Boolean? = null): LiveMapUiState {
         val current = _uiState.value

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -34,15 +35,29 @@ import com.rutabikersync.app.ui.theme.HeritageLeatherBrown
 fun NavigationCameraControls(
     navCameraMode: NavCameraMode,
     onRecenter: () -> Unit,
+    onOverview: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    NavCameraChip(
-        icon = Icons.Default.MyLocation,
-        label = "Re-centrar",
-        active = navCameraMode == NavCameraMode.FOLLOW_HEADING_3D,
-        onClick = onRecenter,
-        modifier = modifier
-    )
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        NavCameraChip(
+            icon = Icons.Default.MyLocation,
+            label = "Re-centrar",
+            active = navCameraMode == NavCameraMode.FOLLOW_HEADING_3D,
+            onClick = onRecenter
+        )
+        if (onOverview != null) {
+            NavCameraChip(
+                icon = Icons.Default.Groups,
+                label = "Convoy",
+                active = navCameraMode == NavCameraMode.ROUTE_OVERVIEW,
+                onClick = onOverview
+            )
+        }
+    }
 }
 
 @Composable
