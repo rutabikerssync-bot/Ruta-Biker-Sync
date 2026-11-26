@@ -160,4 +160,44 @@ class BikeGarageRepositoryTest {
         state = repo.addExpense(state, ExpenseCategory.MAINTENANCE, 50.0, "Cambio aceite y filtro")
         assertEquals(0.05, repo.costPerKmUsd(state), 0.0001)
     }
+
+    @Test
+    fun `addRideDistanceKm suma km de rodada al odometro y actualiza semaforos y subcampos editados`() {
+        var state = BikeGarageState(
+            odometerKm = 2_400,
+            engineOil = EngineOilSpec(
+                brand = "Motul",
+                viscosity = "10W-50",
+                baseType = OilBaseType.FULL_SYNTHETIC,
+                jasoSpec = OilJasoSpec.JASO_MA2,
+                lastChangeKm = 0,
+                lastChangeEpochDay = today,
+                intervalKm = 3_000
+            ),
+            frontTire = TireSpec(
+                position = TirePosition.FRONT,
+                brand = "Pirelli",
+                model = "Angel GT",
+                construction = TireConstruction.TUBELESS,
+                dotCode = "3424",
+                recommendedPsi = 33,
+                treadDepthMm = 4.2,
+                mountedEpochDay = today
+            )
+        )
+
+        // Al sumar 200 km de rodada, llega a 2,600 km (>80% de 3,000 km -> WARNING)
+        state = repo.addRideDistanceKm(state, 200)
+        assertEquals(2_600, state.odometerKm)
+        val oilEval = repo.evaluateEngineOil(state.engineOil, state.odometerKm, today)
+        assertEquals(GarageStatus.WARNING, oilEval.status)
+        assertTrue(oilEval.summary.contains("10W-50"))
+        assertTrue(oilEval.summary.contains("JASO MA2"))
+
+        // Distancia cero o negativa no altera el odómetro
+        val unchanged = repo.addRideDistanceKm(state, 0)
+        assertEquals(2_600, unchanged.odometerKm)
+        assertEquals("3424", state.frontTire.dotCode)
+        assertEquals(33, state.frontTire.recommendedPsi)
+    }
 }

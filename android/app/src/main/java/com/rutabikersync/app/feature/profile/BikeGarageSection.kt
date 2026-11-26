@@ -48,6 +48,7 @@ fun BikeGarageSection(
     var showFaultDialog by remember { mutableStateOf(false) }
     var showExpenseDialog by remember { mutableStateOf(false) }
     var showOnlyOpenFaults by remember { mutableStateOf(false) }
+    var editingComponentId by remember { mutableStateOf<String?>(null) }
 
     val okCount = evaluations.count { it.status == GarageStatus.OK }
     val warnCount = evaluations.count { it.status == GarageStatus.WARNING }
@@ -117,6 +118,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Renovar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -136,6 +138,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Renovar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -155,6 +158,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -173,6 +177,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -195,6 +200,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -213,6 +219,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -231,6 +238,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Servicio",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -249,6 +257,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -267,6 +276,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Engrasar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = { onStateChanged(repository.recordChainLube(state)) }
                 )
             }
@@ -274,6 +284,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar Kit",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = { showChainResetDialog = true }
                 )
             }
@@ -281,6 +292,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -296,6 +308,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Cambiar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -315,6 +328,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Purgar",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -330,6 +344,7 @@ fun BikeGarageSection(
                 GarageComponentRow(
                     eval = eval,
                     actionLabel = "Nueva",
+                    onEdit = { editingComponentId = eval.id },
                     onAction = {
                         onStateChanged(
                             repository.saveState(
@@ -533,6 +548,18 @@ fun BikeGarageSection(
         )
     }
 
+    editingComponentId?.let { componentId ->
+        GarageComponentEditDialog(
+            componentId = componentId,
+            state = state,
+            onDismiss = { editingComponentId = null },
+            onSave = { updated ->
+                onStateChanged(repository.saveState(updated))
+                editingComponentId = null
+            }
+        )
+    }
+
     if (showFaultDialog) {
         AddFaultDialog(
             onDismiss = { showFaultDialog = false },
@@ -602,6 +629,7 @@ private fun GarageGroupCard(
 private fun GarageComponentRow(
     eval: ComponentEvaluation,
     actionLabel: String,
+    onEdit: () -> Unit = {},
     onAction: () -> Unit
 ) {
     val badgeColor = when (eval.status) {
@@ -610,6 +638,7 @@ private fun GarageComponentRow(
         GarageStatus.CRITICAL -> Color(0xFFEF4444)
     }
     Surface(
+        onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF0F172A).copy(alpha = 0.72f),

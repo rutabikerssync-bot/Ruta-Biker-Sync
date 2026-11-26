@@ -211,6 +211,9 @@ class RideSessionController(
 
     var gamificationDao: com.rutabikersync.app.core.gamification.PendingGamificationEventDao? = null
 
+    /** Fase 2 Garage: suma automáticamente los km recorridos en rodada real al odómetro. */
+    var onRideDistanceKmRecorded: ((Int) -> Unit)? = null
+
     val batteryAwareness: BatteryAwareness = BatteryAwareness()
     val manufacturerBatteryGuide: ManufacturerBatteryGuide = ManufacturerBatteryGuide()
 
@@ -915,6 +918,12 @@ class RideSessionController(
             gamificationDao?.let { dao ->
                 scope.launch {
                     runCatching { dao.insert(event) }
+                }
+            }
+            if (!_state.value.isUsingSimulatedTransport) {
+                val rideKm = kotlin.math.round(odo.totalAccumulatedKm).toInt()
+                if (rideKm > 0) {
+                    runCatching { onRideDistanceKmRecorded?.invoke(rideKm) }
                 }
             }
         }
@@ -1742,6 +1751,10 @@ class RideService : Service() {
             bluetoothDevicesProvider = { queryConnectedBluetoothDevices(applicationContext) },
             requireValidPositionForHeartbeat = true
         )
+        controller.onRideDistanceKmRecorded = { rideKm ->
+            val garageRepo = com.rutabikersync.app.feature.profile.garage.BikeGarageRepository(applicationContext)
+            garageRepo.addRideDistanceKm(garageRepo.loadState(), rideKm)
+        }
         activeController = controller
     }
 
