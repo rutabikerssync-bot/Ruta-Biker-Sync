@@ -1380,3 +1380,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Fase 3 de Garage: respaldo en PostgreSQL y sincronización offline-first
 - `0024_user_bike_garage.sql` + `backend/src/lib/garage.ts` + `backend/src/app.ts`: tabla `user_bike_garage` (`garage_state JSONB`) y endpoints autenticados `GET /v1/users/me/garage` y `PUT /v1/users/me/garage` (`4/4` tests en `backend/test/user_garage.test.ts`, `tsc --noEmit` verde).
 - `ClubApiClient.kt` + `BikeGarageRepository.kt` + `ProfileScreen.kt`: `fetchBikeGarage`, `saveBikeGarage`, `syncFromBackend` y `pushToBackend` en modo offline-first sin bloquear la UI ante caída de red. Suite `:app:testStandardDebugUnitTest` verde (`BUILD SUCCESSFUL in 1m 7s`).
+
+### 2026-11-26 — Número de placa y arte Dark Elite en Garage
+- `UserProfile.kt` + `ProfileRepository.kt` + `ProfileEditScreen.kt` + `MotorcycleProfileSection.kt`: añadido `motorcyclePlate` (Número de Placa / Matrícula) editable y visible en la ficha de **Mi Moto**, junto con indicador explícito del módulo **Líquido Refrigerante**.
+- `BikeGarageSection.kt`: rediseño visual *Dark Elite* con cabecera hero biselada, barra de salud global del Garage, indicadores circulares de semáforo, barras de estado por componente y aviso `"Toca para editar"`. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 19s`).
