@@ -1,24 +1,23 @@
 package com.rutabikersync.app.feature.livemap
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tests JVM del trazado reforzado de la ruta (halo + línea, extremos redondos). */
 class RouteStrokeStyleTest {
 
     @Test
-    fun `halo oscuro semitransparente mas ancho que la linea`() {
-        assertEquals("#3A1E14", RouteStrokeStyle.HALO_COLOR)
-        assertEquals(0.5f, RouteStrokeStyle.HALO_OPACITY)
-        assertEquals(13f, RouteStrokeStyle.HALO_WIDTH)
-        assertEquals("#F08A45", RouteStrokeStyle.LINE_COLOR)
+    fun `trazo activo usa el estilo azul unificado con halo y extremos redondeados`() {
+        assertEquals("#1E3A8A", RouteStrokeStyle.HALO_COLOR)
+        assertEquals(0.45f, RouteStrokeStyle.HALO_OPACITY)
+        assertEquals(12f, RouteStrokeStyle.HALO_WIDTH)
+        assertEquals("#2563EB", RouteStrokeStyle.LINE_COLOR)
         assertEquals(1.0f, RouteStrokeStyle.LINE_OPACITY)
-        assertEquals(6f, RouteStrokeStyle.LINE_WIDTH)
-        assert(RouteStrokeStyle.HALO_WIDTH > RouteStrokeStyle.LINE_WIDTH)
-    }
-
-    @Test
-    fun `extremos y uniones redondos en ambas capas`() {
+        assertEquals(6.5f, RouteStrokeStyle.LINE_WIDTH)
+        assertTrue(RouteStrokeStyle.HALO_WIDTH > RouteStrokeStyle.LINE_WIDTH)
         assertEquals("round", RouteStrokeStyle.CAP_AND_JOIN)
+        assertEquals("#94A3B8", RouteStrokeStyle.ALT_LINE_COLOR_PRIMARY)
+        assertEquals("#A78BFA", RouteStrokeStyle.ALT_LINE_COLOR_SECONDARY)
+        assertEquals(4.5f, RouteStrokeStyle.ALT_LINE_WIDTH)
     }
 }
