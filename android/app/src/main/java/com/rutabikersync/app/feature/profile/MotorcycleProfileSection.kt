@@ -193,6 +193,16 @@ fun MotorcycleProfileSection(
                             }
                         }
                     }
+                    Text(
+                        text = if (coolingType == CoolingType.LIQUID) {
+                            "✅ Módulo «Líquido Refrigerante» visible en Garage → Fluidos"
+                        } else {
+                            "ℹ️ Módulo «Líquido Refrigerante» oculto en Garage (motor Aire / Aceite)"
+                        },
+                        color = if (coolingType == CoolingType.LIQUID) Color(0xFF34D399) else Color(0xFF94A3B8),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }

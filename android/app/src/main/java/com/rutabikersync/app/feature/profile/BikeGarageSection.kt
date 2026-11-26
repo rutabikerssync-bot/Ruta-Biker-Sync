@@ -361,6 +361,7 @@ fun BikeGarageSection(
                     GarageComponentRow(
                         eval = eval,
                         actionLabel = "Cambiar",
+                        onEdit = { editingComponentId = eval.id },
                         onAction = {
                             onStateChanged(
                                 repository.saveState(
@@ -375,6 +376,12 @@ fun BikeGarageSection(
                         }
                     )
                 }
+            } else {
+                Text(
+                    text = "Líquido Refrigerante oculto (moto configurada como Aire / Aceite en Mi Moto).",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp
+                )
             }
         }
 
