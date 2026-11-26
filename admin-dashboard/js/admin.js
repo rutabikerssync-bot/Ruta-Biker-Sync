@@ -73,15 +73,15 @@ function initSettings() {
     testConnBtn.addEventListener('click', async () => {
       if (connStatus) connStatus.textContent = 'Verificando enlace...';
       const res = await api.getAnalyticsOverview();
-      if (res && res.users) {
+      if (api.isLiveApi && res && res.users) {
         if (connStatus) {
           connStatus.innerHTML = '🟢 Conectado con éxito a la API del servidor.';
           connStatus.style.color = 'var(--emerald-success)';
         }
       } else {
         if (connStatus) {
-          connStatus.innerHTML = '🟡 Modo de Demostración Activo (Backend en reposo).';
-          connStatus.style.color = 'var(--gold-primary)';
+          connStatus.innerHTML = '🔴 Sin conexión con la BD / datos no disponibles.';
+          connStatus.style.color = '#ef4444';
         }
       }
     });
