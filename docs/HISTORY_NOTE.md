@@ -1341,3 +1341,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - `ConvoyLeaderResolver.kt` (nuevo): resuelve `leaderShortId` desde `manifest.hostLeaderId` / `statusKind == "leader"` sin tocar `core/crypto`.
 - `LiveMapScreen.kt`: configura `liveMapViewModel.controller.configureLocalIdentity(authorized.localShortId, resolvedLeaderId)` al iniciar o abrir cabina y muestra `"Eres Líder"` únicamente al líder y `"Rutero"` (o `"Rutero · Líder a ..."`) al resto.
 - Test: `ConvoyLeaderResolverTest` + `LiveMapViewModelTest`.
+
+### 2026-11-25 — Estilo unificado de línea de ruta (#2563EB) y transparencia/contraste en creación de ruta
+- `RouteStrokeStyle.kt` & `RouteStrokeStyleTest.kt`: unificado el estilo de línea activa al azul de creación de ruta (`LINE_COLOR = "#2563EB"`, `LINE_WIDTH = 6.5f`, `HALO_COLOR = "#1E3A8A"`, `HALO_WIDTH = 12f`) más constantes de rutas alternativas (`ALT_LINE_COLOR_PRIMARY = "#94A3B8"`, `ALT_LINE_COLOR_SECONDARY = "#A78BFA"`, `ALT_LINE_WIDTH = 4.5f`), compartido entre `ScheduleRideMapScreen` y `LiveMapScreen` (`drawRouteOnMap`).
+- `ScheduleRideMapScreen.kt`: aplicadas tarjetas semitransparentes (`alpha = 0.78f–0.82f`) sobre el mapa y corregido contraste en texto de estado vial (`#34D399`), botón `Retorno` y `Guardar Mapa Offline (PMTiles)` (`Color.White`).
