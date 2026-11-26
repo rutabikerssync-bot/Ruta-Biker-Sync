@@ -348,6 +348,12 @@ fun LiveMapScreen(
                 currentUserId = com.rutabikersync.app.feature.groups.ClubRepository.getInstance().currentUser.value.id
             )
             if (authorized != null) {
+                val resolvedLeaderId = ConvoyLeaderResolver.resolveLeaderShortId(authorized.manifest)
+                    ?: authorized.localShortId
+                liveMapViewModel.controller.updateConvoyIds(
+                    localId = authorized.localShortId,
+                    targetLeaderId = resolvedLeaderId
+                )
                 RideService.dispatchStartRide(
                     context = context.applicationContext,
                     rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
@@ -360,6 +366,17 @@ fun LiveMapScreen(
                 android.util.Log.e(
                     "LiveMapScreen",
                     "Malla BLE no iniciada: manifiesto firmado no disponible"
+                )
+            }
+        } else {
+            com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(
+                com.rutabikersync.app.core.mesh.PilotRideConfig.rideId
+            )?.let { cachedAuth ->
+                val resolvedLeaderId = ConvoyLeaderResolver.resolveLeaderShortId(cachedAuth.manifest)
+                    ?: cachedAuth.localShortId
+                liveMapViewModel.controller.updateConvoyIds(
+                    localId = cachedAuth.localShortId,
+                    targetLeaderId = resolvedLeaderId
                 )
             }
         }
@@ -955,8 +972,8 @@ fun LiveMapScreen(
             )
             val leaderCapsuleText = when {
                 isLeader -> "Eres Líder"
-                leaderDistText == null -> "Sin líder en rango"
-                else -> "Líder a $leaderDistText ↗"
+                leaderDistText == null -> "Rutero"
+                else -> "Rutero · Líder a $leaderDistText"
             }
 
             HudStatusChip(
