@@ -98,10 +98,10 @@ object RideManifestKeyProvider {
             if (participant.statusKind.trim().lowercase() !in confirmedStatuses) continue
             val keyBase64 = payload.sosPublicKeys?.get(participant.uid)
                 ?.trim()?.takeIf { it.isNotBlank() }
-                ?: return null
+                ?: continue
             val participantPk = participant.pk?.trim()?.takeIf { it.isNotBlank() }
-                ?: return null
-            val publicKey = importSosPublicKey(keyBase64) ?: return null
+                ?: continue
+            val publicKey = importSosPublicKey(keyBase64) ?: continue
             resolver.registerPeer(shortIdFromParticipantPublicKey(participantPk), publicKey)
         }
         return resolver

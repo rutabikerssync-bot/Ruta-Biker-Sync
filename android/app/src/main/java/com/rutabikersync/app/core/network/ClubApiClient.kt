@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -374,12 +375,23 @@ class ClubApiClient(
         groupId: String,
         title: String,
         startsAt: String,
-        description: String? = null
+        description: String? = null,
+        waypoints: List<Pair<Double, Double>> = emptyList()
     ): Result<ApiResponse> = withContext(Dispatchers.IO) {
         val payload = buildJsonObject {
             put("title", title)
             put("startsAt", startsAt)
             if (description != null) put("description", description)
+            if (waypoints.isNotEmpty()) {
+                put("waypoints", buildJsonArray {
+                    waypoints.forEach { (lat, lon) ->
+                        add(buildJsonObject {
+                            put("lat", lat)
+                            put("lon", lon)
+                        })
+                    }
+                })
+            }
         }
         executeRequest("POST", "/v1/groups/$groupId/routes", payload)
     }

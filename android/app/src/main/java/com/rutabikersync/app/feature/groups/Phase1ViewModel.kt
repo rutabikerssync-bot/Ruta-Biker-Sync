@@ -159,6 +159,7 @@ class Phase1ViewModel(
             try {
                 val routes = repository.clubRoutes.loadRoutes(groupId)
                 val next = ClubRsvpUi.nextRoute(routes) ?: return@launch
+                com.rutabikersync.app.feature.routes.RideScheduleRepository.syncFromClubRoute(next)
                 loadRideRoster(next.id)
             } catch (_: Exception) {
                 // Conservar el roster ya cargado/caché durante una caída de red.
@@ -318,11 +319,18 @@ class Phase1ViewModel(
         groupId: String,
         title: String,
         startsAt: String,
-        description: String?
+        description: String?,
+        waypoints: List<Pair<Double, Double>> = emptyList()
     ) {
         viewModelScope.launch {
             try {
-                val result = repository.apiClient.createClubRoute(groupId, title, startsAt, description)
+                val result = repository.apiClient.createClubRoute(
+                    groupId = groupId,
+                    title = title,
+                    startsAt = startsAt,
+                    description = description,
+                    waypoints = waypoints
+                )
                 result.fold(
                     onSuccess = { response ->
                         val route = response.body?.get("route") as? JsonObject

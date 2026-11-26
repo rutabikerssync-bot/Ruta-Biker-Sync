@@ -114,6 +114,7 @@ class ClubRoutesRepository(
                 title = o["title"]?.asText() ?: "Ruta",
                 description = o["description"]?.asText(),
                 routeRef = o["route_ref"]?.asText(),
+                waypointsJson = o["waypoints_json"]?.takeIf { it !is JsonNull }?.toString(),
                 startsAt = o["starts_at"]?.asText(),
                 endsAt = o["ends_at"]?.asText(),
                 status = o["status"]?.asText() ?: "published",

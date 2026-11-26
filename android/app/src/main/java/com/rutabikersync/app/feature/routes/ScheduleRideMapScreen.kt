@@ -142,7 +142,7 @@ data class SearchPlaceResult(
 fun ScheduleRideMapScreen(
     onDismiss: () -> Unit,
     onRideSaved: () -> Unit,
-    onPublishClubRoute: ((title: String, startsAt: String, description: String?) -> Unit)? = null
+    onPublishClubRoute: ((title: String, startsAt: String, description: String?, waypoints: List<LatLngPoint>) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1696,7 +1696,12 @@ fun ScheduleRideMapScreen(
                                 )
 
                                 // 4. Publicar con UUID real solo cuando hay un club/líder asociado.
-                                onPublishClubRoute?.invoke(metadata.title, metadata.startsAt.toString(), metadata.description)
+                                onPublishClubRoute?.invoke(
+                                    metadata.title,
+                                    metadata.startsAt.toString(),
+                                    metadata.description,
+                                    finalRoute.waypoints
+                                )
 
                                 // 5. Compartir con el club vía Intent nativo
                                 shareRouteSummary(finalRoute)

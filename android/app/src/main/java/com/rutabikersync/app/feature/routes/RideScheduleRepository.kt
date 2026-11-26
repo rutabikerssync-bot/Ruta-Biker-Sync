@@ -139,6 +139,66 @@ object RideScheduleRepository {
         _currentRide.value = current.copy(clubRouteId = routeId)
     }
 
+    /**
+     * Hidrata la rodada local desde una ruta publicada en el club para que todos los
+     * miembros (no solo el creador) vean el mismo trazado y usen el mismo `clubRouteId`.
+     */
+    fun syncFromClubRoute(route: com.rutabikersync.app.core.clubroutes.ClubRouteEntity) {
+        val raw = route.waypointsJson?.trim().orEmpty()
+        if (raw.isBlank()) return
+        val points = runCatching {
+            val arr = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonArray
+                ?: return@runCatching emptyList<LatLngPoint>()
+            arr.mapNotNull { el ->
+                val obj = el as? kotlinx.serialization.json.JsonObject ?: return@mapNotNull null
+                val lat = (obj["lat"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
+                    ?: return@mapNotNull null
+                val lon = (obj["lon"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.toDoubleOrNull()
+                    ?: return@mapNotNull null
+                LatLngPoint(lat, lon)
+            }
+        }.getOrDefault(emptyList())
+        if (points.size < 2) return
+
+        val existing = _currentRide.value
+        if (existing != null && existing.clubRouteId == route.id && existing.selectedRoute.waypoints.size >= 2) {
+            return
+        }
+        val start = points.first()
+        val end = points.last()
+        val syncedRoute = RouteAlternative(
+            id = route.id,
+            name = route.title,
+            subtitle = route.description ?: "Ruta publicada del club",
+            distanceKm = existing?.distanceKm ?: 0.0,
+            estimatedMinutes = existing?.estimatedMinutes ?: 0,
+            roadCondition = "Ruta sincronizada del club",
+            difficulty = "Club",
+            isRecommended = true,
+            waypoints = points
+        )
+        _currentRide.value = ScheduledRide(
+            id = route.id,
+            title = route.title,
+            origin = WaypointLocation("Salida", start.latitude, start.longitude),
+            destination = WaypointLocation("Destino", end.latitude, end.longitude),
+            selectedRoute = syncedRoute,
+            availableRoutes = listOf(syncedRoute),
+            returnPlan = existing?.returnPlan ?: ReturnPlan(),
+            safeArrivalProtocol = existing?.safeArrivalProtocol ?: SafeArrivalProtocol(),
+            dateSchedule = route.startsAt ?: "Programada",
+            meetingTime = existing?.meetingTime ?: "--:--",
+            departureTime = existing?.departureTime ?: "--:--",
+            distanceKm = syncedRoute.distanceKm,
+            estimatedMinutes = syncedRoute.estimatedMinutes,
+            confirmations = existing?.confirmations ?: emptyList(),
+            isPublished = true,
+            description = route.description,
+            startsAt = runCatching { route.startsAt?.let(Instant::parse) }.getOrNull(),
+            clubRouteId = route.id
+        )
+    }
+
     // Historial oficial de rodadas completadas (inicia en cero para registros reales)
     private val _rideHistory = MutableStateFlow<List<RideHistoryItem>>(emptyList())
     val rideHistory: StateFlow<List<RideHistoryItem>> = _rideHistory.asStateFlow()

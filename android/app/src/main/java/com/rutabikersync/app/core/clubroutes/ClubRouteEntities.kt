@@ -15,6 +15,7 @@ data class ClubRouteEntity(
     val title: String,
     val description: String? = null,
     val routeRef: String? = null,
+    val waypointsJson: String? = null,
     val startsAt: String? = null,
     val endsAt: String? = null,
     val status: String = "published",

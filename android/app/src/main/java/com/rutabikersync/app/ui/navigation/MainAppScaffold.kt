@@ -790,8 +790,14 @@ private fun RidesReleaseHomeScreen(
             onDismiss = { showScheduleMapPlanner = false },
             onRideSaved = { showScheduleMapPlanner = false },
             onPublishClubRoute = if (canPublishClubRoute) {
-                { title, startsAt, description ->
-                    phase1ViewModel.publishClubRoute(primaryGroup.id, title, startsAt, description)
+                { title, startsAt, description, waypoints ->
+                    phase1ViewModel.publishClubRoute(
+                        groupId = primaryGroup.id,
+                        title = title,
+                        startsAt = startsAt,
+                        description = description,
+                        waypoints = waypoints.map { it.latitude to it.longitude }
+                    )
                 }
             } else {
                 null
@@ -853,8 +859,11 @@ private fun RidesReleaseHomeScreen(
         startRideScope.launch {
             // P0: la malla solo arranca con clave verificada del manifiesto firmado.
             // Sin backend/manifiesto válido se muestra la causa y no se fabrica clave.
+            val activeRideId = rideRoster?.routeId
+                ?: currentRide?.clubRouteId
+                ?: com.rutabikersync.app.core.mesh.PilotRideConfig.rideId
             val authorized = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.resolve(
-                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
+                rideId = activeRideId,
                 currentUserId = currentUser.id
             )
             if (authorized == null) {
@@ -865,7 +874,7 @@ private fun RidesReleaseHomeScreen(
             }
             val eligibility = RideService.dispatchStartRide(
                 context = context,
-                rideId = com.rutabikersync.app.core.mesh.PilotRideConfig.rideId,
+                rideId = activeRideId,
                 localShortId = authorized.localShortId.toInt(),
                 forceSimulated = useSimulated,
                 expectedPeerShortIds = authorized.authorizedShortIds,
