@@ -10,6 +10,7 @@
 function startApp() {
   initNavigation();
   initSettings();
+  initPromoBannersForm();
   loadOverviewAnalytics();
 
   let resizeTimeout;
@@ -327,6 +328,7 @@ async function loadUsersTable() {
 async function loadSupportSection() {
   loadEscalatedReports();
   loadTicketsList();
+  loadPromoBannersAdmin();
 }
 
 async function loadEscalatedReports() {
@@ -493,6 +495,114 @@ async function loadSosAuditTable() {
       <td><span class="pill ${l.reason === 'sos' ? 'pill-suspended' : 'pill-gang'}">${(l.reason || '').toUpperCase()}</span></td>
     `;
     tableBody.appendChild(tr);
+  });
+}
+
+// Gestión de Banners Promocionales desde Soporte
+function resetPromoBannerForm() {
+  const idEl = document.getElementById('promo-banner-id');
+  if (!idEl) return;
+  idEl.value = '';
+  document.getElementById('promo-title').value = '';
+  document.getElementById('promo-badge').value = '';
+  document.getElementById('promo-subtitle').value = '';
+  document.getElementById('promo-image-url').value = '';
+  document.getElementById('promo-color').value = '#E5B869';
+  document.getElementById('promo-cta-label').value = 'Ver más';
+  document.getElementById('promo-cta-target').value = '';
+  document.getElementById('promo-frequency').value = 'once_per_day';
+  document.getElementById('promo-priority').value = '10';
+  document.getElementById('promo-active').checked = true;
+}
+
+function initPromoBannersForm() {
+  const saveBtn = document.getElementById('btn-save-promo-banner');
+  const resetBtn = document.getElementById('btn-reset-promo-banner');
+  if (resetBtn) resetBtn.addEventListener('click', resetPromoBannerForm);
+  if (!saveBtn) return;
+
+  saveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('promo-banner-id')?.value.trim();
+    const title = document.getElementById('promo-title')?.value.trim() || '';
+    if (title.length < 2) {
+      alert('Ingresa un título válido para el banner.');
+      return;
+    }
+    const payload = {
+      title,
+      badgeText: document.getElementById('promo-badge')?.value.trim() || '',
+      subtitle: document.getElementById('promo-subtitle')?.value.trim() || '',
+      imageUrl: document.getElementById('promo-image-url')?.value.trim() || '',
+      accentColorHex: document.getElementById('promo-color')?.value.trim() || '#E5B869',
+      ctaLabel: document.getElementById('promo-cta-label')?.value.trim() || 'Ver más',
+      ctaTarget: document.getElementById('promo-cta-target')?.value.trim() || '',
+      frequency: document.getElementById('promo-frequency')?.value || 'once_per_day',
+      priority: Number(document.getElementById('promo-priority')?.value || 0),
+      active: Boolean(document.getElementById('promo-active')?.checked)
+    };
+    const res = id
+      ? await api.updatePromoBanner(id, payload)
+      : await api.createPromoBanner(payload);
+    if (!res) {
+      alert('No se pudo guardar el banner. Verifica tu clave admin y conexión.');
+      return;
+    }
+    resetPromoBannerForm();
+    loadPromoBannersAdmin();
+  });
+}
+
+async function loadPromoBannersAdmin() {
+  const container = document.getElementById('promo-banners-list');
+  if (!container) return;
+  const data = await api.getPromoBanners();
+  const banners = data?.banners || [];
+  container.innerHTML = '';
+
+  if (banners.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-subtle); font-size: 0.85rem;">No hay banners promocionales configurados todavía.</div>';
+    return;
+  }
+
+  banners.forEach((b) => {
+    const row = document.createElement('div');
+    row.className = 'ticket-item';
+    row.style.borderLeft = `4px solid ${escapeHtml(b.accentColorHex || '#E5B869')}`;
+    row.innerHTML = `
+      <div class="ticket-top">
+        <span class="pill ${b.active ? 'pill-active' : 'pill-suspended'}">${b.active ? 'ACTIVO' : 'PAUSADO'}</span>
+        <span style="font-size:0.75rem; color:var(--text-subtle);">Prioridad ${b.priority} · ${escapeHtml(b.frequency)}</span>
+      </div>
+      <div class="ticket-subject">${escapeHtml(b.title)} ${b.badgeText ? `· [${escapeHtml(b.badgeText)}]` : ''}</div>
+      <div style="font-size:0.82rem; color:var(--text-muted);">${escapeHtml(b.subtitle || 'Sin subtítulo')}</div>
+      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <button class="btn-secondary btn-edit-promo" data-id="${b.id}">Editar</button>
+        <button class="btn-secondary btn-toggle-promo" data-id="${b.id}" data-active="${!b.active}">${b.active ? 'Pausar' : 'Activar'}</button>
+        <button class="btn-secondary btn-del-promo" data-id="${b.id}" style="color:var(--crimson-danger); border-color:var(--crimson-danger);">Eliminar</button>
+      </div>
+    `;
+    row.querySelector('.btn-edit-promo')?.addEventListener('click', () => {
+      document.getElementById('promo-banner-id').value = b.id;
+      document.getElementById('promo-title').value = b.title || '';
+      document.getElementById('promo-badge').value = b.badgeText || '';
+      document.getElementById('promo-subtitle').value = b.subtitle || '';
+      document.getElementById('promo-image-url').value = b.imageUrl || '';
+      document.getElementById('promo-color').value = b.accentColorHex || '#E5B869';
+      document.getElementById('promo-cta-label').value = b.ctaLabel || 'Ver más';
+      document.getElementById('promo-cta-target').value = b.ctaTarget || '';
+      document.getElementById('promo-frequency').value = b.frequency || 'once_per_day';
+      document.getElementById('promo-priority').value = String(b.priority ?? 0);
+      document.getElementById('promo-active').checked = Boolean(b.active);
+    });
+    row.querySelector('.btn-toggle-promo')?.addEventListener('click', async () => {
+      await api.updatePromoBanner(b.id, { active: !b.active });
+      loadPromoBannersAdmin();
+    });
+    row.querySelector('.btn-del-promo')?.addEventListener('click', async () => {
+      await api.deletePromoBanner(b.id);
+      loadPromoBannersAdmin();
+    });
+    container.appendChild(row);
   });
 }
 

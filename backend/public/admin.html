@@ -328,6 +328,35 @@
             </div>
           </div>
         </div>
+
+        <h3 style="font-size: 1.1rem; color: var(--gold-primary); margin: 32px 0 12px; display: flex; align-items: center; gap: 8px;">
+          <span>📢</span> Banners y Modales Promocionales (App Android)
+        </h3>
+        <div class="table-card" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <input type="hidden" id="promo-banner-id" value="">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <input type="text" id="promo-title" placeholder="Título principal (ej. Rodada Aniversario)">
+            <input type="text" id="promo-badge" placeholder="Badge (ej. OFICIAL · BLACK FRIDAY)">
+            <input type="text" id="promo-subtitle" placeholder="Subtítulo / vigencia (ej. Del 26 al 30 de noviembre)">
+            <input type="text" id="promo-image-url" placeholder="URL de imagen (opcional)">
+            <input type="text" id="promo-color" value="#E5B869" placeholder="Color acento (#E5B869)">
+            <input type="text" id="promo-cta-label" value="Ver más" placeholder="Texto botón CTA">
+            <input type="text" id="promo-cta-target" placeholder="Destino o URL al tocar (opcional)">
+            <select id="promo-frequency">
+              <option value="once_per_day">1 vez por día</option>
+              <option value="once_per_campaign">1 vez por campaña</option>
+            </select>
+            <input type="number" id="promo-priority" value="10" placeholder="Prioridad">
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-main);">
+              <input type="checkbox" id="promo-active" checked> Activo inmediatamente
+            </label>
+            <button class="btn-primary" id="btn-save-promo-banner">Guardar Banner</button>
+            <button class="btn-secondary" id="btn-reset-promo-banner">Nuevo / Limpiar</button>
+          </div>
+          <div id="promo-banners-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px;"></div>
+        </div>
       </section>
 
       <!-- PESTAÑA 5: AUDITORÍA DE SEGURIDAD SOS -->

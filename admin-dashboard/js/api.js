@@ -148,4 +148,28 @@ window.AdminApi = class AdminApi {
   async getSosAuditLogs() {
     return await this.fetchWithFallback('/v1/admin/audit/sos', { method: 'GET' }, { logs: [] });
   }
+
+  async getPromoBanners() {
+    return await this.fetchWithFallback('/v1/admin/promo-banners', { method: 'GET' }, { banners: [] });
+  }
+
+  async createPromoBanner(payload) {
+    return await this.fetchWithFallback('/v1/admin/promo-banners', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }, null);
+  }
+
+  async updatePromoBanner(id, payload) {
+    return await this.fetchWithFallback(`/v1/admin/promo-banners/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    }, null);
+  }
+
+  async deletePromoBanner(id) {
+    return await this.fetchWithFallback(`/v1/admin/promo-banners/${id}`, {
+      method: 'DELETE'
+    }, { deleted: false });
+  }
 };
