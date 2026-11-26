@@ -87,6 +87,18 @@ data class LiveMapUiState(
     val cameraLatitude: Double = 0.0,
     val cameraLongitude: Double = 0.0,
     val cameraZoom: Double = 14.0,
+    // Fase 1 — cámara de navegación. Estos campos son INDEPENDIENTES de
+    // cameraLatitude/cameraLongitude: esos siguen siendo las coordenadas del piloto
+    // que consumen SOS, radar de proximidad y telemetría (no se pueden sustituir
+    // por el centro de un overview).
+    val navCameraMode: NavCameraMode = NavCameraMode.FOLLOW_HEADING_3D,
+    val cameraTargetLat: Double = 0.0,
+    val cameraTargetLon: Double = 0.0,
+    val navigationBearingDegrees: Float = 0f,
+    val navigationTiltDegrees: Float = CameraModeManager.FOLLOW_TILT_DEGREES,
+    val isNorthLocked: Boolean = true,
+    val overviewBounds: MapBounds? = null,
+    val isCleanRideMode: Boolean = false,
     val followLeaderUntilEpochMs: Long? = null,
     val followLeaderRemainingSeconds: Int = 0,
     val leaderPin: LeaderPinUiModel? = null,
@@ -347,6 +359,28 @@ class LiveMapController(
         localSos = isSos
         observedAtEpochMs?.let { localPositionObservedAtEpochMs = it }
         setGpsFixed(true)
+        // La cámara de navegación sigue el GPS real, pero NO secuestra el seguimiento
+        // al líder de 10 s ni la inspección libre del usuario.
+        val current = _uiState.value
+        if (current.navCameraMode == NavCameraMode.FOLLOW_HEADING_3D &&
+            current.cameraMode != CameraMode.FOLLOWING_LEADER &&
+            CameraModeManager.shouldApplyCamera(current.navCameraMode)
+        ) {
+            _uiState.value = current.copy(
+                cameraTargetLat = latitude,
+                cameraTargetLon = longitude,
+                navigationBearingDegrees = if (current.isNorthLocked) {
+                    0f
+                } else {
+                    CameraModeManager.bearingForSpeedKmh(
+                        speedKmh.toDouble(),
+                        bearingDegrees,
+                        current.navigationBearingDegrees
+                    )
+                },
+                cameraZoom = CameraModeManager.zoomForSpeedKmh(speedKmh.toDouble(), current.cameraZoom)
+            )
+        }
     }
 
     /**
@@ -587,6 +621,40 @@ class LiveMapController(
             CameraMode.FREE -> current.cameraLatitude to current.cameraLongitude
         }
 
+        // Auto-zoom por velocidad y tilt de navegación. Se respeta el modo libre y el
+        // seguimiento al líder: en ninguno de los dos se recalcula la cámara aquí.
+        val navMode = current.navCameraMode
+        val navTilt = CameraModeManager.tiltFor(navMode)
+        val navZoom = if (navMode == NavCameraMode.FOLLOW_HEADING_3D &&
+            effectiveCameraMode != CameraMode.FOLLOWING_LEADER
+        ) {
+            CameraModeManager.zoomForSpeedKmh(localSpeedKmh.toDouble(), current.cameraZoom)
+        } else {
+            current.cameraZoom
+        }
+        val navBearing = when {
+            current.isNorthLocked -> 0f
+            navMode == NavCameraMode.FOLLOW_HEADING_3D &&
+                effectiveCameraMode != CameraMode.FOLLOWING_LEADER ->
+                CameraModeManager.bearingForSpeedKmh(
+                    localSpeedKmh.toDouble(),
+                    localBearing,
+                    current.navigationBearingDegrees
+                )
+            else -> current.navigationBearingDegrees
+        }
+        // Objetivo de la cámara de navegación. Se mantiene separado de cameraLatitude/
+        // cameraLongitude: esos siguen siendo la posición del piloto para SOS/radar.
+        val navTarget = when {
+            navMode == NavCameraMode.FREE_INSPECT ->
+                current.cameraTargetLat to current.cameraTargetLon
+            navMode == NavCameraMode.ROUTE_OVERVIEW ->
+                (current.overviewBounds?.centerLat ?: current.cameraTargetLat) to
+                    (current.overviewBounds?.centerLon ?: current.cameraTargetLon)
+            effectiveCameraMode == CameraMode.FOLLOWING_LEADER -> camLat to camLon
+            else -> localLat to localLon
+        }
+
         _uiState.value = current.copy(
             gpsFixed = localPositionValid,
             localBatteryPercent = localBattery,
@@ -597,6 +665,11 @@ class LiveMapController(
             cameraMode = effectiveCameraMode,
             cameraLatitude = camLat,
             cameraLongitude = camLon,
+            cameraZoom = navZoom,
+            cameraTargetLat = navTarget.first,
+            cameraTargetLon = navTarget.second,
+            navigationBearingDegrees = navBearing,
+            navigationTiltDegrees = navTilt,
             followLeaderUntilEpochMs = if (stillFollowingLeader) followUntil else null,
             followLeaderRemainingSeconds = remainingFollowSec,
             leaderPin = leaderPin,
@@ -645,6 +718,15 @@ class LiveMapController(
             cameraMode = CameraMode.FOLLOWING_LEADER,
             cameraLatitude = targetLat,
             cameraLongitude = targetLon,
+            // Seguir al líder tiene prioridad sobre el overview y devuelve el control
+            // de la cámara de navegación al objetivo real (el líder), sin tocar SOS.
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.RECENTER_REQUESTED
+            ),
+            cameraTargetLat = targetLat,
+            cameraTargetLon = targetLon,
+            overviewBounds = null,
             followLeaderUntilEpochMs = untilEpoch,
             followLeaderRemainingSeconds = 10,
             statusBannerMessage = "Siguiendo al líder por 10 s"
@@ -666,6 +748,12 @@ class LiveMapController(
         if (current.cameraMode == CameraMode.FOLLOWING_LEADER && nowEpochMs >= untilEpoch) {
             _uiState.value = current.copy(
                 cameraMode = CameraMode.FREE,
+                // Conserva el contrato histórico: al expirar los 10 s el mapa queda
+                // donde estaba; el GPS no lo recupera hasta que pulses "Re-centrar".
+                navCameraMode = CameraModeManager.transition(
+                    current.navCameraMode,
+                    NavCameraEvent.RIDE_ENDED
+                ),
                 followLeaderUntilEpochMs = null,
                 followLeaderRemainingSeconds = 0,
                 statusBannerMessage = "Mapa en modo libre (pin del líder visible)"
@@ -680,9 +768,101 @@ class LiveMapController(
             cameraMode = CameraMode.CENTERED_ON_SELF,
             cameraLatitude = localLat,
             cameraLongitude = localLon,
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.RECENTER_REQUESTED
+            ),
+            cameraTargetLat = localLat,
+            cameraTargetLon = localLon,
+            navigationBearingDegrees = if (current.isNorthLocked) 0f else localBearing,
+            overviewBounds = null,
             followLeaderUntilEpochMs = null,
             followLeaderRemainingSeconds = 0,
             statusBannerMessage = "Centrado en mi ubicación"
+        )
+        return _uiState.value
+    }
+
+    /**
+     * Gesto real del usuario sobre el mapa. Solo [NavCameraEvent.MAP_GESTURE] congela la
+     * cámara: las animaciones propias de la app (REASON_DEVELOPER_ANIMATION) no deben
+     * caer aquí, o el seguimiento se congelaría solo.
+     */
+    fun onMapGesture(): LiveMapUiState {
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.MAP_GESTURE
+            ),
+            overviewBounds = null,
+            statusBannerMessage = "Mapa libre · pulsa «Re-centrar» para seguir"
+        )
+        return _uiState.value
+    }
+
+    /** Encuadra la ruta/resto de convoy. Nunca altera cameraLatitude/cameraLongitude (SOS). */
+    fun requestRouteOverview(bounds: MapBounds?): LiveMapUiState {
+        val current = _uiState.value
+        if (bounds == null || !bounds.isValid()) return current
+        _uiState.value = current.copy(
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.OVERVIEW_REQUESTED
+            ),
+            overviewBounds = bounds,
+            cameraTargetLat = bounds.centerLat,
+            cameraTargetLon = bounds.centerLon,
+            cameraZoom = CameraModeManager.zoomForBounds(bounds),
+            navigationTiltDegrees = CameraModeManager.FLAT_TILT_DEGREES,
+            followLeaderUntilEpochMs = null,
+            followLeaderRemainingSeconds = 0,
+            statusBannerMessage = "Vista general de la ruta"
+        )
+        return _uiState.value
+    }
+
+    /** Re-centra en uno mismo y reanuda el seguimiento de navegación. */
+    fun recenterOnRider(): LiveMapUiState = centerOnMyLocation()
+
+    fun toggleNorthLock(locked: Boolean? = null): LiveMapUiState {
+        val current = _uiState.value
+        val next = locked ?: !current.isNorthLocked
+        _uiState.value = current.copy(
+            isNorthLocked = next,
+            navigationBearingDegrees = if (next) 0f else localBearing,
+            statusBannerMessage = if (next) "Norte fijo activado" else "Rotación con rumbo activada"
+        )
+        return _uiState.value
+    }
+
+    /**
+     * Modo rodada limpio: oculta tarjetas secundarias, pero jamás SOS, PTT ni el
+     * velocímetro (política de 3 acciones ≥72 dp se mantiene intacta).
+     */
+    fun toggleCleanRideMode(enabled: Boolean? = null): LiveMapUiState {
+        val current = _uiState.value
+        val next = enabled ?: !current.isCleanRideMode
+        _uiState.value = current.copy(
+            isCleanRideMode = next,
+            statusBannerMessage = if (next) {
+                "Modo rodada limpio · SOS y PTT siguen visibles"
+            } else {
+                "Controles completos"
+            }
+        )
+        return _uiState.value
+    }
+
+    /** La cámara vuelve al usuario al terminar la rodada. */
+    fun onRideEnded(): LiveMapUiState {
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            navCameraMode = CameraModeManager.transition(
+                current.navCameraMode,
+                NavCameraEvent.RIDE_ENDED
+            ),
+            overviewBounds = null
         )
         return _uiState.value
     }

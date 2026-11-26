@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -26,22 +28,35 @@ import com.rutabikersync.app.ui.theme.HeritageCopper
 import com.rutabikersync.app.ui.theme.HeritageLeatherBrown
 
 /**
- * Control compacto de re-centrado de cámara, ubicado bajo la brújula N.
- * Se define fuera de `LiveMapScreen` para no incrementar el método de ART.
+ * Controles compactos de cámara bajo la brújula N (Re-centrar y Norte fijo / Rotar).
+ * Se definen fuera de `LiveMapScreen` para no incrementar el método de ART.
  */
 @Composable
 fun NavigationCameraControls(
     navCameraMode: NavCameraMode,
+    isNorthLocked: Boolean,
     onRecenter: () -> Unit,
+    onToggleNorthLock: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    NavCameraChip(
-        icon = Icons.Default.MyLocation,
-        label = "Re-centrar",
-        active = navCameraMode == NavCameraMode.FOLLOW_HEADING_3D,
-        onClick = onRecenter,
-        modifier = modifier
-    )
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        NavCameraChip(
+            icon = Icons.Default.MyLocation,
+            label = "Re-centrar",
+            active = navCameraMode == NavCameraMode.FOLLOW_HEADING_3D,
+            onClick = onRecenter
+        )
+        NavCameraChip(
+            icon = Icons.Default.Explore,
+            label = if (isNorthLocked) "Norte fijo" else "Rotar mapa",
+            active = isNorthLocked,
+            onClick = onToggleNorthLock
+        )
+    }
 }
 
 @Composable
@@ -54,6 +69,7 @@ private fun NavCameraChip(
 ) {
     Column(
         modifier = modifier
+            .widthIn(min = 68.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .background(

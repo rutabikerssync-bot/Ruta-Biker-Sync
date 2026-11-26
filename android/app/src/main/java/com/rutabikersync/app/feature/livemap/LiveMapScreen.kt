@@ -929,6 +929,7 @@ fun LiveMapScreen(
             },
             onMapGesture = { liveMapViewModel.controller.onMapGesture() },
             onRecenter = { liveMapViewModel.controller.recenterOnRider() },
+            onToggleNorthLock = { liveMapViewModel.controller.toggleNorthLock() },
             modifier = Modifier.fillMaxSize()
         )
 
@@ -954,18 +955,18 @@ fun LiveMapScreen(
                 hasGpsFix = state.gpsFixed
             )
             val leaderCapsuleText = when {
-                isLeader -> "👑 Eres Líder"
+                isLeader -> "Eres Líder"
                 leaderDistText == null -> "Sin líder en rango"
                 else -> "Líder a $leaderDistText ↗"
             }
 
             HudStatusChip(
-                icon = Icons.Default.Shield,
+                icon = if (isLeader) AppIcons.Bike else Icons.Default.Shield,
                 iconTint = if (isLeader) Color(0xFFF59E0B) else Color(0xFF10B981),
                 text = leaderCapsuleText,
                 onClick = {
                     if (isLeader) {
-                        actionFeedback = "👑 Eres el Líder y Guía del Convoy"
+                        actionFeedback = "Eres el Líder y Guía del Convoy"
                     } else {
                         liveMapViewModel.controller.followLeader(
                             nowEpochMs = System.currentTimeMillis(),
@@ -1060,36 +1061,49 @@ fun LiveMapScreen(
                 }
             }
 
-        // 3. Brújula circular norte flotante a la derecha
-        Box(
+        // 3. Brújula circular norte + Re-centrar + Norte fijo alineados en columna arriba a la derecha
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = if (BuildConfig.UX_TEST_MODE) 102.dp else 74.dp, end = 16.dp)
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF16181F).copy(alpha = 0.92f))
-                .border(1.2.dp, Color(0xFF353945), CircleShape)
-                .clickable { liveMapViewModel.controller.centerOnMyLocation() },
-            contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                    .border(1.2.dp, Color(0xFF353945), CircleShape)
+                    .clickable { liveMapViewModel.controller.centerOnMyLocation() },
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Navigation,
-                    contentDescription = "Norte",
-                    tint = Color(0xFFD92D35),
-                    modifier = Modifier.size(15.dp)
-                )
-                Text(
-                    text = "N",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 11.sp,
-                    lineHeight = 11.sp
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Navigation,
+                        contentDescription = "Norte",
+                        tint = Color(0xFFD92D35),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = "N",
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        lineHeight = 11.sp
+                    )
+                }
             }
+
+            NavigationCameraControls(
+                navCameraMode = state.navCameraMode,
+                isNorthLocked = state.isNorthLocked,
+                onRecenter = { liveMapViewModel.controller.recenterOnRider() },
+                onToggleNorthLock = { liveMapViewModel.controller.toggleNorthLock() }
+            )
         }
 
         // 4. Contenedor inferior de Cabina de Rodada Activa (con gradiente oscuro ascendente)
@@ -1753,37 +1767,43 @@ fun LiveMapScreen(
                     GlovesPrimaryActionBar(
                         isSosActive = rideServiceState.isSosActive,
                         isPttActive = isRecording,
+                        isPttAvailable = activeRelayEngine != null,
                         pttSecondaryText = if (isRecording) "${recordingSeconds}s/15s" else null,
                         onTalkPttClick = {
-                            if (isRecording) {
-                                stopCabinaPtt()
-                                com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                    "LIVE_MAP",
-                                    "PTT_TRANSMIT_STOP",
-                                    "btn_hablar"
-                                )
-                                val frames = (pttState as? PttState.Transmitting)?.packetsSent
-                                    ?: pttEngine.voicePacketsSent.get()
-                                actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
-                            } else if (RideService.getActiveRelayEngine() == null) {
-                                actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
-                            } else {
-                                val hasMicPermission = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.RECORD_AUDIO
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                if (hasMicPermission) {
-                                    startCabinaPtt()
+                            val gateMsg = PttCabinaGate.resolveAction(
+                                isRecording = isRecording,
+                                isRideMeshActive = RideService.getActiveRelayEngine() != null,
+                                onStop = {
+                                    stopCabinaPtt()
                                     com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
                                         "LIVE_MAP",
-                                        "PTT_TRANSMIT_START",
+                                        "PTT_TRANSMIT_STOP",
                                         "btn_hablar"
                                     )
-                                    actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
-                                } else {
-                                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    val frames = (pttState as? PttState.Transmitting)?.packetsSent
+                                        ?: pttEngine.voicePacketsSent.get()
+                                    actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
+                                },
+                                onStart = {
+                                    val hasMicPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                    if (hasMicPermission) {
+                                        startCabinaPtt()
+                                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                            "LIVE_MAP",
+                                            "PTT_TRANSMIT_START",
+                                            "btn_hablar"
+                                        )
+                                        actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
+                                    } else {
+                                        audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
                                 }
+                            )
+                            if (gateMsg != null) {
+                                actionFeedback = gateMsg
                             }
                         },
                         onSosClick = {
@@ -2522,6 +2542,7 @@ private fun MapLibreCorridorSurface(
     onMapClick: () -> Unit = {},
     onMapGesture: () -> Unit = {},
     onRecenter: () -> Unit = {},
+    onToggleNorthLock: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -2604,7 +2625,7 @@ private fun MapLibreCorridorSurface(
                             map.uiSettings.setAttributionMargins(32, 0, 0, 140)
                             map.uiSettings.isLogoEnabled = false
                             map.uiSettings.isCompassEnabled = false
-                            map.uiSettings.isRotateGesturesEnabled = true
+                            map.uiSettings.isRotateGesturesEnabled = !state.isNorthLocked
                             map.uiSettings.isScrollGesturesEnabled = true
                             map.uiSettings.isZoomGesturesEnabled = true
 
@@ -2669,9 +2690,9 @@ private fun MapLibreCorridorSurface(
             },
             update = { view ->
                 view.getMapAsync { map ->
+                    map.uiSettings.isRotateGesturesEnabled = !state.isNorthLocked
                     // Fase 1: la cámara de navegación decide objetivo, zoom, bearing y
-                    // tilt. FREE_INSPECT se congela; el overview usa bounds reales sin
-                    // la "cárcel" rectangular de Venezuela del código anterior.
+                    // tilt. FREE_INSPECT se congela; norte fijo mantiene bearing = 0.
                     applyNavigationCamera(
                         map = map,
                         state = state,
@@ -2686,15 +2707,6 @@ private fun MapLibreCorridorSurface(
                 }
             },
             modifier = Modifier.fillMaxSize()
-        )
-
-        // Control compacto de re-centrado bajo la brújula N (arriba a la derecha).
-        NavigationCameraControls(
-            navCameraMode = state.navCameraMode,
-            onRecenter = onRecenter,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = if (BuildConfig.UX_TEST_MODE) 154.dp else 126.dp, end = 16.dp)
         )
 
         // Convoy sobre la vía: se proyectan los peers reales sobre la polilínea activa.

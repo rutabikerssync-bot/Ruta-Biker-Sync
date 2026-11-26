@@ -374,6 +374,7 @@ class LiveMapViewModelTest {
             leaderShortId = 1u,
             initialDirectory = emptyList()
         )
+        controller.toggleNorthLock(false)
         controller.updateLocalRiderPose(latitude = 10.349246, longitude = -67.034904, speedKmh = 0)
 
         assertNull(controller.uiState.value.selectedRiderShortId)
@@ -392,5 +393,125 @@ class LiveMapViewModelTest {
         // Tocar el mapa vacío también cierra el detalle (onSelectRider(null)).
         controller.selectRiderMarker(1u)
         assertNull(controller.selectRiderMarker(null).selectedRiderShortId)
+    }
+
+    @Test
+    fun `gesto congela camara de navegacion sin alterar coordenadas del piloto para SOS`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.toggleNorthLock(false)
+        controller.updateLocalRiderPose(
+            latitude = 10.349246,
+            longitude = -67.034904,
+            speedKmh = 30,
+            bearingDegrees = 90f
+        )
+        controller.centerOnMyLocation()
+        val before = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+        assertEquals(NavCameraMode.FOLLOW_HEADING_3D, before.navCameraMode)
+        assertEquals(CameraModeManager.ZOOM_MID, before.cameraZoom, 1e-6)
+
+        val frozen = controller.onMapGesture()
+        assertEquals(NavCameraMode.FREE_INSPECT, frozen.navCameraMode)
+        val targetLat = frozen.cameraTargetLat
+        val targetLon = frozen.cameraTargetLon
+
+        // Un tick de GPS con velocidad distinta NO debe recuperar la cámara.
+        controller.updateLocalRiderPose(
+            latitude = 10.400000,
+            longitude = -67.100000,
+            speedKmh = 90,
+            bearingDegrees = 180f
+        )
+        val after = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
+        assertEquals(NavCameraMode.FREE_INSPECT, after.navCameraMode)
+        assertEquals(targetLat, after.cameraTargetLat, 1e-9)
+        assertEquals(targetLon, after.cameraTargetLon, 1e-9)
+        assertFalse(CameraModeManager.shouldApplyCamera(after.navCameraMode))
+
+        // Pero las coordenadas del piloto (usadas por SOS) sí avanzan con el GPS real.
+        assertEquals(10.400000, after.cameraLatitude, 1e-9)
+        assertEquals(-67.100000, after.cameraLongitude, 1e-9)
+    }
+
+    @Test
+    fun `overview usa bounds reales y recentrar reanuda seguimiento sin tocar SOS`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.toggleNorthLock(false)
+        controller.updateLocalRiderPose(
+            latitude = 10.349246,
+            longitude = -67.034904,
+            speedKmh = 10,
+            bearingDegrees = 70f
+        )
+        controller.centerOnMyLocation()
+        controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+
+        val bounds = MapBounds(north = 10.5, south = 10.2, east = -66.9, west = -67.2)
+        val overview = controller.requestRouteOverview(bounds)
+        assertEquals(NavCameraMode.ROUTE_OVERVIEW, overview.navCameraMode)
+        assertEquals(bounds.centerLat, overview.cameraTargetLat, 1e-9)
+        assertEquals(bounds.centerLon, overview.cameraTargetLon, 1e-9)
+        assertEquals(CameraModeManager.zoomForBounds(bounds), overview.cameraZoom, 1e-6)
+        // El centro del overview jamás sustituye a la posición real del piloto.
+        assertEquals(10.349246, overview.cameraLatitude, 1e-9)
+        assertEquals(-67.034904, overview.cameraLongitude, 1e-9)
+
+        val recentered = controller.recenterOnRider()
+        assertEquals(NavCameraMode.FOLLOW_HEADING_3D, recentered.navCameraMode)
+        assertNull(recentered.overviewBounds)
+        assertEquals(10.349246, recentered.cameraTargetLat, 1e-9)
+
+        val clean = controller.toggleCleanRideMode()
+        assertTrue(clean.isCleanRideMode)
+        assertFalse(controller.toggleCleanRideMode(false).isCleanRideMode)
+    }
+
+    @Test
+    fun `bearing se congela en parado y seguir al lider gana sobre overview`() = runTest(UnconfinedTestDispatcher()) {
+        val controller = LiveMapController(
+            scope = backgroundScope,
+            localShortId = 1u,
+            leaderShortId = 1u,
+            initialDirectory = emptyList()
+        )
+        controller.toggleNorthLock(false)
+        controller.updateLocalRiderPose(
+            latitude = 10.349246,
+            longitude = -67.034904,
+            speedKmh = 40,
+            bearingDegrees = 120f
+        )
+        controller.centerOnMyLocation()
+        val moving = controller.flushMapFrame(nowEpochMs = 1_000L, force = true)
+        assertEquals(120f, moving.navigationBearingDegrees, 1e-6f)
+
+        controller.updateLocalRiderPose(
+            latitude = 10.349300,
+            longitude = -67.035000,
+            speedKmh = 0,
+            bearingDegrees = 350f
+        )
+        val stopped = controller.flushMapFrame(nowEpochMs = 2_000L, force = true)
+        assertEquals(120f, stopped.navigationBearingDegrees, 1e-6f)
+
+        controller.requestRouteOverview(MapBounds(10.5, 10.2, -66.9, -67.2))
+        val following = controller.followLeader(nowEpochMs = 3_000L)
+        assertEquals(NavCameraMode.FOLLOW_HEADING_3D, following.navCameraMode)
+        assertNull(following.overviewBounds)
+        assertEquals(CameraMode.FOLLOWING_LEADER, following.cameraMode)
+
+        val released = controller.evaluateCameraTimeout(13_000L)
+        assertEquals(CameraMode.FREE, released.cameraMode)
+        assertEquals(NavCameraMode.FREE_INSPECT, released.navCameraMode)
     }
 }
