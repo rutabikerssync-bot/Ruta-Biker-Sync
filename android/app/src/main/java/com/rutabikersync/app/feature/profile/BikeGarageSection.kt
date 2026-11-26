@@ -92,6 +92,25 @@ fun BikeGarageSection(
                     shape = RoundedCornerShape(18.dp)
                 )
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.garage_odometro_hero),
+                contentDescription = "Garage Chopper Custom",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(0xD90E131D),
+                                Color(0xB3121824),
+                                Color(0x59121824)
+                            )
+                        )
+                    )
+            )
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
