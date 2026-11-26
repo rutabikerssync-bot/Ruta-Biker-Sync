@@ -1384,3 +1384,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-26 — Número de placa y arte Dark Elite en Garage
 - `UserProfile.kt` + `ProfileRepository.kt` + `ProfileEditScreen.kt` + `MotorcycleProfileSection.kt`: añadido `motorcyclePlate` (Número de Placa / Matrícula) editable y visible en la ficha de **Mi Moto**, junto con indicador explícito del módulo **Líquido Refrigerante**.
 - `BikeGarageSection.kt`: rediseño visual *Dark Elite* con cabecera hero biselada, barra de salud global del Garage, indicadores circulares de semáforo, barras de estado por componente y aviso `"Toca para editar"`. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 19s`).
+
+### 2026-11-26 — Banners hero en las 4 tarjetas de Garage
+- `drawable-nodpi/garage_{seguridad_critica,tren_motriz,fluidos_electrico,bitacora_averias}.png` + `BikeGarageSection.kt`: integradas las 4 imágenes temáticas *Dark Elite* como banners superiores (`94.dp`, `ContentScale.Crop` + degradado hacia `#121620`) en cada tarjeta del módulo **Garage**. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 30s`).
