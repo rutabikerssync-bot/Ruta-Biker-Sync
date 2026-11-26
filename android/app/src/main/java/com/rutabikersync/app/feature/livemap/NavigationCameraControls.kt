@@ -59,7 +59,7 @@ private fun NavCameraChip(
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .background(
-                if (active) HeritageCopper else DarkCardElevated.copy(alpha = 0.92f)
+                if (active) HeritageCopper.copy(alpha = 0.85f) else DarkCardElevated.copy(alpha = 0.78f)
             )
             .border(
                 1.2.dp,

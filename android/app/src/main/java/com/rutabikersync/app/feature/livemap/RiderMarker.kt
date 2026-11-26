@@ -240,28 +240,29 @@ fun RiderMarker(
             exit = fadeOut(animationSpec = tween(150))
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
                 modifier = Modifier
-                    .background(BikerColors.SurfaceDark, RoundedCornerShape(8.dp))
-                    .border(1.dp, ringColor, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .background(BikerColors.SurfaceDark.copy(alpha = 0.78f), RoundedCornerShape(12.dp))
+                    .border(1.dp, ringColor.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     when {
                         marker.profileRedacted -> Icon(
                             imageVector = AppIcons.Bike,
                             contentDescription = "Avatar genérico",
                             tint = BikerColors.TextSecondary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                         avatarBitmap != null -> Image(
                             bitmap = avatarBitmap,
                             contentDescription = "Avatar de ${marker.fullName}",
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(26.dp)
                                 .clip(CircleShape)
                         )
                         else -> Text(
@@ -271,7 +272,7 @@ fun RiderMarker(
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
                             text = marker.expandedDisplayName,
                             color = BikerColors.TextPrimary,
@@ -294,10 +295,17 @@ fun RiderMarker(
                 Text(
                     text = buildString {
                         append(marker.routeStatus.symbolAndLabel)
-                        append(" · ${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
                         marker.positionAgeSeconds?.let { ageSeconds ->
-                            append(" · Posición de hace $ageSeconds s")
+                            append(" · hace ${ageSeconds}s")
                         }
+                    },
+                    color = ringColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = buildString {
+                        append("${marker.speedKmh} km/h · Bat ${marker.batteryPercent}%")
                         if (!leaderDistanceText.isNullOrBlank()) {
                             append(" · Líder a ").append(leaderDistanceText)
                         }

@@ -1035,7 +1035,7 @@ fun LiveMapScreen(
                 .statusBarsPadding()
                 .padding(top = if (BuildConfig.UX_TEST_MODE) 84.dp else 56.dp, start = 16.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                .background(Color(0xFF16181F).copy(alpha = 0.78f))
                 .border(
                     1.2.dp,
                     if (nearestOfflineCorridor != null) EmeraldMesh else Color(0xFF353945),
@@ -1074,7 +1074,7 @@ fun LiveMapScreen(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF16181F).copy(alpha = 0.92f))
+                    .background(Color(0xFF16181F).copy(alpha = 0.78f))
                     .border(1.2.dp, Color(0xFF353945), CircleShape)
                     .clickable { liveMapViewModel.controller.centerOnMyLocation() },
                 contentAlignment = Alignment.Center
@@ -1149,7 +1149,7 @@ fun LiveMapScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .clip(RoundedCornerShape(14.dp))
-                        .background(DarkCardElevated.copy(alpha = 0.95f))
+                        .background(DarkCardElevated.copy(alpha = 0.78f))
                         .border(1.2.dp, DarkBorderProminent, RoundedCornerShape(14.dp))
                         .clickable { showConvoyDialog = true }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -1695,7 +1695,7 @@ fun LiveMapScreen(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(DarkCardElevated.copy(alpha = 0.92f))
+                    .background(DarkCardElevated.copy(alpha = 0.78f))
                     .border(
                         1.dp,
                         if (isBottomCockpitExpanded) HeritageCopper else DarkBorderSubtle,
@@ -1746,7 +1746,7 @@ fun LiveMapScreen(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(HeritageCardWarm.copy(alpha = 0.95f))
+                                .background(HeritageCardWarm.copy(alpha = 0.80f))
                                 .border(1.2.dp, EmeraldMesh, RoundedCornerShape(14.dp))
                                 .clickable { showMeshMonitor = true }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)

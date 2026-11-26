@@ -199,7 +199,7 @@ fun HudStatusChip(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(HeritageCardWarm.copy(alpha = 0.92f))
+            .background(HeritageCardWarm.copy(alpha = 0.78f))
             .border(1.dp, HeritageBorder, RoundedCornerShape(20.dp))
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 12.dp, vertical = 6.dp),
