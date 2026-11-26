@@ -1600,6 +1600,21 @@ fun LiveMapScreen(
                     },
                     onStop = { showStopReasonDialog = true }
                 )
+            } else if (deviationState.status == DeviationStatus.ARRIVED) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF064E3B).copy(alpha = 0.80f))
+                        .border(1.2.dp, Color(0xFF10B981), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                ) {
+                    Text(
+                        text = "🏁 Llegaste al destino",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
             } else if (deviationState.status == DeviationStatus.VOLUNTARY_STOP) {
                 Box(
                     modifier = Modifier
@@ -2714,9 +2729,16 @@ private fun MapLibreCorridorSurface(
                         density = context.resources.displayMetrics.density,
                         renderState = navCameraRenderState
                     )
-                    val desiredRouteKey = "${activeRoute?.id}:${if (isReturnPhase) "return" else "outbound"}"
+                    val desiredRouteKey = "${activeRoute?.id}:${if (isReturnPhase) "return" else "outbound"}:${(state.cameraLatitude * 10_000).toInt()}:${(state.cameraLongitude * 10_000).toInt()}"
                     if (desiredRouteKey != lastDrawnRouteId.value) {
-                        drawRouteOnMap(map, activeWaypoints)
+                        RouteProgressRenderer.drawProgressiveRoute(
+                            map = map,
+                            activeWaypoints = activeWaypoints,
+                            outboundWaypointsIfReturn = if (isReturnPhase) activeRoute?.waypoints.orEmpty() else emptyList(),
+                            riderLat = state.cameraLatitude,
+                            riderLon = state.cameraLongitude,
+                            ensureActiveLayers = ::ensureRouteLayers
+                        )
                         lastDrawnRouteId.value = desiredRouteKey
                     }
                 }
