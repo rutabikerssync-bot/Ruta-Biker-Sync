@@ -1336,3 +1336,8 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-25 — Formato de tarjeta de peer y transparencia de overlays sobre el mapa
 - `RiderMarker.kt`: reestructurada la tarjeta de detalle al tocar un peer en 3 bloques (cabecera, estado + antigüedad y métricas `km/h · Bat · Líder a ...`) para evitar saltos de línea sueltos como `1` / `m`, con fondo semitransparente (`alpha = 0.78f`).
 - `LiveMapScreen.kt`, `MapControls.kt`, `NavigationCameraControls.kt`: aplicado toque de transparencia (`alpha = 0.78f–0.85f`) a los elementos flotantes sobre el mapa (`HudStatusChip`, `MAPAS OFFLINE`, brújula `N`, `Re-centrar`, `Convoy`, `MONITOR MALLA` y cápsula de controles).
+
+### 2026-11-25 — Rol «Eres Líder» vs «Rutero» según el creador de la ruta en el manifiesto
+- `ConvoyLeaderResolver.kt` (nuevo): resuelve `leaderShortId` desde `manifest.hostLeaderId` / `statusKind == "leader"` sin tocar `core/crypto`.
+- `LiveMapScreen.kt`: configura `liveMapViewModel.controller.configureLocalIdentity(authorized.localShortId, resolvedLeaderId)` al iniciar o abrir cabina y muestra `"Eres Líder"` únicamente al líder y `"Rutero"` (o `"Rutero · Líder a ..."`) al resto.
+- Test: `ConvoyLeaderResolverTest` + `LiveMapViewModelTest`.
