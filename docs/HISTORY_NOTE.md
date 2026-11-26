@@ -1326,3 +1326,9 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 **Cambios:**
 - `NavigationCameraControls.kt` y `LiveMapScreen.kt`: eliminado el botón «Norte fijo» para mantener el mapa limpio (solo queda `Re-centrar` debajo de la brújula `N`); `isNorthLocked = true` y gestos de rotación deshabilitados siguen activos por código (`bearing = 0°`).
 - `LiveMapScreen.kt`: fallback de `loc.hasBearing()` cambiado de `180f` a `0f`; `MAPAS OFFLINE` y columna `N` + `Re-centrar` bajados con `statusBarsPadding()` + `padding(top = 56.dp)` para evitar solapamiento con el HUD superior.
+
+### 2026-11-25 — Validación en vivo con PostgreSQL 16 + Fastify online (TECNO y Redmi)
+- **Backend/DB:** PostgreSQL 16 (`5433`) y Fastify (`3000`) verificados con `http://localhost:3000/health` → `{"status":"ok","db":"ok"}` (`win_listen_5433=True`).
+- **Malla y `RideService` en vivo:** `RideService` activo en foreground (`isForeground=true foregroundId=3201`) en TECNO (`098813734B105395`) y Redmi (`b2c398bb`); `Convoy 2 riders` visible en UI; `HeartbeatRx shortId=26216 seq=2..3 rssi=-31..-32` en TECNO.
+- **PTT en vivo:** al pulsar `Hablar (PTT)` en Redmi se emitieron tramas Opus cifradas (`frame=0..239`) y TECNO las recibió y entregó al reproductor (`VoicePacketRx sender=26216 frame=0 last=false bytes=48`, `VoicePacketRx entregado al reproductor PTT frame=0`, `PttAudioEngine: Fin de ráfaga de voz PTT por inactividad`).
+- **Capturas de hardware:** `redmi_ptt_active.png` y `tecno_live_2riders.png` (en directorio scratch de la sesión).
