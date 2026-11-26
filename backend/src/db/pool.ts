@@ -96,6 +96,9 @@ export function createPgPool(connectionString?: string): Pool {
 export const pool: Pool = createPgPool();
 
 export function readInitMigrationSql(): string {
+  const migrationsDir = fs.existsSync(path.join(__dirname, 'migrations'))
+    ? path.join(__dirname, 'migrations')
+    : path.resolve(__dirname, '..', '..', 'src', 'db', 'migrations');
   const migrationFiles = [
     '0001_init.sql',
     '0002_phase2_rules.sql',
@@ -125,7 +128,7 @@ export function readInitMigrationSql(): string {
     '0026_promo_banners.sql'
   ];
   return migrationFiles
-    .map((file) => path.join(__dirname, 'migrations', file))
+    .map((file) => path.join(migrationsDir, file))
     .filter((filePath) => fs.existsSync(filePath))
     .map((filePath) => fs.readFileSync(filePath, 'utf8'))
     .join('\n');
