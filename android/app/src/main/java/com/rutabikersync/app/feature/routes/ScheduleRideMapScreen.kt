@@ -359,17 +359,21 @@ fun ScheduleRideMapScreen(
                 val points = altRoute.waypoints
                     .filter { it.latitude in 0.5..13.0 && it.longitude in -74.0..-59.0 && (it.latitude != 0.0 || it.longitude != 0.0) }
                     .map { LatLng(it.latitude, it.longitude) }
-                val altColor = if (idx == 0) "#94A3B8" else "#A78BFA"
+                val altColor = if (idx == 0) {
+                    com.rutabikersync.app.feature.livemap.RouteStrokeStyle.ALT_LINE_COLOR_PRIMARY
+                } else {
+                    com.rutabikersync.app.feature.livemap.RouteStrokeStyle.ALT_LINE_COLOR_SECONDARY
+                }
                 val p = map.addPolyline(
                     PolylineOptions()
                         .addAll(points)
                         .color(android.graphics.Color.parseColor(altColor))
-                        .width(4.5f)
+                        .width(com.rutabikersync.app.feature.livemap.RouteStrokeStyle.ALT_LINE_WIDTH)
                 )
                 polyMap[p] = altRoute.id
             }
 
-            // Dibujar encima la ruta seleccionada (Azul vibrante Google Maps)
+            // Dibujar encima la ruta seleccionada (Azul vibrante compartido con LiveMapScreen)
             val selected = currentSelectedRoute ?: availableRoutes.first()
             val selPoints = selected.waypoints
                 .filter { it.latitude in 0.5..13.0 && it.longitude in -74.0..-59.0 && (it.latitude != 0.0 || it.longitude != 0.0) }
@@ -377,8 +381,8 @@ fun ScheduleRideMapScreen(
             val selPolyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(selPoints)
-                    .color(android.graphics.Color.parseColor("#2563EB"))
-                    .width(6.5f)
+                    .color(android.graphics.Color.parseColor(com.rutabikersync.app.feature.livemap.RouteStrokeStyle.LINE_COLOR))
+                    .width(com.rutabikersync.app.feature.livemap.RouteStrokeStyle.LINE_WIDTH)
             )
             polyMap[selPolyline] = selected.id
             currentPolylineMap = polyMap
@@ -1006,9 +1010,9 @@ fun ScheduleRideMapScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.88f)),
+                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.78f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                border = BorderStroke(1.dp, HeritageBorder.copy(alpha = 0.70f))
+                border = BorderStroke(1.dp, HeritageBorder.copy(alpha = 0.65f))
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),
@@ -1422,9 +1426,9 @@ fun ScheduleRideMapScreen(
                     .padding(horizontal = 10.dp, vertical = 8.dp)
                     .animateContentSize(),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.92f)),
+                colors = CardDefaults.cardColors(containerColor = HeritageCard.copy(alpha = 0.80f)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                border = BorderStroke(1.2.dp, HeritageBorder.copy(alpha = 0.85f))
+                border = BorderStroke(1.2.dp, HeritageBorder.copy(alpha = 0.75f))
             ) {
                 Column(
                     modifier = Modifier
@@ -1479,7 +1483,7 @@ fun ScheduleRideMapScreen(
                                     modifier = Modifier
                                         .width(180.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) HeritageCardWarm.copy(alpha = 0.95f) else HeritageCard.copy(alpha = 0.72f))
+                                        .background(if (isSelected) HeritageCardWarm.copy(alpha = 0.82f) else HeritageCard.copy(alpha = 0.65f))
                                         .border(
                                             width = if (isSelected) 2.dp else 1.dp,
                                             color = if (isSelected) routeBadgeColor else HeritageBorder.copy(alpha = 0.6f),
@@ -1540,8 +1544,8 @@ fun ScheduleRideMapScreen(
                             ) {
                                 Text(
                                     text = activeRoute.roadCondition,
-                                    fontSize = 10.sp,
-                                    color = Color(0xFF1B4D3E),
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF34D399),
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 OutlinedButton(
@@ -1550,7 +1554,7 @@ fun ScheduleRideMapScreen(
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                     modifier = Modifier.height(28.dp)
                                 ) {
-                                    Text("⚙ Retorno", fontSize = 10.sp, color = HeritageLeatherBrown)
+                                    Text("⚙ Retorno", fontSize = 10.sp, color = Color.White)
                                 }
                             }
                         }
@@ -1558,7 +1562,7 @@ fun ScheduleRideMapScreen(
                         // Descarga offline visible para todos desde que hay un trazado elegido.
                         OutlinedButton(
                             onClick = { showCorridorDownloadDialog = true },
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = HeritageCardWarm.copy(alpha = 0.78f)),
                             border = BorderStroke(1.2.dp, HeritageCopper),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth().height(42.dp)
@@ -1570,12 +1574,12 @@ fun ScheduleRideMapScreen(
                                 Icon(
                                     Icons.Default.CloudDownload,
                                     contentDescription = null,
-                                    tint = HeritageCopperDark,
+                                    tint = HeritageCopper,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "📥 Guardar Mapa Offline (PMTiles)",
-                                    color = HeritageCopperDark,
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
                                 )
