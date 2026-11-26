@@ -10,9 +10,9 @@
 
 | Fase | Nombre | Estado | Alcance |
 | :--- | :--- | :--- | :--- |
-| **Fase 1** | Backend SQL + Endpoints de Cargos Personalizados y Decisiones Secretas | ⏳ **Pendiente** | Migración `0025`, `backend/src/lib/clubDecisions.ts`, rutas y tests Vitest |
+| **Fase 1** | Backend SQL + Endpoints de Cargos Personalizados y Decisiones Secretas | ✅ **Completada** | `0025`, `clubDecisions.ts`, `app.ts`, `185/185` tests verdes (`npm test`) |
 | **Fase 2** | Dominio Android + Repositorio + `ClubApiClient` | ⏳ **Pendiente** | Modelos en `ClubDomain.kt`, métodos HTTP, reglas de elegibilidad y tests JVM |
-| **Fase 3** | UI en **Mi Club**: botón «Agregar Cargo» y módulo «Decisiones» | ⏳ **Pendiente** | Pantallas/hojas *Dark Elite*, votación secreta, resultados y APK |
+| **Fase 3** | UI en **Mi Club**: botón «Agregar Cargo» y módulo «Decisiones» | ⏳ **Pendiente** | Pantallas/hojas *Dark Elite*, plantillas rápidas, votación secreta, resultados y APK |
 
 ---
 
@@ -31,13 +31,18 @@ Actualmente [ClubRole](file:///d:/Ruta-Biker-Sync/android/app/src/main/java/com/
 ### 2. Módulo «Decisiones» (Votación Secreta)
 Separado del módulo `leader_votes` (R14.2 sanciones entre líderes) para no romper las pruebas ni las reglas R14 existentes.
 
-- **¿Quién vota? (Audiencia configurable por votación):**
+- **¿Quién vota y quién ve la votación? (Visibilidad estricta):**
   Al crear una decisión se marca uno o más grupos habilitados (`allowed_audiences`):
   - `DIRECTIVA` (líderes / mesa directiva)
   - `FOUNDERS` (fundadores del club)
   - `FULL_MEMBERS` (miembros full)
   - `PROSPECTS` (prospectos)
-  *(Los invitados `GUEST` nunca participan en decisiones del club).*
+  *(Los invitados `GUEST` nunca participan ni ven decisiones del club).*
+  - **Regla de visibilidad:** el backend filtra `GET /v1/groups/:id/decisions` por membresía/rol real; quienes no pertenecen a `allowed_audiences` **no ven** esa votación en su lista.
+- **Regla de aprobación y quórum:**
+  - **Mayoría simple por defecto** (gana la opción con más votos válidos al cierre `state = 'closed'`).
+  - Campo opcional `min_quorum_percent` (`0`–`100`, defecto `0`): si es `> 0`, exige participación mínima sobre el padrón elegible.
+- **4 plantillas rápidas en UX (Fase 3):** `Ruta de salida`, `Ascenso de miembro`, `Fondo / Evento`, `Interna Directiva`.
 
 - **Secreto real del voto (en PostgreSQL):**
   Para garantizar que **ni la base de datos ni la directiva** puedan saber qué votó cada piloto:

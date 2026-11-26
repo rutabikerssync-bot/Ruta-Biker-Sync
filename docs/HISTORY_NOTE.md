@@ -1393,3 +1393,8 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-26 — Fix de wrap vertical en filas largas de Garage (TECNO)
 - `BikeGarageSection.kt`: aplicado `weight(1f, fill = false)` en títulos de componente (`Rodamientos (Rueda Delantera)`) y `maxLines = 1, softWrap = false` en el badge de estado (`• Al día`) y `"Toca para editar"` para evitar expansión vertical en pantallas estrechas. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 12s`).
+
+### 2026-11-26 — Fase 1 Mi Club: Cargos Personalizados y Decisiones Secretas (Backend)
+- `0025_club_custom_roles_and_decisions.sql` + `backend/src/db/pool.ts`: tablas `club_custom_roles`, `club_decisions`, `club_decision_receipts` (participación sin opción) y `club_decision_tallies` (conteos anónimos sin `user_id`), más `custom_role_id` en `memberships`. Registradas `0024` y `0025` en `readInitMigrationSql`.
+- `backend/src/lib/clubDecisions.ts` + `backend/src/app.ts`: endpoints de cargos personalizados (`/v1/groups/:id/custom-roles`, asignación con bloqueo P7 a `guest`) y decisiones secretas (`/v1/groups/:id/decisions`, `/v1/decisions/:decisionId/cast` transaccional con `FOR UPDATE`, `/close`), visibilidad estricta por `allowed_audiences` (`DIRECTIVA`, `FOUNDERS`, `FULL_MEMBERS`, `PROSPECTS`) y mayoría simple + `min_quorum_percent` opcional.
+- `backend/test/club_custom_roles_decisions.test.ts`: suite backend `28/28` archivos, `185/185` tests verdes contra PostgreSQL 16 real (`tsc --noEmit` sin errores).
