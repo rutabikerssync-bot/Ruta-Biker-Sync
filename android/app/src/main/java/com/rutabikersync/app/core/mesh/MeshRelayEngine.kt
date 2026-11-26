@@ -63,7 +63,9 @@ class MeshRelayEngine(
     private val relayScope: CoroutineScope? = null,
     private val onTransmitRelay: ((ByteArray) -> Unit)? = null,
     /** Cadencia real de emisión local; alimenta el suelo del timeout de peers (Fase 2). */
-    private val heartbeatIntervalProvider: () -> Long = { HEARTBEAT_INTERVAL_MS }
+    private val heartbeatIntervalProvider: () -> Long = { HEARTBEAT_INTERVAL_MS },
+    /** P0 auditoría 2026-11-25: en malla real (`!isSimulated`) no hay fallback fail-open sin manifiesto. */
+    private val requireAuthorization: Boolean = false
 ) {
     /**
      * Constructor secundario para la arquitectura Fase 6 (BLE Mesh Off-Grid, Hito 3).
@@ -1617,7 +1619,17 @@ class MeshRelayEngine(
         }
 
         val authorization = rideAuthorization
-        if (authorization != null && !authorization.isClubMember(packet.shortId)) {
+        if (authorization == null) {
+            if (requireAuthorization) {
+                android.util.Log.w(
+                    "MeshRelayEngine",
+                    "RosterFailClosed: sin manifiesto firmado activo, descartando shortId=${packet.shortId}"
+                )
+                synchronized(this) { invalidAuthDropped++ }
+                refreshStateFlows()
+                return RelayDecision.DroppedInvalidSignature("sin manifiesto firmado activo")
+            }
+        } else if (!authorization.isClubMember(packet.shortId)) {
             android.util.Log.w(
                 "MeshRelayEngine",
                 "RosterMismatch: shortId=${packet.shortId} no pertenece al manifiesto firmado"
