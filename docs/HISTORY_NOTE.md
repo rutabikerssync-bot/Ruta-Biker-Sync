@@ -1304,3 +1304,18 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - `:app:compileStandardDebugKotlin` y `:app:testStandardDebugUnitTest --tests "*LiveMapViewModelTest" --tests "*PttAudioEngine*"` → `BUILD SUCCESSFUL in 57s`.
 - `:app:assembleStandardDebug "-Prbs.pilot.rideId=43a2efba-8f15-46d7-9d88-4eb85655015d"` → `BUILD SUCCESSFUL in 59s`, SHA-256 `FC35B4B05907C878BB2EF5DB8E66052540E848B5D5AD6FDCE141E1D5741B4C82`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`).
 - UI verificada en dispositivo: `Re-centrar` visible bajo la brújula `N`, `Vista general` y `Modo limpio` ausentes, toque en mapa alterna `Controles de Cabina` / `Ocultar Controles`. Transmisión PTT en vivo pendiente de backend/manifiesto activo (`RideService.getActiveRelayEngine() != null`).
+
+### 2026-11-25 — Corrección de UI: PTT deshabilitado sin rodada, chip «Eres Líder» con moto y Norte fijo
+
+**Cambios y tests:**
+1. **PTT (`PttCabinaGate.kt`, `MapControls.kt`, `LiveMapScreen.kt`):**
+   - `GlovesPrimaryActionBar` deshabilita el botón `PTT` (`Inicia rodada`) cuando `RideService.getActiveRelayEngine() == null` y `PttCabinaGate.resolveAction(...)` devuelve `"Inicia la rodada para activar el PTT"`. Con rodada activa, usa `startCabinaPtt()` (`SosToneHub.setPttActive("cabina-ptt", true)`).
+   - Test: `PttCabinaGateTest` (casos activo e inactivo).
+2. **Etiqueta «Eres Líder» y alineación (`LiveMapScreen.kt`, `MapControls.kt`):**
+   - Reemplazado `"👑 Eres Líder"` + `Icons.Default.Shield` por `"Eres Líder"` + `AppIcons.Bike` (`Icons.Default.TwoWheeler`), con `Arrangement.Center` en `HudStatusChip`.
+   - Brújula `N`, `Re-centrar` y `Norte fijo` apilados en columna alineada (`Alignment.TopEnd`).
+3. **Orientación Norte fijo (`LiveMapViewModel.kt`, `NavigationCameraSurface.kt`, `NavigationCameraControls.kt`, `LiveMapScreen.kt`):**
+   - Añadido `isNorthLocked = true` por defecto en `LiveMapUiState` (`bearing = 0°` y gestos de rotación deshabilitados cuando está fijo) y chip `"Norte fijo"` / `"Rotar mapa"` mediante `toggleNorthLock()`.
+   - Test: `PttCabinaGateTest` + `LiveMapViewModelTest`.
+
+**APK:** `47B725A34515977216342170D82D07DD96D327E8A21945BE0DEA1914FC05DA3D`, instalado (`Success`) en TECNO (`098813734B105395`) y REDMI (`b2c398bb`). Verificado en UI: `Eres Líder`, `Re-centrar`, `Norte fijo`. Transmisión PTT en vivo pendiente de levantar PostgreSQL/backend.
