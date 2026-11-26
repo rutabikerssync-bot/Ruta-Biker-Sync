@@ -1411,3 +1411,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - `backend/src/index.ts` + `backend/test/health.test.ts` + `admin-dashboard/js/admin.js` + `backend/public/js/admin.js` (`ba0c7d9`): arranque fail-closed sin PostgreSQL (elimina mock vacío en runtime), validación de `/health` (`db: 'ok'`) y `/readyz`, y mensaje explícito `"🔴 Sin conexión con la BD"` en el backoffice. Suite `npm test` (`28/28` archivos, `185/185` tests) verde contra PostgreSQL 16 real.
 - `MainAppScaffold.kt` (`dc9995a`): inyección de `expectedPeerShortIds = authorized.authorizedShortIds` al iniciar rodada en `RidesReleaseHomeScreen`.
 - `BleAdvTransport.kt` + `BleAdvTransportWatchdogTest.kt` (`25d4de2`): watchdog de silencio en `ScanCallback` (`SCAN_WATCHDOG_SILENCE_MS = 60_000L`, `SCAN_WATCHDOG_CHECK_INTERVAL_MS = 30_000L`) para mitigar throttling de vendor MIUI/HyperOS. Suite `:app:testStandardDebugUnitTest` verde.
+
+### 2026-11-26 — Registro de `CameraModeManager` (cámara de navegación del Mapa en Vivo)
+- `CameraModeManager.kt` + `CameraModeManagerTest.kt`: máquina de estados de cámara (`FOLLOW_HEADING_3D`, `ROUTE_OVERVIEW`, `FREE_INSPECT`), auto-zoom por velocidad con histéresis (`zoomForSpeedKmh`) y congelamiento de rumbo en parado (`MIN_BEARING_SPEED_KMH = 5.0`), integrada en `LiveMapViewModel.kt`. Suite `:app:testStandardDebugUnitTest` verde.
