@@ -69,6 +69,8 @@ import com.rutabikersync.app.feature.auth.UserProfile
 import com.rutabikersync.app.feature.auth.Visibility
 import com.rutabikersync.app.feature.badges.BikerRank
 import com.rutabikersync.app.feature.badges.GamificationProfileScreen
+import com.rutabikersync.app.feature.profile.garage.BikeGarageRepository
+import com.rutabikersync.app.feature.profile.garage.GarageStatus
 import com.rutabikersync.app.feature.rides.RideHistoryScreen
 import com.rutabikersync.app.ui.components.AppIcons
 import com.rutabikersync.app.ui.components.HeritageAchievementBadge
@@ -90,6 +92,9 @@ fun ProfileScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { ProfileRepository(context) }
+    val garageRepository = remember { BikeGarageRepository(context) }
+    var garageState by remember { mutableStateOf(garageRepository.loadState()) }
+    var activeSection by remember { mutableStateOf(0) } // 0: Piloto, 1: Mi Moto, 2: Garage
     var profile by remember {
         mutableStateOf(
             repository.getUserProfile() ?: UserProfile(
@@ -371,6 +376,67 @@ fun ProfileScreen(
             }
         }
 
+        // Selector segmentado Dark Elite: Piloto | Mi Moto | Garage
+        val hasGarageAlerts = remember(garageState) {
+            garageRepository.evaluateAll(garageState).any { it.status != GarageStatus.OK }
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = Color(0xFF161922).copy(alpha = 0.82f),
+            border = BorderStroke(1.dp, Color(0xFF334155))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                listOf("Piloto", "Mi Moto", if (hasGarageAlerts) "Garage •" else "Garage")
+                    .forEachIndexed { idx, label ->
+                        val selected = activeSection == idx
+                        Surface(
+                            onClick = { activeSection = idx },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (selected) Color(0xFFE5B869).copy(alpha = 0.22f) else Color.Transparent,
+                            border = if (selected) BorderStroke(1.dp, Color(0xFFE5B869).copy(alpha = 0.7f)) else null
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (selected) Color(0xFFE5B869) else Color(0xFFCBD5E1),
+                                fontSize = 12.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(vertical = 9.dp)
+                            )
+                        }
+                    }
+            }
+        }
+
+        if (activeSection == 1) {
+            MotorcycleProfileSection(
+                profile = profile,
+                motoBitmap = motoBitmap,
+                coolingType = garageState.coolingType,
+                odometerKm = garageState.odometerKm,
+                onCoolingTypeChange = { newType ->
+                    garageState = garageRepository.saveState(garageState.copy(coolingType = newType))
+                },
+                onEditProfile = { showEditScreen = true }
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        } else if (activeSection == 2) {
+            BikeGarageSection(
+                state = garageState,
+                repository = garageRepository,
+                onStateChanged = { updated -> garageState = updated }
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        if (activeSection == 0) {
         // 2. Placa Biselada: Rango y Experiencia (XP) - Clickable para abrir perfil de gamificación
         HeritageBevelCard(
             modifier = Modifier
@@ -660,150 +726,7 @@ fun ProfileScreen(
             )
         }
 
-        // 6. Ficha Técnica de la Motocicleta (Con foto si existe)
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            color = Color(0xFF161922),
-            border = BorderStroke(1.dp, Color(0xFF2A3142))
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "🏍️ Ficha de Motocicleta",
-                        color = Color(0xFFE5B869),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        text = profile.motorcycleVisibility.label,
-                        color = Color(0xFF64748B),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (motoBitmap != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(140.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .border(1.dp, Color(0xFF333B4F), RoundedCornerShape(10.dp))
-                    ) {
-                        Image(
-                            bitmap = motoBitmap,
-                            contentDescription = "Foto de la moto",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(text = "Modelo", color = Color(0xFF64748B), fontSize = 11.sp)
-                        Text(
-                            text = profile.motorcycleModel.ifBlank { "BMW R1250GS" },
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column {
-                        Text(text = "Cilindrada", color = Color(0xFF64748B), fontSize = 11.sp)
-                        Text(
-                            text = if (profile.motorcycleDisplacement > 0) "${profile.motorcycleDisplacement} cc" else "1254 cc",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Column {
-                        Text(text = "Año", color = Color(0xFF64748B), fontSize = 11.sp)
-                        Text(
-                            text = if (profile.motorcycleYear > 0) "${profile.motorcycleYear}" else "2024",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                if (profile.motorcycleColor.isNotBlank() || profile.motorcycleSerial.isNotBlank()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        if (profile.motorcycleColor.isNotBlank()) {
-                            Column {
-                                Text(text = "Color", color = Color(0xFF64748B), fontSize = 11.sp)
-                                Text(
-                                    text = profile.motorcycleColor,
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                        if (profile.motorcycleSerial.isNotBlank()) {
-                            Column {
-                                Text(text = "Serial / VIN", color = Color(0xFF64748B), fontSize = 11.sp)
-                                Text(
-                                    text = profile.motorcycleSerial,
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 7. Botón Principal: Editar Perfil de Piloto y Moto (Latón Estampado Dark Elite)
-        Surface(
-            onClick = { showEditScreen = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp),
-            color = Color(0xFF1F2630),
-            border = BorderStroke(1.2.dp, Color(0xFFD4AF37))
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = Color(0xFFD4AF37),
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = "Editar Perfil (Moto y Pin)",
-                    color = Color(0xFFD4AF37),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // 8. Botón Inferior: Centro de Soporte Técnico y FAQ
+        // 6. Botón Inferior: Centro de Soporte Técnico y FAQ
         Surface(
             onClick = {
                 isSuggestionMode = false
@@ -811,8 +734,8 @@ fun ProfileScreen(
             },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
-            color = Color(0xFF181C26),
-            border = BorderStroke(1.dp, Color(0xFF2E374A))
+            color = Color(0xFF181C26).copy(alpha = 0.82f),
+            border = BorderStroke(1.dp, Color(0xFF334155))
         ) {
             Row(
                 modifier = Modifier
@@ -848,7 +771,7 @@ fun ProfileScreen(
                         )
                         Text(
                             text = "Reportar problemas o consultar preguntas frecuentes",
-                            color = Color(0xFF94A3B8),
+                            color = Color(0xFFCBD5E1),
                             fontSize = 11.sp
                         )
                     }
@@ -856,11 +779,12 @@ fun ProfileScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = null,
-                    tint = Color(0xFF94A3B8),
+                    tint = Color(0xFFCBD5E1),
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
+        } // fin activeSection == 0
 
         Spacer(modifier = Modifier.height(24.dp))
     }
