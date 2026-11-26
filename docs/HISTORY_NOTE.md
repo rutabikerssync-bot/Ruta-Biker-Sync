@@ -1387,3 +1387,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-26 — Banners hero en las 4 tarjetas de Garage
 - `drawable-nodpi/garage_{seguridad_critica,tren_motriz,fluidos_electrico,bitacora_averias}.png` + `BikeGarageSection.kt`: integradas las 4 imágenes temáticas *Dark Elite* como banners superiores (`94.dp`, `ContentScale.Crop` + degradado hacia `#121620`) en cada tarjeta del módulo **Garage**. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 30s`).
+
+### 2026-11-26 — Imagen hero Chopper/Custom en cuadro principal de Garage
+- `drawable-nodpi/garage_odometro_hero.png` + `BikeGarageSection.kt`: integrada la imagen estilo Chopper/Custom como fondo del cuadro **ODÓMETRO · GARAGE** con velo horizontal graduado (`0xD90E131D` → `0x59121824`) para mantener contraste en el odómetro y semáforos. `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` verdes (`BUILD SUCCESSFUL in 1m 22s`).
