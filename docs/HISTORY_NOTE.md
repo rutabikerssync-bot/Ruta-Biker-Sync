@@ -1349,3 +1349,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-25 — Coloreado progresivo de ruta recorrida y bloqueo de recálculo al llegar al destino
 - `RouteProgressRenderer.kt` & `RouteProgressRendererTest.kt`: divide la polilínea activa por proyección ortogonal en tramo recorrido (`#64748B`, gris pizarra) y pendiente (`#2563EB`, azul vibrante); en fase de retorno mantiene visible el tramo de ida recorrido hasta finalizar la rodada.
 - `RouteDeviationDetector.kt` & `LiveMapScreen.kt`: añadido estado `DeviationStatus.ARRIVED` (`DESTINATION_ARRIVAL_RADIUS_METERS = 120`) con bloqueo `hasArrivedDestination` para evitar que al llegar cerca del destino siga marcando en ruta y recalculando en bucle.
+
+### 2026-11-25 — Transparencia uniforme en banners, tarjeta de ruta por malla y diálogo de señales
+- `LiveMapScreen.kt`: aplicada transparencia (`alpha = 0.78f–0.84f`) al banner de estado (`actionFeedback`), tarjeta `"Ruta por Malla (Hash verificado)"` y diálogo `"SEÑALES RÁPIDAS DE CONVOY"`.
