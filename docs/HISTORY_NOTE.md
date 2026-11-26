@@ -1332,3 +1332,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - **Malla y `RideService` en vivo:** `RideService` activo en foreground (`isForeground=true foregroundId=3201`) en TECNO (`098813734B105395`) y Redmi (`b2c398bb`); `Convoy 2 riders` visible en UI; `HeartbeatRx shortId=26216 seq=2..3 rssi=-31..-32` en TECNO.
 - **PTT en vivo:** al pulsar `Hablar (PTT)` en Redmi se emitieron tramas Opus cifradas (`frame=0..239`) y TECNO las recibió y entregó al reproductor (`VoicePacketRx sender=26216 frame=0 last=false bytes=48`, `VoicePacketRx entregado al reproductor PTT frame=0`, `PttAudioEngine: Fin de ráfaga de voz PTT por inactividad`).
 - **Capturas de hardware:** `redmi_ptt_active.png` y `tecno_live_2riders.png` (en directorio scratch de la sesión).
+
+### 2026-11-25 — Formato de tarjeta de peer y transparencia de overlays sobre el mapa
+- `RiderMarker.kt`: reestructurada la tarjeta de detalle al tocar un peer en 3 bloques (cabecera, estado + antigüedad y métricas `km/h · Bat · Líder a ...`) para evitar saltos de línea sueltos como `1` / `m`, con fondo semitransparente (`alpha = 0.78f`).
+- `LiveMapScreen.kt`, `MapControls.kt`, `NavigationCameraControls.kt`: aplicado toque de transparencia (`alpha = 0.78f–0.85f`) a los elementos flotantes sobre el mapa (`HudStatusChip`, `MAPAS OFFLINE`, brújula `N`, `Re-centrar`, `Convoy`, `MONITOR MALLA` y cápsula de controles).
