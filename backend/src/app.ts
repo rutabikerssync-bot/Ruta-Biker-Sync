@@ -117,6 +117,15 @@ import {
   listCustomRoles,
   listVisibleDecisionsForUser
 } from './lib/clubDecisions.js';
+import {
+  PromoBannerCreateSchema,
+  PromoBannerUpdateSchema,
+  createPromoBanner,
+  deletePromoBanner,
+  listActivePromoBanners,
+  listAllPromoBannersAdmin,
+  updatePromoBanner
+} from './lib/promoBanners.js';
 import { FcmService, defaultFcmService, type SendResult } from './lib/fcm.js';
 import { NOTIFICATION_TYPES, type NotificationType } from './lib/notificationTypes.js';
 import { calculateBearingDegrees, degreesToCardinal, formatSosAlertText } from './lib/geo.js';
@@ -5892,6 +5901,44 @@ export async function buildApp({
     const limit = q.limit ? parseInt(q.limit, 10) : 50;
     const logs = await listAdminAuditLogs(db, limit);
     return { logs };
+  });
+
+  // 17.5 Banners / Modales Promocionales (gestionados desde Soporte / Backoffice)
+  app.get('/v1/announcements/active', async () => {
+    const banners = await listActivePromoBanners(db);
+    return { banners };
+  });
+
+  app.get('/v1/admin/promo-banners', { preHandler: requireAdminAuth }, async () => {
+    const banners = await listAllPromoBannersAdmin(db);
+    return { banners };
+  });
+
+  app.post('/v1/admin/promo-banners', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const parsed = PromoBannerCreateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const created = await createPromoBanner(db, parsed.data);
+    return reply.code(201).send(created);
+  });
+
+  app.patch('/v1/admin/promo-banners/:id', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = PromoBannerUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    }
+    const updated = await updatePromoBanner(db, id, parsed.data);
+    if (!updated) return reply.code(404).send({ error: 'PROMO_BANNER_NOT_FOUND' });
+    return updated;
+  });
+
+  app.delete('/v1/admin/promo-banners/:id', { preHandler: requireAdminAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const deleted = await deletePromoBanner(db, id);
+    if (!deleted) return reply.code(404).send({ error: 'PROMO_BANNER_NOT_FOUND' });
+    return { deleted: true, id };
   });
 
 

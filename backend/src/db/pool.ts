@@ -121,7 +121,8 @@ export function readInitMigrationSql(): string {
     '0022_sos_public_keys.sql',
     '0023_notification_send_guard.sql',
     '0024_user_bike_garage.sql',
-    '0025_club_custom_roles_and_decisions.sql'
+    '0025_club_custom_roles_and_decisions.sql',
+    '0026_promo_banners.sql'
   ];
   return migrationFiles
     .map((file) => path.join(__dirname, 'migrations', file))
