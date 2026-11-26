@@ -1345,3 +1345,7 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 ### 2026-11-25 — Estilo unificado de línea de ruta (#2563EB) y transparencia/contraste en creación de ruta
 - `RouteStrokeStyle.kt` & `RouteStrokeStyleTest.kt`: unificado el estilo de línea activa al azul de creación de ruta (`LINE_COLOR = "#2563EB"`, `LINE_WIDTH = 6.5f`, `HALO_COLOR = "#1E3A8A"`, `HALO_WIDTH = 12f`) más constantes de rutas alternativas (`ALT_LINE_COLOR_PRIMARY = "#94A3B8"`, `ALT_LINE_COLOR_SECONDARY = "#A78BFA"`, `ALT_LINE_WIDTH = 4.5f`), compartido entre `ScheduleRideMapScreen` y `LiveMapScreen` (`drawRouteOnMap`).
 - `ScheduleRideMapScreen.kt`: aplicadas tarjetas semitransparentes (`alpha = 0.78f–0.82f`) sobre el mapa y corregido contraste en texto de estado vial (`#34D399`), botón `Retorno` y `Guardar Mapa Offline (PMTiles)` (`Color.White`).
+
+### 2026-11-25 — Coloreado progresivo de ruta recorrida y bloqueo de recálculo al llegar al destino
+- `RouteProgressRenderer.kt` & `RouteProgressRendererTest.kt`: divide la polilínea activa por proyección ortogonal en tramo recorrido (`#64748B`, gris pizarra) y pendiente (`#2563EB`, azul vibrante); en fase de retorno mantiene visible el tramo de ida recorrido hasta finalizar la rodada.
+- `RouteDeviationDetector.kt` & `LiveMapScreen.kt`: añadido estado `DeviationStatus.ARRIVED` (`DESTINATION_ARRIVAL_RADIUS_METERS = 120`) con bloqueo `hasArrivedDestination` para evitar que al llegar cerca del destino siga marcando en ruta y recalculando en bucle.
