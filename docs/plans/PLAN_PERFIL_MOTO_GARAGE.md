@@ -10,7 +10,7 @@
 | :--- | :--- | :--- | :--- |
 | **Fase 1** | Base visual, `Piloto / Mi Moto / Garage`, motor de reglas y UI base | ✅ **Completada** | `5f1fd05` (`:app:testStandardDebugUnitTest` verde) |
 | **Fase 2** | Edición detallada de subcampos por componente + suma automática de `MeshOdometer` | ✅ **Completada** | `:app:testStandardDebugUnitTest` verde (`1m 30s`) |
-| **Fase 3** | Sincronización / respaldo en Backend PostgreSQL (`/v1/users/me/garage`) | ⏳ **Opcional / Pendiente** | Por definir tras validar Fase 2 en hardware |
+| **Fase 3** | Sincronización / respaldo en Backend PostgreSQL (`/v1/users/me/garage`) | ✅ **Completada** | `tsc --noEmit` + `user_garage.test.ts` (`4/4`) + `:app:testStandardDebugUnitTest` (`1m 7s`) |
 
 ---
 
@@ -52,8 +52,8 @@
 
 ---
 
-## Fase 3 — Respaldo en Backend PostgreSQL (⏳ Opcional / Futuro)
+## Fase 3 — Respaldo en Backend PostgreSQL (✅ Completada)
 
-1. Migración SQL en `backend/src/db/` para almacenar el JSON/estado del Garage por usuario (`user_bike_garage`).
-2. Endpoints autenticados `GET /v1/users/me/garage` y `PUT /v1/users/me/garage`.
-3. Sincronización offline-first desde Android cuando haya conectividad.
+1. Migración SQL [0024_user_bike_garage.sql](file:///d:/Ruta-Biker-Sync/backend/src/db/migrations/0024_user_bike_garage.sql) (`user_bike_garage` con `garage_state JSONB` y `updated_at`).
+2. Helper [garage.ts](file:///d:/Ruta-Biker-Sync/backend/src/lib/garage.ts) + endpoints autenticados `GET /v1/users/me/garage` y `PUT /v1/users/me/garage` en `backend/src/app.ts` (`4/4` tests en `backend/test/user_garage.test.ts`).
+3. Sincronización offline-first desde Android (`ClubApiClient.fetchBikeGarage` / `saveBikeGarage`, `BikeGarageRepository.syncFromBackend` / `pushToBackend` y enlace en `ProfileScreen.kt`).
