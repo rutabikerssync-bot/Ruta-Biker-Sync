@@ -14,7 +14,8 @@ import kotlin.math.sqrt
 enum class DeviationStatus {
     ON_TRACK,        // Siguiendo la ruta dentro del umbral (< 150m)
     DEVIATED,        // Fuera de la ruta (> 150m) - Alerta activa
-    VOLUNTARY_STOP   // Parada voluntaria ("Voy a parar") - Alerta silenciada
+    VOLUNTARY_STOP,  // Parada voluntaria ("Voy a parar") - Alerta silenciada
+    ARRIVED          // Llegó cerca del destino: detiene recálculo repetitivo
 }
 
 /**
@@ -51,9 +52,11 @@ object RouteDeviationDetector {
     const val DEVIATION_THRESHOLD_METERS = 150 // Margen de desvío para disparar alerta
     const val DEVIATION_SUSTAIN_DURATION_MS = 10_000L // Histéresis: evita alertas ruidosas por jitter GPS
     const val AUTO_RESUME_SPEED_THRESHOLD_KMH = 18f // Velocidad para reanudar marcha tras parada voluntaria
+    const val DESTINATION_ARRIVAL_RADIUS_METERS = 120 // Radio de llegada al destino
 
     private val _deviationState = MutableStateFlow(RouteDeviationState())
     private var deviationStartedAtMs: Long? = null
+    private var hasArrivedDestination: Boolean = false
     val deviationState: StateFlow<RouteDeviationState> = _deviationState.asStateFlow()
 
     private var activePolyline: List<LatLngPoint> = emptyList()
@@ -65,6 +68,7 @@ object RouteDeviationDetector {
         activePolyline = points
         // Una ruta nueva inicia una ventana nueva de estudio del corredor.
         deviationStartedAtMs = null
+        hasArrivedDestination = false
     }
 
     /**
@@ -98,6 +102,23 @@ object RouteDeviationDetector {
                 status = DeviationStatus.ON_TRACK,
                 distanceToRouteMeters = 0,
                 isAlertActive = false,
+                lastKnownLocation = location,
+                speedKmh = speedKmh
+            )
+            return
+        }
+
+        val destination = activePolyline.last()
+        val distToDestMeters = distancePointToSegmentMeters(location, destination, destination).toInt()
+        if (hasArrivedDestination || distToDestMeters <= DESTINATION_ARRIVAL_RADIUS_METERS) {
+            hasArrivedDestination = true
+            deviationStartedAtMs = null
+            _deviationState.value = RouteDeviationState(
+                status = DeviationStatus.ARRIVED,
+                distanceToRouteMeters = 0,
+                isAlertActive = false,
+                stopReason = null,
+                stopStartedAtMillis = null,
                 lastKnownLocation = location,
                 speedKmh = speedKmh
             )
