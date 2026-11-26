@@ -320,7 +320,8 @@ class RideSessionController(
             // crea más abajo. El lambda se evalúa tarde, así que no hay orden de init frágil.
             heartbeatIntervalProvider = {
                 heartbeatScheduler?.currentIntervalMs ?: HEARTBEAT_INTERVAL_MS
-            }
+            },
+            requireAuthorization = !isSimulated
         )
         // P0 cierre final: el manifiesto verificado es la única fuente de pertenencia
         // al convoy Y de las claves públicas SOS. Sin resolver, SOS/ACK se descartan.
@@ -1716,6 +1717,9 @@ class RideService : Service() {
         instance = this
         super.onCreate()
         rideStateStore = RideServiceStateStore(applicationContext)
+        // P0 auditoría 2026-11-25: disponible también cuando el proceso nace solo
+        // para atender un START_STICKY.
+        com.rutabikersync.app.core.crypto.RideManifestKeyProvider.initialize(applicationContext)
         createNotificationChannelIfNeeded()
         controller = RideSessionController(
             scope = serviceScope,
@@ -1965,6 +1969,21 @@ class RideService : Service() {
         controller.recordStartError(null)
         seedLocalTelemetryFromCache()
         serviceScope.launch {
+            // P0 auditoría 2026-11-25: la restauración ya no confía en la clave
+            // persistida. Exige manifiesto verificado (memoria o disco) y que el
+            // shortId local siga en el roster firmado; si no, fail-closed.
+            val restoredAuth = com.rutabikersync.app.core.crypto.RideManifestKeyProvider
+                .resolveOffline(params.rideId)
+            if (restoredAuth == null || params.localShortId !in restoredAuth.authorizedShortIds) {
+                Log.e(
+                    TAG,
+                    "Restauración rechazada: manifiesto no verificable sin red (ride=${params.rideId})"
+                )
+                controller.recordStartError("Manifiesto no verificable sin red")
+                _sharedState.value = controller.state.value
+                updateForegroundNotification(controller.state.value.notification)
+                return@launch
+            }
             val state = controller.startRide(
                 rideId = params.rideId,
                 localShortId = params.localShortId,

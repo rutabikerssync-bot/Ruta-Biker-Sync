@@ -25,6 +25,8 @@ class App : Application() {
         // Alcance de aplicación: el SOS suena aunque no exista cabina/Compose montada.
         SosToneHub.ensureInitialized(this)
         com.rutabikersync.app.core.mesh.sos.SosSigningHub.initialize(this)
+        // P0 auditoría 2026-11-25: caché cifrada del manifiesto para arrancar sin red.
+        com.rutabikersync.app.core.crypto.RideManifestKeyProvider.initialize(this)
         applicationScope.launch {
             RideService.sharedState
                 .distinctUntilChangedBy { it.isSosActive }

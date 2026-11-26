@@ -1,5 +1,6 @@
 package com.rutabikersync.app.core.crypto
 
+import android.content.Context
 import com.rutabikersync.app.core.mesh.sos.Ed25519SosCrypto
 import com.rutabikersync.app.core.mesh.sos.InMemorySosPublicKeyResolver
 import com.rutabikersync.app.core.mesh.sos.SosPublicKeyResolver
@@ -41,6 +42,26 @@ object RideManifestKeyProvider {
 
     private val mutex = Mutex()
     private val cache = mutableMapOf<String, AuthorizedRide>()
+
+    /**
+     * P0 auditoría 2026-11-25: copia cifrada del manifiesto en disco para poder
+     * arrancar la malla sin red (proceso muerto, reinicio, backend caído).
+     * Se instala desde [App] y [RideService]; si es `null` el comportamiento es
+     * el anterior (solo memoria).
+     */
+    @Volatile
+    private var diskCache: RideManifestDiskCache? = null
+
+    fun initialize(context: Context) {
+        if (diskCache == null) {
+            diskCache = RideManifestDiskCache(context.applicationContext)
+        }
+    }
+
+    /** Solo tests: permite inyectar una caché JVM sin `Context`. */
+    internal fun installDiskCacheForTest(cache: RideManifestDiskCache?) {
+        diskCache = cache
+    }
 
     /**
      * Deriva el shortId de un participante a partir de la clave pública
@@ -92,6 +113,58 @@ object RideManifestKeyProvider {
         runCatching { apiClient.publishSosPublicKey(rawBase64) }
     }
 
+    /**
+     * Verifica un token de manifiesto y construye [AuthorizedRide]. Única puerta de
+     * entrada, compartida por la ruta de red y la de disco: nunca se confía en el
+     * origen, solo en la firma Ed25519 del backend.
+     */
+    private fun authorize(
+        rideId: String,
+        manifestToken: String,
+        publicKeys: Map<String, String>,
+        participantUid: String,
+        nowEpochSec: Long
+    ): AuthorizedRide? {
+        if (manifestToken.isBlank()) return null
+        val keyring = AndroidCredentialKeyring()
+        publicKeys.forEach { (kid, spki) ->
+            runCatching { keyring.importPublicKeySpkiBase64(kid, spki) }
+        }
+
+        // Los publicKeys del backend son kid -> SPKI Base64. Se importan en un
+        // llavero efímero: el manifiesto se verifica contra la firma del servidor,
+        // no contra claves generadas en este móvil.
+        val outcome = OfflineCredentialVerifier.verifyRideManifest(
+            manifestToken = manifestToken,
+            keyring = keyring,
+            nowEpochSec = nowEpochSec,
+            requireParticipantUid = participantUid
+        )
+        val payload = outcome.payload?.takeIf { outcome.valid } ?: return null
+        if (payload.rideId != rideId) return null
+        if (payload.isCompletedRide()) return null
+        val key = payload.resolveRideSecretKey() ?: return null
+        val participant = payload.participants.firstOrNull { it.uid == participantUid }
+            ?: return null
+        if (participant.gid !in payload.groupIds) return null
+        val localPk = participant.pk?.trim().takeUnless { it.isNullOrBlank() }
+            ?: return null
+        val sosResolver = buildSosPublicKeyResolver(payload) ?: return null
+
+        return AuthorizedRide(
+            rideId = payload.rideId,
+            manifest = payload,
+            rideSecretKey = key,
+            participantUid = participantUid,
+            groupIds = payload.groupIds.toSet(),
+            authorizedShortIds = payload.participants.mapNotNull { p ->
+                p.pk?.trim()?.takeIf { it.isNotBlank() }?.let(::shortIdFromParticipantPublicKey)
+            }.toSet(),
+            localShortId = shortIdFromParticipantPublicKey(localPk),
+            sosPublicKeyResolver = sosResolver
+        )
+    }
+
     suspend fun resolve(
         rideId: String,
         currentUserId: String?,
@@ -106,59 +179,74 @@ object RideManifestKeyProvider {
             if (!forceRefresh) cache[rideId]?.let { return@withLock it }
 
             publishLocalSosKey(apiClient)
-            val response = apiClient.fetchRideManifest(rideId).getOrNull()
+            val body = apiClient.fetchRideManifest(rideId).getOrNull()
                 ?.takeIf { it.isSuccess }
-                ?: return@withLock null
-            val body = response.body ?: return@withLock null
-            val token = body["manifest"]?.jsonPrimitive?.contentOrNull
+                ?.body
+            val token = body?.get("manifest")?.jsonPrimitive?.contentOrNull
                 ?.trim().takeUnless { it.isNullOrBlank() }
-                ?: return@withLock null
 
-            // Los publicKeys del backend son kid -> SPKI Base64. Se importan en un
-            // llavero efímero: el manifiesto se verifica contra la firma del servidor,
-            // no contra claves generadas en este móvil.
-            val keyring = AndroidCredentialKeyring()
-            body["publicKeys"]?.jsonObject?.entries?.forEach { (kid, value) ->
-                val spki = runCatching { value.jsonPrimitive.contentOrNull }.getOrNull()
-                if (!spki.isNullOrBlank()) {
-                    runCatching { keyring.importPublicKeySpkiBase64(kid, spki) }
+            if (body != null && token != null) {
+                val publicKeys = body["publicKeys"]?.jsonObject?.entries?.mapNotNull { (kid, value) ->
+                    val spki = runCatching { value.jsonPrimitive.contentOrNull }.getOrNull()
+                    if (spki.isNullOrBlank()) null else kid to spki
+                }?.toMap().orEmpty()
+
+                val authorized = authorize(rideId, token, publicKeys, uid, nowEpochSec)
+                if (authorized != null) {
+                    cache[rideId] = authorized
+                    // Solo se persiste lo que ya se verificó con firma válida.
+                    diskCache?.save(
+                        RideManifestDiskCache.Entry(
+                            rideId = rideId,
+                            manifestToken = token,
+                            publicKeys = publicKeys,
+                            participantUid = uid,
+                            savedAtEpochSec = nowEpochSec
+                        )
+                    )
                 }
+                return@withLock authorized
             }
 
-            val outcome = OfflineCredentialVerifier.verifyRideManifest(
-                manifestToken = token,
-                keyring = keyring,
-                nowEpochSec = nowEpochSec,
-                requireParticipantUid = uid
-            )
-            val payload = outcome.payload?.takeIf { outcome.valid } ?: return@withLock null
-            if (payload.isCompletedRide()) return@withLock null
-            val key = payload.resolveRideSecretKey() ?: return@withLock null
-            val participant = payload.participants.firstOrNull { it.uid == uid }
-                ?: return@withLock null
-            if (participant.gid !in payload.groupIds) return@withLock null
-            val localPk = participant.pk?.trim().takeUnless { it.isNullOrBlank() }
-                ?: return@withLock null
-            val sosResolver = buildSosPublicKeyResolver(payload) ?: return@withLock null
-
-            val authorized = AuthorizedRide(
-                rideId = payload.rideId,
-                manifest = payload,
-                rideSecretKey = key,
-                participantUid = uid,
-                groupIds = payload.groupIds.toSet(),
-                authorizedShortIds = payload.participants.mapNotNull { p ->
-                    p.pk?.trim()?.takeIf { it.isNotBlank() }?.let(::shortIdFromParticipantPublicKey)
-                }.toSet(),
-                localShortId = shortIdFromParticipantPublicKey(localPk),
-                sosPublicKeyResolver = sosResolver
-            )
-            cache[rideId] = authorized
-            authorized
+            // Sin red o respuesta inutilizable: copia verificada en disco.
+            loadFromDiskLocked(rideId, nowEpochSec)?.also { cache[rideId] = it }
         }
+    }
+
+    /**
+     * Resuelve el manifiesto sin tocar la red. Pensado para `START_STICKY` y para
+     * cualquier arranque de malla en carretera sin cobertura. La copia de disco se
+     * re-verifica igual que la de red; si no hay copia válida devuelve `null` y la
+     * malla no debe arrancar (fail-closed).
+     */
+    suspend fun resolveOffline(
+        rideId: String,
+        nowEpochSec: Long = System.currentTimeMillis() / 1000L
+    ): AuthorizedRide? {
+        cache[rideId]?.let { return it }
+        return mutex.withLock {
+            cache[rideId]?.let { return@withLock it }
+            loadFromDiskLocked(rideId, nowEpochSec)?.also { cache[rideId] = it }
+        }
+    }
+
+    private fun loadFromDiskLocked(rideId: String, nowEpochSec: Long): AuthorizedRide? {
+        val entry = diskCache?.load(rideId, nowEpochSec) ?: return null
+        return authorize(
+            rideId = rideId,
+            manifestToken = entry.manifestToken,
+            publicKeys = entry.publicKeys,
+            participantUid = entry.participantUid,
+            nowEpochSec = nowEpochSec
+        )
     }
 
     fun cached(rideId: String): AuthorizedRide? = cache[rideId]
 
     fun clear() = cache.clear()
+
+    /** Borra la copia en disco de una rodada (al detenerla o al completarla). */
+    fun clearDisk(rideId: String) {
+        diskCache?.clear(rideId)
+    }
 }
