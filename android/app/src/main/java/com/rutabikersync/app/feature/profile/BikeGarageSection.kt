@@ -1,6 +1,8 @@
 package com.rutabikersync.app.feature.profile
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,9 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.rutabikersync.app.R
 import com.rutabikersync.app.feature.profile.garage.BikeGarageRepository
 import com.rutabikersync.app.feature.profile.garage.BikeGarageState
 import com.rutabikersync.app.feature.profile.garage.ComponentEvaluation
@@ -198,7 +204,10 @@ fun BikeGarageSection(
         }
 
         // 2. Seguridad Crítica (Neumáticos y Frenos)
-        GarageGroupCard(title = "🛡️ Seguridad Crítica (Neumáticos y Frenos)") {
+        GarageGroupCard(
+            title = "🛡️ Seguridad Crítica (Neumáticos y Frenos)",
+            bannerResId = R.drawable.garage_seguridad_critica
+        ) {
             evalById["tire_front"]?.let { eval ->
                 GarageComponentRow(
                     eval = eval,
@@ -280,7 +289,10 @@ fun BikeGarageSection(
         }
 
         // 3. Tren Motriz y Transmisión (incluye Filtro de Aceite, Aire y Gasolina)
-        GarageGroupCard(title = "⚙️ Tren Motriz, Filtros y Transmisión") {
+        GarageGroupCard(
+            title = "⚙️ Tren Motriz, Filtros y Transmisión",
+            bannerResId = R.drawable.garage_tren_motriz
+        ) {
             evalById["engine_oil"]?.let { eval ->
                 GarageComponentRow(
                     eval = eval,
@@ -408,7 +420,10 @@ fun BikeGarageSection(
         }
 
         // 4. Fluidos y Eléctrico
-        GarageGroupCard(title = "🔋 Fluidos y Sistema Eléctrico") {
+        GarageGroupCard(
+            title = "🔋 Fluidos y Sistema Eléctrico",
+            bannerResId = R.drawable.garage_fluidos_electrico
+        ) {
             evalById["brake_fluid"]?.let { eval ->
                 GarageComponentRow(
                     eval = eval,
@@ -471,7 +486,10 @@ fun BikeGarageSection(
         }
 
         // 5. Bitácora de Averías y Gastos
-        GarageGroupCard(title = "📒 Bitácora de Averías y Gastos") {
+        GarageGroupCard(
+            title = "📒 Bitácora de Averías y Gastos",
+            bannerResId = R.drawable.garage_bitacora_averias
+        ) {
             val totalUsd = repository.totalExpensesUsd(state)
             val costPerKm = repository.costPerKmUsd(state)
             Row(
@@ -694,6 +712,7 @@ private fun SemaphorePill(text: String, color: Color, modifier: Modifier = Modif
 @Composable
 private fun GarageGroupCard(
     title: String,
+    @DrawableRes bannerResId: Int? = null,
     content: @Composable () -> Unit
 ) {
     Box(
@@ -710,40 +729,102 @@ private fun GarageGroupCard(
             )
             .border(1.dp, Color(0xFF334155), RoundedCornerShape(16.dp))
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column {
+            if (bannerResId != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(94.dp)
                 ) {
+                    Image(
+                        painter = painterResource(id = bannerResId),
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                     Box(
                         modifier = Modifier
-                            .width(3.dp)
-                            .height(16.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color(0xFFE5B869))
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0x220B0F17),
+                                        Color(0xE6121620)
+                                    )
+                                )
+                            )
                     )
-                    Text(
-                        text = title,
-                        color = Color(0xFFE5B869),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFFE5B869))
+                            )
+                            Text(
+                                text = title,
+                                color = Color(0xFFE5B869),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = "Toca para editar",
+                            color = Color(0xFFCBD5E1),
+                            fontSize = 10.sp
+                        )
+                    }
                 }
-                Text(
-                    text = "Toca para editar",
-                    color = Color(0xFF94A3B8),
-                    fontSize = 10.sp
-                )
             }
-            content()
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (bannerResId == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFFE5B869))
+                            )
+                            Text(
+                                text = title,
+                                color = Color(0xFFE5B869),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = "Toca para editar",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+                content()
+            }
         }
     }
 }
