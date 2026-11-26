@@ -1355,3 +1355,9 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 ### 2026-11-25 — Imagen hero en pantalla «Bóveda protegida»
 - `card_boveda_protegida.png` + `VaultBiometricGate.kt`: integrada la imagen de bóveda blindada siguiendo el estándar full-bleed con `ContentScale.Crop`, borde `HeritageBorder` y degradado inferior hacia `HeritageSand`.
+
+### 2026-11-25 — Cierre P0 de auditoría: caché cifrada del manifiesto en disco + fail-closed en MeshRelayEngine
+- `RideManifestDiskCache.kt` + `RideManifestKeyProvider.kt` + `App.kt`: caché cifrada en disco (`AndroidKeyStore` AES-256-GCM en Android; clave efímera de proceso en JVM para tests, TTL 24 h) y `resolveOffline(rideId)` para recuperar el manifiesto firmado sin depender de HTTP ni de RAM.
+- `RideService.kt`: inicialización de `RideManifestKeyProvider` en el proceso del servicio y verificación `resolveOffline` + pertenencia al roster firmado al restaurar sesión por `START_STICKY` (fail-closed si falta o expiró).
+- `MeshRelayEngine.kt` + `RideService.kt`: nuevo parámetro `requireAuthorization: Boolean` (activado cuando `!isSimulated` en producción) para rechazar paquetes si `rideAuthorization == null` (`RelayDecision.DroppedInvalidSignature`), cerrando el fail-open de roster tras reinicio de proceso.
+- `RideManifestDiskCacheAndFailClosedTest.kt`: tests unitarios que verifican el rechazo fail-closed en malla real sin autorización y el cifrado, validación de `rideId` y expiración a 24 h de `RideManifestDiskCache`. Suite `:app:testStandardDebugUnitTest` verde (`BUILD SUCCESSFUL`).
