@@ -1803,8 +1803,8 @@ private fun GroupDetailScreenD3(
             onClick = { showDecisionsDialog = true },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            color = Color(0xFF1A2232).copy(alpha = 0.88f),
-            border = BorderStroke(1.dp, Color(0xFFE5B869).copy(alpha = 0.65f))
+            color = Color(0xFF231B12),
+            border = BorderStroke(1.2.dp, Color(0xFFE5B869).copy(alpha = 0.78f))
         ) {
             Row(
                 modifier = Modifier
@@ -1813,7 +1813,12 @@ private fun GroupDetailScreenD3(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
                     Text(
                         text = "🗳️ Decisiones del Club",
                         color = Color(0xFFE5B869),
@@ -1826,16 +1831,24 @@ private fun GroupDetailScreenD3(
                         } else {
                             "Votación secreta · Directiva, Fundadores, Full o Prospectos"
                         },
-                        color = Color(0xFFCBD5E1),
+                        color = Color(0xFFD6CFC4),
                         fontSize = 11.sp
                     )
                 }
-                Text(
-                    text = if (openDecisionsCount > 0) "$openDecisionsCount activa(s) →" else "Abrir →",
-                    color = Color(0xFFE5B869),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFFE5B869)
+                ) {
+                    Text(
+                        text = if (openDecisionsCount > 0) "$openDecisionsCount activa(s) →" else "Abrir →",
+                        color = Color(0xFF1A140E),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
             }
         }
 
