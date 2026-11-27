@@ -1499,3 +1499,15 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 - **Verificación:** Android `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → **130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped**; Node `npx vitest run --no-file-parallelism test/public_legal_resources.test.ts` → **4/4 tests**; `.\scripts\verify_release_security.ps1` → **3 OK + FAIL_PLACEHOLDER** (bloqueante intencional); `npm audit` → **11 vulnerabilidades** (2 críticas, 2 altas incluida `zod` en runtime, 7 moderadas).
 - **NO ENCONTRADO / PENDIENTE:** pago e identidad de desarrollador, app creada en Console, SDK 36, secretos de firma, `RBS_PROD_URL` real, AAB firmado y subido, Data Safety enviada, IARC, anuncios, audiencia, sign-in details, ficha/capturas, política desplegada en HTTPS y prueba cerrada de 12 testers / 14 días. Google Play sigue **NO LISTO**. El salto de `zod`/Vitest queda para Fase 5.
+
+### 2026-11-27 — FASE 5 de la auditoría integral: re-auditoría e informe final
+- **Sin cambios de código:** se consolidan las cinco fases, se recalcula el avance con la rúbrica original y se entregan los cinco estados solicitados. No se aplicó el salto major de `zod`/Vitest porque la suite backend completa sigue bloqueada por PostgreSQL `:5433`; `npm run typecheck` sí quedó limpio.
+
+| Tarea | Archivo | Cambio | Test |
+|---|---|---|---|
+| 5.1 Re-auditoría | `docs/audit/reauditoria_cierre_20261127.md` | Avance 79,9 % → **82,9 %** y seguridad 68 → **74/100**, con tablas I/T/H y MASVS comparables con la línea base | Rúbrica §4.1 de la auditoría integral; evidencia de las fases 1-4 |
+| 5.2 Informe final | `docs/audit/informe_final_fases_20261127.md` | Estado de avance, seguridad, Google Play, audio y estabilidad de peers; 6 commits atómicos y pendientes explícitos | Verificación de los 6 commits y de las evidencias referenciadas |
+| 5.3 Evidencia de cierre | `docs/evidence/fase5_cierre_20261127/` | Salidas de tests y typecheck de la sesión de cierre | Comandos reproducibles del informe |
+
+- **Verificación:** Android `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → **130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped**; Node `npx vitest run --no-file-parallelism test/public_legal_resources.test.ts` → **4/4 tests**; `npm run typecheck` → **EXIT_CODE=0**. Evidencia en `docs/evidence/fase5_cierre_20261127/`.
+- **PENDIENTE:** Prueba D en carretera, audición humana del PTT, reinstalación lockstep de ambos APK, API 36, URL/firma/AAB y formularios de Play Console, suite backend con PostgreSQL `:5433`, y actualización de `zod` (alta en runtime) y Vitest con revalidación. Sin `push`.

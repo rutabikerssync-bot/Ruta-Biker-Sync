@@ -1,0 +1,7 @@
+Comando: cd backend; npm run typecheck
+Fecha: 2026-11-27
+
+> ruta-biker-sync-backend@0.1.0 typecheck
+> tsc --noEmit
+
+EXIT_CODE=0
