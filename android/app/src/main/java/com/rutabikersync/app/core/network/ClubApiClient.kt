@@ -115,6 +115,10 @@ class ClubApiClient(
         )
     }
 
+    suspend fun fetchUserGamification(userId: String): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/users/$userId/gamification", null)
+    }
+
     /** Fase 3 Banners: obtiene los anuncios/modales promocionales vigentes. */
     suspend fun fetchActivePromoBanners(): Result<ApiResponse> = withContext(Dispatchers.IO) {
         executeRequest("GET", "/v1/announcements/active", null)

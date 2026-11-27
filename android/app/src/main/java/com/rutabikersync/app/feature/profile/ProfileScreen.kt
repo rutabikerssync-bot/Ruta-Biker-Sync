@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
@@ -97,12 +98,18 @@ fun ProfileScreen(
     val scope = rememberCoroutineScope()
     val repository = remember { ProfileRepository(context) }
     val garageRepository = remember { BikeGarageRepository(context) }
+    val gamificationRepository = remember { com.rutabikersync.app.feature.badges.GamificationRepository(context) }
     val apiClient = remember { ClubApiClient.getInstance() }
     var garageState by remember { mutableStateOf(garageRepository.loadState()) }
+    val gamificationProfile by gamificationRepository.profileFlow.collectAsState()
     var activeSection by remember { mutableStateOf(0) } // 0: Piloto, 1: Mi Moto, 2: Garage
 
     LaunchedEffect(activeSection) {
-        if (activeSection == 1 || activeSection == 2) {
+        if (activeSection == 0) {
+            val uid = com.rutabikersync.app.feature.groups.ClubRepository.getInstance().currentUser.value.id
+            gamificationRepository.syncFromBackend(apiClient, uid)
+            gamificationRepository.refreshProfile()
+        } else if (activeSection == 1 || activeSection == 2) {
             garageRepository.syncFromBackend(apiClient)?.let { synced ->
                 garageState = synced
             }
@@ -467,11 +474,11 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 HeritageEmblemBadge(
-                    painter = painterResource(id = R.drawable.ic_rank_novato),
+                    painter = painterResource(id = gamificationProfile.rank.badgeRes),
                     contentDescription = "Rango del piloto",
                     badgeSize = 52.dp,
                     iconSize = 44.dp,
-                    glowColor = Color(0xFFF3C766)
+                    glowColor = gamificationProfile.rank.accentColor
                 )
 
                 Column(
@@ -479,7 +486,7 @@ fun ProfileScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Novato",
+                        text = gamificationProfile.rank.title,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
@@ -490,14 +497,15 @@ fun ProfileScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val nextTargetXp = gamificationProfile.nextRank?.minXp ?: gamificationProfile.xp
                         Text(
-                            text = "0 / 100 XP",
+                            text = "${gamificationProfile.xp} / $nextTargetXp XP",
                             color = Color(0xFFC7CBD6),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Hacia Rider",
+                            text = gamificationProfile.nextRank?.let { "Hacia ${it.title}" } ?: "Rango máximo",
                             color = Color(0xFF8E95A5),
                             fontSize = 11.sp
                         )
@@ -514,7 +522,7 @@ fun ProfileScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth(0.08f)
+                                .fillMaxWidth(gamificationProfile.xpProgressPercent.coerceIn(0.03f, 1f))
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .background(
@@ -536,21 +544,21 @@ fun ProfileScreen(
             HeritageMetricCard(
                 icon = AppIcons.TabRides,
                 iconTint = Color(0xFFE5B869),
-                value = "0 km",
+                value = String.format(java.util.Locale.US, "%.1f km", gamificationProfile.totalKm),
                 label = "Total acumulado",
                 modifier = Modifier.weight(1f)
             )
             HeritageMetricCard(
                 icon = AppIcons.RolePresident,
                 iconTint = Color(0xFFF97316),
-                value = "0 meses",
+                value = "${gamificationProfile.streakMonths} meses",
                 label = "Racha mensual",
                 modifier = Modifier.weight(1f)
             )
             HeritageMetricCard(
                 icon = AppIcons.LeaderFallback,
                 iconTint = Color(0xFFE5B869),
-                value = "0",
+                value = "${gamificationProfile.validRidesCount}",
                 label = "Rodadas",
                 modifier = Modifier.weight(1f)
             )

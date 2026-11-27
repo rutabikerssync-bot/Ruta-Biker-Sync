@@ -2,9 +2,16 @@ package com.rutabikersync.app.feature.badges
 
 import android.content.Context
 import com.rutabikersync.app.R
+import com.rutabikersync.app.core.network.ClubApiClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.intOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,6 +38,7 @@ class GamificationRepository(private val context: Context) {
     private fun seedDefaultInitialData() {
         prefs.edit()
             .putBoolean(KEY_INITIALIZED, true)
+            .putBoolean(KEY_IS_DEMO_SEED, true)
             .putFloat(KEY_TOTAL_KM, 1250f)
             .putInt(KEY_XP, 320) // Nivel Rider
             .putInt(KEY_VALID_RIDES, 12)
@@ -285,11 +293,12 @@ class GamificationRepository(private val context: Context) {
         role: String = "rider",
         answeredSos: Boolean = false
     ): RideResultGamification {
-        val currentKm = prefs.getFloat(KEY_TOTAL_KM, 0f).toDouble()
-        val currentXp = prefs.getInt(KEY_XP, 0)
-        val validRides = prefs.getInt(KEY_VALID_RIDES, 0) + 1
-        val lastMonth = prefs.getString(KEY_LAST_RIDE_MONTH, "") ?: ""
-        var streak = prefs.getInt(KEY_STREAK_MONTHS, 0)
+        val isDemo = prefs.getBoolean(KEY_IS_DEMO_SEED, false)
+        val currentKm = if (isDemo) 0.0 else prefs.getFloat(KEY_TOTAL_KM, 0f).toDouble()
+        val currentXp = if (isDemo) 0 else prefs.getInt(KEY_XP, 0)
+        val validRides = (if (isDemo) 0 else prefs.getInt(KEY_VALID_RIDES, 0)) + 1
+        val lastMonth = if (isDemo) "" else (prefs.getString(KEY_LAST_RIDE_MONTH, "") ?: "")
+        var streak = if (isDemo) 0 else prefs.getInt(KEY_STREAK_MONTHS, 0)
         val nowMonth = currentMonthString()
 
         val unlockedCodes = (prefs.getStringSet(KEY_UNLOCKED_BADGES, emptySet()) ?: emptySet()).toMutableSet()
@@ -371,6 +380,7 @@ class GamificationRepository(private val context: Context) {
 
         // Guardar cambios en SharedPreferences
         prefs.edit()
+            .putBoolean(KEY_IS_DEMO_SEED, false)
             .putFloat(KEY_TOTAL_KM, newTotalKm.toFloat())
             .putInt(KEY_XP, newXp)
             .putInt(KEY_VALID_RIDES, validRides)
@@ -518,8 +528,54 @@ class GamificationRepository(private val context: Context) {
         )
     }
 
+    /**
+     * Sincroniza el progreso real desde GET /v1/users/:id/gamification.
+     * Reemplaza la semilla demo inicial con los datos reales de Neon/Render y
+     * conserva cualquier avance local mayor que aún esté pendiente de cierre.
+     */
+    suspend fun syncFromBackend(apiClient: ClubApiClient, userId: String): GamificationProfile? {
+        if (userId.isBlank() || userId == "pilot-local") return null
+        val res = apiClient.fetchUserGamification(userId).getOrNull() ?: return null
+        if (!res.isSuccess || res.body == null) return null
+        val body = res.body
+        val remoteKm = (body["totalKm"] as? JsonPrimitive)?.doubleOrNull ?: 0.0
+        val remoteXp = (body["xp"] as? JsonPrimitive)?.intOrNull ?: 0
+        val remoteRides = (body["validRides"] as? JsonPrimitive)?.intOrNull ?: 0
+        val remoteStreak = (body["streakMonths"] as? JsonPrimitive)?.intOrNull ?: 0
+        val remoteMonth = (body["lastRideMonth"] as? JsonPrimitive)?.contentOrNull.orEmpty()
+        val remoteBadgeCodes = (body["badges"] as? JsonArray)
+            ?.mapNotNull { (it as? JsonObject)?.get("code")?.let { c -> (c as? JsonPrimitive)?.contentOrNull } }
+            ?.toSet()
+            .orEmpty()
+
+        val isDemo = prefs.getBoolean(KEY_IS_DEMO_SEED, false)
+        val mergedKm = if (isDemo) remoteKm else maxOf(prefs.getFloat(KEY_TOTAL_KM, 0f).toDouble(), remoteKm)
+        val mergedXp = if (isDemo) remoteXp else maxOf(prefs.getInt(KEY_XP, 0), remoteXp)
+        val mergedRides = if (isDemo) remoteRides else maxOf(prefs.getInt(KEY_VALID_RIDES, 0), remoteRides)
+        val mergedStreak = if (isDemo) remoteStreak else maxOf(prefs.getInt(KEY_STREAK_MONTHS, 0), remoteStreak)
+        val mergedBadges = if (isDemo) {
+            remoteBadgeCodes
+        } else {
+            (prefs.getStringSet(KEY_UNLOCKED_BADGES, emptySet()) ?: emptySet()) + remoteBadgeCodes
+        }
+
+        prefs.edit()
+            .putBoolean(KEY_INITIALIZED, true)
+            .putBoolean(KEY_IS_DEMO_SEED, false)
+            .putFloat(KEY_TOTAL_KM, mergedKm.toFloat())
+            .putInt(KEY_XP, mergedXp)
+            .putInt(KEY_VALID_RIDES, mergedRides)
+            .putInt(KEY_STREAK_MONTHS, mergedStreak)
+            .putString(KEY_LAST_RIDE_MONTH, remoteMonth.ifBlank { prefs.getString(KEY_LAST_RIDE_MONTH, "") ?: "" })
+            .putStringSet(KEY_UNLOCKED_BADGES, mergedBadges)
+            .apply()
+        refreshProfile()
+        return _profileFlow.value
+    }
+
     companion object {
         private const val KEY_INITIALIZED = "initialized"
+        private const val KEY_IS_DEMO_SEED = "is_demo_seed"
         private const val KEY_TOTAL_KM = "total_km"
         private const val KEY_XP = "xp"
         private const val KEY_VALID_RIDES = "valid_rides"

@@ -213,6 +213,8 @@ class RideSessionController(
 
     /** Fase 2 Garage: suma automáticamente los km recorridos en rodada real al odómetro. */
     var onRideDistanceKmRecorded: ((Int) -> Unit)? = null
+    /** Fase 6 Gamificación: registra kilometraje real acumulado de la rodada en el perfil local. */
+    var onRideGamificationKmRecorded: ((Double) -> Unit)? = null
 
     val batteryAwareness: BatteryAwareness = BatteryAwareness()
     val manufacturerBatteryGuide: ManufacturerBatteryGuide = ManufacturerBatteryGuide()
@@ -921,6 +923,9 @@ class RideSessionController(
                 }
             }
             if (!_state.value.isUsingSimulatedTransport) {
+                if (odo.totalAccumulatedKm >= 0.05) {
+                    runCatching { onRideGamificationKmRecorded?.invoke(odo.totalAccumulatedKm) }
+                }
                 val rideKm = kotlin.math.round(odo.totalAccumulatedKm).toInt()
                 if (rideKm > 0) {
                     runCatching { onRideDistanceKmRecorded?.invoke(rideKm) }
@@ -1751,9 +1756,21 @@ class RideService : Service() {
             bluetoothDevicesProvider = { queryConnectedBluetoothDevices(applicationContext) },
             requireValidPositionForHeartbeat = true
         )
+        controller.onRideGamificationKmRecorded = { distanceKm ->
+            com.rutabikersync.app.feature.badges.GamificationRepository(applicationContext)
+                .recordCompletedRide(distanceKm = distanceKm)
+        }
         controller.onRideDistanceKmRecorded = { rideKm ->
             val garageRepo = com.rutabikersync.app.feature.profile.garage.BikeGarageRepository(applicationContext)
-            garageRepo.addRideDistanceKm(garageRepo.loadState(), rideKm)
+            val updated = garageRepo.addRideDistanceKm(garageRepo.loadState(), rideKm)
+            serviceScope.launch {
+                runCatching {
+                    garageRepo.pushToBackend(
+                        com.rutabikersync.app.core.network.ClubApiClient.getInstance(),
+                        updated
+                    )
+                }
+            }
         }
         activeController = controller
     }

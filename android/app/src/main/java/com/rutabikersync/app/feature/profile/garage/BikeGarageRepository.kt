@@ -72,7 +72,13 @@ class BikeGarageRepository(
         val remoteObj = res.body?.get("garageState") as? JsonObject ?: return null
         return runCatching {
             val decoded = json.decodeFromString<BikeGarageState>(remoteObj.toString())
-            saveState(decoded)
+            val local = loadState()
+            val merged = if (local.odometerKm > decoded.odometerKm) {
+                decoded.copy(odometerKm = local.odometerKm)
+            } else {
+                decoded
+            }
+            saveState(merged)
         }.getOrNull()
     }
 
