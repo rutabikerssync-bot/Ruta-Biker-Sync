@@ -14,12 +14,18 @@ import kotlinx.coroutines.flow.asStateFlow
  * - `NORMAL`: Batería >= 20% o cargando -> Heartbeat cada 3 s, mapa cada 1 s, escaneo BLE continuo.
  * - `POWER_SAVER`: Batería < 20% sin cargar (o activado manualmente) -> Heartbeat cada 5 s, mapa cada 3 s, escaneo BLE balanceado.
  * - `SURVIVAL`: Batería crítica <= 10% (incluye 5%) sin cargar -> Heartbeat cada 10 s, mapa congelado, solo SOS activo.
+ *
+ * `maxGattPeerLinks` (FASE 3.1) es el tope de **objetivos GATT CLIENTE** por rodada (8/4/2):
+ * limita los enlaces salientes que abre este móvil, NO el número de peers BLE de la malla ni
+ * las conexiones entrantes al servidor GATT. El roster autorizado completo se conserva para
+ * el estado y el relay; solo se recorta la lista de destinos del cliente de heartbeats.
  */
 enum class PowerProfile(
     val heartbeatIntervalMs: Long,
     val mapUpdateCadenceMs: Long,
     val isMapFrozen: Boolean,
     val onlySosActive: Boolean,
+    val maxGattPeerLinks: Int,
     val displayLabel: String
 ) {
     NORMAL(
@@ -27,6 +33,7 @@ enum class PowerProfile(
         mapUpdateCadenceMs = 1_000L,
         isMapFrozen = false,
         onlySosActive = false,
+        maxGattPeerLinks = 8,
         displayLabel = "Normal (3 s)"
     ),
     POWER_SAVER(
@@ -34,6 +41,7 @@ enum class PowerProfile(
         mapUpdateCadenceMs = 3_000L,
         isMapFrozen = false,
         onlySosActive = false,
+        maxGattPeerLinks = 4,
         displayLabel = "Modo ahorro (5 s)"
     ),
     SURVIVAL(
@@ -41,6 +49,7 @@ enum class PowerProfile(
         mapUpdateCadenceMs = 0L,
         isMapFrozen = true,
         onlySosActive = true,
+        maxGattPeerLinks = 2,
         displayLabel = "Modo supervivencia (10 s · Solo SOS)"
     )
 }

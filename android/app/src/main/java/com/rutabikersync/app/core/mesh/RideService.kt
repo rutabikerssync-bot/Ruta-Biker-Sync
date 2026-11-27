@@ -194,6 +194,14 @@ class RideSessionController(
     var gattHeartbeatClient: GattHeartbeatClient? = null
         private set
 
+    /**
+     * FASE 3.1: objetivos GATT cliente ya capados en el último `startRide`. Se expone como
+     * seam de verificación JVM: sin BLE ni manifiesto firmado el factory real no se invoca
+     * en laboratorio, pero el cálculo de la política sí es observable.
+     */
+    var lastGattTargetPeers: Set<UShort> = emptySet()
+        private set
+
     var lastPacketsCsv: String? = null
         private set
 
@@ -297,7 +305,22 @@ class RideSessionController(
         val effectiveExpectedPeers = (if (expectedPeerShortIds.isNotEmpty()) expectedPeerShortIds else manifestPeers)
             .filter { it != localShortId }
             .toSet()
-        val heartbeatPlan = GattHeartbeatClient.planFor(localShortId, effectiveExpectedPeers)
+
+        // FASE 3.1: tope de enlaces GATT cliente con el perfil vigente al iniciar rodada (o al
+        // recuperar START_STICKY). NO se recalcula en applyPowerStateToSession: el
+        // HeartbeatGattRoutingTransport captura la referencia al cliente y recrearlo sin tocar
+        // el transporte rompería el routing. El roster completo sigue en el estado y en el relay.
+        val activePowerProfile = batteryAwareness.state.value.profile
+        val gattTargetPeers = GattPeerBudgetPolicy.cap(effectiveExpectedPeers, activePowerProfile)
+        lastGattTargetPeers = gattTargetPeers
+        runCatching {
+            Log.i(
+                "RideService",
+                "GattPeerBudget profile=${activePowerProfile.name} " +
+                    "autorizados=${effectiveExpectedPeers.size} objetivosGatt=${gattTargetPeers.size}"
+            )
+        }
+        val heartbeatPlan = GattHeartbeatClient.planFor(localShortId, gattTargetPeers)
 
         // Opción B: el heartbeat sale por GATT; SOS/eventos/discovery siguen en BleAdvTransport.
         // Rol por shortId: el menor es Cliente y el mayor Servidor en cada par.
@@ -311,7 +334,7 @@ class RideSessionController(
             gattHeartbeatServer = heartbeatServer
         }
         val heartbeatClient = if (!isSimulated && heartbeatPlan.isClient) {
-            gattHeartbeatClientFactory?.invoke(localShortId, effectiveExpectedPeers)
+            gattHeartbeatClientFactory?.invoke(localShortId, gattTargetPeers)
         } else {
             null
         }
@@ -873,6 +896,10 @@ class RideSessionController(
 
     suspend fun stopAll(): RideSessionState {
         stopAllInternal(resetToIdle = false)
+        // FASE 3.1: el reset del perfil corresponde al cierre explícito, no al arranque.
+        // Así un override manual o una batería crítica decididos antes de `startRide` siguen
+        // vigentes al calcular el tope de enlaces GATT cliente de esa rodada.
+        batteryAwareness.resetToNormal()
         val stoppedSnapshot = buildNotificationSnapshot(
             lifecycleState = RideLifecycleState.STOPPED,
             connectedRiders = 0,
@@ -908,7 +935,8 @@ class RideSessionController(
         heartbeatScheduler = null
         peerHealthMonitor?.reset()
         peerHealthMonitor = null
-        batteryAwareness.resetToNormal()
+        // No se resetea aquí: `startRide` también invoca este método y borraría el perfil
+        // vigente antes de calcular el presupuesto GATT cliente (FASE 3.1).
         peerObserveJob?.cancel()
         peerObserveJob = null
         autoFallbackJob?.cancel()
