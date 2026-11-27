@@ -88,6 +88,10 @@ class ClubApiClient(
         executeRequest("GET", "/v1/rides/$rideId/manifest", null)
     }
 
+    suspend fun fetchCommunityManifest(): Result<ApiResponse> = withContext(Dispatchers.IO) {
+        executeRequest("GET", "/v1/community/manifest", null)
+    }
+
     /**
      * P0 cierre final: publica la clave pública Ed25519 real generada por
      * `Ed25519SosCrypto`. El backend la devuelve dentro del manifiesto firmado

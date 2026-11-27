@@ -179,7 +179,16 @@ object RideManifestKeyProvider {
             if (!forceRefresh) cache[rideId]?.let { return@withLock it }
 
             publishLocalSosKey(apiClient)
-            val body = apiClient.fetchRideManifest(rideId).getOrNull()
+            val response = if (rideId == "ride-live-01") {
+                apiClient.fetchCommunityManifest().getOrNull()
+            } else {
+                apiClient.fetchRideManifest(rideId).getOrNull()
+            }
+            if (response != null && response.statusCode == 403) {
+                diskCache?.clear(rideId)
+                return@withLock null
+            }
+            val body = response
                 ?.takeIf { it.isSuccess }
                 ?.body
             val token = body?.get("manifest")?.jsonPrimitive?.contentOrNull
