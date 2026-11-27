@@ -1,0 +1,2 @@
+﻿Starting: Intent { cmp=com.rutabikersync.app/.MainActivity }
+Starting: Intent { cmp=com.rutabikersync.app/.MainActivity }

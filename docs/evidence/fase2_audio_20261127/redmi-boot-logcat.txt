@@ -1,0 +1,484 @@
+﻿
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:251:11-27 17:47:08.026 25569 28978 E 
+ActivityManagerWrapper:  mainTaskId=2593   userId=0   windowMode=1   isExcludedFromRecents=false   baseIntent=Intent { 
+act=null flag=268435456 cmp=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} }
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:257:11-27 17:47:08.027 25569 28978 D RecentsTaskLoader: 
+reloadTasksData [TaskKey{id=2593, stackId=0, baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity }, userId=0, lastActiveTime=296069096, windowingMode=1, isThumbnailBlur=false, 
+isAccessLocked=false, isScreening=false, topActivity=null, mHashCode=78171615}, title=Ruta Biker Sync, 
+titleDescription=Ruta Biker Sync, bounds=null, isLaunchTarget=false, isStackTask=true, isSystemApp=false, 
+isDockable=true, baseActivity=null, isLocked=false, mNeedHide=false, hasMultipleTasks=false, cti1Key=, cti2Key=, 
+cti1Task=, cti2Task=] 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:327:11-27 17:47:08.058 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:459:11-27 17:47:08.102 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:570:11-27 17:47:08.141 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:614:11-27 17:47:08.156 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:639:11-27 17:47:08.162 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:657:11-27 17:47:08.168 10890 10971 I AiAiVC  : 
+Centralized allowlist: requested component com.facebook.orca/com.facebook.messenger.neue.MainActivity is not in the 
+allowlist
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:794:11-27 17:47:08.366 17384 17384 I adbd    : adbd 
+service requested 'shell,v2,TERM=xterm-256color,raw:am start -n com.rutabikersync.app/.MainActivity'
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:838:11-27 17:47:08.424  2474  5778 D WindowManager: 
+Collecting in transition 1722: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t-1} init 
+visibleRequested:false dc:null
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:856:11-27 17:47:08.438  2474  5778 I WindowManager: Try 
+to add startingWindow type = STARTING_WINDOW_TYPE_SPLASH_SCREEN this = ActivityRecord{213760305 u0 
+com.rutabikersync.app/.MainActivity t2596} mOccludesParent = true preAllowTaskSnapshot = true afterAllowTaskSnapshot = 
+true newTask = true taskSwitch = false processRunning = false activityCreated = false activityAllDrawn = false 
+isSnapshotCompatible = false snapshotRotation = NaN resolvedTheme = 16974382 theme = 16974382
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:873:11-27 17:47:08.447  2474  5778 D WindowManager: 
+Collecting in transition 1722: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} init 
+visibleRequested:false dc:Display{#0 state=ON size=1220x2712 ROTATION_0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:876:11-27 17:47:08.449  2474  5778 I ActivityTaskManager: 
+START u0 {flg=0x10000000 xflg=0x5 cmp=com.rutabikersync.app/.MainActivity} with LAUNCH_MULTIPLE from uid 2000 from pid 
+21828 callingPackage com.android.shell (BAL_ALLOW_PERMISSION) result code=0
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:877:11-27 17:47:08.449  2474  5778 I AppStartScenario: 
+notifyScenarioChanged: active=true param=Bundle[{uid=10436, name=com.rutabikersync.app.MainActivity, type=2, 
+preStartProc=false, state=1, processName=com.rutabikersync.app, packageName=com.rutabikersync.app, appSwitch=true}]
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:882:11-27 17:47:08.452  4531  4755 I 
+SoScStageCoordinator: Transition requested:TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 
+taskId=2596 effectiveUid=10436 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071444 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@637d91d} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 
+122 - 0, 0) topActivityInfo=ActivityInfo{35c7792 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-2 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-2 topActivityMainWindowFrame=null}, pipChange = null, remoteTransition = null, displayChange 
+= null, flags = 0, debugId = 1722 } isSoScActive:false triggerTask:TaskInfo{userId=0 taskId=2596 effectiveUid=10436 
+displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071444 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@637d91d} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 
+122 - 0, 0) topActivityInfo=ActivityInfo{35c7792 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEd
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:887:11-27 17:47:08.453  2474  4843 D WindowManager:    
+ChangeInfo{cf33eae container=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} flags=0x0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:925:11-27 17:47:08.467  2474  5778 D WindowManager: 
+Collecting in transition 1722: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} init 
+visibleRequested:false dc:Display{#0 state=ON size=1220x2712 ROTATION_0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:931:11-27 17:47:08.467  2474  5778 D WindowManager:    
+ChangeInfo{cf33eae container=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} flags=0x0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:945:11-27 17:47:08.472  4531  4531 D 
+KeyguardEditorHelper: onTopActivityMayChanged, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}; mState=IDEL
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:956:11-27 17:47:08.477  2474  5778 D WindowManager: 
+isSyncFinished true. ar: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:957:11-27 17:47:08.477  2474  5778 D WindowManager: 
+isSyncFinished true. ar: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:977:11-27 17:47:08.482  2474  5778 D WindowManager:    
+ChangeInfo{cf33eae container=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} flags=0x0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1033:11-27 17:47:08.487  2474  4154 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1034:11-27 17:47:08.487  4531  4755 D 
+MiuiDecorationController: relayout::taskId=2596, visible=true, bounds=Rect(0, 0 - 1220, 2712), focused=false, 
+oldImmersive=false, newImmersive=false, windowMode=1, activityType=1, displayId=0, 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, callers=com.android.wm.shell.multi
+tasking.miuimultiwinswitch.miuiwindowdecor.MulWinSwitchDecorViewModel.createWindowDecoration:317 
+com.android.wm.shell.multitasking.miuimultiwinswitch.miuiwindowdecor.MulWinSwitchDecorViewModel.onTaskOpening:10 
+com.android.wm.shell.freeform.FreeformTaskTransitionObserver.onTransitionReady:334 
+com.android.wm.shell.transition.Transitions.dispatchReady:241 
+com.android.wm.shell.transition.Transitions.onTransitionReady:280 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1083:11-27 17:47:08.499  2474  2681 I AppStartScenario: 
+notifyScenarioChanged: active=true 
+param=Bundle[{hostingRecordName={com.rutabikersync.app/com.rutabikersync.app.MainActivity}, 
+hostingRecordType=next-top-activity, uid=10436, type=1, state=2, processName=com.rutabikersync.app, 
+packageName=com.rutabikersync.app}]
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1121:11-27 17:47:08.506 25569 28978 W RecentsModel: 
+getRunningTask   taskInfo=TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 isRunning=true 
+baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071502 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@8d67737} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 
+122 - 0, 0) topActivityInfo=ActivityInfo{72db4a4 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1129:11-27 17:47:08.507 25569 29131 D 
+WindowTransitionCompat:  printLeash::taskInfo = TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 
+isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071444 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@658120d} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 
+122 - 0, 0) topActivityInfo=ActivityInfo{c0dd5c2 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1143:11-27 17:47:08.507 25569 29131 D TransitionUtil: get 
+key :ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}#2596
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1149:11-27 17:47:08.509  4531  4531 D 
+DynamicIslandController: onTopActivityChanged: ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1151:11-27 17:47:08.509  4531  4531 D 
+DynamicIslandWindowViewController: onTopActivityChange: topActivity 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, inSmallWindow false, isSupportPip false, 
+isFocus false fullScreenPkg com.rutabikersync.app
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1179:11-27 17:47:08.519  2474  8072 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1289:11-27 17:47:08.526 25569 28978 E 
+ActivityManagerWrapper:  mainTaskId=2596   userId=0   windowMode=1   isExcludedFromRecents=false   baseIntent=Intent { 
+act=null flag=268435456 cmp=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} }
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1295:11-27 17:47:08.526  2474  2711 I AppStartScenario: 
+notifyScenarioChanged: active=true 
+param=Bundle[{hostingRecordName={com.rutabikersync.app/com.rutabikersync.app.MainActivity}, 
+hostingRecordType=next-top-activity, pid=17497, uid=10436, type=1, state=3, processName=com.rutabikersync.app, 
+packageName=com.rutabikersync.app}]
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1323:11-27 17:47:08.541 25569 28978 W RecentsModel: 
+getRunningTask   taskInfo=TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 isRunning=true 
+baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071538 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@df01482} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 
+- 0, 0) topActivityInfo=ActivityInfo{4048793 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1332:11-27 17:47:08.556 25569 28978 E 
+ActivityManagerWrapper:  mainTaskId=2596   userId=0   windowMode=1   isExcludedFromRecents=false   baseIntent=Intent { 
+act=null flag=268435456 cmp=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} }
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1340:11-27 17:47:08.557 25569 28978 D RecentsTaskLoader: 
+reloadTasksData [TaskKey{id=2596, stackId=0, baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity }, userId=0, lastActiveTime=296071444, windowingMode=1, isThumbnailBlur=false, 
+isAccessLocked=false, isScreening=false, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, mHashCode=78260988}, title=Ruta 
+Biker Sync, titleDescription=Ruta Biker Sync, bounds=null, isLaunchTarget=true, isStackTask=true, isSystemApp=false, 
+isDockable=true, baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, isLocked=false, 
+mNeedHide=false, hasMultipleTasks=false, cti1Key=, cti2Key=, cti1Task=, cti2Task=] 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1341:11-27 17:47:08.558 25569 28978 D IconLoader: 
+getBadgedActivityIcon activityInfo :ActivityInfo{5eeb3d0 com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1359:11-27 17:47:08.573  2474  2711 I ActivityManager: 
+Start proc 17497:com.rutabikersync.app/u0a436 for next-top-activity 
+{com.rutabikersync.app/com.rutabikersync.app.MainActivity} caller=com.android.shell
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1365:11-27 17:47:08.573 25569 28978 D RecentsTaskLoader: 
+reloadTasksData [TaskKey{id=2596, stackId=0, baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity }, userId=0, lastActiveTime=296071444, windowingMode=1, isThumbnailBlur=false, 
+isAccessLocked=false, isScreening=false, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, mHashCode=78260988}, title=Ruta 
+Biker Sync, titleDescription=Ruta Biker Sync, bounds=null, isLaunchTarget=true, isStackTask=true, isSystemApp=false, 
+isDockable=true, baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, isLocked=false, 
+mNeedHide=false, hasMultipleTasks=false, cti1Key=, cti2Key=, cti1Task=, cti2Task=] 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1375:11-27 17:47:08.580 25569 28978 W RecentsModel: 
+getRunningTask   taskInfo=TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 isRunning=true 
+baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296071581 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@44c1fc9} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 
+- 0, 0) topActivityInfo=ActivityInfo{48ef6ce com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1386:11-27 17:47:08.591 25569 28978 E 
+ActivityManagerWrapper:  mainTaskId=2596   userId=0   windowMode=1   isExcludedFromRecents=false   baseIntent=Intent { 
+act=null flag=268435456 cmp=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} }
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1393:11-27 17:47:08.593 25569 28978 D RecentsTaskLoader: 
+reloadTasksData [TaskKey{id=2596, stackId=0, baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity }, userId=0, lastActiveTime=296071444, windowingMode=1, isThumbnailBlur=false, 
+isAccessLocked=false, isScreening=false, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, mHashCode=78260988}, title=Ruta 
+Biker Sync, titleDescription=Ruta Biker Sync, bounds=null, isLaunchTarget=true, isStackTask=true, isSystemApp=false, 
+isDockable=true, baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, isLocked=false, 
+mNeedHide=false, hasMultipleTasks=false, cti1Key=, cti2Key=, cti1Task=, cti2Task=] 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1499:11-27 17:47:08.724  2474  8072 I AppStartScenario: 
+notifyScenarioChanged: active=true param=Bundle[{applicationThread=android.os.BinderProxy@d74cf7e, 
+hostingRecordName={com.rutabikersync.app/com.rutabikersync.app.MainActivity}, hostingRecordType=next-top-activity, 
+pid=17497, uid=10436, type=1, state=4, processName=com.rutabikersync.app, packageName=com.rutabikersync.app, 
+applicationThreadExt=android.os.BinderProxy@b68ecdf}]
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1542:11-27 17:47:08.762 25569 25569 I TransitionCallback: 
+clear leash = Surface(name=TL_Surface(name=Task=2593#26927)/@0x8f2f68e_transition-leash#26991)/@0xec032ec, key = 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}#2593
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1961:11-27 17:47:09.090  2474  5392 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:1987:11-27 17:47:09.098  2474  5754 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2013:11-27 17:47:09.109  2474  2511 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2938:11-27 17:47:09.748 17497 17497 I AppAudioBootstrap: 
+hub de audio inicializado con alcance de aplicacion
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2940:11-27 17:47:09.768 17497 17497 D RBS_FCM : 4 canales 
+de notificaci├│n FCM creados correctamente
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2941:11-27 17:47:09.770  2474  4235 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2942:11-27 17:47:09.770  2474  4235 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2970:11-27 17:47:09.778  4531  4755 D 
+MiuiDecorationController: relayout::taskId=2596, visible=true, bounds=Rect(0, 0 - 1220, 2712), focused=false, 
+oldImmersive=false, newImmersive=false, windowMode=1, activityType=1, displayId=0, 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, callers=com.android.wm.shell.multi
+tasking.miuimultiwinswitch.miuiwindowdecor.decoration.MiuiDecorationController.relayout:4 
+com.android.wm.shell.multitasking.miuimultiwinswitch.miuiwindowdecor.MulWinSwitchDecorViewModel.onTaskInfoChanged:18 
+com.android.wm.shell.multitasking.common.taskmanager.MultiTaskingTaskListener.onTaskInfoChanged:47 
+com.android.wm.shell.ShellTaskOrganizer.onTaskInfoChanged:136 
+android.window.TaskOrganizer$1.lambda$onTaskInfoChanged$6:300 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:2973:11-27 17:47:09.783  2474  3711 I 
+CameraActivitySceneMode: decideSceneMode: ActivityStateChange activityName = com.rutabikersync.app.MainActivity, 
+displayId = 0, state = 2
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3034:11-27 17:47:09.813  4469  5476 D 
+NetworkMetricsController: processUidChangeEvent :activity 
+is:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3071:11-27 17:47:09.871 25569 25569 I TransitionCallback: 
+clear leash = Surface(name=TL_Surface(name=Task=2596#26998)/@0xbf7d66b_transition-leash#27010)/@0xee78c0e, key = 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}#2596
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3082:11-27 17:47:09.883 17497 17497 D WmSystemUiDebug: 
+set navigation bar color,Alpha=1.0, RGB:17,19,23 caller:androidx.activity.EdgeToEdgeApi29.setUp:312 
+androidx.activity.EdgeToEdge.enable:93 com.rutabikersync.app.MainActivity.onCreate:40 
+android.app.Activity.performCreate:9433 android.app.Activity.performCreate:9376 
+android.app.Instrumentation.callActivityOnCreate:1537 android.app.ActivityThread.performLaunchActivity:4724 
+android.app.ActivityThread.handleLaunchActivity:4971 android.app.servertransaction.LaunchActivityItem.execute:222 
+android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem:136 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3119:11-27 17:47:09.947 17497 17497 D Activity: Activity 
+= ActivityInfo{81d1bc3 com.rutabikersync.app.MainActivity}, Resume onConfigurationChanged = {1.0 734mcc4mnc [es_US] 
+ldltr sw407dp w407dp h904dp 480dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1220, 2712) 
+mAppBounds=Rect(0, 0 - 1220, 2712) mMaxBounds=Rect(0, 0 - 1220, 2712) mDisplayRotation=ROTATION_0 
+mWindowingMode=fullscreen mActivityType=standard mAlwaysOnTop=undefined mRotation=ROTATION_0 mInSplitScreen=false 
+letterBoxed=false foScaled=false isSpecificEmbedded=false embeddingScale=1.0} s.2 fontWeightAdjustment=0/d/0 
+themeChanged=0 themeChangedFlags=0 display=0 extraData = Bundle[{}] screenType=0/0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3147:11-27 17:47:09.992 25569 25569 D RecentsImpl: 
+mActivityStateObserver com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3149:11-27 17:47:09.993 25569 25569 W RecentsImpl: 
+updateGestureWindowVisibleImpl, className=com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3173:11-27 17:47:09.994  4531  4755 D 
+MiuiDecorationController: relayout::taskId=2596, visible=true, bounds=Rect(0, 0 - 1220, 2712), focused=true, 
+oldImmersive=false, newImmersive=false, windowMode=1, activityType=1, displayId=0, 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, callers=com.android.wm.shell.multi
+tasking.miuimultiwinswitch.miuiwindowdecor.decoration.MiuiDecorationController.relayout:4 
+com.android.wm.shell.multitasking.miuimultiwinswitch.miuiwindowdecor.MulWinSwitchDecorViewModel.onTaskInfoChanged:18 
+com.android.wm.shell.multitasking.common.taskmanager.MultiTaskingTaskListener.onTaskInfoChanged:47 
+com.android.wm.shell.ShellTaskOrganizer.onTaskInfoChanged:136 
+android.window.TaskOrganizer$1.lambda$onTaskInfoChanged$6:300 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3177:11-27 17:47:09.995 17497 17497 I RBS_FCM : Token FCM 
+obtenido exitosamente
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3189:11-27 17:47:09.999  4531  4755 D 
+MiuiFreeformModeController: onFocusTaskChanged taskInfo: TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 
+isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296072775 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@2701297} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 
+- 0, 0) topActivityInfo=ActivityInfo{72c1c84 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=Surface(name=StatusBar Container of Task = 2596#27001)/@0x263d5bb 
+mNavBarParent=Surface(name=NavigationBar Container of Task = 2596#26999)/@0x9432ad8 mBehindAppLockPkg=null 
+mOriginatingUid=0 isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false 
+mTopActivityMediaSize=null mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity 
+t2596} mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3197:11-27 17:47:10.029 17497 22082 W RBS_FCM : Fallo al 
+registrar token en backend: null
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3313:11-27 17:47:10.222  2474  5754 D CoreBackPreview: 
+Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity}: Setting back callback 
+OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@b270b9b, mPriority=0, 
+mIsAnimationCallback=false, mOverrideBehavior=0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3344:11-27 17:47:10.266  2474  5399 D BarFollowAnimation: 
+current status bar control target is : Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3345:11-27 17:47:10.268  2474  5399 D WindowManager: 
+wms.Input focus has changed to Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} display=0 
+updateInputWindows = true
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3347:11-27 17:47:10.269  2474  5399 I WindowManager: 
+Allow fixed rotation for not collecting:ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3368:11-27 17:47:10.294 17497 17497 D VRI[MainActivity]: 
+vri.Setup new sync=wmsSync-VRI[MainActivity]#0
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3395:11-27 17:47:10.336 17497 17497 D VRI[MainActivity]: 
+vri.reportDrawFinished 0 0 Rect(0, 0 - 1220, 2712)
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3398:11-27 17:47:10.337 17497 17497 D WmSystemUiDebug: 
+set navigation bar color,Alpha=1.0, RGB:17,19,23 caller:com.rutabikersync.app.MainActivity.onCreate$lambda$1:70 
+com.rutabikersync.app.MainActivity.$r8$lambda$dvmA3jJ2642OCXz7IMFZZfpfgY0:0 
+com.rutabikersync.app.MainActivity$$ExternalSyntheticLambda0.run:0 android.os.Handler.handleCallback:1029 
+android.os.Handler.dispatchMessage:107 android.os.Looper.loopOnce:274 android.os.Looper.loop:369 
+android.app.ActivityThread.main:10111 java.lang.reflect.Method.invoke:-2 
+com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run:616 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3399:11-27 17:47:10.338  2474  5754 D WindowManager: 
+wms.finishDrawingLocked: mDrawState=COMMIT_DRAW_PENDING Window{86661ab u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} in 
+Surface(name=com.rutabikersync.app/com.rutabikersync.app.MainActivity#27016)/@0x260c677
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3405:11-27 17:47:10.339  2474  2682 D WindowManager: 
+wms.commitFinishDrawingLocked: mDrawState=READY_TO_SHOW Window{86661ab u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity} in 
+Surface(name=com.rutabikersync.app/com.rutabikersync.app.MainActivity#27016)/@0x260c677
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3406:11-27 17:47:10.339  2474  2682 I WindowManager: 
+onFirstWindowDrawn, try to remove startingWindow. ar: ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity 
+t2596}  associatedTask: null  isMainWindow: true  startingWindow: Window{73983b u0 Splash Screen 
+com.rutabikersync.app}  startingData: SplashScreenStartingData{a29014e removeAfterTransaction= 0}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3410:11-27 17:47:10.342  2474  2682 I SmartPower: Miui 
+monitor launch : com.rutabikersync.app/.MainActivity  transitionTime:63  launchTime:1922  launchFrom:com.miui.home  
+launchType:1
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3411:11-27 17:47:10.342  2474  2682 I AppStartScenario: 
+notifyScenarioChanged: active=false param=Bundle[{renderThreadId=22087, pid=17497, uid=10436, 
+name=com.rutabikersync.app.MainActivity, type=2, state=1, processName=com.rutabikersync.app, 
+packageName=com.rutabikersync.app}]
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3419:11-27 17:47:10.349  2474  2682 I WindowManager: 
+wms.showSurfaceRobustly mWin:Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} in 
+Surface(name=com.rutabikersync.app/com.rutabikersync.app.MainActivity#27016)/@0x260c677
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3424:11-27 17:47:10.352 17497 17497 I RBS_FCM : Token FCM 
+obtenido exitosamente
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3445:11-27 17:47:10.364  2474  2601 I 
+ActivityTaskManager: Displayed com.rutabikersync.app/.MainActivity for user 0: +1s922ms
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3462:11-27 17:47:10.379 17497 22082 W RBS_FCM : Fallo al 
+registrar token en backend: null
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3520:11-27 17:47:10.400 25569 28978 W RecentsModel: 
+getRunningTask   taskInfo=TaskInfo{userId=0 taskId=2596 effectiveUid=10436 displayId=0 isRunning=true 
+baseIntent=Intent { flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity } 
+baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} origActivity=null 
+realActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} numActivities=1 
+lastActiveTime=296073399 supportsSplitScreenMultiWindow=true mSoScDisplayMode=-1 supportsMultiWindow=true resizeMode=1 
+isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=200 
+token=WCT{android.window.IWindowContainerToken$Stub$Proxy@a152ce8} topActivityType=1 pictureInPictureParams=null 
+shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 0 
+- 0, 0) topActivityInfo=ActivityInfo{222ff01 com.rutabikersync.app.MainActivity} launchCookies=[] 
+positionInParent=Point(0, 0) parentTaskId=-1 isFocused=true isVisible=true isVisibleRequested=true 
+isTopActivityNoDisplay=false isSleeping=false locusId=null displayAreaFeatureId=1 isTopActivityTransparent=false 
+isActivityStackTransparent=false lastNonFullscreenBounds=Rect(306, 736 - 914, 1956) capturedLink=null 
+capturedLinkTimestamp=0 requestedVisibleTypes=-9 topActivityRequestOpenInBrowserEducationTimestamp=0 
+appCompatTaskInfo=AppCompatTaskInfo { topActivityInSizeCompat=false eligibleForLetterboxEducation= false 
+topActivityInMiuiSizeCompat=false isLetterboxEducationEnabled= false isLetterboxDoubleTapEnabled= false 
+eligibleForUserAspectRatioButton= false topActivityBoundsLetterboxed= false isFromLetterboxDoubleTap= false 
+topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 
+topActivityLetterboxHeight=-1 topActivityAppBounds=Rect(0, 0 - 1220, 2712) isUserFullscreenOverrideEnabled=false 
+isSystemFullscreenOverrideEnabled=false hasMinAspectRatioOverride=false topActivityLetterboxBounds=null 
+cameraCompatTaskInfo=CameraCompatTaskInfo { freeformCameraCompatMode=inactive}} isImmersive=false 
+mTopActivityRequestOrientation=-1 mStatusBarParent=null mNavBarParent=null mBehindAppLockPkg=null mOriginatingUid=0 
+isEmbedded=false shouldBeVisible=true isCreatedByOrganizer=false mIsCastMode=false mTopActivityMediaSize=null 
+mTopActivityRecordName=ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} 
+mTopActivityOrientation=-1 topActivityMainWindowFrame=null}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3525:11-27 17:47:10.408 25569 28978 E 
+ActivityManagerWrapper:  mainTaskId=2596   userId=0   windowMode=1   isExcludedFromRecents=false   baseIntent=Intent { 
+act=null flag=268435456 cmp=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} }
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3532:11-27 17:47:10.409 25569 28978 D RecentsTaskLoader: 
+reloadTasksData [TaskKey{id=2596, stackId=0, baseIntent=Intent { flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity }, userId=0, lastActiveTime=296072775, windowingMode=1, isThumbnailBlur=false, 
+isAccessLocked=false, isScreening=false, 
+topActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, mHashCode=78260988}, title=Ruta 
+Biker Sync, titleDescription=Ruta Biker Sync, bounds=null, isLaunchTarget=true, isStackTask=true, isSystemApp=false, 
+isDockable=true, baseActivity=ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}, isLocked=false, 
+mNeedHide=false, hasMultipleTasks=false, cti1Key=, cti2Key=, cti1Task=, cti2Task=] 
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3545:11-27 17:47:10.417  2474  5392 D 
+MiuiMirrorInputMethodImpl: InsetsControlTarget invalid!:Window{86661ab u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3548:11-27 17:47:10.417 25569 28978 D IconLoader: 
+getBadgedActivityIcon activityInfo :ActivityInfo{23f47e7 com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3687:11-27 17:47:10.525  2474  2682 D 
+MiuiMirrorInputMethodImpl: InsetsControlTarget invalid!:Window{86661ab u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3688:11-27 17:47:10.525  2474  2682 D WindowManager: 
+postWindowRemoveCleanupLocked: Removing startingWindow Window{73983b u0 Splash Screen com.rutabikersync.app} from 
+ActivityRecord{213760305 u0 com.rutabikersync.app/.MainActivity t2596} activity = ActivityRecord{213760305 u0 
+com.rutabikersync.app/.MainActivity t2596}
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3694:11-27 17:47:10.526  2474  2682 D BarFollowAnimation: 
+pairAppearanceRegionAndWin win=Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+docs\evidence\fase2_audio_20261127\redmi-boot-logcat-raw.txt:3699:11-27 17:47:10.533  2474  2682 D BarFollowAnimation: 
+pairAppearanceRegionAndWin win=Window{86661ab u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} 0
+
+

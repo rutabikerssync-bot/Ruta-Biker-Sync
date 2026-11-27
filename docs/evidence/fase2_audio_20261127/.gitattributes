@@ -1,0 +1,4 @@
+# Los logs crudos/filtrados son evidencia literal de logcat y adb: no se reescriben.
+*.txt -whitespace
+*.log -whitespace
+*.md -whitespace

@@ -1,0 +1,5 @@
+﻿
+docs\evidence\fase2_audio_20261127\redmi-package-dumpsys.txt:163:    versionCode=1 minSdk=26 targetSdk=35
+docs\evidence\fase2_audio_20261127\redmi-package-dumpsys.txt:165:    versionName=0.1.0
+
+

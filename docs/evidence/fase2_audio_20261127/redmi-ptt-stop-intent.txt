@@ -1,0 +1,1 @@
+﻿Starting: Intent { act=android.intent.action.VIEW dat=rbs://ptt/... cmp=com.rutabikersync.app/.MainActivity }

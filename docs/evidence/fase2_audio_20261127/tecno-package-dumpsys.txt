@@ -1,0 +1,478 @@
+﻿Activity Resolver Table:
+  Schemes:
+      rbs:
+        5f31320 com.rutabikersync.app/.MainActivity filter 8502e9e
+          Action: "android.intent.action.VIEW"
+          Category: "android.intent.category.DEFAULT"
+          Category: "android.intent.category.BROWSABLE"
+          Scheme: "rbs"
+
+  Non-Data Actions:
+      android.intent.action.MAIN:
+        5f31320 com.rutabikersync.app/.MainActivity filter 31314d9
+          Action: "android.intent.action.MAIN"
+          Category: "android.intent.category.LAUNCHER"
+
+Receiver Resolver Table:
+  Non-Data Actions:
+      android.intent.action.BATTERY_OKAY:
+        140229b com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy filter 1bc2638
+          Action: "android.intent.action.BATTERY_OKAY"
+          Action: "android.intent.action.BATTERY_LOW"
+      android.intent.action.ACTION_POWER_DISCONNECTED:
+        d172595 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy filter 68c96aa
+          Action: "android.intent.action.ACTION_POWER_CONNECTED"
+          Action: "android.intent.action.ACTION_POWER_DISCONNECTED"
+      androidx.profileinstaller.action.SAVE_PROFILE:
+        a51746f com.rutabikersync.app/androidx.profileinstaller.ProfileInstallReceiver filter e4ffe5a
+          Action: "androidx.profileinstaller.action.SAVE_PROFILE"
+      android.intent.action.DEVICE_STORAGE_LOW:
+        8118611 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy filter 8757376
+          Action: "android.intent.action.DEVICE_STORAGE_LOW"
+          Action: "android.intent.action.DEVICE_STORAGE_OK"
+      android.net.conn.CONNECTIVITY_CHANGE:
+        6744d77 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy filter 296de4
+          Action: "android.net.conn.CONNECTIVITY_CHANGE"
+      android.intent.action.DEVICE_STORAGE_OK:
+        8118611 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy filter 8757376
+          Action: "android.intent.action.DEVICE_STORAGE_LOW"
+          Action: "android.intent.action.DEVICE_STORAGE_OK"
+      androidx.profileinstaller.action.INSTALL_PROFILE:
+        a51746f com.rutabikersync.app/androidx.profileinstaller.ProfileInstallReceiver filter 302957c
+          Action: "androidx.profileinstaller.action.INSTALL_PROFILE"
+      com.google.android.c2dm.intent.RECEIVE:
+        48c2d7f com.rutabikersync.app/com.google.firebase.iid.FirebaseInstanceIdReceiver filter 4c6414c
+          Action: "com.google.android.c2dm.intent.RECEIVE"
+      android.intent.action.BATTERY_LOW:
+        140229b com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy filter 1bc2638
+          Action: "android.intent.action.BATTERY_OKAY"
+          Action: "android.intent.action.BATTERY_LOW"
+      android.intent.action.TIMEZONE_CHANGED:
+        377724d com.rutabikersync.app/androidx.work.impl.background.systemalarm.RescheduleReceiver filter 33d5102
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.TIME_SET"
+          Action: "android.intent.action.TIMEZONE_CHANGED"
+      android.intent.action.TIME_SET:
+        377724d com.rutabikersync.app/androidx.work.impl.background.systemalarm.RescheduleReceiver filter 33d5102
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.TIME_SET"
+          Action: "android.intent.action.TIMEZONE_CHANGED"
+      androidx.profileinstaller.action.SKIP_FILE:
+        a51746f com.rutabikersync.app/androidx.profileinstaller.ProfileInstallReceiver filter b8d9e05
+          Action: "androidx.profileinstaller.action.SKIP_FILE"
+      androidx.profileinstaller.action.BENCHMARK_OPERATION:
+        a51746f com.rutabikersync.app/androidx.profileinstaller.ProfileInstallReceiver filter b2ae88b
+          Action: "androidx.profileinstaller.action.BENCHMARK_OPERATION"
+      android.intent.action.BOOT_COMPLETED:
+        377724d com.rutabikersync.app/androidx.work.impl.background.systemalarm.RescheduleReceiver filter 33d5102
+          Action: "android.intent.action.BOOT_COMPLETED"
+          Action: "android.intent.action.TIME_SET"
+          Action: "android.intent.action.TIMEZONE_CHANGED"
+      android.intent.action.ACTION_POWER_CONNECTED:
+        d172595 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy filter 68c96aa
+          Action: "android.intent.action.ACTION_POWER_CONNECTED"
+          Action: "android.intent.action.ACTION_POWER_DISCONNECTED"
+      androidx.work.diagnostics.REQUEST_DIAGNOSTICS:
+        6d5e649 com.rutabikersync.app/androidx.work.impl.diagnostics.DiagnosticsReceiver filter ab37b4e
+          Action: "androidx.work.diagnostics.REQUEST_DIAGNOSTICS"
+      androidx.work.impl.background.systemalarm.UpdateProxies:
+        9564a13 com.rutabikersync.app/androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver filter 2018450
+          Action: "androidx.work.impl.background.systemalarm.UpdateProxies"
+
+Service Resolver Table:
+  Non-Data Actions:
+      com.rutabikersync.app.mesh.ACTION_PTT_STOP:
+        aa18d68 com.rutabikersync.app/.core.mesh.BleMeshService filter 64f1581
+          Action: "com.rutabikersync.app.mesh.ACTION_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_STOP"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_STOP"
+      com.rutabikersync.app.mesh.ACTION_STOP:
+        aa18d68 com.rutabikersync.app/.core.mesh.BleMeshService filter 64f1581
+          Action: "com.rutabikersync.app.mesh.ACTION_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_STOP"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_STOP"
+      com.rutabikersync.app.mesh.ACTION_START:
+        aa18d68 com.rutabikersync.app/.core.mesh.BleMeshService filter 64f1581
+          Action: "com.rutabikersync.app.mesh.ACTION_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_STOP"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_STOP"
+      com.google.firebase.MESSAGING_EVENT:
+        affa626 com.rutabikersync.app/.core.network.RutaBikerMessagingService filter add8267
+          Action: "com.google.firebase.MESSAGING_EVENT"
+        b61814 com.rutabikersync.app/com.google.firebase.messaging.FirebaseMessagingService filter c5688bd
+          Action: "com.google.firebase.MESSAGING_EVENT"
+          mPriority=-500, mOrder=0, mHasStaticPartialTypes=false, mHasDynamicPartialTypes=false
+      com.rutabikersync.app.mesh.ACTION_PTT_START:
+        aa18d68 com.rutabikersync.app/.core.mesh.BleMeshService filter 64f1581
+          Action: "com.rutabikersync.app.mesh.ACTION_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_STOP"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_START"
+          Action: "com.rutabikersync.app.mesh.ACTION_PTT_STOP"
+
+Domain verification status:
+
+Permissions:
+  Permission [com.rutabikersync.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION] (d4afd59):
+    sourcePackage=com.rutabikersync.app
+    uid=10391 gids=[] type=0 prot=signature
+    perm=PermissionInfo{df52d1e com.rutabikersync.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION}
+
+Registered ContentProviders:
+  com.rutabikersync.app/androidx.startup.InitializationProvider:
+    Provider{85789ff com.rutabikersync.app/androidx.startup.InitializationProvider}
+  com.rutabikersync.app/androidx.core.content.FileProvider:
+    Provider{38ba3cc com.rutabikersync.app/androidx.core.content.FileProvider}
+  com.rutabikersync.app/com.google.mlkit.common.internal.MlKitInitProvider:
+    Provider{a251615 com.rutabikersync.app/com.google.mlkit.common.internal.MlKitInitProvider}
+  com.rutabikersync.app/com.google.firebase.provider.FirebaseInitProvider:
+    Provider{7c2fd2a com.rutabikersync.app/com.google.firebase.provider.FirebaseInitProvider}
+
+ContentProvider Authorities:
+  [com.rutabikersync.app.mlkitinitprovider]:
+    Provider{a251615 com.rutabikersync.app/com.google.mlkit.common.internal.MlKitInitProvider}
+      applicationInfo=ApplicationInfo{fa4c71b com.rutabikersync.app}
+  [com.rutabikersync.app.firebaseinitprovider]:
+    Provider{7c2fd2a com.rutabikersync.app/com.google.firebase.provider.FirebaseInitProvider}
+      applicationInfo=ApplicationInfo{7b530b8 com.rutabikersync.app}
+  [com.rutabikersync.app.fileprovider]:
+    Provider{38ba3cc com.rutabikersync.app/androidx.core.content.FileProvider}
+      applicationInfo=ApplicationInfo{34dfe91 com.rutabikersync.app}
+  [com.rutabikersync.app.androidx-startup]:
+    Provider{85789ff com.rutabikersync.app/androidx.startup.InitializationProvider}
+      applicationInfo=ApplicationInfo{ebc1f6 com.rutabikersync.app}
+
+Key Set Manager:
+  [com.rutabikersync.app]
+      Signing KeySets: 193
+
+Packages:
+  Package [com.rutabikersync.app] (8960681):
+    userId=10391
+    pkg=Package{2de6f52 com.rutabikersync.app}
+    codePath=/data/app/~~LqPVopSGeS7fEk5BtLcIXg==/com.rutabikersync.app-J0lVzMrbYeq77xFAnYfabw==
+    resourcePath=/data/app/~~LqPVopSGeS7fEk5BtLcIXg==/com.rutabikersync.app-J0lVzMrbYeq77xFAnYfabw==
+    legacyNativeLibraryDir=/data/app/~~LqPVopSGeS7fEk5BtLcIXg==/com.rutabikersync.app-J0lVzMrbYeq77xFAnYfabw==/lib
+    extractNativeLibs=false
+    primaryCpuAbi=arm64-v8a
+    secondaryCpuAbi=null
+    cpuAbiOverride=null
+    versionCode=1 minSdk=26 targetSdk=35
+    minExtensionVersions=[]
+    versionName=0.1.0
+    usesNonSdkApi=false
+    splits=[base]
+    apkSigningVersion=2
+    applicationInfo=PackageImpl{2de6f52 com.rutabikersync.app}
+    flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    privateFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION ALLOW_AUDIO_PLAYBACK_CAPTURE PARTIALLY_DIRECT_BOOT_AWARE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    forceQueryable=false
+    queriesPackages=[]
+    queriesIntents=[Intent { act=com.android.vending.billing.InAppBillingService.BIND }, Intent { act=com.google.android.apps.play.billingtestcompanion.BillingOverrideService.BIND }]
+    dataDir=/data/user/0/com.rutabikersync.app
+    supportsScreens=[small, medium, large, xlarge, resizeable, anyDensity]
+    timeStamp=2026-11-27 17:46:37
+    firstInstallTime=2026-11-23 22:24:11
+    lastUpdateTime=2026-11-27 17:46:42
+    signatures=PackageSignatures{9cd771f version:2, signatures:[48eaf7a7], past signatures:[]}
+    installPermissionsFixed=true
+    pkgFlags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    declared permissions:
+      com.rutabikersync.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: prot=signature, INSTALLED
+    requested permissions:
+      android.permission.INTERNET
+      android.permission.ACCESS_NETWORK_STATE
+      android.permission.BLUETOOTH_SCAN
+      android.permission.BLUETOOTH_ADVERTISE
+      android.permission.BLUETOOTH_CONNECT
+      android.permission.ACCESS_FINE_LOCATION
+      android.permission.ACCESS_COARSE_LOCATION
+      android.permission.FOREGROUND_SERVICE
+      android.permission.FOREGROUND_SERVICE_LOCATION
+      android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE
+      android.permission.FOREGROUND_SERVICE_MICROPHONE
+      android.permission.WAKE_LOCK
+      android.permission.RECORD_AUDIO
+      android.permission.MODIFY_AUDIO_SETTINGS
+      android.permission.POST_NOTIFICATIONS
+      android.permission.VIBRATE
+      android.permission.USE_BIOMETRIC
+      android.permission.CAMERA
+      android.permission.ACCESS_WIFI_STATE
+      android.permission.USE_FINGERPRINT
+      com.android.vending.BILLING
+      com.google.android.c2dm.permission.RECEIVE
+      android.permission.RECEIVE_BOOT_COMPLETED
+      com.rutabikersync.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+    install permissions:
+      com.google.android.c2dm.permission.RECEIVE: granted=true
+      android.permission.MODIFY_AUDIO_SETTINGS: granted=true
+      android.permission.FOREGROUND_SERVICE: granted=true
+      android.permission.RECEIVE_BOOT_COMPLETED: granted=true
+      android.permission.INTERNET: granted=true
+      com.android.vending.BILLING: granted=true
+      com.rutabikersync.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: granted=true
+      android.permission.ACCESS_NETWORK_STATE: granted=true
+      android.permission.USE_FINGERPRINT: granted=true
+      android.permission.VIBRATE: granted=true
+      android.permission.ACCESS_WIFI_STATE: granted=true
+      android.permission.USE_BIOMETRIC: granted=true
+      android.permission.WAKE_LOCK: granted=true
+    User 0: ceDataInode=910207 installed=true hidden=false suspended=false distractionFlags=0 stopped=false notLaunched=false enabled=0 instant=false virtual=false
+      overlay paths:
+        /product/overlay/IconDefaultShape_KI5k.apk
+      legacy overlay paths:
+        /product/overlay/IconDefaultShape_KI5k.apk
+      lastDisabledCaller: com.google.android.packageinstaller
+      gids=[3003]
+      runtime permissions:
+        android.permission.ACCESS_FINE_LOCATION: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_CONNECT: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.ACCESS_COARSE_LOCATION: granted=true, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.CAMERA: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_ADVERTISE: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.RECORD_AUDIO: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_SCAN: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+      disabledComponents:
+        androidx.work.impl.background.systemalarm.RescheduleReceiver
+      enabledComponents:
+        androidx.work.impl.background.systemjob.SystemJobService
+
+Queries:
+  system apps queryable: false
+  queries via package name:
+  queries via intent:
+    [com.transsion.overlaysuw,com.sprd.flashcontrol,com.transsion.batterylab,com.transsion.screencapture,com.android.server.telecom,com.transsion.zahooc,com.xui.xhide,com.transsion.phonemanager,com.transsion.repaircard,com.transsion.iotservice,com.transsion.powercenter,android,com.transsion.smartpanel,com.transsion.systemupdate,com.android.location.fused,com.silead.factorytest,com.android.wallpaperbackup,com.transsion.letswitch,com.transsion,com.transsion.autotest.factory,com.reallytek.wg,com.transsion.microintelligence,com.sprd.validationtools,com.android.providers.settings,com.android.localtransport,com.mediatek.schpwronoff,com.transsion.statisticalsales,com.android.inputdevices,com.unisoc.enginecore,com.transsion.childmode,com.mediatek.batterywarning,com.transsion.deskclock,com.android.keychain,com.silead.fingerprint,com.android.dynsystem,com.transsion.mol,com.transsion.ossettingsext,com.android.settings,com.transsion.tabe,com.sprd.engineermode,com.sprd.srmi,com.transsion.tranengine,com.transsion.videocallenhancer]:
+      com.rutabikersync.app
+    net.bat.store:
+      com.rutabikersync.app
+    com.transsnet.store:
+      com.rutabikersync.app
+    com.google.android.apps.messaging:
+      com.rutabikersync.app
+    com.zaz.translate:
+      com.rutabikersync.app
+    com.talpa.hibrowser:
+      com.rutabikersync.app
+    com.transsion.magicshow:
+      com.rutabikersync.app
+    com.transsion.tecnospot:
+      com.rutabikersync.app
+    com.funbase.xradio:
+      com.rutabikersync.app
+    com.transsion.healthlife:
+      com.rutabikersync.app
+    com.transsion.filemanagerx:
+      com.rutabikersync.app
+    com.transsion.hilauncher:
+      com.rutabikersync.app
+    com.transsion.scanningrecharger:
+      com.rutabikersync.app
+    com.transsion.kolun.assistant:
+      com.rutabikersync.app
+    com.transsion.phonemaster:
+      com.rutabikersync.app
+    com.transsion.notebook:
+      com.rutabikersync.app
+    com.rlk.weathers:
+      com.rutabikersync.app
+    com.instagram.android:
+      com.rutabikersync.app
+    com.aurax.aicleaner.cleanstorage:
+      com.rutabikersync.app
+    com.facebook.orca:
+      com.rutabikersync.app
+    com.cashea.app:
+      com.rutabikersync.app
+    com.smartlife.nebula:
+      com.rutabikersync.app
+    cn.wps.moffice_eng:
+      com.rutabikersync.app
+    com.whatsapp:
+      com.rutabikersync.app
+    com.snowcorp.stickerly.android:
+      com.rutabikersync.app
+    us.zoom.videomeetings:
+      com.rutabikersync.app
+    com.whatsapp.w4b:
+      com.rutabikersync.app
+    com.google.android.apps.searchlite:
+      com.rutabikersync.app
+    com.zhiliaoapp.musically.go:
+      com.rutabikersync.app
+    com.facebook.stella:
+      com.rutabikersync.app
+    com.hecorat.screenrecorder.free:
+      com.rutabikersync.app
+    com.facebook.katana:
+      com.rutabikersync.app
+    com.lemon.lvoverseas:
+      com.rutabikersync.app
+    com.binance.dev:
+      com.rutabikersync.app
+  queryable via interaction:
+    User 0:
+      [com.transsion.overlaysuw,com.sprd.flashcontrol,com.transsion.batterylab,com.transsion.screencapture,com.android.server.telecom,com.transsion.zahooc,com.xui.xhide,com.transsion.phonemanager,com.transsion.repaircard,com.transsion.iotservice,com.transsion.powercenter,android,com.transsion.smartpanel,com.transsion.systemupdate,com.android.location.fused,com.silead.factorytest,com.android.wallpaperbackup,com.transsion.letswitch,com.transsion,com.transsion.autotest.factory,com.reallytek.wg,com.transsion.microintelligence,com.sprd.validationtools,com.android.providers.settings,com.android.localtransport,com.mediatek.schpwronoff,com.transsion.statisticalsales,com.android.inputdevices,com.unisoc.enginecore,com.transsion.childmode,com.mediatek.batterywarning,com.transsion.deskclock,com.android.keychain,com.silead.fingerprint,com.android.dynsystem,com.transsion.mol,com.transsion.ossettingsext,com.android.settings,com.transsion.tabe,com.sprd.engineermode,com.sprd.srmi,com.transsion.tranengine,com.transsion.videocallenhancer]:
+        com.rutabikersync.app
+      [com.google.android.gms,com.google.android.gsf]:
+        com.rutabikersync.app
+      com.google.android.inputmethod.latin:
+        com.rutabikersync.app
+  queryable via uses-library:
+
+Package Changes:
+  Sequence number=43763
+  User 0:
+    seq=93, package=com.google.android.partnersetup
+    seq=148, package=us.kr.baseballnine
+    seq=309, package=host.exp.exponent
+    seq=645, package=com.google.android.marvin.talkback
+    seq=3477, package=com.rutabikersync.app.uxtest
+    seq=3506, package=com.rutabikersync.app.fieldtest
+    seq=5521, package=com.king.candycrushsaga
+    seq=5522, package=cn.wps.moffice_eng
+    seq=5523, package=com.facebook.stella
+    seq=5524, package=com.omarte.dominocuenta
+    seq=5525, package=com.elp.app
+    seq=5526, package=cn.wps.moffice.lite.abroad.transsion
+    seq=5527, package=com.smartlife.nebula
+    seq=5528, package=com.transsion.compass
+    seq=5529, package=com.microsoft.office.officehubrow
+    seq=5530, package=com.lemon.lvoverseas
+    seq=5531, package=com.facebook.orca
+    seq=5532, package=com.binance.dev
+    seq=5533, package=us.zoom.videomeetings
+    seq=5534, package=com.spotify.music
+    seq=5535, package=com.opera.browser
+    seq=6221, package=com.transsion.tecnospot
+    seq=7765, package=com.google.android.safetycore
+    seq=10790, package=com.aurax.aicleaner.cleanstorage
+    seq=10917, package=com.google.android.apps.magazines
+    seq=19543, package=com.google.android.contactkeys
+    seq=19802, package=com.google.android.apps.wellbeing
+    seq=19823, package=com.funbase.xradio
+    seq=19831, package=com.google.android.apps.authenticator2
+    seq=21006, package=com.google.android.calculator
+    seq=22646, package=com.snowcorp.stickerly.android
+    seq=22886, package=com.google.android.videos
+    seq=26892, package=net.bat.store
+    seq=31329, package=com.google.android.webview
+    seq=31388, package=com.google.android.gms
+    seq=31489, package=com.google.android.calendar
+    seq=33390, package=com.google.android.apps.adwords
+    seq=33391, package=com.google.android.gm
+    seq=33392, package=com.google.android.apps.tachyon
+    seq=33400, package=org.mozilla.firefox
+    seq=36944, package=com.android.bluetooth
+    seq=37384, package=com.tailscale.ipn
+    seq=37650, package=com.discord
+    seq=37651, package=com.google.android.contacts
+    seq=37655, package=com.google.android.dialer
+    seq=37656, package=com.google.android.tts
+    seq=37658, package=org.telegram.messenger
+    seq=37659, package=com.transsion.healthlife
+    seq=39545, package=com.facebook.system
+    seq=39648, package=com.talpa.hibrowser
+    seq=39991, package=com.facebook.katana
+    seq=40225, package=com.facebook.services
+    seq=40564, package=com.android.chrome
+    seq=40566, package=com.google.android.inputmethod.latin
+    seq=40567, package=com.google.android.deskclock
+    seq=40571, package=com.transsion.magicshow
+    seq=40572, package=com.google.android.apps.restore
+    seq=40574, package=com.zaz.translate
+    seq=40577, package=com.transsion.hilauncher
+    seq=40581, package=com.google.android.apps.nbu.files
+    seq=40656, package=com.google.android.apps.messaging
+    seq=40734, package=com.google.android.apps.bard
+    seq=40840, package=com.instagram.android
+    seq=41526, package=no.nordicsemi.android.mcp
+    seq=42267, package=com.transsion.carlcare
+    seq=42269, package=com.mercadolibre
+    seq=42270, package=com.whatsapp.w4b
+    seq=42320, package=com.cashea.app
+    seq=42321, package=com.google.android.apps.youtube.music
+    seq=42324, package=com.google.android.ext.services
+    seq=42325, package=com.google.android.googlequicksearchbox
+    seq=42405, package=com.google.android.youtube
+    seq=42406, package=com.google.android.apps.maps
+    seq=43192, package=com.telefonica.movistar
+    seq=43193, package=com.google.android.apps.photos
+    seq=43195, package=com.google.android.projection.gearhead
+    seq=43196, package=com.hecorat.screenrecorder.free
+    seq=43197, package=com.whatsapp
+    seq=43198, package=com.zhiliaoapp.musically.go
+    seq=43399, package=com.android.vending
+    seq=43535, package=dev.firebase.appdistribution
+    seq=43729, package=com.facebook.appmanager
+    seq=43733, package=com.rutabikersync.app.test
+    seq=43761, package=com.google.android.apps.docs
+    seq=43762, package=com.rutabikersync.app
+
+
+Dexopt state:
+  [com.rutabikersync.app]
+    path: /data/app/~~LqPVopSGeS7fEk5BtLcIXg==/com.rutabikersync.app-J0lVzMrbYeq77xFAnYfabw==/base.apk
+      arm64: [status=run-from-apk] [reason=unknown]
+
+
+Compiler stats:
+  [com.rutabikersync.app]
+     base.apk - 3717
+
+APEX session state:
+
+Active APEX packages:
+
+
+Inactive APEX packages:
+
+
+Factory APEX packages:
+
+
+Snapshot statistics
+   Unrecorded-hits: 6174  Cork-level: 0
+   Summary stats               TotBlds     TotUsed     TotCork     BigBlds    ShortLvd     TotTime     MaxTime
+          0:34         now          58       84705           0           5          23         153          29
+          1:34        0:34           4         638           0           0           0           7           3
+          2:34        1:34           8        9811           0           0           1          11           3
+          3:34        2:34          14       43510           0           2           4          48          25
+          4:34        3:34           6       99699           0           0           1          13           7
+          5:34        4:34           0           0           0           0           0           0           0
+          6:34        5:34           0           0           0           0           0           0           0
+          7:34        6:34           0           0           0           0           0           0           0
+          8:34        7:34           0           0           0           0           0           0           0
+          9:34        8:34           0           0           0           0           0           0           0
+    3:04:46:58         now        6136    18809580           0          72        2979        7654          51
+   10:15:12:55  3:04:46:58       17552    52133391           0         265        7645       23278          52
+
+   Build times                  <= 1ms      <= 2ms      <= 5ms     <= 10ms     <= 20ms     <= 50ms    <= 100ms     > 100ms
+          0:34         now          52           0           0           1           2           3           0           0
+          1:34        0:34           3           0           1           0           0           0           0           0
+          2:34        1:34           6           1           1           0           0           0           0           0
+          3:34        2:34          12           0           0           0           1           1           0           0
+          4:34        3:34           4           0           1           1           0           0           0           0
+          5:34        4:34           0           0           0           0           0           0           0           0
+          6:34        5:34           0           0           0           0           0           0           0           0
+          7:34        6:34           0           0           0           0           0           0           0           0
+          8:34        7:34           0           0           0           0           0           0           0           0
+          9:34        8:34           0           0           0           0           0           0           0           0
+    3:04:46:58         now        5715          87         236          28          46          23           1           0
+   10:15:12:55  3:04:46:58       16010         298         863         125         162          93           1           0
+
+   Use counters                   <= 1        <= 2        <= 5       <= 10       <= 20       <= 50      <= 100       > 100
+          0:34         now          18           0           5           7           1          10           2          15
+          1:34        0:34           0           0           0           0           0           1           0           3
+          2:34        1:34           1           0           0           0           0           0           0           7
+          3:34        2:34           4           0           0           0           0           0           1           9
+          4:34        3:34           1           0           0           0           0           0           1           4
+          5:34        4:34           0           0           0           0           0           0           0           0
+          6:34        5:34           0           0           0           0           0           0           0           0
+          7:34        6:34           0           0           0           0           0           0           0           0
+          8:34        7:34           0           0           0           0           0           0           0           0
+          9:34        8:34           0           0           0           0           0           0           0           0
+    3:04:46:58         now         800          25        2154         902         602         493         161         999
+   10:15:12:55  3:04:46:58        2243         100        5302        2430        1709        1246         577        3945

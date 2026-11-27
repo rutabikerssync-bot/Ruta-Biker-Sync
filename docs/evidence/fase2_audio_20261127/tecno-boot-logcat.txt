@@ -1,0 +1,167 @@
+﻿
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:330:11-27 17:46:42.738   848  2639 I WindowManager: Input 
+focus has changed to Window{3f42cd0 u0 
+com.transsion.hilauncher/com.android.quickstep.src.com.android.launcher3.uioverrides.QuickstepLauncher} from 1a92abe 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:362:11-27 17:46:42.832 20820 20820 I adbd    : adbd 
+service requested 'shell,v2,TERM=xterm-256color,raw:am start -n com.rutabikersync.app/.MainActivity'
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:535:11-27 17:46:42.995   848  2745 I ActivityTaskManager: 
+START u0 {flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity} from uid 2000, pid 8195
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:592:11-27 17:46:43.136   848  2745 I ActivityTaskManager: 
+->startActivity for ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755} result:START_SUCCESS
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:611:11-27 17:46:43.150  2676  5803 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:769:11-27 17:46:43.228  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:777:11-27 17:46:43.249  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:799:11-27 17:46:43.259  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:811:11-27 17:46:43.290  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:816:11-27 17:46:43.304  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:822:11-27 17:46:43.326  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:823:11-27 17:46:43.326  2676  2700 D Game_Utils: 
+getTopClassNameNew className = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:825:11-27 17:46:43.330  2676  2700 I 
+SmartPanel_SmartPanelService: ASP topPkg: com.rutabikersync.app  topClass = com.rutabikersync.app.MainActivity 
+isSplitScreenfalse
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:889:11-27 17:46:43.389   848  1854 I ActivityManager: 
+Start proc 8214:com.rutabikersync.app/u0a391 for pre-top-activity 
+{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:893:11-27 17:46:43.397   848  1226 D JupiterDelegator: 
+appLockCheckInner: ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:895:11-27 17:46:43.398   848  1854 D os.fingerprint: 
+onRealStartActivityLocked next:ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755} 
+isKeyguardShowing:false
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:896:11-27 17:46:43.398   848  1854 D os.fingerprint: 
+activityComponent = ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} inMultiWindow = false
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:898:11-27 17:46:43.398   848  1854 D WindowManager: 
+setFocusedApp mFocusedApp = ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755}
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:901:11-27 17:46:43.400  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:944:11-27 17:46:43.418   848   872 D 
+VideoCallEnhancerControlImpl: className is com.rutabikersync.app/com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1061:11-27 17:46:43.470  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1123:11-27 17:46:43.501  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1126:11-27 17:46:43.505  2676  2700 D SmartPanelService: 
+mClassName = com.rutabikersync.app.MainActivity  pkgName = com.rutabikersync.app  RUN_PACKAGE = com.rutabikersync.app
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1151:11-27 17:46:43.574  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1479:11-27 17:46:44.504  8214  8214 I AppAudioBootstrap: 
+hub de audio inicializado con alcance de aplicacion
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1516:11-27 17:46:44.533  8214  8214 D RBS_FCM : 4 canales 
+de notificaci├│n FCM creados correctamente
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1729:11-27 17:46:45.074   848  1843 D 
+DynamicFrameRateController: onAfterActivityResumed packageName: com.rutabikersync.app, activityName: 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1940:11-27 17:46:45.485   848  2715 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:null oldComponent:null newPackageName:com.rutabikersync.app 
+newComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} mFm 
+:android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1941:11-27 17:46:45.485   848  2715 I hugh-tag: 
+PhoneWindowManager onDefaultDisplayFocusChangedLw mCurrentFocus=Window{8e1ef0a u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1942:11-27 17:46:45.489   848  2715 I WindowManager: 
+Input focus has changed to Window{8e1ef0a u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} from 3f42cd0 
+com.transsion.hilauncher/com.android.quickstep.src.com.android.launcher3.uioverrides.QuickstepLauncher mDisplayId 0 
+updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1967:11-27 17:46:45.506   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1975:11-27 17:46:45.576   616   628 I gralloc4: allocate: 
+id=2680001399a, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, size=720x1612, 
+stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1977:11-27 17:46:45.578   616   628 I gralloc4: allocate: 
+id=2680001399b, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, size=720x1612, 
+stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1979:11-27 17:46:45.581   616   628 I gralloc4: allocate: 
+id=2680001399c, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, size=720x1612, 
+stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:1981:11-27 17:46:45.588   616   628 I gralloc4: allocate: 
+id=2680001399d, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, size=720x1612, 
+stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2207:11-27 17:46:45.938   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2214:11-27 17:46:45.939  8214  8214 I RBS_FCM : Token FCM 
+obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2248:11-27 17:46:45.949  2676  2700 I 
+SmartPanel_SmartPanelService: onWindowsDrawn pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity launchState=1 windowsDrawnDelayMs =2968
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2251:11-27 17:46:45.950   848   869 I 
+ActivityTaskManager: Displayed com.rutabikersync.app/.MainActivity: +2s968ms
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2261:11-27 17:46:45.954   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2297:11-27 17:46:45.966  8214  8281 W RBS_FCM : Fallo al 
+registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2299:11-27 17:46:45.967  8214  8214 I RBS_FCM : Token FCM 
+obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2300:11-27 17:46:45.970   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2345:11-27 17:46:45.988   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2346:11-27 17:46:45.988  8214  8281 W RBS_FCM : Fallo al 
+registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2391:11-27 17:46:46.005   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2392:11-27 17:46:46.008  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2418:11-27 17:46:46.022   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2465:11-27 17:46:46.038   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2494:11-27 17:46:46.054   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2508:11-27 17:46:46.070   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2521:11-27 17:46:46.087   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2533:11-27 17:46:46.104   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2540:11-27 17:46:46.121   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2545:11-27 17:46:46.137   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2550:11-27 17:46:46.154   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-boot-logcat-raw.txt:2580:11-27 17:46:46.172   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+
+

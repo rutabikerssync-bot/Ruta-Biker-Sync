@@ -1,0 +1,5 @@
+﻿
+docs\evidence\fase2_audio_20261127\tecno-package-dumpsys.txt:162:    versionCode=1 minSdk=26 targetSdk=35
+docs\evidence\fase2_audio_20261127\tecno-package-dumpsys.txt:164:    versionName=0.1.0
+
+

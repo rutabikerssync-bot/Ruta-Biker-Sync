@@ -1,0 +1,1199 @@
+﻿
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:330:11-27 17:46:42.738   848  2639 I WindowManager: 
+Input focus has changed to Window{3f42cd0 u0 
+com.transsion.hilauncher/com.android.quickstep.src.com.android.launcher3.uioverrides.QuickstepLauncher} from 1a92abe 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:362:11-27 17:46:42.832 20820 20820 I adbd    : adbd 
+service requested 'shell,v2,TERM=xterm-256color,raw:am start -n com.rutabikersync.app/.MainActivity'
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:535:11-27 17:46:42.995   848  2745 I 
+ActivityTaskManager: START u0 {flg=0x10000000 cmp=com.rutabikersync.app/.MainActivity} from uid 2000, pid 8195
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:592:11-27 17:46:43.136   848  2745 I 
+ActivityTaskManager: ->startActivity for ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755} 
+result:START_SUCCESS
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:611:11-27 17:46:43.150  2676  5803 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:769:11-27 17:46:43.228  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:777:11-27 17:46:43.249  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:799:11-27 17:46:43.259  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:811:11-27 17:46:43.290  2676  5803 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:816:11-27 17:46:43.304  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:822:11-27 17:46:43.326  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:823:11-27 17:46:43.326  2676  2700 D Game_Utils: 
+getTopClassNameNew className = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:825:11-27 17:46:43.330  2676  2700 I 
+SmartPanel_SmartPanelService: ASP topPkg: com.rutabikersync.app  topClass = com.rutabikersync.app.MainActivity 
+isSplitScreenfalse
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:889:11-27 17:46:43.389   848  1854 I ActivityManager: 
+Start proc 8214:com.rutabikersync.app/u0a391 for pre-top-activity 
+{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:893:11-27 17:46:43.397   848  1226 D 
+JupiterDelegator: appLockCheckInner: ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:895:11-27 17:46:43.398   848  1854 D os.fingerprint: 
+onRealStartActivityLocked next:ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755} 
+isKeyguardShowing:false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:896:11-27 17:46:43.398   848  1854 D os.fingerprint: 
+activityComponent = ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} inMultiWindow = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:898:11-27 17:46:43.398   848  1854 D WindowManager: 
+setFocusedApp mFocusedApp = ActivityRecord{7548ef1 u0 com.rutabikersync.app/.MainActivity t21755}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:901:11-27 17:46:43.400  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:944:11-27 17:46:43.418   848   872 D 
+VideoCallEnhancerControlImpl: className is com.rutabikersync.app/com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1061:11-27 17:46:43.470  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1123:11-27 17:46:43.501  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1126:11-27 17:46:43.505  2676  2700 D 
+SmartPanelService: mClassName = com.rutabikersync.app.MainActivity  pkgName = com.rutabikersync.app  RUN_PACKAGE = 
+com.rutabikersync.app
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1151:11-27 17:46:43.574  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1479:11-27 17:46:44.504  8214  8214 I 
+AppAudioBootstrap: hub de audio inicializado con alcance de aplicacion
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1516:11-27 17:46:44.533  8214  8214 D RBS_FCM : 4 
+canales de notificaci├│n FCM creados correctamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1729:11-27 17:46:45.074   848  1843 D 
+DynamicFrameRateController: onAfterActivityResumed packageName: com.rutabikersync.app, activityName: 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1940:11-27 17:46:45.485   848  2715 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:null oldComponent:null newPackageName:com.rutabikersync.app 
+newComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} mFm 
+:android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1941:11-27 17:46:45.485   848  2715 I hugh-tag: 
+PhoneWindowManager onDefaultDisplayFocusChangedLw mCurrentFocus=Window{8e1ef0a u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1942:11-27 17:46:45.489   848  2715 I WindowManager: 
+Input focus has changed to Window{8e1ef0a u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} from 3f42cd0 
+com.transsion.hilauncher/com.android.quickstep.src.com.android.launcher3.uioverrides.QuickstepLauncher mDisplayId 0 
+updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1967:11-27 17:46:45.506   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1975:11-27 17:46:45.576   616   628 I gralloc4: 
+allocate: id=2680001399a, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1977:11-27 17:46:45.578   616   628 I gralloc4: 
+allocate: id=2680001399b, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1979:11-27 17:46:45.581   616   628 I gralloc4: 
+allocate: id=2680001399c, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:1981:11-27 17:46:45.588   616   628 I gralloc4: 
+allocate: id=2680001399d, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#0(BLAST Consumer)0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2207:11-27 17:46:45.938   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2214:11-27 17:46:45.939  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2248:11-27 17:46:45.949  2676  2700 I 
+SmartPanel_SmartPanelService: onWindowsDrawn pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity launchState=1 windowsDrawnDelayMs =2968
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2251:11-27 17:46:45.950   848   869 I 
+ActivityTaskManager: Displayed com.rutabikersync.app/.MainActivity: +2s968ms
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2261:11-27 17:46:45.954   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2297:11-27 17:46:45.966  8214  8281 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2299:11-27 17:46:45.967  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2300:11-27 17:46:45.970   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2345:11-27 17:46:45.988   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2346:11-27 17:46:45.988  8214  8281 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2391:11-27 17:46:46.005   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2392:11-27 17:46:46.008  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2418:11-27 17:46:46.022   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2465:11-27 17:46:46.038   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2494:11-27 17:46:46.054   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2508:11-27 17:46:46.070   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2521:11-27 17:46:46.087   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2533:11-27 17:46:46.104   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2540:11-27 17:46:46.121   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2545:11-27 17:46:46.137   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2550:11-27 17:46:46.154   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:2580:11-27 17:46:46.172   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3291:11-27 17:46:48.374 20820 20820 I adbd    : adbd 
+service requested 'shell,v2,TERM=xterm-256color,raw:am start -a android.intent.action.VIEW -d rbs://ptt?action=start 
+-n com.rutabikersync.app/.MainActivity'
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3301:11-27 17:46:48.416   848  2947 I 
+ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=rbs://ptt?action=start flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity} from uid 2000, pid 8393
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3305:11-27 17:46:48.429   848  2947 I 
+ActivityTaskManager: ->startActivity for ActivityRecord{b7e0958 u0 com.rutabikersync.app/.MainActivity t21755} 
+result:START_SUCCESS
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3324:11-27 17:46:48.432  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3326:11-27 17:46:48.435   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3349:11-27 17:46:48.442   848  1226 D 
+JupiterDelegator: appLockCheckInner: ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3351:11-27 17:46:48.447   848  2693 D os.fingerprint: 
+onRealStartActivityLocked next:ActivityRecord{b7e0958 u0 com.rutabikersync.app/.MainActivity t21755} 
+isKeyguardShowing:false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3352:11-27 17:46:48.447   848  2693 D os.fingerprint: 
+activityComponent = ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} inMultiWindow = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3353:11-27 17:46:48.448   848  2693 D WindowManager: 
+setFocusedApp mFocusedApp = ActivityRecord{b7e0958 u0 com.rutabikersync.app/.MainActivity t21755}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3354:11-27 17:46:48.448   848  2693 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:com.rutabikersync.app 
+oldComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} newPackageName:null 
+newComponent:null mFm :android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3355:11-27 17:46:48.449   848  2693 I WindowManager: 
+Input focus has changed to null from 8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 
+updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3356:11-27 17:46:48.451   687   687 I Layer   : 
+name=8e1ef0a com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95006, visible=1, DrawingState.flags=0x102, 
+paused=1, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3397:11-27 17:46:48.458   848   872 D 
+VideoCallEnhancerControlImpl: className is com.rutabikersync.app/com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3406:11-27 17:46:48.465  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3413:11-27 17:46:48.470  8214  8214 I MainActivity: 
+Deep Link rbs://ptt?action=start procesado
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3417:11-27 17:46:48.475  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3426:11-27 17:46:48.484  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3433:11-27 17:46:48.491   848  2693 D 
+DynamicFrameRateController: onAfterActivityResumed packageName: com.rutabikersync.app, activityName: 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3436:11-27 17:46:48.494  8214  8214 I BleMeshService: 
+BleMeshService onCreate
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3438:11-27 17:46:48.495  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3441:11-27 17:46:48.496  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3442:11-27 17:46:48.498  8214  8214 I BleMeshService: 
+PARTIAL_WAKE_LOCK adquirido (RBS:MeshRadioEngineLock)
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3465:11-27 17:46:48.507  8214  8214 I BleMeshService: 
+Bluetooth inicializado. ExtendedAdv=true, BLE5.0=true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3469:11-27 17:46:48.515  8214  8214 I BleMeshService: 
+startForeground garantizado antes de procesar la acci├│n PTT
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3470:11-27 17:46:48.515  8214  8214 I BleMeshService: 
+ACTION_PTT_START recibido
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3474:11-27 17:46:48.518  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3488:11-27 17:46:48.524  8214  8214 I BleMeshService: 
+Foco de silencio SOS compartido con hardware PTT
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3489:11-27 17:46:48.524  8214  8214 I PttAudioEngine: 
+PTT: Iniciando transmisi├│n de audio...
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3490:11-27 17:46:48.525  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3497:11-27 17:46:48.531  8214  8281 I AudioRecord: 
+set(): inputSource 7, sampleRate 16000, format 0x1, channelMask 0x10, frameCount 1280, notificationFrames 0, sessionId 
+0, transferType 0, flags 0, attributionSource AttributionSourceState{pid: -1, uid: 10391, packageName: 
+com.rutabikersync.app, attributionTag: (null), token: , renouncedPermissions: [], next: []}uid -1, pid -1
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3498:11-27 17:46:48.532  8214  8281 I AudioRecord: 
+start  mSessionId:0 app name:com.rutabikersync.app 
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3499:11-27 17:46:48.532  8214  8382 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3502:11-27 17:46:48.539  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3522:11-27 17:46:48.549  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3524:11-27 17:46:48.551  8214  8281 I AudioRecord: 
+start mClientAttributionSource.uid:10391 mClientAttributionSource.pid:8214  mSessionId:117369 app 
+name:com.rutabikersync.app 
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3533:11-27 17:46:48.563  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3653:11-27 17:46:48.593   848  1511 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:null oldComponent:null newPackageName:com.rutabikersync.app 
+newComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} mFm 
+:android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3658:11-27 17:46:48.593   848  1511 I hugh-tag: 
+PhoneWindowManager onDefaultDisplayFocusChangedLw mCurrentFocus=Window{b150e9c u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3672:11-27 17:46:48.595   848  1511 I WindowManager: 
+Input focus has changed to Window{b150e9c u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} from 8e1ef0a 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3691:11-27 17:46:48.599   616   628 I gralloc4: 
+allocate: id=2680001399e, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#1(BLAST Consumer)1
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3693:11-27 17:46:48.601   616   628 I gralloc4: 
+allocate: id=2680001399f, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#1(BLAST Consumer)1
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3712:11-27 17:46:48.602   687   687 I Layer   : 
+name=com.rutabikersync.app/com.rutabikersync.app.MainActivity#1, id=95015, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL, feature=NO_INPUT_CHANNEL
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3713:11-27 17:46:48.603   616   628 I gralloc4: 
+allocate: id=268000139a0, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#1(BLAST Consumer)1
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3737:11-27 17:46:48.605   616   627 I gralloc4: 
+allocate: id=268000139a1, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#1(BLAST Consumer)1
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3789:11-27 17:46:48.618   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3817:11-27 17:46:48.635   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3824:11-27 17:46:48.643  2676  2700 I 
+SmartPanel_SmartPanelService: onWindowsDrawn pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity launchState=2 windowsDrawnDelayMs =227
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3825:11-27 17:46:48.643   848   869 I 
+ActivityTaskManager: Displayed com.rutabikersync.app/.MainActivity: +227ms
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3844:11-27 17:46:48.653   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3885:11-27 17:46:48.667  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3887:11-27 17:46:48.667  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3889:11-27 17:46:48.668   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3912:11-27 17:46:48.680  8214  8382 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3933:11-27 17:46:48.686   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3966:11-27 17:46:48.703   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:3997:11-27 17:46:48.719   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4001:11-27 17:46:48.729   848  2715 D 
+Griffin/DeviceState: audioRecordChanged : com.rutabikersync.app
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4003:11-27 17:46:48.735   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4010:11-27 17:46:48.752   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4020:11-27 17:46:48.769   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4034:11-27 17:46:48.785   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4039:11-27 17:46:48.802   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4044:11-27 17:46:48.818   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4055:11-27 17:46:48.835   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4060:11-27 17:46:48.852   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4065:11-27 17:46:48.868   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4069:11-27 17:46:48.885   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4070:11-27 17:46:48.902   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4073:11-27 17:46:48.918   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4074:11-27 17:46:48.935   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4075:11-27 17:46:48.951   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4076:11-27 17:46:48.959  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4077:11-27 17:46:48.968   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4079:11-27 17:46:48.985   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4080:11-27 17:46:49.001   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4082:11-27 17:46:49.018   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4083:11-27 17:46:49.035   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4086:11-27 17:46:49.051   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4091:11-27 17:46:49.068   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4100:11-27 17:46:49.082  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4101:11-27 17:46:49.085   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4107:11-27 17:46:49.101   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4149:11-27 17:46:49.120   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4174:11-27 17:46:49.121  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4229:11-27 17:46:49.135   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4245:11-27 17:46:49.136  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4246:11-27 17:46:49.136  2676  2700 D Game_Utils: 
+getTopClassNameNew className = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4254:11-27 17:46:49.141  2676  2700 I 
+SmartPanel_SmartPanelService: ASP topPkg: com.rutabikersync.app  topClass = com.rutabikersync.app.MainActivity 
+isSplitScreenfalse
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4258:11-27 17:46:49.151   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4277:11-27 17:46:49.168   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4290:11-27 17:46:49.185  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4291:11-27 17:46:49.186   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4330:11-27 17:46:49.266  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4364:11-27 17:46:49.353  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4384:11-27 17:46:49.428  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4401:11-27 17:46:49.490  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4415:11-27 17:46:49.549  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4439:11-27 17:46:49.602  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4448:11-27 17:46:49.646  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4473:11-27 17:46:49.693  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4506:11-27 17:46:49.736  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4509:11-27 17:46:49.775  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4511:11-27 17:46:49.816  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4524:11-27 17:46:49.853  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4527:11-27 17:46:49.887  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4528:11-27 17:46:49.919  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4540:11-27 17:46:49.951  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4543:11-27 17:46:49.986  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4545:11-27 17:46:50.022  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4547:11-27 17:46:50.059  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4570:11-27 17:46:50.084   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4591:11-27 17:46:50.094  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4602:11-27 17:46:50.131  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4624:11-27 17:46:50.165  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4637:11-27 17:46:50.199  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4650:11-27 17:46:50.237  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4670:11-27 17:46:50.269  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4684:11-27 17:46:50.301  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4695:11-27 17:46:50.330  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4704:11-27 17:46:50.358  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4705:11-27 17:46:50.385  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4707:11-27 17:46:50.410  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4713:11-27 17:46:50.436  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4733:11-27 17:46:50.462  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4764:11-27 17:46:50.488  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4770:11-27 17:46:50.513  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4773:11-27 17:46:50.537  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4778:11-27 17:46:50.560  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4792:11-27 17:46:50.589  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4801:11-27 17:46:50.629  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4803:11-27 17:46:50.651  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4808:11-27 17:46:50.671  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4821:11-27 17:46:50.691  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4823:11-27 17:46:50.714  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4833:11-27 17:46:50.742  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4838:11-27 17:46:50.767  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4849:11-27 17:46:50.794  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4857:11-27 17:46:50.816  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4866:11-27 17:46:50.846  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4883:11-27 17:46:50.872  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4895:11-27 17:46:50.914  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4910:11-27 17:46:50.939  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4932:11-27 17:46:50.960  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4946:11-27 17:46:50.981  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4957:11-27 17:46:51.002  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:4990:11-27 17:46:51.026  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5019:11-27 17:46:51.048  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5073:11-27 17:46:51.073  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5128:11-27 17:46:51.095  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5142:11-27 17:46:51.118  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5153:11-27 17:46:51.141  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5176:11-27 17:46:51.160  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5194:11-27 17:46:51.181  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5211:11-27 17:46:51.202  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5269:11-27 17:46:51.224  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5285:11-27 17:46:51.247  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5302:11-27 17:46:51.277  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5337:11-27 17:46:51.305  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5345:11-27 17:46:51.324  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5367:11-27 17:46:51.342  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5378:11-27 17:46:51.360  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5383:11-27 17:46:51.376  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5389:11-27 17:46:51.393  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5393:11-27 17:46:51.412  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5396:11-27 17:46:51.430  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5398:11-27 17:46:51.448  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5399:11-27 17:46:51.466  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5401:11-27 17:46:51.485  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5405:11-27 17:46:51.503  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5411:11-27 17:46:51.518  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5419:11-27 17:46:51.534  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5427:11-27 17:46:51.558  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5434:11-27 17:46:51.573  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5439:11-27 17:46:51.588  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5443:11-27 17:46:51.603  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5452:11-27 17:46:51.618  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5457:11-27 17:46:51.640  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5466:11-27 17:46:51.654  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5467:11-27 17:46:51.669  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5469:11-27 17:46:51.687  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5470:11-27 17:46:51.713  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5476:11-27 17:46:51.739  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5478:11-27 17:46:51.758  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5480:11-27 17:46:51.775  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5483:11-27 17:46:51.790  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5486:11-27 17:46:51.807  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5489:11-27 17:46:51.825  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5493:11-27 17:46:51.843  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5495:11-27 17:46:51.861  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5496:11-27 17:46:51.879  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5498:11-27 17:46:51.896  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5499:11-27 17:46:51.911  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5502:11-27 17:46:51.927  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5507:11-27 17:46:51.942  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5515:11-27 17:46:51.971  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5519:11-27 17:46:51.986  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5524:11-27 17:46:52.001  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5526:11-27 17:46:52.016  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5528:11-27 17:46:52.032  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5538:11-27 17:46:52.052  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5561:11-27 17:46:52.067  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5572:11-27 17:46:52.082  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5582:11-27 17:46:52.097  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5588:11-27 17:46:52.111  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5598:11-27 17:46:52.133  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5599:11-27 17:46:52.148  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5602:11-27 17:46:52.162  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5603:11-27 17:46:52.175  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5604:11-27 17:46:52.189  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5605:11-27 17:46:52.215  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5609:11-27 17:46:52.228  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5613:11-27 17:46:52.241  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5615:11-27 17:46:52.255  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5624:11-27 17:46:52.299  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5627:11-27 17:46:52.313  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5631:11-27 17:46:52.326  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5635:11-27 17:46:52.340  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5638:11-27 17:46:52.380  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5639:11-27 17:46:52.392  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5644:11-27 17:46:52.404  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5646:11-27 17:46:52.415  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5658:11-27 17:46:52.459  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5665:11-27 17:46:52.470  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5671:11-27 17:46:52.481  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5677:11-27 17:46:52.492  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5681:11-27 17:46:52.503  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5687:11-27 17:46:52.542  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5691:11-27 17:46:52.552  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5692:11-27 17:46:52.562  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5695:11-27 17:46:52.573  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5705:11-27 17:46:52.631  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5706:11-27 17:46:52.642  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5709:11-27 17:46:52.651  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5711:11-27 17:46:52.661  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5712:11-27 17:46:52.705  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5713:11-27 17:46:52.713  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5714:11-27 17:46:52.722  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5716:11-27 17:46:52.730  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5723:11-27 17:46:52.790  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5725:11-27 17:46:52.800  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5727:11-27 17:46:52.808  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5728:11-27 17:46:52.815  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5729:11-27 17:46:52.873  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5730:11-27 17:46:52.880  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5731:11-27 17:46:52.887  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5732:11-27 17:46:52.895  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5734:11-27 17:46:52.955  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5735:11-27 17:46:52.962  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5736:11-27 17:46:52.969  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5737:11-27 17:46:52.977  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5753:11-27 17:46:53.037  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5755:11-27 17:46:53.044  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5756:11-27 17:46:53.052  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5758:11-27 17:46:53.059  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5760:11-27 17:46:53.067  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5761:11-27 17:46:53.118  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5762:11-27 17:46:53.127  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5763:11-27 17:46:53.136  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5764:11-27 17:46:53.145  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5766:11-27 17:46:53.201  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5767:11-27 17:46:53.208  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5771:11-27 17:46:53.216  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5775:11-27 17:46:53.223  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5797:11-27 17:46:53.281  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5798:11-27 17:46:53.290  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5799:11-27 17:46:53.299  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5802:11-27 17:46:53.307  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5803:11-27 17:46:53.367  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5804:11-27 17:46:53.375  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5805:11-27 17:46:53.382  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5806:11-27 17:46:53.389  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5812:11-27 17:46:53.448  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5813:11-27 17:46:53.455  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5814:11-27 17:46:53.462  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5816:11-27 17:46:53.469  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5824:11-27 17:46:53.540  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5825:11-27 17:46:53.547  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5827:11-27 17:46:53.555  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5828:11-27 17:46:53.562  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5971:11-27 17:46:53.616  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5972:11-27 17:46:53.624  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5973:11-27 17:46:53.633  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5974:11-27 17:46:53.641  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5983:11-27 17:46:53.697  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5985:11-27 17:46:53.704  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:5988:11-27 17:46:53.711  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6005:11-27 17:46:53.718  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6007:11-27 17:46:53.726  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6058:11-27 17:46:53.778  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6060:11-27 17:46:53.785  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6062:11-27 17:46:53.792  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6065:11-27 17:46:53.799  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6072:11-27 17:46:53.861  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6073:11-27 17:46:53.868  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6074:11-27 17:46:53.875  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6076:11-27 17:46:53.882  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6098:11-27 17:46:53.950  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6099:11-27 17:46:53.957  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6103:11-27 17:46:53.964  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6105:11-27 17:46:53.971  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6116:11-27 17:46:54.031  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6117:11-27 17:46:54.038  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6127:11-27 17:46:54.045  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6129:11-27 17:46:54.052  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6145:11-27 17:46:54.112  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6148:11-27 17:46:54.119  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6156:11-27 17:46:54.126  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6158:11-27 17:46:54.133  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6171:11-27 17:46:54.197  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6177:11-27 17:46:54.205  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6181:11-27 17:46:54.213  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6188:11-27 17:46:54.221  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6190:11-27 17:46:54.229  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6206:11-27 17:46:54.278  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6209:11-27 17:46:54.287  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6213:11-27 17:46:54.300  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6214:11-27 17:46:54.307  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6230:11-27 17:46:54.365  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6231:11-27 17:46:54.372  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6232:11-27 17:46:54.379  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6233:11-27 17:46:54.386  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6251:11-27 17:46:54.447  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6252:11-27 17:46:54.454  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6254:11-27 17:46:54.461  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6255:11-27 17:46:54.468  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6282:11-27 17:46:54.530  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6288:11-27 17:46:54.538  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6293:11-27 17:46:54.544  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6294:11-27 17:46:54.551  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6300:11-27 17:46:54.616  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6301:11-27 17:46:54.623  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6302:11-27 17:46:54.628 20820 20820 I adbd    : adbd 
+service requested 'shell,v2,TERM=xterm-256color,raw:am start -a android.intent.action.VIEW -d rbs://ptt?action=stop -n 
+com.rutabikersync.app/.MainActivity'
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6303:11-27 17:46:54.631  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6304:11-27 17:46:54.640  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6305:11-27 17:46:54.648  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6311:11-27 17:46:54.676   848  2957 I 
+ActivityTaskManager: START u0 {act=android.intent.action.VIEW dat=rbs://ptt?action=stop flg=0x10000000 
+cmp=com.rutabikersync.app/.MainActivity} from uid 2000, pid 8685
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6318:11-27 17:46:54.688   848  2957 I 
+ActivityTaskManager: ->startActivity for ActivityRecord{231c33c u0 com.rutabikersync.app/.MainActivity t21755} 
+result:START_SUCCESS
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6340:11-27 17:46:54.694  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6342:11-27 17:46:54.698   687   687 I Layer   : 
+name=b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95015, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6348:11-27 17:46:54.703   848  2957 D os.fingerprint: 
+onRealStartActivityLocked next:ActivityRecord{231c33c u0 com.rutabikersync.app/.MainActivity t21755} 
+isKeyguardShowing:false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6349:11-27 17:46:54.703   848  2957 D os.fingerprint: 
+activityComponent = ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} inMultiWindow = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6350:11-27 17:46:54.704   848  1226 D 
+JupiterDelegator: appLockCheckInner: ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6352:11-27 17:46:54.704   848  2957 D WindowManager: 
+setFocusedApp mFocusedApp = ActivityRecord{231c33c u0 com.rutabikersync.app/.MainActivity t21755}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6353:11-27 17:46:54.704  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6354:11-27 17:46:54.705   848  2957 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:com.rutabikersync.app 
+oldComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} newPackageName:null 
+newComponent:null mFm :android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6355:11-27 17:46:54.705   848  2957 I WindowManager: 
+Input focus has changed to null from b150e9c com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 
+updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6375:11-27 17:46:54.711  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6394:11-27 17:46:54.716   848   872 D 
+VideoCallEnhancerControlImpl: className is com.rutabikersync.app/com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6396:11-27 17:46:54.718  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6401:11-27 17:46:54.725  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6402:11-27 17:46:54.726  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6425:11-27 17:46:54.732  8214  8214 I MainActivity: 
+Deep Link rbs://ptt?action=stop procesado
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6432:11-27 17:46:54.751  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6434:11-27 17:46:54.753  8214  8214 I BleMeshService: 
+ACTION_PTT_STOP recibido
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6435:11-27 17:46:54.753  8214  8214 I PttAudioEngine: 
+PTT: Transmisi├│n finalizada por el usuario.
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6437:11-27 17:46:54.754   848  2947 D 
+DynamicFrameRateController: onAfterActivityResumed packageName: com.rutabikersync.app, activityName: 
+ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6443:11-27 17:46:54.763  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6474:11-27 17:46:54.772  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6478:11-27 17:46:54.779  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6480:11-27 17:46:54.781  8214  8280 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6485:11-27 17:46:54.783  2676  2700 I 
+SmartPanel_SmartPanelService: activityCheck pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity isResume=false isInshow =false isDrawn = false
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6491:11-27 17:46:54.802  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6492:11-27 17:46:54.802  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6497:11-27 17:46:54.813  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6501:11-27 17:46:54.819  8214  8281 W BleMeshService: 
+VoicePacketTx descartado: no hay relayEngine activo en RideService
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6502:11-27 17:46:54.822  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6506:11-27 17:46:54.831  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6529:11-27 17:46:54.852   848  2957 D os.fingerprint: 
+onUpdateFocusedApp oldPackageName:null oldComponent:null newPackageName:com.rutabikersync.app 
+newComponent:ComponentInfo{com.rutabikersync.app/com.rutabikersync.app.MainActivity} mFm 
+:android.hardware.fingerprint.FingerprintManager@42cfa5e
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6530:11-27 17:46:54.852   848  2957 I hugh-tag: 
+PhoneWindowManager onDefaultDisplayFocusChangedLw mCurrentFocus=Window{9eec507 u0 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity}
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6531:11-27 17:46:54.856   848  2957 I WindowManager: 
+Input focus has changed to Window{9eec507 u0 com.rutabikersync.app/com.rutabikersync.app.MainActivity} from b150e9c 
+com.rutabikersync.app/com.rutabikersync.app.MainActivity mDisplayId 0 updateInputWindows true
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6535:11-27 17:46:54.860   616   627 I gralloc4: 
+allocate: id=268000139a3, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#2(BLAST Consumer)2
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6537:11-27 17:46:54.862   616   627 I gralloc4: 
+allocate: id=268000139a4, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#2(BLAST Consumer)2
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6559:11-27 17:46:54.865   616   627 I gralloc4: 
+allocate: id=268000139a5, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#2(BLAST Consumer)2
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6567:11-27 17:46:54.868   616   627 I gralloc4: 
+allocate: id=268000139a6, hal_format=RGBA8888, mali_format=RGBA8888, afbc=SPLIT, usage=GPU_RW|HWC|BACKBUF, 
+size=720x1612, stride=720, name=ViewRootImpl[MainActivity]#2(BLAST Consumer)2
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6578:11-27 17:46:54.880   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6604:11-27 17:46:54.897   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=0, DrawingState.flags=0x103, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6609:11-27 17:46:54.899  2676  2700 I 
+SmartPanel_SmartPanelService: onWindowsDrawn pkgName: com.rutabikersync.app, className: 
+com.rutabikersync.app.MainActivity launchState=2 windowsDrawnDelayMs =223
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6610:11-27 17:46:54.899   848   869 I 
+ActivityTaskManager: Displayed com.rutabikersync.app/.MainActivity: +223ms
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6630:11-27 17:46:54.910  8214  8214 I RBS_FCM : Token 
+FCM obtenido exitosamente
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6631:11-27 17:46:54.911  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6651:11-27 17:46:54.913   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6652:11-27 17:46:54.914  8214  8214 I BleMeshService: 
+Advertising started with serviceUUID=0000fe6b-0000-1000-8000-00805f9b34fb (payload=24B)
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6661:11-27 17:46:54.915  8214  8280 W RBS_FCM : Fallo 
+al registrar token en backend: null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6721:11-27 17:46:54.930   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6724:11-27 17:46:54.946   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6769:11-27 17:46:54.959  8214  8281 I AudioRecord: 
+stop mClientIdentity.uid:10391 mClientIdentity.pid:8214  mSessionId:117369 app name:com.rutabikersync.app 
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6770:11-27 17:46:54.960   848  2732 D 
+Griffin/DeviceState: audioRecordChanged : null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6785:11-27 17:46:54.963   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6789:11-27 17:46:54.963  8214  8281 I AudioRecord: 
+start  mSessionId:117369 app name:com.rutabikersync.app 
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6795:11-27 17:46:54.964   848  2957 D 
+Griffin/DeviceState: audioRecordChanged : null
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6831:11-27 17:46:54.980   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6883:11-27 17:46:54.997   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6885:11-27 17:46:55.014   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6892:11-27 17:46:55.030   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6906:11-27 17:46:55.047   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6907:11-27 17:46:55.063   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6914:11-27 17:46:55.081   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6923:11-27 17:46:55.096   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6926:11-27 17:46:55.113   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6936:11-27 17:46:55.130   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6937:11-27 17:46:55.147   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6941:11-27 17:46:55.163   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6946:11-27 17:46:55.180   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6950:11-27 17:46:55.197   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6951:11-27 17:46:55.213   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6952:11-27 17:46:55.230   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6953:11-27 17:46:55.246   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6954:11-27 17:46:55.264   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6957:11-27 17:46:55.280   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6958:11-27 17:46:55.296   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6962:11-27 17:46:55.313   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6963:11-27 17:46:55.329   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6965:11-27 17:46:55.346   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6968:11-27 17:46:55.363   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:6974:11-27 17:46:55.379   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7029:11-27 17:46:55.393  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7060:11-27 17:46:55.398   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7113:11-27 17:46:55.414   687   687 I Layer   : 
+name=9eec507 com.rutabikersync.app/com.rutabikersync.app.MainActivity, id=95026, visible=1, DrawingState.flags=0x102, 
+paused=0, portal=-1, param=NOT_TOUCH_MODAL | LAYOUT_IN_SCREEN | LAYOUT_INSET_DECOR | SPLIT_TOUCH | 
+HARDWARE_ACCELERATED | DRAWS_SYSTEM_BAR_BACKGROUNDS, feature=0x0
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7114:11-27 17:46:55.415  2676  2700 D Game_Utils: 
+isTheMainScreen, displayId: 0  classname = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7115:11-27 17:46:55.415  2676  2700 D Game_Utils: 
+getTopClassNameNew className = com.rutabikersync.app.MainActivity
+docs\evidence\fase2_audio_20261127\tecno-ptt-stop-logcat-raw.txt:7121:11-27 17:46:55.420  2676  2700 I 
+SmartPanel_SmartPanelService: ASP topPkg: com.rutabikersync.app  topClass = com.rutabikersync.app.MainActivity 
+isSplitScreenfalse
+
+

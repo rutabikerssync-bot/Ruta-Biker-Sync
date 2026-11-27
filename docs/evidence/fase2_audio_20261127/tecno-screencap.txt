@@ -1,0 +1,14 @@
+﻿adb.exe : /sdcard/rbs-tecno-ptt-start.png: 1 file pulled, 0 skipped. 29.3 MB/s (498284 bytes in 0.016s)
+En D:\Ruta-Biker-Sync\docs\evidence\fase2_audio_20261127\run_ptt_capture.ps1: 21 Carácter: 5
++     & adb @Arguments 2>&1 | Out-File -FilePath $LogFile -Append -Enco ...
++     ~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (/sdcard/rbs-tec...ytes in 0.016s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+adb.exe : /sdcard/rbs-tecno-ptt-stop.png: 1 file pulled, 0 skipped. 29.6 MB/s (498505 bytes in 0.016s)
+En D:\Ruta-Biker-Sync\docs\evidence\fase2_audio_20261127\run_ptt_capture.ps1: 21 Carácter: 5
++     & adb @Arguments 2>&1 | Out-File -FilePath $LogFile -Append -Enco ...
++     ~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (/sdcard/rbs-tec...ytes in 0.016s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
