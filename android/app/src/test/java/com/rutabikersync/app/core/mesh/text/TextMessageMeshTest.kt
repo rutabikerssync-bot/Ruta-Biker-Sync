@@ -218,6 +218,8 @@ class TextMessageMeshTest {
             localShortId = recipientId, // Este nodo es el destinatario (ID 2)
             clubNetworkId = testNetworkId,
             onTransmitRelay = { relayTransmitted = true }
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             onTextMessageReceived = { pkt, text ->
@@ -250,6 +252,8 @@ class TextMessageMeshTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> relayedBytesReceived = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             onTextMessageReceived = { _, text -> localDecrypted = text }
@@ -281,6 +285,8 @@ class TextMessageMeshTest {
             localShortId = 2u, // Nodo 2 es un repetidor intermedio
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> relayedBytesReceived = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             onTextMessageReceived = { _, text -> localDecrypted = text }
@@ -308,6 +314,8 @@ class TextMessageMeshTest {
         val engine = MeshRelayEngine(
             localShortId = 2u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         )
 
         val header = createHeader(sender = 1u, seq = 42u, ttl = 5)
@@ -332,6 +340,8 @@ class TextMessageMeshTest {
         val engine = MeshRelayEngine(
             localShortId = 2u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         )
 
         val header = createHeader(sender = 1u, ttl = 5)
@@ -353,6 +363,8 @@ class TextMessageMeshTest {
         val engine = MeshRelayEngine(
             localShortId = 2u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         )
 
         val header = createHeader(sender = 1u, ttl = 1) // TTL=1 agotado
@@ -378,12 +390,16 @@ class TextMessageMeshTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> n2Out = bytes }
+        ,
+        requireAuthorization = false
         ).apply { customRideSecretKey = testRideKey }
 
         val node3 = MeshRelayEngine(
             localShortId = 3u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> n3Out = bytes }
+        ,
+        requireAuthorization = false
         ).apply { customRideSecretKey = testRideKey }
 
         var n4ReceivedText: String? = null
@@ -392,6 +408,8 @@ class TextMessageMeshTest {
         val node4 = MeshRelayEngine(
             localShortId = 4u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             onTextMessageReceived = { pkt, text ->

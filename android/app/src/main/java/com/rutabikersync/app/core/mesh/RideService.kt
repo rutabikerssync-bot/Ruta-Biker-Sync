@@ -285,9 +285,15 @@ class RideSessionController(
         )
         activeTransport = selectedTransport
 
-        val manifestPeers = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)
-            ?.authorizedShortIds
-            .orEmpty()
+        // FASE 1.1 fail-closed: en malla real, sin manifiesto firmado verificado no se crea
+        // ni se arranca el relayEngine (y por tanto no se emite por BLE).
+        val activeManifest = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)
+        if (!isSimulated && activeManifest == null) {
+            recordStartError("SecurityViolation: manifiesto firmado no disponible; malla BLE no iniciada")
+            return _state.value
+        }
+
+        val manifestPeers = activeManifest?.authorizedShortIds.orEmpty()
         val effectiveExpectedPeers = (if (expectedPeerShortIds.isNotEmpty()) expectedPeerShortIds else manifestPeers)
             .filter { it != localShortId }
             .toSet()
@@ -330,10 +336,16 @@ class RideSessionController(
         )
         // P0 cierre final: el manifiesto verificado es la única fuente de pertenencia
         // al convoy Y de las claves públicas SOS. Sin resolver, SOS/ACK se descartan.
-        com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(rideId)?.let { manifest ->
+        activeManifest?.let { manifest ->
             engine.rideAuthorization = RideMeshAuthorization(manifest)
             engine.sosPublicKeyResolver = manifest.sosPublicKeyResolver
-            engine.sosCrypto = com.rutabikersync.app.core.mesh.sos.SosSigningHub.verifier
+            val localSigningCrypto = com.rutabikersync.app.core.mesh.sos.SosSigningHub.verifier
+            engine.sosCrypto = localSigningCrypto
+            // Misma clave Ed25519 del dispositivo publicada en el manifiesto: firma de
+            // control/ciclo en modo autorizado (FASE 1.3).
+            if (localSigningCrypto != null) {
+                engine.controlSigner = { data -> localSigningCrypto.sign(data) }
+            }
         }
         // Hito 7.0.2: conectar la recepción de texto al store del chat táctico.
         engine.onTextMessageReceived = { textPacket, decryptedText ->

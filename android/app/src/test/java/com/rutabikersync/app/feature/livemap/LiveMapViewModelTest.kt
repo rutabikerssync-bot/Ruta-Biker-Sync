@@ -58,6 +58,8 @@ class LiveMapViewModelTest {
                 localShortId = id,
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
 
@@ -137,6 +139,8 @@ class LiveMapViewModelTest {
                 localShortId = id,
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
 
@@ -210,12 +214,16 @@ class LiveMapViewModelTest {
             localShortId = 1u,
             transport = medium.createNodeTransport(1u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         ).also { it.start(backgroundScope) }
 
         val memberEngine = MeshRelayEngine(
             localShortId = 2u,
             transport = medium.createNodeTransport(2u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         ).also { it.start(backgroundScope) }
 
         // El miembro (shortId = 2u) observa el mapa; el líder es shortId = 1u
@@ -323,6 +331,8 @@ class LiveMapViewModelTest {
                 localShortId = id,
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
         val controller = LiveMapController(

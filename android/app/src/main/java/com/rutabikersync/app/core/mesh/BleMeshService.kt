@@ -527,74 +527,12 @@ class BleMeshService : Service() {
             }
         }
 
-        // Inicializar motor de flooding multi-salto (Hito 3) + integración Hito 4
-        relayEngine = MeshRelayEngine(
-            localShortId = shortId,
-            clubNetworkId = clubId,
-            deduplicationTable = engine.deduplicationTable,
-            scope = serviceScope,
-            onTransmitRelay = { bytes -> transmitBleFrame(bytes) }
-        ).also { relay ->
-            // Conectar almacén de fichas médicas (Hito 4 · Etapa 3)
-            relay.medicalSheetStore = medicalSheetStore
-            relay.onMedicalSheetReceived = { _, _ ->
-                // El MedicalSheetStore ya gestiona el almacenamiento internamente.
-                // No se registra nada en logcat para evitar fuga de datos clínicos.
-            }
-            // Notificar a la UI cuando llega un SosPacket por malla (Hito 4 · Etapa 4)
-            relay.onSosReceived = { sos ->
-                com.rutabikersync.app.core.audio.SosToneHub.onRemoteSos(sos)
-                val decrypted = medicalSheetStore.getSheet(sos.header.senderShortId)
-                serviceScope.launch(Dispatchers.Main) {
-                    _incomingSosMeshEvent.value = IncomingSosMeshEvent(
-                        senderShortId = sos.header.senderShortId,
-                        senderName = "Piloto #${sos.header.senderShortId.toInt()}",
-                        hopCount = sos.hopCount.toInt() and 0xFF,
-                        latitude = sos.latitude,
-                        longitude = sos.longitude,
-                        medicalData = decrypted?.data,
-                        clubNetworkId = sos.header.clubNetworkId,
-                        sequenceNum = sos.header.sequenceNum
-                    )
-                }
-                // Puente BLE Mesh hacia Radar SOS HTTP (Fase 7.1.5.5)
-                com.rutabikersync.app.core.mesh.sos.BleMeshSosBridge.onMeshSosReceived(
-                    context = applicationContext,
-                    sos = sos,
-                    scope = serviceScope
-                )
-            }
-            // Notificar a la UI cuando llega un SosAckPacket de vuelta (Hito 4 · Etapa 4)
-            relay.onSosAckReceived = { ack ->
-                com.rutabikersync.app.core.audio.SosToneHub.onAck(ack)
-                serviceScope.launch(Dispatchers.Main) {
-                    _incomingSosAckEvent.value = IncomingSosAckEvent(
-                        ackerShortId = ack.ackerShortId,
-                        originalSenderShortId = ack.originalSenderShortId,
-                        originalSequenceNum = ack.originalSequenceNum,
-                        ackTimestampEpochSec = ack.ackTimestampEpochSec
-                    )
-                }
-            }
-            // Notificar a la UI cuando llega un TextMessagePacket por malla (Hito 5 · Fase 7.0.2)
-            relay.onTextMessageReceived = { textPacket, decryptedText ->
-                if (decryptedText != null) {
-                    serviceScope.launch(Dispatchers.Main) {
-                        val senderName = "Piloto #${textPacket.header.senderShortId}"
-                        com.rutabikersync.app.core.mesh.text.TacticalChatStore.addMessage(
-                            com.rutabikersync.app.core.mesh.text.TacticalChatMessage(
-                                senderShortId = textPacket.header.senderShortId,
-                                senderName = senderName,
-                                senderRole = "PILOTO",
-                                targetShortId = textPacket.targetShortId,
-                                text = decryptedText,
-                                isOutgoing = false,
-                                hopCount = textPacket.hopCount
-                            )
-                        )
-                    }
-                }
-            }
+        // FASE 1.1 fail-closed: el servicio NO crea un engine con clave demo. El único
+        // engine con clave/manifiesto reales es el de RideService; se reutiliza sin
+        // reconfigurar sus callbacks (evita sobreescribir los de la sesión activa).
+        relayEngine = RideService.getActiveRelayEngine()
+        if (relayEngine == null) {
+            Log.w(TAG, "BleMeshService: relayEngine no inicializado (fail-closed: sin manifiesto firmado activo)")
         }
 
         startBleRadio()
@@ -1002,17 +940,20 @@ class BleMeshService : Service() {
         val relay = relayEngine
 
         // Los frames sensibles llegan dentro de un sobre: descifrar ANTES de leer la cabecera.
-        val wire = if (SensitiveFrameEnvelope.isEnvelope(serviceData)) {
-            relay?.unwrapIncomingFrame(serviceData) ?: return
-        } else {
-            serviceData
-        }
-        if (wire.size == MeshPacket.PACKET_SIZE_BYTES &&
-            SensitiveFrameEnvelope.isEnvelope(serviceData)
-        ) {
+        // Se conserva la metadata del sobre para que la guardia Ed25519 sepa si el control
+        // llegó firmado (FASE 1.3).
+        val unwrapped = relay?.unwrapIncomingFrameDetailed(serviceData)
+            ?: if (SensitiveFrameEnvelope.isEnvelope(serviceData)) return else null
+        val wire = unwrapped?.bytes ?: serviceData
+        if (wire.size == MeshPacket.PACKET_SIZE_BYTES && unwrapped != null) {
             if (relay != null) {
                 serviceScope.launch {
-                    relay.onRawPacketReceived(wire, System.currentTimeMillis(), result.rssi)
+                    relay.onRawPacketReceived(
+                        raw = wire,
+                        nowEpochMs = System.currentTimeMillis(),
+                        rssi = result.rssi,
+                        unwrapped = unwrapped
+                    )
                 }
             }
             return

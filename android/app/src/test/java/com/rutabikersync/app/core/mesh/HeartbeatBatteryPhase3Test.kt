@@ -40,6 +40,8 @@ class HeartbeatBatteryPhase3Test {
                 localShortId = id,
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
 
@@ -153,7 +155,7 @@ class HeartbeatBatteryPhase3Test {
 
     @Test
     fun `la perdida de peers depende solo del timeout de heartbeats no del rssi`() = runTest(UnconfinedTestDispatcher()) {
-        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val monitor = PeerHealthMonitor(engine = receiver)
         val t0 = 2_000_000L
 

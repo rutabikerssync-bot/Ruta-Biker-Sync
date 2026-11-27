@@ -39,6 +39,8 @@ class ConvoySignalMeshPropagationTest {
             transport = transport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val packet = engine.emitConvoySignal(ConvoySignalKind.REDUCE_SPEED)
@@ -66,6 +68,8 @@ class ConvoySignalMeshPropagationTest {
             transport = senderTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val receiverTransport = CapturingTransport()
@@ -74,6 +78,8 @@ class ConvoySignalMeshPropagationTest {
             transport = receiverTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         // 1. Suscribirse a señales antes de emitir (replay=0)
@@ -109,6 +115,8 @@ class ConvoySignalMeshPropagationTest {
             transport = senderTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val receiverTransport = CapturingTransport()
@@ -117,6 +125,8 @@ class ConvoySignalMeshPropagationTest {
             transport = receiverTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         senderEngine.emitConvoySignal(ConvoySignalKind.POLICE_CHECKPOINT)

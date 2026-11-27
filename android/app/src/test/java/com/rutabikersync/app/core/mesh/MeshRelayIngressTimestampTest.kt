@@ -69,6 +69,8 @@ class MeshRelayIngressTimestampTest {
                 localShortId = 1u,
                 transport = transport,
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             )
             engine.start(backgroundScope)
 
@@ -97,6 +99,8 @@ class MeshRelayIngressTimestampTest {
                 localShortId = 1u,
                 transport = transport,
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             )
             engine.start(backgroundScope)
 

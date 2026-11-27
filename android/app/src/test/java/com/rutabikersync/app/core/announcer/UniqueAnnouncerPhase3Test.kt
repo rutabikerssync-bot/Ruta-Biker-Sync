@@ -41,6 +41,8 @@ class UniqueAnnouncerPhase3Test {
                 localShortId = id,
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
 
@@ -113,8 +115,8 @@ class UniqueAnnouncerPhase3Test {
         val medium = SimulatedBleMedium()
         medium.connectChain(listOf(2u, 3u))
 
-        val engine2 = MeshRelayEngine(2u, medium.createNodeTransport(2u), secretKey).also { it.start(backgroundScope) }
-        val engine3 = MeshRelayEngine(3u, medium.createNodeTransport(3u), secretKey).also { it.start(backgroundScope) }
+        val engine2 = MeshRelayEngine(2u, medium.createNodeTransport(2u), secretKey, requireAuthorization = false).also { it.start(backgroundScope) }
+        val engine3 = MeshRelayEngine(3u, medium.createNodeTransport(3u), secretKey, requireAuthorization = false).also { it.start(backgroundScope) }
 
         // Configurar el retardo para que el Nodo 2 y el Nodo 3 empaten exactamente en 500 ms
         // Nodo 3 tiene proximityRank = 0 (0 ms) + random 0.50 (500 ms) = 500 ms
@@ -211,7 +213,7 @@ class UniqueAnnouncerPhase3Test {
     @Test
     fun `Bloque 3_4 perdida repetida 3 veces en 10 min dice conexion inestable una sola vez y RideService apaga TTS al cerrar`() = runTest(StandardTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val engine1 = MeshRelayEngine(1u, medium.createNodeTransport(1u), secretKey).also { it.start(backgroundScope) }
+        val engine1 = MeshRelayEngine(1u, medium.createNodeTransport(1u), secretKey, requireAuthorization = false).also { it.start(backgroundScope) }
 
         val announcer1 = UniqueAnnouncer(
             scope = backgroundScope,
@@ -306,7 +308,7 @@ class UniqueAnnouncerPhase3Test {
     fun `peer en gracia no genera PEER_LOST y solo se anuncia al expirar`() =
         runTest(StandardTestDispatcher()) {
             val medium = SimulatedBleMedium()
-            val engine1 = MeshRelayEngine(1u, medium.createNodeTransport(1u), secretKey).also {
+            val engine1 = MeshRelayEngine(1u, medium.createNodeTransport(1u), secretKey, requireAuthorization = false).also {
                 it.start(backgroundScope)
             }
             val announcer1 = UniqueAnnouncer(

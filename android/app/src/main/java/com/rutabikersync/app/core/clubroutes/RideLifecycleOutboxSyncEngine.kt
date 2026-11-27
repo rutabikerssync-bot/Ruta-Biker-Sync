@@ -30,7 +30,9 @@ class RideLifecycleOutboxSyncEngine(
     sealed class SyncResult {
         data class Success(
             val syncedCount: Int,
-            val droppedCount: Int
+            val droppedCount: Int,
+            /** Solo eventos confirmados por REST (Accepted); alimentan el puente BLE. */
+            val ackedEvents: List<RideLifecycleTransition> = emptyList()
         ) : SyncResult()
 
         data class Failure(val message: String, val syncedCount: Int) : SyncResult()
@@ -43,6 +45,7 @@ class RideLifecycleOutboxSyncEngine(
 
         var synced = 0
         var dropped = 0
+        val acked = mutableListOf<RideLifecycleTransition>()
 
         for (item in pending) {
             val transition = item.transition
@@ -62,6 +65,7 @@ class RideLifecycleOutboxSyncEngine(
                 is RideLifecycleSendResult.Accepted -> {
                     dao.markSynced(item.id)
                     synced++
+                    acked += transition
                 }
                 is RideLifecycleSendResult.Rejected -> {
                     dao.delete(item.id)
@@ -75,6 +79,6 @@ class RideLifecycleOutboxSyncEngine(
         }
 
         dao.deleteSynced()
-        return SyncResult.Success(synced, dropped)
+        return SyncResult.Success(synced, dropped, acked)
     }
 }

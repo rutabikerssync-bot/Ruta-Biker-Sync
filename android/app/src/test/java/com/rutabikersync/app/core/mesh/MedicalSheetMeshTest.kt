@@ -234,7 +234,7 @@ class MedicalSheetMeshTest {
         relayStore.setRescueContext(isAuthorized = false, rescueKey = null)
         assertFalse(relayStore.canDecrypt())
 
-        val relayEngine = MeshRelayEngine(localShortId = relayShortId, clubNetworkId = clubId).apply {
+        val relayEngine = MeshRelayEngine(localShortId = relayShortId, clubNetworkId = clubId, requireAuthorization = false).apply {
             this.medicalSheetStore = relayStore
         }
 
@@ -255,7 +255,7 @@ class MedicalSheetMeshTest {
         leaderStore.setRescueContext(isAuthorized = true, rescueKey = validRescueKey)
         assertTrue(leaderStore.canDecrypt())
 
-        val leaderEngine = MeshRelayEngine(localShortId = leaderShortId, clubNetworkId = clubId).apply {
+        val leaderEngine = MeshRelayEngine(localShortId = leaderShortId, clubNetworkId = clubId, requireAuthorization = false).apply {
             this.medicalSheetStore = leaderStore
         }
 
@@ -296,7 +296,7 @@ class MedicalSheetMeshTest {
 
         val engines = mutableMapOf<UShort, MeshRelayEngine>()
         for (id in listOf(n1Id, n2Id, n3Id, n4Id, n5Id)) {
-            engines[id] = MeshRelayEngine(localShortId = id, clubNetworkId = clubId).apply {
+            engines[id] = MeshRelayEngine(localShortId = id, clubNetworkId = clubId, requireAuthorization = false).apply {
                 this.medicalSheetStore = stores[id]
             }
         }
@@ -401,7 +401,7 @@ class MedicalSheetMeshTest {
      */
     @Test
     fun testMedicalSheetDeduplicationSuppressesStorms() {
-        val engine = MeshRelayEngine(localShortId = 10u, clubNetworkId = clubId)
+        val engine = MeshRelayEngine(localShortId = 10u, clubNetworkId = clubId, requireAuthorization = false)
         val encrypted = MedicalSheetCrypto.encrypt(MedicalRescueData(), validRescueKey)
         val packet = MedicalSheetPacket.create(
             clubNetworkId = clubId,
@@ -427,7 +427,7 @@ class MedicalSheetMeshTest {
      */
     @Test
     fun testMedicalSheetDroppedWrongNetwork() {
-        val engine = MeshRelayEngine(localShortId = 10u, clubNetworkId = clubId)
+        val engine = MeshRelayEngine(localShortId = 10u, clubNetworkId = clubId, requireAuthorization = false)
         val foreignClubId: UInt = 0x99999999u
         val encrypted = MedicalSheetCrypto.encrypt(MedicalRescueData(), validRescueKey)
         val packet = MedicalSheetPacket.create(

@@ -84,6 +84,8 @@ class VoiceMeshRelayTest {
             localShortId = 100u,
             transport = transport,
             relayScope = this
+        ,
+        requireAuthorization = false
         )
         val packet = voicePacket(frameIndex = 0)
         assertTrue(packet.toBinary().size > BleFragmentationCodec.MAX_MANUFACTURER_PAYLOAD_BYTES)
@@ -106,8 +108,8 @@ class VoiceMeshRelayTest {
     @Test
     fun `peer recibe VoicePacket reensamblado aunque comparta sequenceNum`() = runBlocking {
         val transport = CapturingTransport()
-        val tx = MeshRelayEngine(localShortId = 100u, transport = transport, relayScope = this)
-        val rx = MeshRelayEngine(localShortId = 200u)
+        val tx = MeshRelayEngine(localShortId = 100u, transport = transport, relayScope = this, requireAuthorization = false)
+        val rx = MeshRelayEngine(localShortId = 200u, requireAuthorization = false)
 
         val received = mutableListOf<VoicePacket>()
         val unsubscribe = rx.onVoiceReceived { received.add(it) }
@@ -141,19 +143,19 @@ class VoiceMeshRelayTest {
     @Test
     fun `no se entregan paquetes de voz propios ni de otra red`() = runBlocking {
         val transport = CapturingTransport()
-        val tx = MeshRelayEngine(localShortId = 100u, transport = transport, relayScope = this)
+        val tx = MeshRelayEngine(localShortId = 100u, transport = transport, relayScope = this, requireAuthorization = false)
         tx.emitVoicePacket(voicePacket(frameIndex = 0))
         delay(50)
         val wire = transport.sent.first().first
 
         var loopbackDelivered = false
-        val self = MeshRelayEngine(localShortId = 100u)
+        val self = MeshRelayEngine(localShortId = 100u, requireAuthorization = false)
         self.onVoiceReceived { loopbackDelivered = true }
         self.processIncomingPacket(wire)
         assertFalse(loopbackDelivered)
 
         var wrongNetworkDelivered = false
-        val other = MeshRelayEngine(localShortId = 200u, clubNetworkId = 0x99999999u)
+        val other = MeshRelayEngine(localShortId = 200u, clubNetworkId = 0x99999999u, requireAuthorization = false)
         other.onVoiceReceived { wrongNetworkDelivered = true }
         other.processIncomingPacket(wire)
         assertFalse(wrongNetworkDelivered)
@@ -163,7 +165,7 @@ class VoiceMeshRelayTest {
     fun `emitVoicePacket prefiere GATT y vuelve a advertising si GATT no esta listo`() = runBlocking {
         val adv = CapturingTransport()
         val gatt = FakeGattVoiceTransport()
-        val tx = MeshRelayEngine(localShortId = 100u, transport = adv, relayScope = this)
+        val tx = MeshRelayEngine(localShortId = 100u, transport = adv, relayScope = this, requireAuthorization = false)
         tx.setVoiceStreamTransport(gatt)
 
         assertTrue(tx.emitVoicePacket(voicePacket(frameIndex = 0)))

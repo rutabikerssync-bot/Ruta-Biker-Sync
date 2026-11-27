@@ -28,7 +28,7 @@ class PeerGapTimeoutIntegrationTest {
 
     @Test
     fun `gap de 80 s eleva el timeout a 80 s y retrasa la perdida`() = runTest(UnconfinedTestDispatcher()) {
-        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val t0 = 1_000_000L
         val t1 = t0 + 80_000L
         engine.onRawPacketReceived(heartbeat(2u, 1).toByteArray(), nowEpochMs = t0)
@@ -42,7 +42,7 @@ class PeerGapTimeoutIntegrationTest {
 
     @Test
     fun `gap de 50 s marca perdido y registra el instante para la gracia`() = runTest(UnconfinedTestDispatcher()) {
-        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val t0 = 1_000_000L
         val lossAt = t0 + 50_000L
         engine.onRawPacketReceived(heartbeat(2u, 1).toByteArray(), nowEpochMs = t0)
@@ -56,7 +56,7 @@ class PeerGapTimeoutIntegrationTest {
 
     @Test
     fun `sin gaps historicos el timeout no baja de 40_5 s`() = runTest(UnconfinedTestDispatcher()) {
-        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val t0 = 1_000_000L
         engine.onRawPacketReceived(heartbeat(2u, 1).toByteArray(), nowEpochMs = t0)
 
@@ -74,6 +74,8 @@ class PeerGapTimeoutIntegrationTest {
             localShortId = 1u,
             rideSecretKey = secretKey,
             heartbeatIntervalProvider = { 18_000L }
+        ,
+        requireAuthorization = false
         )
         val t0 = 1_000_000L
         val t1 = t0 + 150_000L
@@ -93,6 +95,8 @@ class PeerGapTimeoutIntegrationTest {
             localShortId = 1u,
             rideSecretKey = secretKey,
             heartbeatIntervalProvider = { 18_000L }
+        ,
+        requireAuthorization = false
         )
         val t0 = 1_000_000L
         val t1 = t0 + 200_000L

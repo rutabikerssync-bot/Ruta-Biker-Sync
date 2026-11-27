@@ -54,7 +54,7 @@ class PeerHealthMonitorTest {
 
     @Test
     fun `heartbeat cada 27s no marca perdido con timeout derivado`() = runTest(UnconfinedTestDispatcher()) {
-        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val monitor = PeerHealthMonitor(engine = receiver)
         val t0 = 2_000_000L
         val llegada = MeshRelayEngine.OBSERVED_HEARTBEAT_ARRIVAL_INTERVAL_MS
@@ -77,7 +77,7 @@ class PeerHealthMonitorTest {
 
     @Test
     fun `silencio de 45s supera timeout derivado y marca perdido`() = runTest(UnconfinedTestDispatcher()) {
-        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val monitor = PeerHealthMonitor(engine = receiver)
         val t0 = 2_000_000L
 
@@ -110,7 +110,7 @@ class PeerHealthMonitorTest {
 
     @Test
     fun `isla confirmada avisa de inmediato y repite solo despues de 60s`() = runTest(UnconfinedTestDispatcher()) {
-        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+        val receiver = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
         val avisos = mutableListOf<String>()
         val monitor = PeerHealthMonitor(engine = receiver, onIslandTtsAnnouncement = { avisos.add(it) })
         val t0 = 2_000_000L

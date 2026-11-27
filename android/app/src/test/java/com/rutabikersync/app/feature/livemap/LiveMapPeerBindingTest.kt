@@ -23,6 +23,8 @@ class LiveMapPeerBindingTest {
             localShortId = 10u,
             rideSecretKey = ByteArray(32) { 1 },
             relayScope = backgroundScope
+        ,
+        requireAuthorization = false
         )
         controller.bindToMeshEngine(engine1, enablePeriodicCadenceLoop = false)
         advanceUntilIdle()
@@ -31,6 +33,8 @@ class LiveMapPeerBindingTest {
             localShortId = 10u,
             rideSecretKey = ByteArray(32) { 1 },
             relayScope = backgroundScope
+        ,
+        requireAuthorization = false
         )
         controller.bindToMeshEngine(engine2, enablePeriodicCadenceLoop = false)
         advanceUntilIdle()

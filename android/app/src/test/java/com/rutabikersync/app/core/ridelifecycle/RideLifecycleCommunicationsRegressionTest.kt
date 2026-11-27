@@ -50,7 +50,7 @@ class RideLifecycleCommunicationsRegressionTest {
         // Chat: cifrado/descifrado real por dos MeshRelayEngine con la misma clave.
         val key = ByteArray(32) { (it + 1).toByte() }
         val transport = CapturingTransport()
-        val sender = MeshRelayEngine(localShortId = 100u, relayScope = this, transport = transport, rideSecretKey = key)
+        val sender = MeshRelayEngine(localShortId = 100u, relayScope = this, transport = transport, rideSecretKey = key, requireAuthorization = false)
         val chatPacket = sender.emitTextMessage(TextMessagePacket.BROADCAST_TARGET, "hola")
         assertNotNull(chatPacket)
         delay(50)
@@ -59,7 +59,7 @@ class RideLifecycleCommunicationsRegressionTest {
         assertTrue(!String(wire, Charsets.ISO_8859_1).contains("hola"))
 
         var receivedText: String? = null
-        val receiver = MeshRelayEngine(localShortId = 200u, rideSecretKey = key)
+        val receiver = MeshRelayEngine(localShortId = 200u, rideSecretKey = key, requireAuthorization = false)
         receiver.onTextMessageReceived = { _, text -> receivedText = text }
         val decision = receiver.processIncomingPacket(wire)
         assertTrue(decision !is MeshRelayEngine.RelayDecision.DroppedMalformed)

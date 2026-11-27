@@ -48,6 +48,8 @@ class PositionFragmentProfileTest {
             transport = transport,
             relayScope = this,
             rideSecretKey = testKey()
+        ,
+        requireAuthorization = false
         )
 
         engine.emitLocalPosition(19.4326, -99.1332, 48, 90f, 80)
@@ -67,6 +69,8 @@ class PositionFragmentProfileTest {
             transport = transport,
             relayScope = this,
             rideSecretKey = testKey()
+        ,
+        requireAuthorization = false
         )
 
         engine.emitConvoySignal(ConvoySignalKind.OBSTACLE)

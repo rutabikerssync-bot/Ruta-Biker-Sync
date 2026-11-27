@@ -20,7 +20,7 @@ class RideScreenTransitionResilienceTest {
     @Test
     fun `desconexion o cambio de pantalla en UI no detiene el relay engine ni degrada el estado RUNNING`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val engine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val engine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
 
         val sessionState = MutableStateFlow(
@@ -32,7 +32,7 @@ class RideScreenTransitionResilienceTest {
         controller.bindToMeshEngine(engine, enablePeriodicCadenceLoop = false)
         controller.updateLocalRiderPose(latitude = 10.348, longitude = -67.04, speedKmh = 30)
 
-        val peerEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val peerEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         peerEngine.emitLocalPosition(latitude = 10.35, longitude = -67.05, speedKmh = 40, bearingDegrees = 0f, batteryPercent = 90)
 

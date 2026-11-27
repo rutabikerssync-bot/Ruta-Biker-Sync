@@ -31,6 +31,8 @@ class PeerProfileRedactionTest {
                     localShortId = id,
                     transport = medium.createNodeTransport(id),
                     rideSecretKey = secretKey
+                ,
+                requireAuthorization = false
                 ).also { it.start(backgroundScope) }
             }
 

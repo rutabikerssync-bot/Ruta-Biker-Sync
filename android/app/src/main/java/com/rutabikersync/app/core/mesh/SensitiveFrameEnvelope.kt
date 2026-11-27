@@ -36,13 +36,25 @@ object SensitiveFrameEnvelope {
     const val KIND_MESH_PACKET: Byte = 0x03
     /** Heartbeat de posición: MeshPacket de 20 B con prioridad POSITION. */
     const val KIND_HEARTBEAT: Byte = 0x04
+    /**
+     * Control/ciclo firmado: mismo AEAD que KIND_MESH_PACKET con una firma Ed25519 de
+     * 64 bytes concatenada al final. Solo se acepta en modo autorizado; el HMAC de 4 B
+     * del MeshPacket queda como checksum interno, nunca como autorización.
+     */
+    const val KIND_SIGNED_CONTROL: Byte = 0x05
 
     const val KEY_SIZE_BYTES: Int = VoiceCrypto.KEY_SIZE_BYTES
     const val NONCE_SIZE_BYTES: Int = VoiceCrypto.NONCE_SIZE_BYTES
     const val TAG_SIZE_BYTES: Int = VoiceCrypto.TAG_SIZE_BYTES
     const val HEADER_BYTES: Int = 4 + NONCE_SIZE_BYTES
+    const val SIGNATURE_SIZE_BYTES: Int = 64
 
-    private val VALID_KINDS = setOf(KIND_SOS, KIND_SOS_ACK, KIND_MESH_PACKET, KIND_HEARTBEAT)
+    /** Dominio separado para que una firma de control no pueda reutilizarse como SOS/ACK. */
+    private val SIGNED_CONTROL_DOMAIN = "RBS-SIGNED-CONTROL-V1".toByteArray(Charsets.US_ASCII)
+
+    private val VALID_KINDS = setOf(
+        KIND_SOS, KIND_SOS_ACK, KIND_MESH_PACKET, KIND_HEARTBEAT, KIND_SIGNED_CONTROL
+    )
 
     /** El tipo del sobre se decide por la prioridad real del packet, nunca por el caller. */
     fun envelopeKindFor(packet: MeshPacket): Byte =
@@ -98,13 +110,61 @@ object SensitiveFrameEnvelope {
 
         val kind = frame[3]
         val nonce = frame.copyOfRange(4, HEADER_BYTES)
-        val ciphertextAndTag = frame.copyOfRange(HEADER_BYTES, frame.size)
+        // En KIND_SIGNED_CONTROL la firma viaja DESPUÉS del tag AEAD; incluirla en el
+        // ciphertext haría fallar Poly1305. Los demás kinds conservan su tamaño exacto.
+        val ciphertextEnd = frame.size - if (kind == KIND_SIGNED_CONTROL) SIGNATURE_SIZE_BYTES else 0
+        val ciphertextAndTag = frame.copyOfRange(HEADER_BYTES, ciphertextEnd)
         return try {
             VoiceCrypto.decrypt(key, nonce, ciphertextAndTag, aadFor(kind))
         } finally {
             VoiceCrypto.zeroBuffer(nonce)
             VoiceCrypto.zeroBuffer(ciphertextAndTag)
         }
+    }
+
+    /**
+     * Payload canónico firmado: dominio + cabecera del sobre + los 16 bytes del
+     * MeshPacket con los 4 bits bajos de `currentTtl` enmascarados. Enmascarar el TTL
+     * permite que un relay decrementa TTL pueda reenviar conservando la firma del emisor.
+     */
+    fun controlSignablePayload(meshPacket20Bytes: ByteArray): ByteArray {
+        require(meshPacket20Bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+            "El control firmado exige un MeshPacket de ${MeshPacket.PACKET_SIZE_BYTES} bytes"
+        }
+        val canonical = meshPacket20Bytes.copyOf()
+        canonical[15] = (canonical[15].toInt() and 0xF0).toByte()
+        return SIGNED_CONTROL_DOMAIN + byteArrayOf(MAGIC_0, MAGIC_1, VERSION, KIND_SIGNED_CONTROL) + canonical
+    }
+
+    /** Firma extraída del final del sobre; `null` si no es un sobre de control firmado. */
+    fun signatureOf(frame: ByteArray): ByteArray? =
+        if (kindOf(frame) == KIND_SIGNED_CONTROL && frame.size >= HEADER_BYTES + TAG_SIZE_BYTES + SIGNATURE_SIZE_BYTES) {
+            frame.copyOfRange(frame.size - SIGNATURE_SIZE_BYTES, frame.size)
+        } else {
+            null
+        }
+
+    /** Envuelve un MeshPacket de control con ChaCha20-Poly1305 y su firma Ed25519. */
+    fun wrapSigned(
+        key: ByteArray,
+        meshPacket20Bytes: ByteArray,
+        signature: ByteArray,
+        nonce: ByteArray = VoiceCrypto.generateNonce()
+    ): ByteArray {
+        require(signature.size == SIGNATURE_SIZE_BYTES) { "La firma Ed25519 debe ser de $SIGNATURE_SIZE_BYTES bytes" }
+        require(meshPacket20Bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+            "El control firmado exige un MeshPacket de ${MeshPacket.PACKET_SIZE_BYTES} bytes"
+        }
+        return wrap(key, KIND_SIGNED_CONTROL, meshPacket20Bytes, nonce) + signature
+    }
+
+    /** Devuelve el MeshPacket y la firma Ed25519; lanza si el tag AEAD es inválido. */
+    @Throws(AEADBadTagException::class)
+    fun unwrapSigned(key: ByteArray, frame: ByteArray): Pair<ByteArray, ByteArray> {
+        require(kindOf(frame) == KIND_SIGNED_CONTROL) { "No es un sobre de control firmado" }
+        val signature = signatureOf(frame)
+            ?: throw AEADBadTagException("Firma Ed25519 ausente o truncada")
+        return unwrap(key, frame) to signature
     }
 
     /**

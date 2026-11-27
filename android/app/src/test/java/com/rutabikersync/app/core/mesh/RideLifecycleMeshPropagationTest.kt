@@ -38,6 +38,8 @@ class RideLifecycleMeshPropagationTest {
             transport = transport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val packet = engine.emitRideLifecycleEvent(RideLifecycleEvent.START_OUTBOUND)
@@ -65,6 +67,8 @@ class RideLifecycleMeshPropagationTest {
             transport = senderTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val receiverTransport = CapturingTransport()
@@ -73,6 +77,8 @@ class RideLifecycleMeshPropagationTest {
             transport = receiverTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         var callbackEvent: IncomingRideLifecycleEvent? = null
@@ -112,6 +118,8 @@ class RideLifecycleMeshPropagationTest {
             transport = senderTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val receiverTransport = CapturingTransport()
@@ -120,6 +128,8 @@ class RideLifecycleMeshPropagationTest {
             transport = receiverTransport,
             relayScope = testScope,
             rideSecretKey = testRideSecretKey
+        ,
+        requireAuthorization = false
         )
 
         val received = mutableListOf<IncomingRideLifecycleEvent>()

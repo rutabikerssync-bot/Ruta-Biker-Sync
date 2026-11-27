@@ -24,8 +24,9 @@ object RideLifecycleStatePolicy {
         (event == RideLifecycleTransition.START_OUTBOUND ||
             event == RideLifecycleTransition.START_RETURN)
 
+    /** REST antes que BLE: solo se emite por malla cuando el servidor confirmó (ACK). */
     fun shouldBroadcastMesh(result: RideLifecycleRequestResult): Boolean =
-        result !is RideLifecycleRequestResult.Rejected
+        result is RideLifecycleRequestResult.Applied
 }
 
 /**

@@ -65,17 +65,28 @@ class MeshRelayEngine(
     /** Cadencia real de emisión local; alimenta el suelo del timeout de peers (Fase 2). */
     private val heartbeatIntervalProvider: () -> Long = { HEARTBEAT_INTERVAL_MS },
     /** P0 auditoría 2026-11-25: en malla real (`!isSimulated`) no hay fallback fail-open sin manifiesto. */
-    private val requireAuthorization: Boolean = false
+    private val requireAuthorization: Boolean = true
 ) {
+    init {
+        require(!requireAuthorization || (rideSecretKey.size == 32 && !rideSecretKey.all { it == 0.toByte() })) {
+            "SecurityViolation: rideSecretKey de 32 ceros prohibida en modo autorizado; " +
+                "la clave debe provenir del manifiesto firmado"
+        }
+    }
+
     /**
-     * Constructor secundario para la arquitectura Fase 6 (BLE Mesh Off-Grid, Hito 3).
+     * SOLO simulación/tests: constructor de la arquitectura Fase 6 (BLE Mesh Off-Grid, Hito 3).
+     * Usa una clave demo de 32 ceros y, por tanto, fuerza `requireAuthorization = false`.
+     * Producción NUNCA debe invocarlo: debe crear el engine desde RideService con la clave
+     * del manifiesto firmado y reutilizarlo desde BleMeshService.
      */
     constructor(
         localShortId: UShort,
         clubNetworkId: UInt,
         deduplicationTable: DeduplicationTable = DeduplicationTable(),
         scope: CoroutineScope? = null,
-        onTransmitRelay: ((ByteArray) -> Unit)? = null
+        onTransmitRelay: ((ByteArray) -> Unit)? = null,
+        requireAuthorization: Boolean = false
     ) : this(
         localShortId = localShortId,
         transport = null,
@@ -86,7 +97,8 @@ class MeshRelayEngine(
         clubNetworkId = clubNetworkId,
         deduplicationTable = deduplicationTable,
         relayScope = scope,
-        onTransmitRelay = onTransmitRelay
+        onTransmitRelay = onTransmitRelay,
+        requireAuthorization = requireAuthorization
     )
     companion object {
         const val HEARTBEAT_INTERVAL_MS: Long = 3_000L
@@ -420,9 +432,38 @@ class MeshRelayEngine(
             packet.priority == Transport.Priority.POSITION ||
             packet.isSos
 
+    /**
+     * Firma un paquete de control/ciclo con la identidad Ed25519 local. Devuelve `null`
+     * en fail-closed si no hay firmante: en modo autorizado no se emite control sin firma.
+     */
+    private fun signControlPacket(packet: MeshPacket): ByteArray? {
+        val data = SensitiveFrameEnvelope.controlSignablePayload(packet.toByteArray())
+        val signer = controlSigner
+        if (signer != null) return runCatching { signer(data) }.getOrNull()
+        val crypto = sosCrypto ?: return null
+        return runCatching { crypto.sign(data) }.getOrNull()
+    }
+
+    /** Verifica la firma Ed25519 contra la clave pública enlazada al shortId en el manifiesto. */
+    private fun verifyControlSignature(packet: MeshPacket, signature: ByteArray?): Boolean {
+        if (signature?.size != SensitiveFrameEnvelope.SIGNATURE_SIZE_BYTES) return false
+        val resolver = sosPublicKeyResolver ?: return false
+        val crypto = sosCrypto ?: return false
+        val publicKey = resolver.resolvePublicKey(packet.shortId) ?: return false
+        return crypto.verify(
+            SensitiveFrameEnvelope.controlSignablePayload(packet.toByteArray()),
+            signature,
+            publicKey
+        )
+    }
+
     /** Envía un `MeshPacket` cifrando eventos sensibles y heartbeats de posición. */
-    private suspend fun sendMeshPacket(packet: MeshPacket) {
-        val bytes = if (isSensitiveMeshPacket(packet)) {
+    private suspend fun sendMeshPacket(packet: MeshPacket, controlSignature: ByteArray? = null) {
+        val bytes = if (requireAuthorization && packet.priority == Transport.Priority.PEER_EVENT && !packet.isSos) {
+            val key = sensitiveKey ?: return
+            val signature = controlSignature ?: signControlPacket(packet) ?: return
+            SensitiveFrameEnvelope.wrapSigned(key, packet.toByteArray(), signature)
+        } else if (isSensitiveMeshPacket(packet)) {
             val key = sensitiveKey ?: return
             SensitiveFrameEnvelope.wrap(
                 key,
@@ -455,11 +496,25 @@ class MeshRelayEngine(
     }
 
     /**
+     * Resultado del descifrado: conserva si el frame llegó en sobre y, para el control
+     * firmado, la firma Ed25519 del emisor. Así la guardia de autorización no depende de
+     * estado mutable ni de que el llamador haya descifrado previamente (BleMeshService).
+     */
+    data class UnwrappedFrame(
+        val bytes: ByteArray,
+        val wasEnvelope: Boolean,
+        val signedControl: Boolean = false,
+        val controlSignature: ByteArray? = null
+    )
+
+    /**
      * Descifra un sobre sensible antes de cualquier validación de cabecera o HMAC.
      * Devuelve `null` y contabiliza el descarte si falla el tag AEAD, el tipo o el nonce.
      */
-    fun unwrapIncomingFrame(raw: ByteArray): ByteArray? {
-        if (!SensitiveFrameEnvelope.isEnvelope(raw)) return raw
+    fun unwrapIncomingFrameDetailed(raw: ByteArray): UnwrappedFrame? {
+        if (!SensitiveFrameEnvelope.isEnvelope(raw)) {
+            return UnwrappedFrame(raw, wasEnvelope = false)
+        }
         val key = sensitiveKey
         if (key == null) {
             synchronized(this) { invalidAuthDropped++ }
@@ -475,8 +530,12 @@ class MeshRelayEngine(
             refreshStateFlows()
             return null
         }
+        val kind = SensitiveFrameEnvelope.kindOf(raw)
+        val signedControl = kind == SensitiveFrameEnvelope.KIND_SIGNED_CONTROL
+        val controlSignature = SensitiveFrameEnvelope.signatureOf(raw)
         val plaintext = try {
-            SensitiveFrameEnvelope.unwrap(key, raw)
+            if (signedControl) SensitiveFrameEnvelope.unwrapSigned(key, raw).first
+            else SensitiveFrameEnvelope.unwrap(key, raw)
         } catch (e: AEADBadTagException) {
             synchronized(this) { sensitiveTagRejected++ }
             refreshStateFlows()
@@ -486,11 +545,12 @@ class MeshRelayEngine(
             refreshStateFlows()
             return null
         }
-        val expectedSize = when (SensitiveFrameEnvelope.kindOf(raw)) {
+        val expectedSize = when (kind) {
             SensitiveFrameEnvelope.KIND_SOS -> SosPacket.PACKET_SIZE_BYTES
             SensitiveFrameEnvelope.KIND_SOS_ACK -> SosAckPacket.PACKET_SIZE_BYTES
             SensitiveFrameEnvelope.KIND_MESH_PACKET,
-            SensitiveFrameEnvelope.KIND_HEARTBEAT -> MeshPacket.PACKET_SIZE_BYTES
+            SensitiveFrameEnvelope.KIND_HEARTBEAT,
+            SensitiveFrameEnvelope.KIND_SIGNED_CONTROL -> MeshPacket.PACKET_SIZE_BYTES
             else -> -1
         }
         if (plaintext.size != expectedSize) {
@@ -506,8 +566,15 @@ class MeshRelayEngine(
             refreshStateFlows()
             return null
         }
-        return plaintext
+        return UnwrappedFrame(
+            bytes = plaintext,
+            wasEnvelope = true,
+            signedControl = signedControl,
+            controlSignature = controlSignature
+        )
     }
+
+    fun unwrapIncomingFrame(raw: ByteArray): ByteArray? = unwrapIncomingFrameDetailed(raw)?.bytes
 
     private fun deliverAuthenticatedRelayFrame(bytes: ByteArray) {
         val outgoing = wrapSensitiveControl(bytes) ?: return
@@ -516,6 +583,13 @@ class MeshRelayEngine(
 
     /** P0: cuando está configurado, solo el roster del manifiesto firmado puede emitir tramas. */
     var rideAuthorization: RideMeshAuthorization? = null
+
+    /**
+     * Firma Ed25519 local para eventos de ciclo/control. En producción se inyecta la
+     * clave del dispositivo gestionada por SosSigningHub (la misma publicada en el
+     * manifiesto). Inyectable en tests JVM; nunca se fabrica una clave nueva aquí.
+     */
+    var controlSigner: ((ByteArray) -> ByteArray)? = null
 
     var sosCrypto: Ed25519SosCrypto? = null
     var sosPublicKeyResolver: SosPublicKeyResolver? = null
@@ -595,12 +669,13 @@ class MeshRelayEngine(
     ): RelayDecision {
         totalPacketsReceived.incrementAndGet()
 
-        val wire = unwrapIncomingFrame(rawBytes)
+        val unwrapped = unwrapIncomingFrameDetailed(rawBytes)
             ?: return RelayDecision.DroppedInvalidSignature("Sensible rechazado: tag/nonce inválido")
+        val wire = unwrapped.bytes
         if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
             // La ruta 20 B (heartbeats y PEER_EVENT) usa onRawPacketReceived desde el
             // engine y desde BleMeshService; aquí solo se devuelve la decisión.
-            return processLegacyPacket(wire, nowMs, null, null, null)
+            return processLegacyPacket(wire, nowMs, null, null, null, unwrapped)
         }
         if (wire.size < MeshHeader.HEADER_SIZE_BYTES) {
             return RelayDecision.DroppedMalformed("Tamaño insuficiente: ${wire.size} bytes")
@@ -1097,6 +1172,14 @@ class MeshRelayEngine(
     }
 
     suspend fun start(scope: CoroutineScope) {
+        val key = rideSecretKey
+        if (key.size != 32 || key.all { it == 0.toByte() } ||
+            (requireAuthorization && rideAuthorization == null)
+        ) {
+            throw IllegalStateException(
+                "Malla BLE no iniciada: clave de rodada/manifiesto firmado no disponible"
+            )
+        }
         transport?.start()
         collectJob?.cancel()
         val pktFlow = transport?.incomingPackets
@@ -1107,15 +1190,17 @@ class MeshRelayEngine(
                     // no desde el timestamp que trae el transporte: la cola del SharedFlow
                     // puede entregar paquetes minutos después (medido en TECNO/REDMI).
                     val receivedAtEpochMs = System.currentTimeMillis()
-                    // Descifrar antes de elegir la ruta: el sobre sensible mide 52/120 B.
-                    val wire = unwrapIncomingFrame(pkt.bytes) ?: return@collect
+                    // Descifrar antes de elegir la ruta: el sobre sensible mide 52/116 B.
+                    val unwrapped = unwrapIncomingFrameDetailed(pkt.bytes) ?: return@collect
+                    val wire = unwrapped.bytes
                     if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
                         onRawPacketReceived(
                             raw = wire,
                             nowEpochMs = receivedAtEpochMs,
                             rssi = pkt.rssi,
                             senderAddressSuffix = pkt.senderAddressSuffix,
-                            scanTimestampNanos = pkt.scanTimestampNanos
+                            scanTimestampNanos = pkt.scanTimestampNanos,
+                            unwrapped = unwrapped
                         )
                     } else {
                         // Hito 7.0.2: texto/SOS/médico no son heartbeats de 20 B.
@@ -1130,9 +1215,15 @@ class MeshRelayEngine(
         } else {
             collectJob = scope.launch(start = CoroutineStart.UNDISPATCHED) {
                 transport?.incoming?.collect { raw ->
-                    val wire = unwrapIncomingFrame(raw) ?: return@collect
+                    val unwrapped = unwrapIncomingFrameDetailed(raw) ?: return@collect
+                    val wire = unwrapped.bytes
                     if (wire.size == MeshPacket.PACKET_SIZE_BYTES) {
-                        onRawPacketReceived(wire, System.currentTimeMillis(), null)
+                        onRawPacketReceived(
+                            raw = wire,
+                            nowEpochMs = System.currentTimeMillis(),
+                            rssi = null,
+                            unwrapped = unwrapped
+                        )
                     } else {
                         processIncomingPacket(rawBytes = wire)
                     }
@@ -1580,11 +1671,15 @@ class MeshRelayEngine(
         nowEpochMs: Long = System.currentTimeMillis(),
         rssi: Int? = null,
         senderAddressSuffix: String? = null,
-        scanTimestampNanos: Long? = null
+        scanTimestampNanos: Long? = null,
+        unwrapped: UnwrappedFrame? = null
     ) {
-        val wire = unwrapIncomingFrame(raw) ?: return
+        val frame = unwrapped ?: unwrapIncomingFrameDetailed(raw) ?: return
+        val wire = frame.bytes
         if (wire.size != MeshPacket.PACKET_SIZE_BYTES) return
-        val decision = processLegacyPacket(wire, nowEpochMs, rssi, senderAddressSuffix, scanTimestampNanos)
+        val decision = processLegacyPacket(
+            wire, nowEpochMs, rssi, senderAddressSuffix, scanTimestampNanos, frame
+        )
         if (decision is RelayDecision.Relayed) {
             transport?.send(decision.relayedBytes, decision.priority)
         }
@@ -1596,7 +1691,8 @@ class MeshRelayEngine(
         nowEpochMs: Long,
         rssi: Int?,
         senderAddressSuffix: String?,
-        scanTimestampNanos: Long?
+        scanTimestampNanos: Long?,
+        frame: UnwrappedFrame? = null
     ): RelayDecision {
         if (wire.size != MeshPacket.PACKET_SIZE_BYTES) {
             return RelayDecision.DroppedMalformed("Tamaño inválido: ${wire.size} bytes")
@@ -1609,6 +1705,22 @@ class MeshRelayEngine(
             synchronized(this) { invalidAuthDropped++ }
             refreshStateFlows()
             return RelayDecision.DroppedInvalidSignature("HMAC inválido para shortId=${packet.shortId}")
+        }
+
+        // FASE 1.3: en modo autorizado el HMAC de 4 B es solo checksum interno. El control
+        // y el ciclo exigen firma Ed25519 verificada contra la clave enlazada a su shortId en el
+        // manifiesto; un MeshPacket crudo de 20 B con HMAC válido NO basta.
+        if (requireAuthorization) {
+            val isControl = packet.priority == Transport.Priority.PEER_EVENT && !packet.isSos
+            val signatureValid = frame?.signedControl == true &&
+                verifyControlSignature(packet, frame.controlSignature)
+            if ((isControl && !signatureValid) || (!isControl && frame?.wasEnvelope != true)) {
+                synchronized(this) { invalidAuthDropped++ }
+                refreshStateFlows()
+                return RelayDecision.DroppedInvalidSignature(
+                    "Firma Ed25519 de control ausente/inválida para shortId=${packet.shortId}"
+                )
+            }
         }
 
         // Ignorar ecos de nuestro propio nodo
@@ -1697,9 +1809,17 @@ class MeshRelayEngine(
                     val eventCode = (kindCode and 0x0F).toByte()
                     val event = RideLifecycleEvent.fromCode(eventCode)
                     if (event != null) {
-                        val allowed = authorization == null ||
-                            (authorization.canAuthorLifecycle(packet.shortId, event) &&
-                                authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort()))
+                        val allowed = if (requireAuthorization) {
+                            // Fail-closed en caliente: sin manifiesto no hay ciclo autorizado.
+                            authorization != null &&
+                                authorization.canAuthorLifecycle(packet.shortId, event) &&
+                                authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort())
+                        } else {
+                            // Simulación: se conserva el comportamiento histórico.
+                            authorization == null ||
+                                (authorization.canAuthorLifecycle(packet.shortId, event) &&
+                                    authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort()))
+                        }
                         if (allowed) {
                             decodedRideLifecycleEvent = IncomingRideLifecycleEvent(
                                 senderShortId = packet.shortId,
@@ -1780,7 +1900,13 @@ class MeshRelayEngine(
             )
         }
 
-        val relayedBytes = if (isSensitiveMeshPacket(relay)) {
+        val relayedBytes = if (requireAuthorization && relay.priority == Transport.Priority.PEER_EVENT &&
+            !relay.isSos && frame?.signedControl == true && frame.controlSignature != null
+        ) {
+            // El TTL se enmascara al firmar: el relay conserva la firma del emisor original.
+            val key = sensitiveKey ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible")
+            SensitiveFrameEnvelope.wrapSigned(key, relay.toByteArray(), frame.controlSignature)
+        } else if (isSensitiveMeshPacket(relay)) {
             val key = sensitiveKey ?: return RelayDecision.DroppedInvalidSignature("Clave de rodada no disponible")
             SensitiveFrameEnvelope.wrap(
                 key,

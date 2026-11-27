@@ -19,9 +19,9 @@ class PeerPositionValidityTest {
     @Test
     fun `peer sin fix previo no se dibuja aunque el heartbeat siga llegando`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
-        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)
@@ -50,9 +50,9 @@ class PeerPositionValidityTest {
     @Test
     fun `peer con fallback CDMX sigue sin dibujarse`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
-        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)
@@ -72,9 +72,9 @@ class PeerPositionValidityTest {
     @Test
     fun `peer con (0,0) tras posicion valida conserva el marcador con la ultima posicion`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
-        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)
@@ -112,9 +112,9 @@ class PeerPositionValidityTest {
     @Test
     fun `peer online con posicion retenida sigue contando en ridersCount y solo se pierde por timeout`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
-        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)
@@ -145,9 +145,9 @@ class PeerPositionValidityTest {
     @Test
     fun `peer con GPS valido se dibuja en su posicion real`() = runTest(UnconfinedTestDispatcher()) {
         val medium = SimulatedBleMedium()
-        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey)
+        val localEngine = MeshRelayEngine(localShortId = 1u, transport = medium.createNodeTransport(1u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
-        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey)
+        val remoteEngine = MeshRelayEngine(localShortId = 2u, transport = medium.createNodeTransport(2u), rideSecretKey = secretKey, requireAuthorization = false)
             .also { it.start(backgroundScope) }
         val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
         controller.bindToMeshEngine(localEngine)

@@ -42,10 +42,11 @@ class P0SecurityChecksTest {
 
     class CapturingTransport : Transport {
         val sent = mutableListOf<ByteArray>()
+        var startCalls: Int = 0
         private val incomingFlow = MutableSharedFlow<ByteArray>()
         override val name: String = "P0_CAPTURING"
         override suspend fun send(payload: ByteArray, priority: Transport.Priority) { sent.add(payload) }
-        override suspend fun start() {}
+        override suspend fun start() { startCalls++ }
         override suspend fun stop() {}
         override val incoming: kotlinx.coroutines.flow.Flow<ByteArray> = incomingFlow.asSharedFlow()
     }
@@ -112,17 +113,23 @@ class P0SecurityChecksTest {
         auth: RideManifestKeyProvider.AuthorizedRide? = null
     ): Pair<MeshRelayEngine, CapturingTransport> {
         val transport = CapturingTransport()
+        val verifier = Ed25519SosCrypto(context = null)
+        val privateKey = sosPrivateKeys[shortId]
+        // Los emisores del fixture con clave privada publicada usan autorización real y
+        // firman el control; los nodos sin identidad en el manifiesto son simulación.
         val engine = MeshRelayEngine(
             localShortId = shortId,
             transport = transport,
             relayScope = scope,
-            rideSecretKey = rideKey
+            rideSecretKey = rideKey,
+            requireAuthorization = auth != null || privateKey != null
         )
+        engine.sosCrypto = verifier
         if (auth != null) {
             engine.rideAuthorization = RideMeshAuthorization(auth)
             engine.sosPublicKeyResolver = auth.sosPublicKeyResolver
-            engine.sosCrypto = Ed25519SosCrypto(context = null)
         }
+        privateKey?.let { key -> engine.controlSigner = { data -> verifier.sign(data, key) } }
         return engine to transport
     }
 
@@ -333,8 +340,9 @@ class P0SecurityChecksTest {
         val envelope = senderTransport.sent.single()
 
         assertTrue("PEER_EVENT debe viajar en sobre sensible", SensitiveFrameEnvelope.isEnvelope(envelope))
-        assertEquals(52, envelope.size)
-        assertEquals(SensitiveFrameEnvelope.KIND_MESH_PACKET, SensitiveFrameEnvelope.kindOf(envelope))
+        // FASE 1.3: en modo autorizado el control lleva firma Ed25519 de 64 B.
+        assertEquals(16 + 20 + 16 + 64, envelope.size)
+        assertEquals(SensitiveFrameEnvelope.KIND_SIGNED_CONTROL, SensitiveFrameEnvelope.kindOf(envelope))
 
         receiver.onRawPacketReceived(envelope)
         assertEquals(1, received.size)
@@ -353,7 +361,9 @@ class P0SecurityChecksTest {
         val (sender, senderTransport) = engineWith(scope, auth.localShortId)
         sender.emitConvoySignal(ConvoySignalKind.REDUCE_SPEED)
         val tampered = senderTransport.sent.single().copyOf()
-        tampered[tampered.lastIndex] = (tampered[tampered.lastIndex].toInt() xor 0xFF).toByte()
+        // Primer byte del tag Poly1305 (la firma va DESPUÉS del tag en el sobre firmado).
+        val tagStart = SensitiveFrameEnvelope.HEADER_BYTES + MeshPacket.PACKET_SIZE_BYTES
+        tampered[tagStart] = (tampered[tagStart].toInt() xor 0xFF).toByte()
 
         receiver.onRawPacketReceived(tampered)
         assertTrue(received.isEmpty())
@@ -495,6 +505,8 @@ class P0SecurityChecksTest {
             clubNetworkId = 0x52425301u,
             scope = scope,
             onTransmitRelay = { emitted.add(it) }
+        ,
+        requireAuthorization = false
         )
         val sos = SosPacket.create(
             clubNetworkId = 0x52425301u,
@@ -514,5 +526,104 @@ class P0SecurityChecksTest {
 
         assertEquals(1, emitted.size)
         assertEquals(SensitiveFrameEnvelope.KIND_SOS, SensitiveFrameEnvelope.kindOf(emitted.single()))
+    }
+
+    @Test
+    fun `FASE 1_1 sin clave valida o sin manifiesto start falla y el transporte nunca arranca`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+
+        val demoKeyFailure = runCatching {
+            MeshRelayEngine(localShortId = 1u, rideSecretKey = ByteArray(32))
+        }.exceptionOrNull()
+        assertTrue("La clave demo de 32 ceros debe fallar en init: $demoKeyFailure",
+            demoKeyFailure is IllegalArgumentException)
+        assertTrue(demoKeyFailure!!.message!!.startsWith("SecurityViolation"))
+
+        val transport = CapturingTransport()
+        val engine = MeshRelayEngine(
+            localShortId = 1u,
+            transport = transport,
+            rideSecretKey = rideKey,
+            relayScope = scope
+        )
+        val startFailure = runCatching { engine.start(scope) }.exceptionOrNull()
+        assertTrue("Sin manifiesto start debe fallar: $startFailure", startFailure is IllegalStateException)
+        assertEquals(
+            "Malla BLE no iniciada: clave de rodada/manifiesto firmado no disponible",
+            startFailure!!.message
+        )
+        assertEquals("El transporte no debe iniciarse en fail-closed", 0, transport.startCalls)
+
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (authorizedEngine, authorizedTransport) = engineWith(scope, auth.localShortId, auth)
+        authorizedEngine.start(scope)
+        assertEquals(1, authorizedTransport.startCalls)
+        assertTrue(authorizedEngine.isRunning)
+        authorizedEngine.stop()
+    }
+
+    @Test
+    fun `FASE 1_3 firma Ed25519 valida se acepta y HMAC crudo de 4 bytes se rechaza`() = runTest {
+        val scope = TestScope(StandardTestDispatcher(testScheduler))
+        val auth = authorizedRide(pkOf("pk-leader"), pkOf("pk-member"))
+        val (receiver, _) = engineWith(scope, 60_200u, auth)
+        val received = mutableListOf<MeshRelayEngine.IncomingRideLifecycleEvent>()
+        receiver.onRideLifecycleEventReceived = { received.add(it) }
+
+        val (sender, senderTransport) = engineWith(scope, auth.localShortId, auth)
+        sender.emitRideLifecycleEvent(RideLifecycleEvent.START_OUTBOUND)
+        val signedFrame = senderTransport.sent.single()
+        assertEquals(SensitiveFrameEnvelope.KIND_SIGNED_CONTROL, SensitiveFrameEnvelope.kindOf(signedFrame))
+        assertEquals(
+            "La firma debe ser Ed25519 de 64 bytes",
+            SensitiveFrameEnvelope.SIGNATURE_SIZE_BYTES,
+            SensitiveFrameEnvelope.signatureOf(signedFrame)!!.size
+        )
+        receiver.onRawPacketReceived(signedFrame)
+        assertEquals(1, received.size)
+        assertEquals(auth.localShortId, received.first().senderShortId)
+        assertEquals(0, receiver.metrics.value.invalidAuthDropped)
+
+        val hmacOnly = MeshPacket.createSigned(
+            shortId = auth.localShortId,
+            latitude = 0.0,
+            longitude = 0.0,
+            speedKmh = 0,
+            bearingDegrees = 0f,
+            batteryPercent = 100,
+            priority = Transport.Priority.PEER_EVENT,
+            sequenceNumber = 42,
+            ttl = MeshPacket.DEFAULT_TTL,
+            rideSecretKey = rideKey
+        )
+        val decision = receiver.processIncomingPacket(hmacOnly.toByteArray())
+        assertTrue("Un HMAC de 4 B sin firma Ed25519 no autoriza: $decision",
+            decision is MeshRelayEngine.RelayDecision.DroppedInvalidSignature)
+        assertEquals("Solo el frame crudo debe contabilizarse como descarte de autenticación",
+            1, receiver.metrics.value.invalidAuthDropped)
+        assertEquals("El evento del frame crudo no debe entregarse", 1, received.size)
+    }
+
+    @Test
+    fun `FASE 1_3 golden MeshPacket permanece en 20 bytes con su tag HMAC`() {
+        val packet = MeshPacket.createSigned(
+            shortId = 0x1234u,
+            latitude = 19.432608,
+            longitude = -99.133209,
+            speedKmh = 45,
+            bearingDegrees = 90f,
+            batteryPercent = 88,
+            priority = Transport.Priority.POSITION,
+            sequenceNumber = 7,
+            ttl = 4,
+            rideSecretKey = rideKey
+        )
+        val bytes = packet.toByteArray()
+        assertEquals(MeshPacket.PACKET_SIZE_BYTES, bytes.size)
+        assertEquals("12340b952e40c4e979062d40d1440074715a31c3",
+            bytes.joinToString("") { "%02x".format(it) })
+        val parsed = MeshPacket.fromByteArray(bytes)
+        assertEquals(packet.authTag, parsed.authTag)
+        assertTrue(parsed.verifyAuthTag(rideKey))
     }
 }

@@ -65,6 +65,8 @@ class SosMultiHopSimulationTest {
         val relayEngine = MeshRelayEngine(
             localShortId = shortId,
             clubNetworkId = clubId
+        ,
+        requireAuthorization = false
         ).apply {
             this.sosCrypto = crypto
             this.sosPublicKeyResolver = resolver

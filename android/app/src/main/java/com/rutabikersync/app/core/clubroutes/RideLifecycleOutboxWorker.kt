@@ -16,8 +16,16 @@ import java.util.concurrent.TimeUnit
 /** Vacia el outbox de ciclo al recuperar conectividad, en orden de secuencia. */
 class RideLifecycleOutboxWorker(
     appContext: Context,
-    workerParams: WorkerParameters
+    workerParams: WorkerParameters,
+    /** Inyectable en tests JVM; producción usa el puente BLE tras el ACK REST. */
+    private val onAcked: suspend (List<RideLifecycleTransition>) -> Unit
 ) : CoroutineWorker(appContext, workerParams) {
+
+    /** Constructor que usa WorkManager (reflection exige exactamente Context + WorkerParameters). */
+    constructor(
+        appContext: Context,
+        workerParams: WorkerParameters
+    ) : this(appContext, workerParams, RideLifecycleBleAckBridge::dispatch)
 
     override suspend fun doWork(): Result {
         val dao = AppDatabase.getInstance(applicationContext).rideLifecycleOutboxDao()
@@ -40,7 +48,7 @@ class RideLifecycleOutboxWorker(
         }
 
         return when (
-            val result = RideLifecycleOutboxSyncEngine(dao, transport).flush()
+            val result = flushAndAck(dao, transport, onAcked)
         ) {
             is RideLifecycleOutboxSyncEngine.SyncResult.Success,
             RideLifecycleOutboxSyncEngine.SyncResult.NoOp -> Result.success()
@@ -50,6 +58,22 @@ class RideLifecycleOutboxWorker(
 
     companion object {
         const val UNIQUE_WORK_NAME = "RideLifecycleOutboxWorker"
+
+        /**
+         * Lógica pura del worker, testeable sin Android: emite por BLE SOLO los eventos
+         * confirmados. `markSynced`/`deleteSynced` evitan duplicados en reflush.
+         */
+        suspend fun flushAndAck(
+            dao: RideLifecycleOutboxDao,
+            transport: RideLifecycleTransport,
+            onAcked: suspend (List<RideLifecycleTransition>) -> Unit
+        ): RideLifecycleOutboxSyncEngine.SyncResult {
+            val result = RideLifecycleOutboxSyncEngine(dao, transport).flush()
+            if (result is RideLifecycleOutboxSyncEngine.SyncResult.Success && result.ackedEvents.isNotEmpty()) {
+                onAcked(result.ackedEvents)
+            }
+            return result
+        }
 
         fun schedule(context: Context) {
             val constraints = Constraints.Builder()

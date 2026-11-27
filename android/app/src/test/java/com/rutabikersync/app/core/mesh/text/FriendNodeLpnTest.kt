@@ -183,6 +183,8 @@ class FriendNodeLpnTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> n2TransmittedBytes = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             isFriendNodeEnabled = true
@@ -193,6 +195,8 @@ class FriendNodeLpnTest {
         val node3 = MeshRelayEngine(
             localShortId = 3u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         ).apply {
             customRideSecretKey = testRideKey
             onTextMessageReceived = { _, text -> n3ReceivedText = text }
@@ -234,6 +238,8 @@ class FriendNodeLpnTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> relayedBytes = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             lpnMode = lpn
         }
@@ -257,6 +263,8 @@ class FriendNodeLpnTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> relayedBytes = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             lpnMode = lpn
             customRideSecretKey = testRideKey
@@ -283,6 +291,8 @@ class FriendNodeLpnTest {
         val node = MeshRelayEngine(
             localShortId = 2u,
             clubNetworkId = testNetworkId
+        ,
+        requireAuthorization = false
         ).apply {
             lpnMode = lpn
             customRideSecretKey = testRideKey
@@ -312,6 +322,8 @@ class FriendNodeLpnTest {
             localShortId = 2u,
             clubNetworkId = testNetworkId,
             onTransmitRelay = { bytes -> relayedBytes = bytes }
+        ,
+        requireAuthorization = false
         ).apply {
             lpnMode = lpn
             sosCrypto = Ed25519SosCrypto(context = null)

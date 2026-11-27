@@ -42,6 +42,8 @@ class Phase2CadenceIntegrationTest {
                 localShortId = 1u,
                 rideSecretKey = secretKey,
                 heartbeatIntervalProvider = { 18_000L }
+            ,
+            requireAuthorization = false
             )
             val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
             controller.bindToMeshEngine(engine)
@@ -74,6 +76,8 @@ class Phase2CadenceIntegrationTest {
                 localShortId = 1u,
                 rideSecretKey = secretKey,
                 heartbeatIntervalProvider = { 18_000L }
+            ,
+            requireAuthorization = false
             )
             val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
             controller.bindToMeshEngine(engine)
@@ -101,6 +105,8 @@ class Phase2CadenceIntegrationTest {
                 localShortId = 1u,
                 rideSecretKey = secretKey,
                 heartbeatIntervalProvider = { 18_000L }
+            ,
+            requireAuthorization = false
             )
             val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
             controller.bindToMeshEngine(engine)
@@ -155,6 +161,8 @@ class Phase2CadenceIntegrationTest {
                 localShortId = 1u,
                 rideSecretKey = secretKey,
                 heartbeatIntervalProvider = { 18_000L }
+            ,
+            requireAuthorization = false
             )
             val tracker = AnnouncerTracker()
             val t0 = 1_000_000L
@@ -193,7 +201,7 @@ class Phase2CadenceIntegrationTest {
     @Test
     fun `rider en movimiento con perdidas intermitentes no genera desconexiones falsas`() =
         runTest(UnconfinedTestDispatcher()) {
-            val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey)
+            val engine = MeshRelayEngine(localShortId = 1u, rideSecretKey = secretKey, requireAuthorization = false)
             val controller = LiveMapController(scope = backgroundScope, localShortId = 1u, leaderShortId = 1u)
             controller.bindToMeshEngine(engine)
             controller.corridorReferenceLon = -67.034980

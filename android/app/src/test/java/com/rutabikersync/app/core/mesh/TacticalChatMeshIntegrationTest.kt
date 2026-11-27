@@ -39,6 +39,8 @@ class TacticalChatMeshIntegrationTest {
             transport = txTransport,
             rideSecretKey = key,
             relayScope = this
+        ,
+        requireAuthorization = false
         )
 
         val packet = tx.emitTextMessage(TextMessagePacket.BROADCAST_TARGET, "hola")
@@ -60,6 +62,8 @@ class TacticalChatMeshIntegrationTest {
         val rx = MeshRelayEngine(
             localShortId = 200u,
             rideSecretKey = key
+        ,
+        requireAuthorization = false
         )
         rx.onTextMessageReceived = { p, text ->
             receivedSender = p.header.senderShortId
@@ -76,12 +80,12 @@ class TacticalChatMeshIntegrationTest {
     fun `mensaje dirigido a otro nodo no se entrega localmente`() = runBlocking {
         val key = ByteArray(32) { (it + 9).toByte() }
         val txTransport = CapturingTransport()
-        val tx = MeshRelayEngine(localShortId = 100u, transport = txTransport, rideSecretKey = key, relayScope = this)
+        val tx = MeshRelayEngine(localShortId = 100u, transport = txTransport, rideSecretKey = key, relayScope = this, requireAuthorization = false)
         tx.emitTextMessage(999u, "privado")
         delay(50)
 
         var delivered = false
-        val rx = MeshRelayEngine(localShortId = 200u, rideSecretKey = key)
+        val rx = MeshRelayEngine(localShortId = 200u, rideSecretKey = key, requireAuthorization = false)
         rx.onTextMessageReceived = { _, _ -> delivered = true }
         rx.processIncomingPacket(txTransport.sent.first())
         assertEquals(false, delivered)

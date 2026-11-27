@@ -66,7 +66,9 @@ class RideLifecycleOutboxTest {
         val flush = coordinator.flush()
 
         assertTrue(flush is RideLifecycleOutboxSyncEngine.SyncResult.Success)
-        assertEquals(4, (flush as RideLifecycleOutboxSyncEngine.SyncResult.Success).syncedCount)
+        val success = flush as RideLifecycleOutboxSyncEngine.SyncResult.Success
+        assertEquals(4, success.syncedCount)
+        assertEquals(events, success.ackedEvents)
         assertEquals(0, dao.pendingCount())
         assertEquals(events, transport.sent)
     }
@@ -128,8 +130,54 @@ class RideLifecycleOutboxTest {
 
         val flush = coordinator.flush()
         assertTrue(flush is RideLifecycleOutboxSyncEngine.SyncResult.Success)
-        assertEquals(1, (flush as RideLifecycleOutboxSyncEngine.SyncResult.Success).droppedCount)
+        val success = flush as RideLifecycleOutboxSyncEngine.SyncResult.Success
+        assertEquals(1, success.droppedCount)
+        assertTrue("Un evento rechazado nunca se confirma para BLE", success.ackedEvents.isEmpty())
         assertEquals(0, dao.pendingCount())
+    }
+
+    @Test
+    fun `FASE 1_2 Queued no emite BLE y Accepted emite una sola vez sin duplicados en reflush`() = runTest {
+        val dao = InMemoryRideLifecycleOutboxDao()
+        val transport = FakeTransport().apply { failWithNetworkError = true }
+        val coordinator = RideLifecycleOutboxCoordinator(dao, transport)
+        val bleEmissions = mutableListOf<RideLifecycleTransition>()
+
+        val queued = coordinator.request("route-1", RideLifecycleTransition.START_OUTBOUND)
+        assertTrue(queued is RideLifecycleRequestResult.Queued)
+        assertFalse("REST aún no confirmó: la malla no debe emitir",
+            RideLifecycleStatePolicy.shouldBroadcastMesh(queued))
+
+        val notConfirmed = RideLifecycleOutboxWorker.flushAndAck(dao, transport) { bleEmissions.addAll(it) }
+        assertTrue(notConfirmed is RideLifecycleOutboxSyncEngine.SyncResult.Failure)
+        assertEquals("REST sin ACK produce 0 emisiones BLE", 0, bleEmissions.size)
+
+        transport.failWithNetworkError = false
+        val confirmed = RideLifecycleOutboxWorker.flushAndAck(dao, transport) { bleEmissions.addAll(it) }
+        assertTrue(confirmed is RideLifecycleOutboxSyncEngine.SyncResult.Success)
+        assertTrue(RideLifecycleStatePolicy.shouldBroadcastMesh(
+            RideLifecycleRequestResult.Applied(statusCode = 200)
+        ))
+        assertEquals(listOf(RideLifecycleTransition.START_OUTBOUND),
+            (confirmed as RideLifecycleOutboxSyncEngine.SyncResult.Success).ackedEvents)
+        assertEquals(listOf(RideLifecycleTransition.START_OUTBOUND), bleEmissions)
+
+        val reflush = RideLifecycleOutboxWorker.flushAndAck(dao, transport) { bleEmissions.addAll(it) }
+        assertTrue(reflush is RideLifecycleOutboxSyncEngine.SyncResult.NoOp)
+        assertEquals("El reflush no debe duplicar la emisión BLE", 1, bleEmissions.size)
+    }
+
+    @Test
+    fun `FASE 1_2 el puente BLE no mapea ARRIVE y conserva el resto de eventos`() {
+        assertEquals(null, RideLifecycleBleAckBridge.toMeshEvent(RideLifecycleTransition.ARRIVE))
+        assertEquals(
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND,
+            RideLifecycleBleAckBridge.toMeshEvent(RideLifecycleTransition.START_OUTBOUND)
+        )
+        assertEquals(
+            com.rutabikersync.app.core.mesh.MeshRelayEngine.RideLifecycleEvent.COMPLETE_RIDE,
+            RideLifecycleBleAckBridge.toMeshEvent(RideLifecycleTransition.COMPLETE_RIDE)
+        )
     }
 
     @Test

@@ -34,6 +34,8 @@ class MultiHopFloodingTest {
         val relayEngine = MeshRelayEngine(
             localShortId = shortId,
             clubNetworkId = clubId
+        ,
+        requireAuthorization = false
         )
 
         val receivedPackets = ConcurrentLinkedQueue<MeshHeader>()
@@ -136,7 +138,7 @@ class MultiHopFloodingTest {
     @Test
     fun testTtlExhaustedAtLastHopStopsRelayingWithoutLoop() {
         // N4 emite hacia N5 con currentTtl = 1
-        val relayEngine = MeshRelayEngine(localShortId = 5u, clubNetworkId = clubId)
+        val relayEngine = MeshRelayEngine(localShortId = 5u, clubNetworkId = clubId, requireAuthorization = false)
 
         val terminalHeader = MeshHeader(
             clubNetworkId = clubId,
@@ -202,7 +204,7 @@ class MultiHopFloodingTest {
 
     @Test
     fun testDeduplicationSuppressesBroadcastStormsAndBackwardsLoop() {
-        val relayEngine = MeshRelayEngine(localShortId = 2u, clubNetworkId = clubId)
+        val relayEngine = MeshRelayEngine(localShortId = 2u, clubNetworkId = clubId, requireAuthorization = false)
 
         val header = MeshHeader(
             clubNetworkId = clubId,
@@ -228,7 +230,7 @@ class MultiHopFloodingTest {
 
     @Test
     fun testVoicePacketIsConsumedLocallyAndNeverRelayed() {
-        val relayEngine = MeshRelayEngine(localShortId = 2u, clubNetworkId = clubId)
+        val relayEngine = MeshRelayEngine(localShortId = 2u, clubNetworkId = clubId, requireAuthorization = false)
 
         val key = ByteArray(32) { (it + 0xA5).toByte() }
         val nonce = VoiceCrypto.buildDeterministicNonce(clubId.toInt(), 1, 100, 0)

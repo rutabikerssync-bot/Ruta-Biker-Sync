@@ -36,6 +36,8 @@ class RideManifestDiskCacheAndFailClosedTest {
             transport = senderTransport,
             rideSecretKey = secretKey,
             relayScope = backgroundScope
+        ,
+        requireAuthorization = false
         )
         sender.emitRideLifecycleEvent(MeshRelayEngine.RideLifecycleEvent.START_OUTBOUND)
         assertTrue(senderTransport.sent.isNotEmpty())

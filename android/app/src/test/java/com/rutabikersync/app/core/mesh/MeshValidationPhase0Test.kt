@@ -107,6 +107,8 @@ class MeshValidationPhase0Test {
                 transport = medium.createNodeTransport(id),
                 rideSecretKey = secretKey,
                 localDeviceModel = "TestPhone-$id"
+            ,
+            requireAuthorization = false
             ).also { it.start(backgroundScope) }
         }
 
@@ -164,6 +166,8 @@ class MeshValidationPhase0Test {
             localShortId = 1u,
             transport = medium.createNodeTransport(1u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         )
 
         val t0 = 1_000_000L
@@ -232,6 +236,8 @@ class MeshValidationPhase0Test {
             localShortId = 1u,
             transport = medium.createNodeTransport(1u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         )
 
         val report = engine.metrics.value
@@ -250,6 +256,8 @@ class MeshValidationPhase0Test {
             localShortId = 1u,
             transport = medium.createNodeTransport(1u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         )
 
         engine.registerExpectedPeer(shortId = 2u, nowEpochMs = 1_000L, initialExpectedBeats = 0)
@@ -269,6 +277,8 @@ class MeshValidationPhase0Test {
             localShortId = 1u,
             transport = medium.createNodeTransport(1u),
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         )
 
         val t0 = 10_000L
@@ -321,6 +331,8 @@ class MeshValidationPhase0Test {
             localShortId = 1u,
             transport = node1Transport,
             rideSecretKey = secretKey
+        ,
+        requireAuthorization = false
         )
 
         // Nodo 1 inicia en t = 0s y registra al nodo 2 como par esperado
