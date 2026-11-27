@@ -1441,3 +1441,9 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
   - Añadido `focusOnPeer(shortId)` con seguimiento en tiempo real (`focusedPeerShortId`), conectado al toque en `ViewportEdgeMarker` y en cada fila del diálogo **Convoy**.
   - Añadido chip **Convoy** en `NavigationCameraControls` para encuadrar con un toque todos los peers activos y la ruta (`ROUTE_OVERVIEW`).
 - **Verificación Android:** `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` (`-Prbs.debug.url=https://ruta-biker-sync.onrender.com`) en verde (`BUILD SUCCESSFUL in 1m 24s`).
+
+### 2026-11-27 — Sincronización de Kilometraje en Gamificación, Perfil y Garage
+- **`ClubApiClient.kt` + `GamificationRepository.kt`:** añadido `fetchUserGamification(userId)` (`GET /v1/users/:id/gamification`) y `syncFromBackend(apiClient, userId)`, marcando la semilla demo inicial (`KEY_IS_DEMO_SEED`) para que los usuarios reales muestren sus métricas reales de Neon/Render y conserven avances locales pendientes.
+- **`ProfileScreen.kt`:** reemplazados los valores estáticos hardcodeados (`"Novato"`, `"0 / 100 XP"`, `"0 km"`, `"0 meses"`, `"0"`) por lectura reactiva de `GamificationRepository.profileFlow` con sincronización automática al abrir la sección Piloto.
+- **`RideService.kt` + `BikeGarageRepository.kt`:** al detener una rodada real con distancia acumulada (`>= 0.05 km`), `RideService` invoca `onRideGamificationKmRecorded` (`GamificationRepository.recordCompletedRide`) y, cuando `rideKm >= 1`, tras actualizar el odómetro de Garage ejecuta `pushToBackend` hacia `PUT /v1/users/me/garage`; además `BikeGarageRepository.syncFromBackend` conserva `maxOf(local.odometerKm, remote.odometerKm)` para no pisar km recién rodados.
+- **Verificación:** `:app:testStandardDebugUnitTest` y `:app:assembleStandardDebug` (`-Prbs.debug.url=https://ruta-biker-sync.onrender.com`) en verde (`BUILD SUCCESSFUL in 2m 6s`).
