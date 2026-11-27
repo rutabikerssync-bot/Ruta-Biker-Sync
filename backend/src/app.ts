@@ -78,6 +78,7 @@ import {
   type SubscriptionKind,
   type SubscriptionState
 } from './lib/subscriptions.js';
+import { registerCommunityManifestRoute } from './lib/communityManifest.js';
 import {
   verifyAdminAccess,
   logAdminAction,
@@ -5311,6 +5312,7 @@ export async function buildApp({
 
   app.post('/v1/rides/:id/manifest', handleIssueRideManifest);
   app.get('/v1/rides/:id/manifest', handleIssueRideManifest);
+  registerCommunityManifestRoute(app, db, credentialKeyring, requireUserId, env);
 
   app.post('/v1/rides/:id/close', async (req, reply) => {
     const uid = requireUserId(req, reply);
