@@ -665,7 +665,7 @@ fun LiveMapScreen(
         }
     }
 
-    LaunchedEffect(rideServiceState.lifecycleState) {
+    LaunchedEffect(rideServiceState.lifecycleState, rideServiceState.rideId, activeRelayEngine) {
         if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
             val engine = RideService.getActiveRelayEngine()
             if (engine != null) {
@@ -711,8 +711,13 @@ fun LiveMapScreen(
     }
 
     LaunchedEffect(uxParticipant, uxLeaderId) {
-        val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
-        liveMapViewModel.controller.updateConvoyIds(localId = localShortId, targetLeaderId = uxLeaderId)
+        val activeRideId = RideScheduleRepository.currentRide.value?.clubRouteId
+            ?: com.rutabikersync.app.core.mesh.PilotRideConfig.rideId
+        val hasManifest = com.rutabikersync.app.core.crypto.RideManifestKeyProvider.cached(activeRideId) != null
+        if (!hasManifest && !uxParticipant.isNullOrBlank()) {
+            val localShortId = com.rutabikersync.app.core.uxtest.UxTestTracker.participantToShortId(uxParticipant)
+            liveMapViewModel.controller.updateConvoyIds(localId = localShortId, targetLeaderId = uxLeaderId)
+        }
     }
 
     // Bloque B: perfil cacheado (offline) y roster backend (cuando hay UUID de rodada).
