@@ -1453,3 +1453,6 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - **`backend/src/lib/rideLifecycleRoutes.ts` (`POST /v1/routes/:id/complete`):** además de fijar `completed_at`, actualiza `status = 'completed'` para que la rodada salga de las listas activas.
 - **`0028_auto_complete_home_routes.sql` + `pool.ts`:** migración de saneamiento para cerrar rodadas abiertas con retorno iniciado y todos los participantes en `'home'`.
 - **Verificación:** `npx tsc --noEmit` y `vitest run --no-file-parallelism` en `club_ride_lifecycle_endpoints.test.ts`, `club_routes_endpoints.test.ts` y `migrations_registry.test.ts` → **3 archivos / 35 tests pasados (0 fallos)**.
+
+### 2026-11-27 — Ajuste Visual del Botón "Decisiones del Club" (`Phase1Screens.kt`)
+- **`Phase1Screens.kt`:** añadido `Modifier.weight(1f)` a la columna izquierda para evitar el salto vertical de `"Abrir →"`, cambiado el fondo azul frío por el tono cálido Heritage (`#231B12`) con borde `#E5B869` y píldora dorada (`#E5B869`, texto `#1A140E`, `maxLines = 1, softWrap = false`) para integrarlo a la paleta del club. `:app:assembleStandardDebug` en verde (`BUILD SUCCESSFUL in 1m 15s`).
