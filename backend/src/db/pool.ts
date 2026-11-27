@@ -127,7 +127,8 @@ export function readInitMigrationSql(): string {
     '0025_club_custom_roles_and_decisions.sql',
     '0026_promo_banners.sql',
     '0027_club_routes_waypoints.sql',
-    '0028_auto_complete_home_routes.sql'
+    '0028_auto_complete_home_routes.sql',
+    '0029_club_routes_manifest_secret.sql'
   ];
   return migrationFiles
     .map((file) => path.join(migrationsDir, file))

@@ -79,6 +79,7 @@ import {
   type SubscriptionState
 } from './lib/subscriptions.js';
 import { registerCommunityManifestRoute } from './lib/communityManifest.js';
+import { resolveClubRouteManifest } from './lib/clubRouteManifest.js';
 import {
   verifyAdminAccess,
   logAdminAction,
@@ -1872,11 +1873,12 @@ export async function buildApp({
     if (!rls) return reply.code(503).send({ error: 'DB_UNAVAILABLE' });
 
     try {
+      const rideSecretKeyHex = randomBytes(32).toString('hex');
       const { rows } = await withUserDb(rls, uid, (client) =>
         client.query(
           `INSERT INTO club_routes
-             (group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at, status)
-           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, 'published')
+             (group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at, status, manifest_ride_secret_key_hex, manifest_issued_at)
+           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, 'published', $9, now())
            RETURNING id, group_id, created_by, title, description, route_ref, waypoints_json, starts_at, ends_at,
                      status, created_at, updated_at`,
           [
@@ -1887,7 +1889,8 @@ export async function buildApp({
             parsed.data.routeRef ?? null,
             parsed.data.waypoints ? JSON.stringify(parsed.data.waypoints) : null,
             parsed.data.startsAt,
-            parsed.data.endsAt ?? null
+            parsed.data.endsAt ?? null,
+            rideSecretKeyHex
           ]
         )
       );
@@ -5226,7 +5229,21 @@ export async function buildApp({
       [rideId]
     );
     const ride = rideRes.rows[0];
-    if (!ride) return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+    if (!ride) {
+      const rls = getRlsPool();
+      const clubManifest = rls
+        ? await withUserDb(rls, uid, (client) =>
+            resolveClubRouteManifest(client, rideId, uid, credentialKeyring)
+          )
+        : await resolveClubRouteManifest(db, rideId, uid, credentialKeyring);
+      if (clubManifest.kind === 'not_found') {
+        return reply.code(404).send({ error: 'RIDE_NOT_FOUND' });
+      }
+      if (clubManifest.kind === 'forbidden') {
+        return reply.code(403).send({ error: 'NOT_IN_RIDE' });
+      }
+      return reply.code(200).send(clubManifest.body);
+    }
 
     const partRes = await db.query(
       `SELECT rp.user_id, rp.group_id, rp.status_kind, rp.ride_role, u.public_key, u.sos_public_key
