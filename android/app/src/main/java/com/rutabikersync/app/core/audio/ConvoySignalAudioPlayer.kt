@@ -92,6 +92,11 @@ interface ConvoySignalAudioPlayer {
     fun playTone(toneType: Int, durationMs: Long)
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L)
     fun stop()
+
+    /** Cierre del hub: los reproductores sin recursos propios solo necesitan detenerse. */
+    fun release() {
+        stop()
+    }
 }
 
 /**
@@ -201,6 +206,14 @@ class DefaultConvoySignalPlayer(
         }
     }
 
+    override fun release() {
+        synchronized(stateLock) {
+            stopInternal()
+            runCatching { toneEmitter.release() }
+            focusDelegate.releaseFocus()
+        }
+    }
+
     private fun stopInternal() {
         if (!playing && playbackJob == null) return
         val ownedJob = playbackJob
@@ -227,13 +240,21 @@ class DefaultConvoySignalPlayer(
     }
 }
 
+private const val TAG_HUB = "ConvoySignalAudioHub"
+
 /**
  * Hub singleton para coordinar la reproducción de señales desde Composable o background.
+ * Alcance de aplicación: lo instala [AppAudioBootstrap], no la cabina.
  */
 object ConvoySignalAudioHub {
     @Volatile
+    private var appContext: Context? = null
+
+    @Volatile
     private var player: ConvoySignalAudioPlayer? = null
     private val lock = Any()
+
+    val isInitialized: Boolean get() = player != null
 
     @Volatile
     var pttStateProvider: PttStateProvider = PttStateProvider { false }
@@ -247,10 +268,11 @@ object ConvoySignalAudioHub {
             pttStateProvider = externalPttStateProvider
         }
         synchronized(lock) {
+            val appCtx = context.applicationContext
+            appContext = appCtx
             if (player != null) return
-            val appContext = context.applicationContext
-            val focusDelegate = DuckingFocusDelegate(AudioDuckingManager(appContext))
-            val audibility = AndroidSosAudibilityPolicy(appContext)
+            val focusDelegate = DuckingFocusDelegate(AudioDuckingManager(appCtx))
+            val audibility = AndroidSosAudibilityPolicy(appCtx)
             player = DefaultConvoySignalPlayer(
                 toneEmitter = AndroidToneEmitter(),
                 focusDelegate = focusDelegate,
@@ -262,26 +284,48 @@ object ConvoySignalAudioHub {
         }
     }
 
+    /** Seam JVM (sin Robolectric) para inyectar o limpiar el contexto de aplicación. */
+    internal fun setAppContextForTesting(context: Context?) {
+        appContext = context?.applicationContext
+    }
+
     @Synchronized
     fun setCustomPlayerForTesting(customPlayer: ConvoySignalAudioPlayer?) {
         player?.stop()
         player = customPlayer
     }
 
+    /** Libera el ToneGenerator y deja el hub listo para reconstruirse desde [appContext]. */
+    fun release() {
+        synchronized(lock) {
+            player?.release()
+            player = null
+        }
+        Log.i(TAG_HUB, "hub liberado (ToneGenerator release)")
+    }
+
+    private fun activePlayer(): ConvoySignalAudioPlayer? {
+        val current = player
+        if (current != null) return current
+        val context = appContext ?: return null
+        ensureInitialized(context)
+        return player
+    }
+
     fun playSignal(kind: ConvoySignalKind) {
-        player?.playSignal(kind)
+        activePlayer()?.playSignal(kind)
     }
 
     fun playTone(toneType: Int, durationMs: Long) {
-        player?.playTone(toneType, durationMs)
+        activePlayer()?.playTone(toneType, durationMs)
     }
 
     fun playPattern(toneType: Int, pulseCount: Int, pulseDurationMs: Long, gapMs: Long = 100L) {
-        player?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
+        activePlayer()?.playPattern(toneType, pulseCount, pulseDurationMs, gapMs)
     }
 
     fun stop() {
-        player?.stop()
+        activePlayer()?.stop()
     }
 
     val isPlaying: Boolean

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
@@ -18,7 +19,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.rutabikersync.app.core.audio.AudioDuckingManager
+import com.rutabikersync.app.core.audio.ConvoySignalAudioHub
+import com.rutabikersync.app.core.audio.PttStateProvider
 import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
+import com.rutabikersync.app.core.mesh.audio.AndroidAudioFocusController
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
 import com.rutabikersync.app.core.mesh.audio.PttState
 import com.rutabikersync.app.ui.components.AppIcons
@@ -204,7 +208,9 @@ fun LiveMapScreen(
             scope = coroutineScope,
             clubNetworkId = activeRelayEngine?.clubNetworkId ?: 0x52425301u,
             localShortId = selfShortId,
-            audioFocusController = null,
+            audioFocusController = AndroidAudioFocusController(
+                context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            ),
             onSendVoicePacket = { packet ->
                 val engine = RideService.getActiveRelayEngine()
                 if (engine?.emitVoicePacket(packet) != true) {
@@ -214,7 +220,14 @@ fun LiveMapScreen(
         )
     }
     DisposableEffect(pttEngine) {
-        onDispose { pttEngine.release() }
+        // La cabina solo publica su PTT local; el hub pertenece a App (alcance de aplicación).
+        ConvoySignalAudioHub.pttStateProvider =
+            PttStateProvider { pttEngine.pttState.value !is PttState.Idle }
+        onDispose {
+            // Sin este reset el proveedor quedaría apuntando a una cabina destruida.
+            ConvoySignalAudioHub.pttStateProvider = PttStateProvider { false }
+            pttEngine.release()
+        }
     }
     // El engine puede sustituirse al reiniciar BLE: re-suscribir la recepción de voz.
     DisposableEffect(rideServiceState.lifecycleState, rideServiceState.isUsingSimulatedTransport, pttEngine) {
@@ -382,12 +395,7 @@ fun LiveMapScreen(
                 )
             }
         }
-        // El alcance real pertenece a App; cabina solo observa PTT y el estado SOS.
-        com.rutabikersync.app.core.audio.SosToneHub.ensureInitialized(context.applicationContext)
-        com.rutabikersync.app.core.audio.ConvoySignalAudioHub.ensureInitialized(
-            context = context.applicationContext,
-            externalPttStateProvider = { pttEngine.pttState.value !is PttState.Idle }
-        )
+        // Los hubs los instala App antes de que exista cabina; aquí solo se observa PTT/SOS.
     }
     LaunchedEffect(pttEngine) {
         com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
