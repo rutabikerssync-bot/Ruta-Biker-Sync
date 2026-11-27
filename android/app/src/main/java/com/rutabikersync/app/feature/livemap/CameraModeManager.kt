@@ -122,7 +122,7 @@ object CameraModeManager {
         val lonSpan = (bounds.east - bounds.west) *
             cos(Math.toRadians(bounds.centerLat)).coerceAtLeast(0.01)
         val span = max(latSpan, lonSpan).coerceAtLeast(0.0005)
-        return (15.0 - log2(span / 0.02)).coerceIn(9.0, 17.0)
+        return (15.0 - log2(span / 0.02)).coerceIn(9.0, 16.0)
     }
 
     private fun bandForZoom(zoom: Double?): Int = when {

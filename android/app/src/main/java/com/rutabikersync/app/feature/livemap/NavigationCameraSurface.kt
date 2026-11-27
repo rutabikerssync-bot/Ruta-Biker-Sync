@@ -66,17 +66,29 @@ fun applyNavigationCamera(
         renderState.lastRequestedBoundsKey = boundsKey
         renderState.lastRequestedCamera = null
 
-        val bounds = LatLngBounds.Builder()
-            .include(LatLng(overview.south, overview.west))
-            .include(LatLng(overview.north, overview.east))
-            .build()
-        val update = CameraUpdateFactory.newLatLngBounds(
-            bounds,
-            (64 * density).toInt(),
-            (104 * density).toInt(),
-            (64 * density).toInt(),
-            (72 * density).toInt()
-        )
+        val latSpan = overview.north - overview.south
+        val lonSpan = overview.east - overview.west
+        val update = if (latSpan < 0.002 && lonSpan < 0.002) {
+            CameraUpdateFactory.newCameraPosition(
+                CameraPosition.Builder()
+                    .target(LatLng(overview.centerLat, overview.centerLon))
+                    .zoom(15.5)
+                    .tilt(0.0)
+                    .build()
+            )
+        } else {
+            val bounds = LatLngBounds.Builder()
+                .include(LatLng(overview.south, overview.west))
+                .include(LatLng(overview.north, overview.east))
+                .build()
+            CameraUpdateFactory.newLatLngBounds(
+                bounds,
+                (64 * density).toInt(),
+                (104 * density).toInt(),
+                (64 * density).toInt(),
+                (72 * density).toInt()
+            )
+        }
         map.animateCamera(update, 450)
         return
     }
