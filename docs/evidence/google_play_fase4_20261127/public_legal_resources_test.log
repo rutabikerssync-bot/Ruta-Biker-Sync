@@ -1,0 +1,9 @@
+Comando: cd backend; npx vitest run --no-file-parallelism test/public_legal_resources.test.ts
+Fecha: 2026-11-27
+
+RUN v2.1.9
+✓ test/public_legal_resources.test.ts (4 tests)
+Test Files: 1 passed (1)
+Tests: 4 passed (4)
+
+EXIT_CODE=0

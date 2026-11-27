@@ -1,0 +1,8 @@
+Comando: cd android; .\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon
+Fecha: 2026-11-27
+
+BUILD SUCCESSFUL in 1m 58s
+27 actionable tasks: 27 executed
+
+Resultado agregado de android/app/build/test-results/testStandardDebugUnitTest/*.xml:
+130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped

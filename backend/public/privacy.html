@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacidad — Ruta Biker Sync</title>
+  <meta name="description" content="Política de privacidad de Ruta Biker Sync: datos de cuenta, ubicación efímera en rodada, bóveda médica local, voz PTT y derechos de borrado.">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0f121a; color: #f3f4f6; font-family: Inter, system-ui, sans-serif; line-height: 1.6; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin-top: 32px; color: #e5b869; }
+    p, li { color: #c7cbd4; }
+    a { color: #72b7ff; }
+    .meta { color: #9ca3af; font-size: 14px; }
+    nav { margin-top: 16px; font-size: 14px; }
+    section { border-top: 1px solid #262a36; margin-top: 24px; padding-top: 8px; }
+    code { background: #1e2330; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Política de Privacidad</h1>
+  <p class="meta">Ruta Biker Sync · com.rutabikersync.app · Última actualización: 2026-11-27 · Contacto: <a href="mailto:soporte@rutabikersync.com">soporte@rutabikersync.com</a></p>
+  <nav><a href="./index.html">← Volver al inicio</a> · <a href="./terms.html">Términos y convivencia</a> · <a href="./account-deletion.html">Eliminar cuenta</a></nav>
+
+  <section id="datos">
+    <h2>1. Datos que tratamos</h2>
+    <ul>
+      <li><strong>Cuenta y club:</strong> correo electrónico, nombre visible, avatar, motocicleta, membresías, consentimientos y credenciales públicas Ed25519 necesarias para el manifiesto firmado de la rodada.</li>
+      <li><strong>Rodada activa:</strong> posición y telemetría efímera mientras el servicio en primer plano está en marcha. Se difunden entre los participantes autorizados del convoy mediante Bluetooth Low Energy; el backend no guarda un historial de GPS.</li>
+      <li><strong>Ficha médica de emergencia:</strong> tipo de sangre, alergias, contacto de rescate y documentos de la bóveda se cifran localmente en el dispositivo y no se envían al backend.</li>
+      <li><strong>Voz Push-To-Talk:</strong> clips efímeros para avisos operativos. No se almacenan en la nube y se purgan al terminar la transmisión o la rodada.</li>
+      <li><strong>Suscripciones:</strong> la cuenta de Líder de Club es de pago y se gestiona a través de Google Play; el backend conserva el estado de la suscripción, no los datos del método de pago.</li>
+    </ul>
+  </section>
+
+  <section id="permisos">
+    <h2>2. Permisos y finalidad</h2>
+    <ul>
+      <li><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code>: mapa y distancias relativas solo durante la rodada, con notificación persistente. La app no declara <code>ACCESS_BACKGROUND_LOCATION</code>.</li>
+      <li><code>BLUETOOTH_SCAN</code> con <code>neverForLocation</code>, <code>BLUETOOTH_ADVERTISE</code> y <code>BLUETOOTH_CONNECT</code>: transporte mesh y servicios GATT de la rodada.</li>
+      <li><code>RECORD_AUDIO</code> y <code>FOREGROUND_SERVICE_MICROPHONE</code>: intercomunicador PTT durante la rodada.</li>
+      <li><code>CAMERA</code>: digitalización opcional de documentos de la bóveda local.</li>
+      <li><code>POST_NOTIFICATIONS</code>: avisos de rodada, SOS y estado del servicio en primer plano.</li>
+    </ul>
+  </section>
+
+  <section id="derechos">
+    <h2>3. Derechos RGPD / LGPD / CCPA</h2>
+    <p>Puedes acceder, rectificar, exportar, revocar consentimientos y eliminar tu cuenta desde el perfil de la app. Si no puedes acceder a la app, escribe a <a href="mailto:soporte@rutabikersync.com">soporte@rutabikersync.com</a> con el asunto «Derechos de datos — Ruta Biker Sync» y el correo asociado a tu cuenta; verificado el titular, se aplicará la misma operación. Las instrucciones detalladas están en <a href="./account-deletion.html">Eliminar cuenta</a>.</p>
+    <p>La eliminación anonimiza los datos personales de la cuenta, revoca sesiones y consentimientos y abandona las membresías. Se conserva únicamente un registro de auditoría con el identificador técnico y la fecha de la operación para cumplir obligaciones legales.</p>
+  </section>
+
+  <section id="seguridad">
+    <h2>4. Seguridad y menores</h2>
+    <p>El tráfico cliente-servidor usa HTTPS con una configuración de red que prohíbe el tráfico en claro. El manifiesto de rodada está firmado con Ed25519 y restringe quién puede participar. La app no está diseñada para recopilar datos de menores de 13 años; la participación en clubes y rodadas con menores requiere la supervisión de un adulto responsable y el cumplimiento de las reglas del club.</p>
+  </section>
+
+  <section id="cambios">
+    <h2>5. Cambios</h2>
+    <p>Esta política se actualizará cuando cambien los datos tratados o su finalidad. La versión vigente será la publicada en esta dirección y la indicada en la ficha de la app.</p>
+  </section>
+</main>
+</body>
+</html>

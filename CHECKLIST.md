@@ -107,13 +107,13 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [x] Logros de constancia (racha mensual ininterrumpida de 3, 6, 12, 24 y 36 meses) y experiencia (noche, lluvia, offline >30m, SOS, montaña >500m) *(implementado en `GamificationRepository.kt`, `RankAndBadgesScreen.kt`, probado en JUnit y verificado en hardware TECNO KI5k)*
 
 ## J. Privacidad y legal
-- [x] Política de privacidad y términos publicados *(implementado visor interactivo `LegalTermsDialog.kt` con pestañas de Convivencia, Términos y Privacidad accesible desde registro y perfil; documento `docs/GOOGLE_PLAY_DATA_SAFETY.md` y `SECURITY.md`)*
+- [~] Política de privacidad y términos *(visor interactivo `LegalTermsDialog.kt` y recursos estáticos listos en `backend/public/privacy.html`, `terms.html` y `account-deletion.html`; **publicación en URL HTTPS y carga en Play Console PENDIENTES** — `docs/audit/play_console_checklist_20261127.md`)*
 - [x] Consentimientos separados (ubicación, emergencia, notificaciones) *(implementado en perfil con switches independientes y persistencia granular en backend y Android · Verificado en hardware TECNO KI5k)*
 - [x] Exportación y borrado de cuenta *(exportación en formato portable JSON rbs_export_<timestamp>.json compartible vía FileProvider y modal de borrado irreversible en dos pasos con revocación de membresías y anonimización de datos conforme a RGPD/CCPA R15.3 y R15.5 · Verificado en hardware TECNO KI5k)*
 - [x] Backend sin ubicación, voz, documentos ni salud *(arquitectura local cifrada y P2P efímera en mesh sin persistencia de audio, balizas ni salud en backend)*
 - [ ] Cumplimiento GDPR, LGPD, CCPA revisado por un abogado
-- [x] Declaración de datos de Google Play completada *(detallada en `docs/GOOGLE_PLAY_DATA_SAFETY.md` con clasificación de ubicación efímera, salud AES-256 local, voz P2P sin nube y derechos RGPD/CCPA)*
-- [x] Permiso de ubicación en segundo plano justificado *(justificación técnica oficial en `docs/GOOGLE_PLAY_DATA_SAFETY.md`: convoy seguro, detección de caída SOS y servicio `RideService` foreground `location|connectedDevice`)*
+- [~] Declaración de datos de Google Play *(borrador en `docs/GOOGLE_PLAY_DATA_SAFETY.md` con ubicación efímera, ficha médica cifrada localmente, voz P2P sin nube y derechos RGPD/CCPA; **formulario enviado en Console PENDIENTE** — `docs/audit/play_console_checklist_20261127.md`)*
+- [~] Permiso de ubicación justificado *(justificación en `docs/GOOGLE_PLAY_DATA_SAFETY.md`; **`ACCESS_BACKGROUND_LOCATION` ya NO está en el manifest**: solo ubicación en primer plano durante la rodada con `RideService` foreground `location|connectedDevice`; declaración en Console PENDIENTE — `docs/audit/play_console_checklist_20261127.md`)*
 
 ## K. Calidad y lanzamiento
 - [x] Sistema Visual "Bright Rider" de alto contraste diurno y legibilidad en marcha verificado en hardware real *(fondo gris perla suave `#F3F6FA`, tarjetas blancas `#FFFFFF`, acento azul eléctrico `#1769E0`, textos azul noche `#183153` y semáforos pastel de alto contraste en las 4 pestañas principales: Rodadas, Mi Club, Bóveda y Perfil · Capturas reales verificadas en TECNO KI5k — 2026-11-01)*
@@ -122,7 +122,7 @@ Listas de verificación para revisar antes de cada hito o lanzamiento.
 - [ ] Pruebas con al menos 2 clubes piloto
 - [ ] Monitoreo, alertas y respaldos activos
 - [x] Canal de soporte y proceso de denuncias *(Módulo Backoffice Web + endpoints `/v1/admin/support/*`, Helpdesk de tickets interactivo, resolución formal de reportes de convivencia escalados R13.5 y auditoría forense de rescates SOS en `docs/ADMIN_SUPPORT_ANALYTICS.md`)*
-- [ ] Ficha de tienda, capturas y clasificación de contenido
+- [ ] Ficha de tienda, capturas y clasificación de contenido *(IARC, anuncios, audiencia y sign-in details: PENDIENTE en Play Console; checklist ejecutable en `docs/audit/play_console_checklist_20261127.md`)*
 
 
 - [~] [GATE DE RELEASE] Seguridad `standardRelease` (auditoría 2026-11-16): **9 CERRADO_ESTATICO** (B1-1, B1-2, B1-3, B2-3, B2-4, B4-4, B4-5, B5-2, B5-4); **1 BLOQUEADO** (B1-4 `TODO_EXTERNAL:URL_PROD`); **4 PENDIENTE_RUNTIME** (B3-1, B4-1, B4-2, B4-3 — logcat release/validación permisos en dispositivo); **3 CERRADO_ESTATICO_PENDIENTE_RUNTIME** (B3-3, B3-4, B3-5 — inventario/reglas/validación estáticos completos; falta backup/restore y device-transfer en dispositivo y decisión de producto sobre permisos). **Total: 17 IDs** (12 graves de auditoría + 5 ampliados de contexto). Evidencia estática: manifests fusionados, `BuildConfig` release, grep seeds `src/main`/`outputs/apk`, `Phase1RulesTest`, scripts/tareas Gradle, `docs/STORAGE_INVENTORY_T08.md`, `scripts/verify_backup_rules.*`. Trazabilidad de historial: ver `docs/HISTORY_NOTE.md`.

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eliminar cuenta — Ruta Biker Sync</title>
+  <meta name="description" content="Cómo solicitar la eliminación de la cuenta y de los datos personales en Ruta Biker Sync.">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0f121a; color: #f3f4f6; font-family: Inter, system-ui, sans-serif; line-height: 1.6; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin-top: 32px; color: #e5b869; }
+    p, li { color: #c7cbd4; }
+    a { color: #72b7ff; }
+    .meta { color: #9ca3af; font-size: 14px; }
+    nav { margin-top: 16px; font-size: 14px; }
+    section { border-top: 1px solid #262a36; margin-top: 24px; padding-top: 8px; }
+    code { background: #1e2330; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Eliminación de cuenta y datos</h1>
+  <p class="meta">Ruta Biker Sync · Última actualización: 2026-11-27 · Contacto: <a href="mailto:soporte@rutabikersync.com">soporte@rutabikersync.com</a></p>
+  <nav><a href="./index.html">← Volver al inicio</a> · <a href="./privacy.html">Privacidad</a> · <a href="./terms.html">Términos y convivencia</a></nav>
+
+  <section>
+    <h2>Opción 1: desde la app</h2>
+    <p>Abre <strong>Perfil → Eliminar Cuenta y Datos</strong>. La acción requiere confirmación en dos pasos. Antes de borrar puedes usar <strong>Exportar mis Datos</strong> para descargar una copia portable en JSON.</p>
+  </section>
+
+  <section>
+    <h2>Opción 2: sin acceso a la app</h2>
+    <p>Envía un correo a <a href="mailto:soporte@rutabikersync.com?sujeto=Eliminacion%20de%20cuenta%20Ruta%20Biker%20Sync">soporte@rutabikersync.com</a> con el asunto <strong>«Eliminación de cuenta Ruta Biker Sync»</strong> e indica el correo asociado a tu cuenta. Verificada la identidad del titular, se aplicará el mismo procedimiento que en la app. No existe un formulario web con borrado automático: la operación se realiza sobre el endpoint autenticado <code>DELETE /v1/users/me</code>.</p>
+  </section>
+
+  <section>
+    <h2>Qué ocurre con tus datos</h2>
+    <ul>
+      <li>Se abandonan las membresías aceptadas y se notifica a los líderes de los clubes afectados.</li>
+      <li>Se revocan los consentimientos activos y los tokens de sesión.</li>
+      <li>El nombre visible pasa a «Usuario Eliminado» y se anonimizan correo, avatar, motocicleta y clave pública.</li>
+      <li>La ficha médica local cifrada y los clips de voz efímeros no se envían al backend: permanecen en el dispositivo y deben borrarse desde él si el equipo va a cambiar de manos.</li>
+      <li>Se conserva un registro de auditoría con el identificador técnico y la fecha de la operación.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Plazo y contacto</h2>
+    <p>El procedimiento se ejecuta una vez verificada la identidad. Si necesitas seguimiento, escribe a <a href="mailto:soporte@rutabikersync.com">soporte@rutabikersync.com</a> indicando «Seguimiento de eliminación» y el correo de la cuenta.</p>
+  </section>
+</main>
+</body>
+</html>

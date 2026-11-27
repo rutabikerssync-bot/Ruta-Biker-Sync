@@ -1485,3 +1485,17 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 - **Tests nuevos:** `GattPeerBudgetPolicyTest.kt` (8 tests: 8/4/2, exclusión de self, dedup, estabilidad del orden y preservación de intervalos) y `RideServiceGattPeerBudgetTest.kt` (5 tests: NORMAL 9→8, override manual→4, batería 8 %→2, roster de 9 conservado y reset del perfil en cierre explícito).
 - **Verificación:** `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → **130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped**.
 - **Pendiente:** recaptura hardware post-fix (Prueba D), fallback de peers por HTTP 4G y chat híbrido malla→FCM siguen sin implementar y requieren contrato backend/autorización adicional.
+
+### 2026-11-27 — FASE 4 de la auditoría integral: preparación verificable de Google Play
+- **Alcance:** se ejecutó lo comprobable en el repositorio y se dejó un checklist ejecutable para lo que depende de Play Console, secretos o URL productiva. No se inventaron cuenta, testers, URL ni resultados de Console.
+
+| Tarea | Archivo | Cambio | Test |
+|---|---|---|---|
+| 4.1 API 36 (P0-GP1) | `docs/audit/play_console_checklist_20261127.md` | Verificado `compileSdk`/`targetSdk`=35 y solo `android-35`/`android-37.0` instalados; **NO CUMPLE**, checklist de instalación y validación de dependencias | `processStandardReleaseManifest` en verde; `android_tests.txt` |
+| 4.2 Firma y URL (P0-GP2) | `docs/evidence/google_play_fase4_20261127/verify_release_security.log` | Keystore fuera de repo presente; gate con 3 `OK` y `FAIL_PLACEHOLDER` (`https://rbs-pending.invalid`). Sin AAB generado | `.\scripts\verify_release_security.ps1` → `EXIT_CODE=1` |
+| 4.3 Recursos legales públicos (P0-GP3) | nuevos `backend/public/privacy.html`, `terms.html`, `account-deletion.html`; `backend/public/index.html` | Enlaces `#` sustituidos por páginas reales; política, términos y recurso web de borrado acordes al manifest vigente (sin `ACCESS_BACKGROUND_LOCATION`) | nuevo `backend/test/public_legal_resources.test.ts`: 4 tests en verde |
+| 4.3 Discrepancias documentales | `CHECKLIST.md`, `docs/GOOGLE_PLAY_DATA_SAFETY.md` | Política publicada, Data Safety enviada y permiso en segundo plano pasan de `[x]` a `[~]`; se añade nota de actualización sobre el permiso eliminado | Test de contenido del `CHECKLIST` incluido en los 4 tests anteriores |
+| 4.3 Checklist de Console | `docs/audit/play_console_checklist_20261127.md`, `docs/evidence/google_play_fase4_20261127/README.md` | 18 requisitos con estado y comando de verificación, más los 8 pasos ordenados de Console | Revisión de evidencia; pasos marcados como `PENDIENTE`/`NO VERIFICABLE` cuando no hay prueba |
+
+- **Verificación:** Android `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → **130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped**; Node `npx vitest run --no-file-parallelism test/public_legal_resources.test.ts` → **4/4 tests**; `.\scripts\verify_release_security.ps1` → **3 OK + FAIL_PLACEHOLDER** (bloqueante intencional); `npm audit` → **11 vulnerabilidades** (2 críticas, 2 altas incluida `zod` en runtime, 7 moderadas).
+- **NO ENCONTRADO / PENDIENTE:** pago e identidad de desarrollador, app creada en Console, SDK 36, secretos de firma, `RBS_PROD_URL` real, AAB firmado y subido, Data Safety enviada, IARC, anuncios, audiencia, sign-in details, ficha/capturas, política desplegada en HTTPS y prueba cerrada de 12 testers / 14 días. Google Play sigue **NO LISTO**. El salto de `zod`/Vitest queda para Fase 5.

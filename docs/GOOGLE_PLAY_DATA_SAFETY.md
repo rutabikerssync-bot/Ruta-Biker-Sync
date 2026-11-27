@@ -3,11 +3,13 @@
 **Fecha:** Octubre 2026 · Versión 1.0  
 **Referencia:** Google Play Developer Program Policies · Privacidad y Datos del Usuario
 
+> **Actualización 2026-11-27 (Fase 4):** el manifest vigente (`android/app/src/main/AndroidManifest.xml:17-22`) **no declara `ACCESS_BACKGROUND_LOCATION`**. La justificación de la sección 1 describe el servicio en primer plano de la rodada activa, no un permiso de ubicación en segundo plano. Para Play Console debe declararse solo la ubicación en primer plano; véase `docs/audit/play_console_checklist_20261127.md`.
+
 ---
 
 ## 1. Justificación de Permisos Sensibles
 
-### Permiso: `ACCESS_BACKGROUND_LOCATION` (Ubicación todo el tiempo)
+### Permiso de ubicación en rodada (`ACCESS_BACKGROUND_LOCATION` ya no se declara)
 
 #### A. Propósito de la función principal
 Ruta Biker Sync es una plataforma de telemetría, seguridad vial y asistencia en carretera para caravanas y convoyes de motociclistas. Durante una rodada en grupo, los motociclistas guardan el teléfono celular en sus alforjas, bolsillos de la chaqueta o soportes bajo lluvia/vibración severa con la pantalla apagada. 

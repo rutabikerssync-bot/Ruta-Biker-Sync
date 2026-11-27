@@ -1,0 +1,11 @@
+Comando: .\scripts\verify_release_security.ps1
+Fecha: 2026-11-27
+
+OK: sin cleartext y networkSecurityConfig presente en manifest(s) fusionado(s) standardRelease
+OK: BleMeshService presente y exported=false
+OK: EmergencyLockScreenActivity presente y exported=false
+FAIL: FAIL_PLACEHOLDER: BASE_URL release es placeholder, falta URL_PROD real
+(.invalid/pending/TODO_EXTERNAL/example.invalid/localhost no permitidos).
+Actual=https://rbs-pending.invalid
+
+EXIT_CODE=1
