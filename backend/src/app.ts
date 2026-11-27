@@ -1999,11 +1999,39 @@ export async function buildApp({
         [routeId, uid, target]
       );
 
+      let autoCompleted = false;
+      if (target === 'home') {
+        const pendingRes = await client.query(
+          `SELECT count(*) FILTER (WHERE status IN ('confirmed', 'en_route'))::int AS pending_count,
+                  count(*) FILTER (WHERE status = 'home')::int AS home_count
+           FROM club_route_rsvps
+           WHERE route_id = $1`,
+          [routeId]
+        );
+        const pendingCount = Number(pendingRes.rows[0]?.pending_count ?? 0);
+        const homeCount = Number(pendingRes.rows[0]?.home_count ?? 0);
+        if (pendingCount === 0 && homeCount > 0) {
+          const closeRes = await client.query(
+            `UPDATE club_routes
+             SET completed_at = COALESCE(completed_at, now()),
+                 status = 'completed',
+                 updated_at = now()
+             WHERE id = $1
+               AND return_started_at IS NOT NULL
+               AND completed_at IS NULL
+             RETURNING id`,
+            [routeId]
+          );
+          autoCompleted = closeRes.rows.length > 0;
+        }
+      }
+
       return {
         kind: 'ok' as const,
         rsvp: upRes.rows[0],
         created: !current,
-        changed: current !== target
+        changed: current !== target,
+        autoCompleted
       };
     });
 
@@ -2021,7 +2049,8 @@ export async function buildApp({
     }
     return reply.code(result.created ? 201 : 200).send({
       rsvp: result.rsvp,
-      changed: result.changed
+      changed: result.changed,
+      autoCompleted: result.autoCompleted
     });
   });
 

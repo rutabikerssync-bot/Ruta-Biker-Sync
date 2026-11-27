@@ -248,13 +248,14 @@ export function registerRideLifecycleRoutes(
         return { kind: 'conflict' as const, error };
       }
 
+      const statusUpdate = column === 'completed_at' ? `, status = 'completed'` : '';
       const updated = await client.query(
         `WITH prior AS (
            SELECT ${column} AS previous_value FROM club_routes WHERE id = $1
          )
          UPDATE club_routes AS r
          SET ${column} = COALESCE(r.${column}, now()),
-             updated_at = CASE WHEN r.${column} IS NULL THEN now() ELSE r.updated_at END
+             updated_at = CASE WHEN r.${column} IS NULL THEN now() ELSE r.updated_at END${statusUpdate}
          FROM prior
          WHERE r.id = $1
          RETURNING ${routeColumns}, (prior.previous_value IS NULL) AS changed`,
