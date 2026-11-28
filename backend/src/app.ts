@@ -3611,7 +3611,7 @@ export async function buildApp({
     groupId: z.string().uuid(),
     messageId: z.string().uuid(),
     recipientUserIds: z.array(z.string().uuid()).min(1),
-    params: z.record(z.any()).default({})
+    params: z.record(z.string(), z.any()).default({})
   });
 
   app.post('/v1/notifications/send', async (req, reply) => {

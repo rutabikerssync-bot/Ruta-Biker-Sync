@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { DbExecutor } from '../db/pool.js';
 
 export const GarageUpsertSchema = z.object({
-  garageState: z.record(z.unknown())
+  garageState: z.record(z.string(), z.unknown())
 });
 
 export interface UserGarageRecord {
