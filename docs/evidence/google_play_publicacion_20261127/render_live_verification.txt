@@ -1,0 +1,157 @@
+Verificación en vivo de Render — 2026-11-27/28
+Backend real: https://ruta-biker-sync.onrender.com
+No se hizo push, amend ni publicación desde el agente.
+
+=== 1. Códigos HTTP ===
+Comando:
+  $base='https://ruta-biker-sync.onrender.com'
+  foreach($p in @('/','/index.html','/health','/privacy.html','/terms.html','/account-deletion.html')) {
+    "$p HTTP=$(curl.exe -s -o NUL -w '%{http_code}' ($base+$p))"
+  }
+Salida:
+  / HTTP=200
+  /index.html HTTP=200
+  /health HTTP=200
+  /privacy.html HTTP=200
+  /terms.html HTTP=200
+  /account-deletion.html HTTP=200
+
+=== 2. Cuerpo de /health ===
+Comando: curl.exe -s https://ruta-biker-sync.onrender.com/health
+Salida:
+  {"status":"ok","db":"ok"}
+
+=== 3. Contenido legal servido ===
+Comando: curl.exe -s .../privacy.html | Select-Object -First 6
+Salida (inicio):
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacidad — Ruta Biker Sync</title>
+
+Comando: curl.exe -s .../terms.html | Select-Object -First 7
+Salida (inicio):
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos y Convivencia — Ruta Biker Sync</title>
+
+Comando: curl.exe -s .../account-deletion.html | Select-Object -First 7
+Salida (inicio):
+  <!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eliminar cuenta — Ruta Biker Sync</title>
+
+=== 4. Estado del commit remoto ===
+Comando: git ls-remote origin refs/heads/main
+Salida:
+  fbb137a0b4f5efca3adf06b9d9c8b75f6a6d9e2e	refs/heads/main
+
+Comando: git rev-parse HEAD origin/main
+Salida:
+  fbb137a0b4f5efca3adf06b9d9c8b75f6a6d9e2e
+  fbb137a0b4f5efca3adf06b9d9c8b75f6a6d9e2e
+
+Comando: git cat-file -t bfb822c
+Salida:
+  commit
+
+Comando: git --no-pager show -s --format='%H%n%P%n%ad%n%s' bfb822c
+Salida:
+  bfb822c1ad4143960bb9eeea415d1a1991de6ec2
+  d2afc36f170a33d8c3be7cf8bcc7f3d67459f149
+  Thu Nov 26 11:21:03 2026 -0400
+  fix(backend): fallback to src/db/migrations when running compiled dist
+
+Comando: git merge-base --is-ancestor bfb822c fbb137a; echo $?
+Salida:
+  0
+
+Conclusión: el commit reportado bfb822c existe y es ancestro del tip remoto
+fbb137a; por tanto el despliegue actual sí contiene ese fix. El tip de main
+es fbb137a (no bfb822c).
+
+=== 5. Manifiestos con datos reales ===
+Datos reales leídos de TECNO (098813734B105395), sin inventar:
+  uid     = eed6e317-5488-459c-80fa-e2e284afeac2   (rbs_auth_prefs.xml)
+  rideId  = 48be967a-0250-4504-86bb-5469e88aa65d   (rbs_active_ride_state_prefs.xml)
+
+Sin cabecera (comprobación de autenticación):
+  GET /v1/community/manifest -> HTTP 401
+  {"error":"UNAUTHORIZED","message":"Falta cabecera Authorization Bearer o x-user-id válida"}
+  GET /v1/rides/00000000-0000-0000-0000-000000000000/manifest -> HTTP 401
+  {"error":"UNAUTHORIZED","message":"Falta cabecera Authorization Bearer o x-user-id válida"}
+
+Con -H "x-user-id: eed6e317-5488-459c-80fa-e2e284afeac2":
+  GET /v1/community/manifest -> HTTP 200
+    payload.rideId = ride-live-01
+    payload.kid = ed25519-k1
+    payload.participants.Count = 2
+    signatureBase64Url.Length = 86
+    publicKeys = ed25519-k1
+
+  GET /v1/rides/48be967a-0250-4504-86bb-5469e88aa65d/manifest -> HTTP 200
+    payload.rideId = 48be967a-0250-4504-86bb-5469e88aa65d
+    payload.kid = ed25519-k1
+    payload.participants.Count = 2
+    signatureBase64Url.Length = 86
+    publicKeys = ed25519-k1
+
+Fecha de las respuestas (cabecera Date): Sat, 28 Nov 2026 02:55:54/55 GMT.
+
+=== 6. Gate de release ===
+Comando (con variable de sesión):
+  $env:RBS_PROD_URL='https://ruta-biker-sync.onrender.com'
+  .\scripts\verify_release_security.ps1
+Salida:
+  OK: sin cleartext y networkSecurityConfig presente en manifest(s) fusionado(s) standardRelease
+  OK: BleMeshService presente y exported=false
+  OK: EmergencyLockScreenActivity presente y exported=false
+  OK: PASS_REAL: BASE_URL release https sin placeholders
+  OK: sin credenciales seed en src/main y outputs/apk
+  verify_release_security: PASS
+  EXIT=0
+
+=== 7. URL productiva dentro del AAB ===
+AAB: android/app/build/outputs/bundle/standardRelease/app-standard-release.aab
+Comando: expandir el AAB como ZIP y buscar cadenas en los classes*.dex
+Salida:
+  AAB contains 'ruta-biker-sync.onrender.com' in classes.dex
+
+=== 8. APK instalado en los dispositivos ===
+Dispositivos conectados:
+  098813734B105395  MODEL=TECNO KI5k  SDK=31
+  b2c398bb          MODEL=2312DRA50G  SDK=36
+
+Comando: adb shell pm path com.rutabikersync.app + adb pull + escaneo de URLs en dex
+Salida para ambos dispositivos:
+  classes10.dex / classes17.dex: http://127.0.0.1:3000
+  classes3.dex: https://api.rutabikersync.com (GamificationSyncEngine, cadena fija preexistente)
+  ruta-biker-sync.onrender.com: NO PRESENTE en el APK instalado
+
+Conclusión: los APK instalados son builds debug apuntando a localhost; NO se
+pudo verificar conexión a Render desde la app instalada. No se desinstaló la
+app del propietario (instalación release previa bloqueada por firma debug).
+Queda pendiente instalar el AAB release en un dispositivo limpio.
+
+=== 9. Tests reejecutados en esta sesión ===
+Android:
+  cd android; .\gradlew.bat :app:testStandardDebugUnitTest --no-daemon
+  BUILD SUCCESSFUL in 1m 26s
+  EXIT=0
+  XML: SUITES=131 TESTS=714 FAILURES=0 ERRORS=0 SKIPPED=0
+
+Node legal:
+  cd backend; npx vitest run --no-file-parallelism test/public_legal_resources.test.ts
+  Test Files 1 passed (1); Tests 5 passed (5); EXIT=0
+
+Typecheck:
+  cd backend; npm run typecheck
+  EXIT=0
