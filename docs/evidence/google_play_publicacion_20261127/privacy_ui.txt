@@ -1,0 +1,13 @@
+﻿Fecha: 2026-11-27 20:24:50
+Dispositivo: b2c398bb (SDK=36, release=16)
+Overlay inicial descartado: True
+Paso 1 home/Perfil: TAP:1068,2490
+Paso 2 engranaje: TAP:1109,290
+Paso 3 Privacidad y terminos: TAP:586,1721
+CHECK pestana Privacidad=True
+CHECK encabezado politica=True
+CHECK ubicacion en primer plano=True
+CHECK NO afirma permiso en segundo plano=True
+CHECK coherencia manifest=True
+Texto mostrado: Marco Legal y Convivencia | Ruta Biker Sync · Versión 1.1 | Convivencia | Términos | Privacidad | Política de Privacidad y Protección de Datos (RULES §15) | 1. Arquitectura Cero-Rastreo en Nube | El servidor central NO recopila ni almacena ubicaciones GPS en tiempo real ni telemetría de ruta. Las coordenadas viajan de forma P2P exclusivamente entre los dispositivos conectados a la malla Bluetooth/BLE durante la rodada. | 2. Ubicación en primer plano durante la rodada | La app solicita ubicación solo mientras la rodada está activa, mediante un servicio en primer plano con notificación persistente. No se solicita acceso a ubicación en segundo plano (ACCESS_BACKGROUND_LOCATION no está declarado) y el seguimiento cesa al finalizar la rodada. Las coordenadas se comparten de forma efímera con los participantes de la malla BLE y no se almacenan en el servidor. | 3. Bóveda Médica y de Emergencia Cifrada (AES-256-GCM) | Los datos médicos (tipo de sangre, alergias, contactos de rescate) y pólizas se cifran localmente en el dispositivo utilizando el Android Keystore y derivación PBKDF2. El servidor central nunca tiene acceso a las llaves privadas ni a los documentos escaneados. | 4. Consentimientos Granulares por Grupo (R15.1) | El usuario otorga y revoca consentimientos de forma granular: compartir ubicación, ficha de emergencia y notificaciones. Revocar un consentimiento surte efecto inmediato en la base de datos y la malla. | 5. Exportación y Derecho al Olvido (RGPD / CCPA R15.3) | Entendido
+Captura: privacy_ui.png (659216 bytes)

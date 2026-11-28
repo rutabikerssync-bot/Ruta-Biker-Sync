@@ -1511,3 +1511,20 @@ Suite canónica `--rerun-tasks`: **640 tests, 0 fallos, 0 errores, 0 omitidos** 
 
 - **Verificación:** Android `.\gradlew.bat :app:testStandardDebugUnitTest --rerun-tasks --no-daemon` → **130 suites / 711 tests / 0 fallos / 0 errores / 0 skipped**; Node `npx vitest run --no-file-parallelism test/public_legal_resources.test.ts` → **4/4 tests**; `npm run typecheck` → **EXIT_CODE=0**. Evidencia en `docs/evidence/fase5_cierre_20261127/`.
 - **PENDIENTE:** Prueba D en carretera, audición humana del PTT, reinstalación lockstep de ambos APK, API 36, URL/firma/AAB y formularios de Play Console, suite backend con PostgreSQL `:5433`, y actualización de `zod` (alta en runtime) y Vitest con revalidación. Sin `push`.
+
+### 2026-11-27 — Cumplimiento de requisitos de Google Play (autorización del propietario)
+- **Alcance:** ejecutar las 8 tareas autorizadas sin tocar GATT, crypto, `HeartbeatFrame` ni voz. Se usa `https://ruta-biker-sync.onrender.com` como URL productiva verificada (`/health` → 200). No se hicieron `amend` ni `push`.
+
+| Tarea | Archivo | Cambio | Test |
+|---|---|---|---|
+| 1. Target SDK 36 | `android/app/build.gradle.kts`, `ReleaseSecurityBuildConfigTest.kt` | `compileSdk`/`targetSdk` 35 → 36; test contractual anti-regresión | `CUMPLE`: `BUILD SUCCESSFUL`; 131 suites / 714 tests, 0 fallos; SDK 36 en `b2c398bb` |
+| 2. AAB firmado | `android/app/build/outputs/bundle/standardRelease/` | AAB `standardRelease` con secretos de firma del entorno y URL real | `CUMPLE`: certificado SHA256 B5:19…4F:36 verificado en AAB y APK universal |
+| 3. Gate de release | `docs/evidence/google_play_publicacion_20261127/verify_release_security.txt` | Gate ejecutado con `RBS_PROD_URL` real en la sesión del comando | `CUMPLE`: `verify_release_security: PASS`, sin `FAIL_PLACEHOLDER`, EXIT=0 |
+| 4. Privacidad y Data Safety | `ProfileScreen.kt`, `LegalTermsDialog.kt`, `ProfilePrivacyAccessTest.kt`, `backend/scripts/copy-public.mjs`, `backend/package.json`, `docs/play_store/data_safety.md` | «Privacidad y términos» abre `LegalTermsDialog` en la pestaña de Privacidad; se corrigió el texto que afirmaba `ACCESS_BACKGROUND_LOCATION` (el manifest ya no lo declara); el build copia `public/` a `dist/public/`; borrador de Data Safety | `PARCIAL`: UI validada en API 36; bloquean el deploy de `/privacy.html`, el envío en Console y la cuenta de revisor |
+| 5. IARC | `docs/play_store/iarc.md` | Respuestas propuestas y clasificación propuesta; resultado real queda a Console | Borrador; clasificación final `PENDIENTE` |
+| 6. Ficha y capturas | `docs/play_store/listing.md` | Título, descripción, capturas candidatas y credenciales de revisor | Borrador; icono/gráfico `NO ENCONTRADO` |
+| 7. Prueba cerrada | `docs/play_store/closed_test.md` | 10 pasos en Console, checklist de readiness e instrucciones para 12 testers/14 días | Proceso documentado; no iniciado |
+| 8. Estado y evidencia | `docs/play_store/status.md`, `docs/evidence/google_play_publicacion_20261127/` | Tabla Requisito/Estatus/Bloqueante/Acción y salidas de comandos | `CUMPLE`: evidencia cerrada y commit atómico sin `push` |
+
+- **Verificación:** `CUMPLE` en lo ejecutable: 131 suites / 714 tests Android (0 fallos), 5 tests Node legales, typecheck backend limpio, `verify_release_security: PASS` sin `FAIL_PLACEHOLDER`, AAB firmado (SHA256 B5:19…4F:36) y APK universal verificado, y ruta Perfil → Ajustes → «Privacidad y términos» validada en dispositivo API 36 (`privacy_ui.txt`/`privacy_ui.png`). La instalación del release en el físico quedó bloqueada por la firma debug previa (no se desinstaló la app del propietario); el AVD API 36 no completó boot en 25 min. Sin `amend` ni `push`.
+- **BLOQUEANTES del propietario:** despliegue en Render para publicar `/privacy.html`, pago/identidad y acceso a Play Console, envío de Data Safety/IARC/audiencia/anuncios, ficha con icono y gráfico, cuenta de revisor, 12 testers durante 14 días y publicación desde su consola. Sin `push`.

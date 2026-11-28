@@ -1,0 +1,67 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+WARNING: We recommend using a newer Android Gradle plugin to use compileSdk = 36
+
+This Android Gradle plugin (8.7.3) was tested up to compileSdk = 35.
+
+You are strongly encouraged to update your project to use a newer
+Android Gradle plugin that has been tested with compileSdk = 36.
+
+If you are already using the latest version of the Android Gradle plugin,
+you may need to wait until a newer version with support for compileSdk = 36 is available.
+
+For more information refer to the compatibility table:
+https://d.android.com/r/tools/api-level-support
+
+To suppress this warning, add/update
+    android.suppressUnsupportedCompileSdk=36
+to this project's gradle.properties.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preStandardDebugBuild UP-TO-DATE
+> Task :app:mergeStandardDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateStandardDebugBuildConfig UP-TO-DATE
+> Task :app:checkStandardDebugAarMetadata UP-TO-DATE
+> Task :app:generateStandardDebugResValues UP-TO-DATE
+> Task :app:processStandardDebugGoogleServices UP-TO-DATE
+> Task :app:mapStandardDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateStandardDebugResources UP-TO-DATE
+> Task :app:mergeStandardDebugResources UP-TO-DATE
+> Task :app:packageStandardDebugResources UP-TO-DATE
+> Task :app:parseStandardDebugLocalResources UP-TO-DATE
+> Task :app:createStandardDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksStandardDebug UP-TO-DATE
+> Task :app:processStandardDebugMainManifest UP-TO-DATE
+> Task :app:processStandardDebugManifest UP-TO-DATE
+> Task :app:processStandardDebugManifestForPackage UP-TO-DATE
+> Task :app:processStandardDebugResources UP-TO-DATE
+> Task :app:kspStandardDebugKotlin UP-TO-DATE
+> Task :app:compileStandardDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileStandardDebug UP-TO-DATE
+> Task :app:compileStandardDebugJavaWithJavac UP-TO-DATE
+> Task :app:mergeStandardDebugShaders UP-TO-DATE
+> Task :app:compileStandardDebugShaders NO-SOURCE
+> Task :app:generateStandardDebugAssets UP-TO-DATE
+> Task :app:mergeStandardDebugAssets UP-TO-DATE
+> Task :app:compressStandardDebugAssets UP-TO-DATE
+> Task :app:checkStandardDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarStandardDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexStandardDebug UP-TO-DATE
+> Task :app:mergeLibDexStandardDebug UP-TO-DATE
+> Task :app:dexBuilderStandardDebug
+> Task :app:mergeStandardDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processStandardDebugJavaRes UP-TO-DATE
+> Task :app:mergeStandardDebugJavaResource UP-TO-DATE
+> Task :app:mergeStandardDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeStandardDebugNativeLibs UP-TO-DATE
+> Task :app:stripStandardDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningStandardDebug UP-TO-DATE
+> Task :app:writeStandardDebugAppMetadata UP-TO-DATE
+> Task :app:writeStandardDebugSigningConfigVersions UP-TO-DATE
+> Task :app:mergeProjectDexStandardDebug
+> Task :app:packageStandardDebug
+> Task :app:createStandardDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleStandardDebug
+
+BUILD SUCCESSFUL in 22s
+39 actionable tasks: 3 executed, 36 up-to-date

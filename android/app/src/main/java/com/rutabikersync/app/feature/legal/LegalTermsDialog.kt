@@ -324,8 +324,8 @@ private fun PrivacyPolicyContent() {
         )
 
         LegalParagraph(
-            title = "2. Ubicación en Segundo Plano (ACCESS_BACKGROUND_LOCATION)",
-            body = "Se solicita permiso de ubicación en segundo plano con justificación exclusiva para mantener la conectividad del convoy, alertar pérdidas de distancia y despachar el SOS automático de colisión cuando la pantalla está apagada o el móvil bloqueado en el bolsillo. Dicho servicio Foreground muestra una notificación persistente y cesa inmediatamente al culminar la rodada."
+            title = "2. Ubicación en primer plano durante la rodada",
+            body = "La app solicita ubicación solo mientras la rodada está activa, mediante un servicio en primer plano con notificación persistente. No se solicita acceso a ubicación en segundo plano (ACCESS_BACKGROUND_LOCATION no está declarado) y el seguimiento cesa al finalizar la rodada. Las coordenadas se comparten de forma efímera con los participantes de la malla BLE y no se almacenan en el servidor."
         )
 
         LegalParagraph(

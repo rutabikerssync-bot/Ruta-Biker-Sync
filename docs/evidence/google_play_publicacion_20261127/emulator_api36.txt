@@ -1,0 +1,12 @@
+Comando: sdkmanager --install platforms;android-36 system-images;android-36;google_apis;x86_64 emulator platform-tools
+AVD creado: RBS_API36 (target=android-36, system-images;android-36;google_apis;x86_64, device pixel_7)
+Fecha: 2026-11-27
+
+Arranque del emulador: NO COMPLETÓ BOOT.
+- Intento 1: -gpu swiftshader -> adb emulator-5554 offline; log: "Critical: Failed to load opengl32sw".
+- Intento 2: -no-window -gpu disabled -> GPU option 'disabled' no válida,-switch a SwiftShader; WHPX operativo, pero sys.boot_completed nunca pasó a 1 y el dispositivo quedó offline.
+- Conclusión: el AVD API 36 existe pero no es utilizable en este entorno. Se conserva el AVD para el propietario.
+
+Alternativa verificable usada: dispositivo físico conectado b2c398bb con ro.build.version.sdk=36 / release=16 (Android 16), sin necesidad de emulador.
+Comando: adb -s b2c398bb shell getprop ro.build.version.sdk -> 36
+Estado: el dispositivo físico fue usado para la validación de UI y del AAB (ver aab_install.txt y privacy_ui.txt).

@@ -1,0 +1,16 @@
+Artefacto universal: bundletool 1.18.3 build-apks --mode=universal desde app-standard-release.aab
+Salida final (AAB reconstruido 20:20): rbs-universal-final.apks -> universal.apk (100,52 MB), BUNDLETOOL_EXIT=0
+
+Verificacion del APK universal (build-tools 36.0.0):
+- apksigner verify --print-certs --min-sdk-version 26: firma valida.
+- Signer #1 SHA-256: b5191486a731f8bd72259e6ceabc56e11c68e33e6fc4352b507502a7e30d4f36
+  (equivale a B5:19:14:86:A7:31:F8:BD:72:25:9E:6C:EA:BC:56:E1:1C:68:E3:3E:6F:C4:35:2B:50:75:02:A7:E3:0D:4F:36)
+- aapt dump badging: package=com.rutabikersync.app, minSdk=26, targetSdkVersion=36, platformBuildVersionCode=36.
+
+Instalacion en dispositivo fisico b2c398bb (API 36):
+NO se pudo instalar el APK release: INSTALL_FAILED_UPDATE_INCOMPATIBLE (la app ya instalada esta firmada con el certificado Android Debug, SHA-256 9b531c0f...).
+Se creo el usuario 11 para intentar una instalacion aislada, pero Android mantiene la identidad de firma del paquete a nivel sistema; se elimino el usuario 11. NO se desinstalo la app del propietario.
+
+Reintento en AVD: NO DISPONIBLE. RBS_API36 no completo `sys.boot_completed=1` tras 25 min y quedo offline (ver emulator_api36.txt). Para validar la UI se reinstalo unicamente el APK `standardDebug` reconstruido (misma fuente, firma debug), sin desinstalar la app del propietario; la ruta legal se verifico en `privacy_ui.txt`/`privacy_ui.png`.
+
+Estado final: AAB y APK universal verificados como release; instalacion del release en dispositivo BLOQUEADA por la firma debug previa. No se inventa resultado ni se desinstala la app del propietario.

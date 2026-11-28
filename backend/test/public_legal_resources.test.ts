@@ -9,6 +9,8 @@ import { describe, expect, it } from 'vitest';
  */
 const publicDir = fileURLToPath(new URL('../public/', import.meta.url));
 const checklistPath = fileURLToPath(new URL('../../CHECKLIST.md', import.meta.url));
+const packagePath = fileURLToPath(new URL('../package.json', import.meta.url));
+const copyScriptPath = fileURLToPath(new URL('../scripts/copy-public.mjs', import.meta.url));
 
 function readPage(name: string): string {
   return readFileSync(`${publicDir}${name}`, 'utf8');
@@ -57,6 +59,15 @@ describe('recursos legales públicos de Fase 4', () => {
     expect(deletion).toContain('DELETE /v1/users/me');
     expect(deletion).toContain('No existe un formulario web con borrado automático');
     expect(deletion).toContain('Exportar mis Datos');
+  });
+
+  it('el build copia los recursos legales a dist/public para que fastifyStatic los sirva', () => {
+    const pkg = JSON.parse(readFileSync(packagePath, 'utf8')) as { scripts?: Record<string, string> };
+    expect(pkg.scripts?.build).toContain('node scripts/copy-public.mjs');
+    const copyScript = readFileSync(copyScriptPath, 'utf8');
+    expect(copyScript).toContain("resolve(root, 'public')");
+    expect(copyScript).toContain("resolve(root, 'dist', 'public')");
+    expect(copyScript).toContain('cpSync');
   });
 
   it('el CHECKLIST deja pendiente lo que solo se puede completar en Play Console', () => {

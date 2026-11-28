@@ -1,0 +1,14 @@
+Artefacto: android/app/build/outputs/bundle/standardRelease/app-standard-release.aab (67,4 MB)
+Fecha: 2026-11-27 20:20 (reconstruido tras corregir el texto legal de privacidad)
+Comando: keytool -printcert -jarfile <aab>
+
+Propietario: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync, L=Caracas, ST=Distrito Capital, C=VE
+Emisor: CN=Ruta Biker Sync, OU=Release, O=Ruta Biker Sync, L=Caracas, ST=Distrito Capital, C=VE
+SHA256: B5:19:14:86:A7:31:F8:BD:72:25:9E:6C:EA:BC:56:E1:1C:68:E3:3E:6F:C4:35:2B:50:75:02:A7:E3:0D:4F:36
+
+Coincide con la huella del keystore de produccion (keystore_certificate.txt): SI.
+
+Comando: jarsigner -verify -certs <aab>
+Resultado: jar verified. JARSIGNER_EXIT=0
+Advertencias esperadas de AAB firmado con certificado autofirmado y sin timestamp; no bloquean Play Console.
+Nota: `jarsigner -strict` devuelve avisos adicionales por entradas jar anidadas (JarInputStream vs JarFile), no por firma invalida.

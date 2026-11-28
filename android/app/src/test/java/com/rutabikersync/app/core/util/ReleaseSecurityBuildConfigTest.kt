@@ -44,6 +44,22 @@ class ReleaseSecurityBuildConfigTest {
     }
 
     @Test
+    fun `Google Play 2026 exige compileSdk y targetSdk 36`() {
+        val candidates = listOf(
+            File("build.gradle.kts"),
+            File("android/app/build.gradle.kts"),
+            File("../app/build.gradle.kts"),
+            File("../../android/app/build.gradle.kts")
+        )
+        val gradleFile = candidates.firstOrNull { it.exists() }
+        assertTrue("El archivo build.gradle.kts debe existir", gradleFile != null && gradleFile.exists())
+        val content = gradleFile!!.readText()
+        assertTrue("compileSdk debe ser 36", content.contains("compileSdk = 36"))
+        assertTrue("targetSdk debe ser 36", content.contains("targetSdk = 36"))
+        assertFalse("targetSdk 35 queda prohibido para Play", content.contains("targetSdk = 35"))
+    }
+
+    @Test
     fun `UxTestTracker controla SOS local por defecto y simulacion de alertas`() {
         // Por defecto, SOS por malla BLE está desactivado (es solo local para evitar pánico)
         UxTestTracker.setSosMeshBroadcastEnabled(false)

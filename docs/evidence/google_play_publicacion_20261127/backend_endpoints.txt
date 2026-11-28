@@ -1,0 +1,22 @@
+Comando: Invoke-WebRequest https://ruta-biker-sync.onrender.com/health
+Fecha: 2026-11-27
+
+HTTP=200
+{"status":"ok","db":"ok"}
+
+Comandos: Invoke-WebRequest https://ruta-biker-sync.onrender.com/privacy.html,
+          https://ruta-biker-sync.onrender.com/terms.html,
+          https://ruta-biker-sync.onrender.com/account-deletion.html
+
+/privacy.html HTTP=404
+/terms.html HTTP=404
+/account-deletion.html HTTP=404
+
+Conclusión: el backend remoto responde, pero todavía no sirve los recursos legales porque
+la versión desplegada no incluye este cambio. Además, `npm run build` no copiaba
+`backend/public/` a `dist/public/`; se corrigió con `backend/scripts/copy-public.mjs`
+y `npm run build` local verificó `dist/public/privacy.html`. No se hizo push.
+Tras push/redeploy de Render, verificar de nuevo con:
+  curl https://ruta-biker-sync.onrender.com/privacy.html
+fuentes: backend/src/app.ts:572-579 (fastifyStatic con root relativo a dist),
+backend/package.json (build con copy-public.mjs).

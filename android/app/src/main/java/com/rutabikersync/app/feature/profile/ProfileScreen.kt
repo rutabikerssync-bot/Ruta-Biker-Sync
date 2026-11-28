@@ -72,6 +72,7 @@ import com.rutabikersync.app.feature.auth.UserProfile
 import com.rutabikersync.app.feature.auth.Visibility
 import com.rutabikersync.app.feature.badges.BikerRank
 import com.rutabikersync.app.feature.badges.GamificationProfileScreen
+import com.rutabikersync.app.feature.legal.LegalTermsDialog
 import com.rutabikersync.app.feature.profile.garage.BikeGarageRepository
 import com.rutabikersync.app.feature.profile.garage.GarageStatus
 import com.rutabikersync.app.feature.rides.RideHistoryScreen
@@ -140,6 +141,7 @@ fun ProfileScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
     var isSuggestionMode by remember { mutableStateOf(false) }
+    var showLegalTerms by remember { mutableStateOf(false) }
 
     val settingsPrefs = remember { context.getSharedPreferences("rbs_settings_prefs", Context.MODE_PRIVATE) }
     var notificationsEnabled by remember {
@@ -1087,6 +1089,65 @@ fun ProfileScreen(
                         }
                     }
 
+                    // Google Play: la política de privacidad debe ser accesible desde el perfil.
+                    Surface(
+                        onClick = {
+                            showSettingsDialog = false
+                            showLegalTerms = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF1A1F2C),
+                        border = BorderStroke(1.dp, Color(0xFF2E374A))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF272F3F)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = Color(0xFFE5B869),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "Privacidad y términos",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = "Política de privacidad, términos y convivencia",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
                     // 4. Buzón de sugerencias
                     Surface(
                         onClick = {
@@ -1152,6 +1213,15 @@ fun ProfileScreen(
                     Text("Listo", color = Color(0xFF101217), fontWeight = FontWeight.Bold)
                 }
             }
+        )
+    }
+
+    // Botón "Privacidad y términos" de Ajustes: abre el diálogo en la pestaña de Privacidad.
+    if (showLegalTerms) {
+        LegalTermsDialog(
+            onDismissRequest = { showLegalTerms = false },
+            initialTab = 2,
+            showAcceptButton = false
         )
     }
 

@@ -12,7 +12,8 @@ plugins {
 
 android {
     namespace = "com.rutabikersync.app"
-    compileSdk = 35
+    // Google Play 2026: API 36 obligatoria desde 2026-08-31 (TAREA 1).
+    compileSdk = 36
 
     val gitCommit: String = runCatching {
         val stdout = ByteArrayOutputStream()
@@ -43,7 +44,7 @@ android {
     defaultConfig {
         applicationId = "com.rutabikersync.app"
         minSdk = 26          // Android 8.0; BLE extendido requiere 26+ (se comprueba en ejecución)
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")

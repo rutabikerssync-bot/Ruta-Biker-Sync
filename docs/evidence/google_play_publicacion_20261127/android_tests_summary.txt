@@ -1,0 +1,16 @@
+Comando final: cd android; .\gradlew.bat :app:testStandardDebugUnitTest :app:bundleStandardRelease --no-daemon
+Fecha: 2026-11-27 20:20
+
+BUILD SUCCESSFUL in 2m 48s
+81 actionable tasks: 20 executed, 61 up-to-date
+FINAL_BUILD_EXIT=0
+
+Resultados XML (android/app/build/test-results/testStandardDebugUnitTest):
+SUITES=131 TESTS=714 FAILURES=0 ERRORS=0
+
+Tests de esta entrega incluidos y en verde:
+- ProfilePrivacyAccessTest: 2 tests (cableado desde Perfil, pestaña Privacidad y coherencia con manifest/web).
+- ReleaseSecurityBuildConfigTest: 4 tests (contrato compileSdk/targetSdk 36), 0 fallos.
+
+Nota: compileSdk/targetSdk=36 genera una advertencia no bloqueante de AGP 8.7.3 (probado hasta 35). No se añadió supresión para no ocultar el aviso.
+Salida completa: final_android_build.log

@@ -1,0 +1,9 @@
+Comando: sdkmanager --sdk_root=C:\Users\ozmar\AppData\Local\Android\Sdk --install "platforms;android-36" "system-images;android-36;google_apis;x86_64" emulator platform-tools
+Fecha: 2026-11-27
+
+Resultado: 100% Unzipping android-36/uiautomator.jar
+SDKM_EXIT=0
+
+AVD: C:\Users\ozmar\AppData\Local\Android\Sdk\cmdline-tools\latest\bin\avdmanager.bat create avd -n RBS_API36 -k "system-images;android-36;google_apis;x86_64" --device pixel_7 --force
+AVD_EXIT=0
+C:\Users\ozmar\.android\avd\RBS_API36.ini -> target=android-36

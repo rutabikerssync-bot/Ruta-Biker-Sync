@@ -1,0 +1,10 @@
+Comando: cd backend; npm run build
+Fecha: 2026-11-27
+
+> ruta-biker-sync-backend@0.1.0 build
+> tsc -p tsconfig.json && node scripts/copy-public.mjs
+
+Recursos públicos copiados: D:\Ruta-Biker-Sync\backend\public -> D:\Ruta-Biker-Sync\backend\dist\public
+
+EXIT_CODE=0
+Test-Path dist\public\privacy.html = True
