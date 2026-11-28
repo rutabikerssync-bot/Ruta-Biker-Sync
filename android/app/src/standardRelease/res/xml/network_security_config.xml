@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Auditoría integral 2026-11-27 · riesgo #3 — certificate pinning.
+  Overlay exclusivo de standardRelease: el config de main sigue sin pins para
+  desarrollo, y el de debug permite HTTP local (adb reverse / emulador).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">ruta-biker-sync.onrender.com</domain>
+        <!--
+          SPKI SHA-256 del chain real verificado el 2026-11-28:
+          1) leaf CN=onrender.com (vence 2027-02-17)
+          2) intermedio GTS WE1 (vence 2029-02-20)
+          3) root GTS Root R4 (vence 2028-01-28)
+          Expira antes del leaf para que una rotación de certificado no bloquee
+          a los usuarios: pasado el 2027-02-01 Android usa solo la confianza del sistema.
+        -->
+        <pin-set expiration="2027-02-01">
+            <pin digest="SHA-256">QPI0fij4f9IFNgdTG+qw55e/WWB5PK5Ev5MO8QB3PAg=</pin>
+            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
+        </pin-set>
+    </domain-config>
+</network-security-config>
