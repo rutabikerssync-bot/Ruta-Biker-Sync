@@ -31,6 +31,39 @@ Las cuentas personales de desarrollador creadas después del 13 de noviembre de 
 | 9 | Dashboard → *Apply for production*; responder las tres secciones | Propietario | `PENDIENTE` |
 | 10 | Tras aprobación, subir y publicar en Production | Propietario | `PENDIENTE` |
 
+## 2.1 Reclutamiento exacto de 12 testers
+
+1. Selecciona **12 cuentas Google reales** distintas (no cuentas ficticias ni el propietario dos veces). Cada tester debe poder instalar apps desde Play Store.
+2. Envía este mensaje sustituyendo el enlace real que dé Console:
+
+```text
+Hola, necesito 12 personas para la prueba cerrada de Ruta Biker Sync.
+Únete con tu cuenta de Google a: <ENLACE_OPTIN_DE_CONSOLE>
+Mantente inscrito al menos 14 días seguidos; si sales y vuelves a entrar, el conteo reinicia.
+Instala desde Play Store > Mi biblioteca > Pruebas y sigue las instrucciones que te enviaré.
+Reporta fallos a soporte@rutabikersync.com indicando móvil, Android, paso y captura.
+```
+
+3. Pide a cada persona que confirme por correo o WhatsApp: **“Inscrito con <EMAIL_TESTER>”**.
+4. En Console → Testing → Closed testing → Testers, añade los 12 correos y pulsa **Save**.
+5. Copia el **opt-in link** y vuelve a enviarlo a quienes faltaron.
+6. Verifica en Console que el contador muestre **≥ 12 testers inscritos** antes de solicitar acceso a producción.
+7. No elimines ni reemplaces a ningún tester durante los 14 días: cualquier salida reinicia su conteo individual.
+
+> Los correos reales de los testers **no se versionan**. Regístralos solo en Play Console y en tu gestor privado.
+
+## 2.2 Control de los 14 días
+
+| Campo | Valor a completar por el propietario |
+|---|---|
+| Fecha del primer tester inscrito | `<FECHA_INICIO>` |
+| Fecha mínima de solicitud (inicio + 14 días) | `<FECHA_INICIO + 14>` |
+| Testers que cumplieron 14 días continuos | `<N>/12` |
+| Solicitud enviada (*Apply for production*) | `<FECHA_SOLICITUD>` |
+| Resultado de la revisión | `<RESULTADO>` |
+
+Regla: la solicitud de acceso a producción se envía **solo cuando los 12 testers lleven 14 días continuos**. Google indica que la revisión suele tardar ≤ 7 días, pero puede prolongarse; no se inventa fecha de aprobación.
+
 ## 3. Checklist de readiness de la app
 
 | Requisito | Evidencia en este repositorio | Estado |

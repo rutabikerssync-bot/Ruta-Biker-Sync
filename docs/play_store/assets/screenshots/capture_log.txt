@@ -1,0 +1,18 @@
+﻿Captura final — 2026-11-27 20:36 (recortada/redimensionada 20:37)
+Dispositivo: b2c398bb, SDK 36, release 16, resolución nativa 1220x2712.
+Método: adb shell screencap -p /sdcard/... + adb pull (binario intacto).
+Post-proceso: recorte central a 1220x2440 y resize a 1080x2160 (ratio 1:2, dentro de límites de Play).
+
+Verificación UI previa a cada captura:
+- HOME ok=True (Rodadas + Perfil presentes).
+- PERFIL ok=True (The Developer visible; sin correo en pantalla).
+- MICLUB ok=True (pestaña Mi Club visible).
+- LEGAL ok=True (Marco Legal y Convivencia + pestaña Privacidad).
+
+Archivos finales verificados con Pillow:
+- 01_rodadas.png        1080x2160  815978 bytes
+- 02_perfil.png         1080x2160  882834 bytes
+- 03_miclub.png         1080x2160  281036 bytes
+- 04_privacidad.png     1080x2160  783173 bytes
+
+Nota: las primeras capturas por redirección `>` de PowerShell quedaron corruptas (UTF-16); se descartaron y se recapturaron con adb pull. No se suben archivos corruptos.
