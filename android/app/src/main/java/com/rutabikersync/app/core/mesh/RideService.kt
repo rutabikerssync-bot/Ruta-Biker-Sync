@@ -165,6 +165,8 @@ class RideSessionController(
     private val gattVoiceTransportFactory: ((UShort) -> GattVoiceTransport?)? = null,
     private val gattHeartbeatServerFactory: ((UShort) -> GattHeartbeatServer?)? = null,
     private val gattHeartbeatClientFactory: ((UShort, Set<UShort>) -> GattHeartbeatClient?)? = null,
+    /** Auditoría 2026-11-27: store opcional; los tests JVM siguen sin disco cifrado. */
+    private val replayStateStoreFactory: (() -> com.rutabikersync.app.core.crypto.RideReplayStateStore)? = null,
     private val simulatedMedium: SimulatedBleMedium = SimulatedBleMedium.defaultMedium,
     private val onNotificationUpdated: ((RideNotificationSnapshot) -> Unit)? = null,
     private val bluetoothDevicesProvider: (() -> BluetoothConnectedDevicesSnapshot)? = null,
@@ -369,7 +371,10 @@ class RideSessionController(
         // P0 cierre final: el manifiesto verificado es la única fuente de pertenencia
         // al convoy Y de las claves públicas SOS. Sin resolver, SOS/ACK se descartan.
         activeManifest?.let { manifest ->
-            engine.rideAuthorization = RideMeshAuthorization(manifest)
+            engine.rideAuthorization = RideMeshAuthorization(
+                manifest,
+                replayStateStoreFactory?.invoke()
+            )
             engine.sosPublicKeyResolver = manifest.sosPublicKeyResolver
             val localSigningCrypto = com.rutabikersync.app.core.mesh.sos.SosSigningHub.verifier
             engine.sosCrypto = localSigningCrypto
@@ -1847,6 +1852,9 @@ class RideService : Service() {
             gattHeartbeatClientFactory = { shortId, expectedPeers ->
                 GattHeartbeatClient.create(applicationContext, shortId, expectedPeers)
             },
+            replayStateStoreFactory = {
+                com.rutabikersync.app.core.crypto.RideReplayStateStore(applicationContext)
+            },
             onNotificationUpdated = { snapshot ->
                 _sharedState.value = controller.state.value
                 if (isPromotedToForeground) {
@@ -2003,6 +2011,7 @@ class RideService : Service() {
                     _sharedState.value = state
                     if (state.lifecycleState == RideLifecycleState.STOPPED) {
                         rideStateStore.clear()
+                        clearReplayStateForCurrentRide()
                         fallDetector?.stop()
                         fallDetector = null
                         SosRepository.getInstance(applicationContext).clearAllOnRideFinished()
@@ -2021,6 +2030,7 @@ class RideService : Service() {
             ACTION_FORCE_STOP_RIDE -> {
                 rideStartDeduplicator.reset()
                 rideStateStore.clear()
+                clearReplayStateForCurrentRide()
                 serviceScope.launch {
                     val state = controller.stopAll()
                     _sharedState.value = state
@@ -2150,6 +2160,20 @@ class RideService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * Auditoría 2026-11-27: el estado anti-replay en disco se conserva en reinicios
+     * del servicio (START_STICKY) y se borra solo al cerrar la rodada.
+     */
+    private fun clearReplayStateForCurrentRide() {
+        val rideId = controller.state.value.rideId
+        if (rideId.isNullOrBlank()) return
+        runCatching {
+            com.rutabikersync.app.core.crypto.RideReplayStateStore(applicationContext).clear(rideId)
+        }.onFailure { error ->
+            Log.w(TAG, "No se pudo borrar el estado anti-replay de $rideId: ${error.message}")
+        }
     }
 
     suspend fun restartWithBleMode(mode: BleAdvTransport.TransportModeOverride): RideSessionState {

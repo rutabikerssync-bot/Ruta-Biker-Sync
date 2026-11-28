@@ -504,7 +504,9 @@ class MeshRelayEngine(
         val bytes: ByteArray,
         val wasEnvelope: Boolean,
         val signedControl: Boolean = false,
-        val controlSignature: ByteArray? = null
+        val controlSignature: ByteArray? = null,
+        /** Nonce del sobre sensible, usado por la guardia anti-replay persistente. */
+        val nonce: ByteArray? = null
     )
 
     /**
@@ -570,7 +572,8 @@ class MeshRelayEngine(
             bytes = plaintext,
             wasEnvelope = true,
             signedControl = signedControl,
-            controlSignature = controlSignature
+            controlSignature = controlSignature,
+            nonce = nonce
         )
     }
 
@@ -1831,12 +1834,20 @@ class MeshRelayEngine(
                             // Fail-closed en caliente: sin manifiesto no hay ciclo autorizado.
                             authorization != null &&
                                 authorization.canAuthorLifecycle(packet.shortId, event) &&
-                                authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort())
+                                authorization.acceptSequence(
+                                    packet.shortId,
+                                    packet.sequenceNumber.toUShort(),
+                                    frame?.nonce
+                                )
                         } else {
                             // Simulación: se conserva el comportamiento histórico.
                             authorization == null ||
                                 (authorization.canAuthorLifecycle(packet.shortId, event) &&
-                                    authorization.acceptSequence(packet.shortId, packet.sequenceNumber.toUShort()))
+                                    authorization.acceptSequence(
+                                        packet.shortId,
+                                        packet.sequenceNumber.toUShort(),
+                                        frame?.nonce
+                                    ))
                         }
                         if (allowed) {
                             decodedRideLifecycleEvent = IncomingRideLifecycleEvent(
