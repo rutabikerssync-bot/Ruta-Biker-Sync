@@ -48,6 +48,19 @@ class GattVoiceFramerTest {
     }
 
     @Test
+    fun `el servidor GATT identifica al emisor por la cabecera del framing`() {
+        val frames = GattVoiceFramer.frame(
+            payload = ByteArray(64) { it.toByte() },
+            mtu = 23,
+            streamId = 0x012C,
+            sequence = 5
+        )
+        assertEquals(0x012Cu.toUShort(), GattVoiceFramer.senderShortId(frames.first()))
+        assertNull(GattVoiceFramer.senderShortId(ByteArray(8)))
+        assertNull(GattVoiceFramer.senderShortId(byteArrayOf(0x00, 0x00, 0x01, 0x2C, 0, 0, 0, 1, 0, 0)))
+    }
+
+    @Test
     fun `sobres sensibles de 52 y 120 B se fragmentan por GATT sin perder bytes`() {
         listOf(52, 120).forEach { size ->
             val payload = ByteArray(size) { (it * 13).toByte() }
@@ -65,5 +78,48 @@ class GattVoiceFramerTest {
             assertEquals(1, negotiated.size)
             assertArrayEquals(payload, GattVoiceFramer.Reassembler().feed(negotiated.single()))
         }
+    }
+
+    @Test
+    fun `purgeExpired descarta sesiones incompletas vencidas y permite reensamblar`() {
+        val payload = ByteArray(95) { (it * 7).toByte() }
+        val frames = GattVoiceFramer.frame(payload, mtu = 23, streamId = 7, sequence = 11)
+        val t0 = 1_000L
+        val rx = GattVoiceFramer.Reassembler()
+
+        rx.feed(frames.first(), nowMs = t0)
+        rx.purgeExpired(nowMs = t0 + 5_001L)
+
+        var restoredBeforeFirst: ByteArray? = null
+        frames.drop(1).forEach {
+            restoredBeforeFirst = rx.feed(it, nowMs = t0 + 5_002L) ?: restoredBeforeFirst
+        }
+        assertNull("La sesión vencida no debe reensamblar con su primer frame antiguo", restoredBeforeFirst)
+
+        val restored = frames.first().let { rx.feed(it, nowMs = t0 + 5_003L) }
+        assertArrayEquals(payload, restored)
+    }
+
+    @Test
+    fun `purgeExpired limita el numero de sesiones parciales`() {
+        val rx = GattVoiceFramer.Reassembler()
+        val t0 = 2_000L
+        repeat(33) { sequence ->
+            val frames = GattVoiceFramer.frame(
+                payload = ByteArray(95) { (it + sequence).toByte() },
+                mtu = 23,
+                streamId = 7,
+                sequence = sequence
+            )
+            rx.feed(frames.first(), nowMs = t0)
+        }
+
+        rx.purgeExpired(nowMs = t0)
+
+        val field = GattVoiceFramer.Reassembler::class.java.getDeclaredField("sessions")
+        field.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val sessions = field.get(rx) as Map<*, *>
+        assertEquals(32, sessions.size)
     }
 }

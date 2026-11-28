@@ -1117,6 +1117,18 @@ class MeshRelayEngine(
     private val packetLogs = mutableListOf<PacketLogEntry>()
     private val peerAddresses = mutableMapOf<Int, MutableSet<String>>()
 
+    /**
+     * P0.1: notifica el sufijo de dirección ya autenticado por el manifiesto. El transporte
+     * GATT solo necesita esta señal para asociar una MAC del scan con un shortId de la rodada.
+     * La MAC completa se guarda en RideService; aquí nunca se deriva identidad del cifrado.
+     */
+    private val authenticatedPeerAddressListeners = mutableListOf<(UShort, String) -> Unit>()
+
+    fun onAuthenticatedPeerAddress(listener: (UShort, String) -> Unit): () -> Unit {
+        synchronized(this) { authenticatedPeerAddressListeners += listener }
+        return { synchronized(this) { authenticatedPeerAddressListeners -= listener } }
+    }
+
     private var collectJob: Job? = null
 
     val isRunning: Boolean
@@ -1760,6 +1772,12 @@ class MeshRelayEngine(
         synchronized(this) {
             if (!senderAddressSuffix.isNullOrBlank()) {
                 peerAddresses.getOrPut(packet.shortId.toInt()) { mutableSetOf() }.add(senderAddressSuffix)
+                // Avisar tras la validación de manifiesto/firma que ya ocurrió más arriba.
+                // Los listeners solo encolan trabajo; no deben bloquear este lock.
+                authenticatedPeerAddressListeners.toList().forEach { listener ->
+                    runCatching { listener(packet.shortId, senderAddressSuffix) }
+                        .onFailure { android.util.Log.w("MeshRelayEngine", "peerAddress listener falló: ${it.message}") }
+                }
             }
             val isDuplicate = seenKeys.containsKey(packet.dedupKey)
             logPacketEntryLocked(

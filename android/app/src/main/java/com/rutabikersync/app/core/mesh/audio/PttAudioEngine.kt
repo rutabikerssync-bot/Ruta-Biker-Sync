@@ -38,7 +38,9 @@ class PttAudioEngine(
     private val scope: CoroutineScope,
     private val clubNetworkId: UInt = 0x52415301u,
     val localShortId: UShort = 1u,
-    private val clubPttKey: ByteArray = ByteArray(32) { (it + 0xA5).toByte() }, // Master mesh voice key
+    // P0.4: sin clave derivada del manifiesto NO se cifra voz. El valor por defecto es null
+    // a propósito: nunca más una clave maestra fija y predecible.
+    private val clubPttKey: ByteArray? = null,
     val audioFocusController: AudioFocusController? = null,
     private val onSendVoicePacket: (VoicePacket) -> Unit
 ) {
@@ -50,6 +52,15 @@ class PttAudioEngine(
 
     private val _pttState = MutableStateFlow<PttState>(PttState.Idle)
     val pttState: StateFlow<PttState> = _pttState.asStateFlow()
+
+    private fun pttKeyOrFailClosed(): ByteArray? {
+        val key = clubPttKey
+        if (key == null || key.size != 32) {
+            Log.w(TAG, "FAIL_CLOSED_PTT_KEY_UNAVAILABLE: PTT deshabilitado sin clave del manifiesto")
+            return null
+        }
+        return key
+    }
 
     private val isTransmitting = AtomicBoolean(false)
     private val isReceiving = AtomicBoolean(false)
@@ -96,6 +107,10 @@ class PttAudioEngine(
      */
     @SuppressLint("MissingPermission")
     fun startTalking() {
+        if (pttKeyOrFailClosed() == null) {
+            _pttState.value = PttState.Idle
+            return
+        }
         if (!isTransmitting.compareAndSet(false, true)) {
             return
         }
@@ -111,6 +126,7 @@ class PttAudioEngine(
             ).coerceAtLeast(OpusConfig.FRAME_SIZE_BYTES * 4)
 
             val pcmFrame = ShortArray(OpusConfig.FRAME_SIZE_SAMPLES)
+            val key = pttKeyOrFailClosed() ?: return@launch
             val currentSeq = sequenceCounter.getAndIncrement() and 0xFFFF
             var frameIdx = 0
 
@@ -138,7 +154,7 @@ class PttAudioEngine(
                             sequenceNum = currentSeq,
                             frameIndex = frameIdx
                         )
-                        val encryptedPayload = VoiceCrypto.encrypt(clubPttKey, nonce, opusBytes)
+                        val encryptedPayload = VoiceCrypto.encrypt(key, nonce, opusBytes)
 
                         // 3. Empaquetar y despachar por radio BLE
                         val header = com.rutabikersync.app.core.mesh.MeshHeader(
@@ -172,7 +188,7 @@ class PttAudioEngine(
                     frameIndex = frameIdx
                 )
                 val dummyOpus = encoder.encode(ShortArray(OpusConfig.FRAME_SIZE_SAMPLES))
-                val finalEncrypted = VoiceCrypto.encrypt(clubPttKey, finalNonce, dummyOpus)
+                val finalEncrypted = VoiceCrypto.encrypt(key, finalNonce, dummyOpus)
                 val finalHeader = com.rutabikersync.app.core.mesh.MeshHeader(
                     clubNetworkId = clubNetworkId,
                     senderShortId = localShortId,
@@ -232,13 +248,17 @@ class PttAudioEngine(
             return
         }
 
+        val key = pttKeyOrFailClosed() ?: run {
+            voicePacketsLost.incrementAndGet()
+            return
+        }
         voicePacketsReceived.incrementAndGet()
         val senderId = packet.header.senderShortId.toInt()
 
         try {
             // 1. Descifrar con ChaCha20-Poly1305
             val decryptedOpus = VoiceCrypto.decrypt(
-                key = clubPttKey,
+                key = key,
                 nonce = packet.nonce,
                 ciphertextAndTag = packet.encryptedPayloadWithTag
             )

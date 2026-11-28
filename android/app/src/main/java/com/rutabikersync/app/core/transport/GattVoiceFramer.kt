@@ -27,6 +27,16 @@ object GattVoiceFramer {
 
     fun maxChunkDataBytes(mtu: Int): Int = mtu - ATT_HEADER_BYTES - HEADER_BYTES
 
+    /**
+     * shortId del emisor contenido en la cabecera del frame (P0.2). Permite al servidor
+     * GATT asociar cada conexión entrante con el peer de la rodada sin inferir identidad
+     * desde el advertising cifrado de malla.
+     */
+    fun senderShortId(frame: ByteArray): UShort? {
+        if (frame.size <= HEADER_BYTES || frame[0] != MAGIC_0 || frame[1] != MAGIC_1) return null
+        return (((frame[2].toInt() and 0xFF) shl 8) or (frame[3].toInt() and 0xFF)).toUShort()
+    }
+
     fun frame(
         payload: ByteArray,
         mtu: Int,

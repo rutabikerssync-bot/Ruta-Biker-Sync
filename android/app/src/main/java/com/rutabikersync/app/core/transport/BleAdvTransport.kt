@@ -92,6 +92,23 @@ class BleAdvTransport(
             UUID.fromString("0000B1CE-0000-1000-8000-00805F9B34FB")
         )
 
+        /**
+         * P0.1: pista pura para el cableado GATT. Siempre devuelve la MAC del scan; el shortId
+         * es null para `SensitiveFrameEnvelope` porque el cifrado NO autentica la identidad
+         * del remitente. La identidad la resuelve `MeshRelayEngine` tras validar el sobre.
+         */
+        fun peerAddressHint(rawAddress: String?, bytes: ByteArray): Pair<String, UShort?>? {
+            if (rawAddress.isNullOrBlank()) return null
+            val shortId = if (SensitiveFrameEnvelope.isEnvelope(bytes)) {
+                null
+            } else if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
+                runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
+            } else {
+                runCatching { MeshHeader.fromByteArray(bytes, 0).senderShortId }.getOrNull()
+            }
+            return rawAddress to shortId
+        }
+
         private const val TAG = "BleAdvTransport"
 
         /**
@@ -913,16 +930,9 @@ class BleAdvTransport(
                 Log.i(TAG, "FragmentReassembled bytes=${bytes.size} rssi=$rssi")
             }
             val rawAddr = runCatching { result.device?.address }.getOrNull()
-            // Los sobres sensibles (52/120 B) no son MeshHeader: parsearlos aquí
-            // produciría un shortId falso y alimentaría mal el allowlist GATT de PTT.
-            // El engine ya asocia la dirección tras descifrar el sobre.
-            if (!rawAddr.isNullOrBlank() && !SensitiveFrameEnvelope.isEnvelope(bytes)) {
-                val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
-                    runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
-                } else {
-                    runCatching { MeshHeader.fromByteArray(bytes, 0).senderShortId }.getOrNull()
-                }
-                runCatching { onPeerAddressDiscovered?.invoke(rawAddr, shortId) }
+            // P0.1: MAC siempre; identidad solo si el engine ya la autenticó.
+            peerAddressHint(rawAddr, bytes)?.let { (address, shortId) ->
+                runCatching { onPeerAddressDiscovered?.invoke(address, shortId) }
                     .onFailure { Log.w(TAG, "onPeerAddressDiscovered falló: ${it.message}") }
             }
             val addrSuffix = rawAddr?.let {
@@ -946,15 +956,10 @@ class BleAdvTransport(
                 val bytes = fragmentReassembler.feed(raw) ?: return@forEach
                 val rssi = res.rssi
                 val rawAddr = runCatching { res.device?.address }.getOrNull()
-                // Igual que en onScanResult: nunca derivar identidad de un sobre cifrado.
-                if (!rawAddr.isNullOrBlank() && !SensitiveFrameEnvelope.isEnvelope(bytes)) {
-                    val shortId = if (bytes.size == MeshPacket.PACKET_SIZE_BYTES) {
-                    runCatching { MeshPacket.fromByteArray(bytes).shortId }.getOrNull()
-                } else {
-                    runCatching { MeshHeader.fromByteArray(bytes, 0).senderShortId }.getOrNull()
-                }
-                    runCatching { onPeerAddressDiscovered?.invoke(rawAddr, shortId) }
-                    .onFailure { Log.w(TAG, "onPeerAddressDiscovered falló: ${it.message}") }
+                // Igual que en onScanResult: MAC siempre, identidad nunca desde el cifrado.
+                peerAddressHint(rawAddr, bytes)?.let { (address, shortId) ->
+                    runCatching { onPeerAddressDiscovered?.invoke(address, shortId) }
+                        .onFailure { Log.w(TAG, "onPeerAddressDiscovered falló: ${it.message}") }
                 }
                 val addrSuffix = rawAddr?.let {
                     if (it.length >= 5 && it.contains(':')) it.takeLast(5) else it.takeLast(4)

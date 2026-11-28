@@ -32,6 +32,8 @@ import com.rutabikersync.app.core.announcer.UniqueAnnouncer
 import com.rutabikersync.app.core.audio.SosToneHub
 import com.rutabikersync.app.core.power.BatteryAwareness
 import com.rutabikersync.app.core.power.ManufacturerBatteryGuide
+import com.rutabikersync.app.core.mesh.audio.PttAudioEngineHolder
+import com.rutabikersync.app.core.mesh.audio.VoiceKeyDerivation
 import com.rutabikersync.app.core.power.PowerProfile
 import com.rutabikersync.app.core.transport.BleAdvTransport
 import com.rutabikersync.app.core.transport.GattHeartbeatClient
@@ -53,6 +55,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -230,6 +235,10 @@ class RideSessionController(
     private var activeTransport: Transport? = null
     private var voiceTransportObserveJob: Job? = null
     private var advPeerAddressCallback: ((address: String, senderShortId: UShort?) -> Unit)? = null
+    // P0.1: MAC completa del scan indexada por sufijo; la identidad solo la da el engine
+    // después de validar manifiesto/firma. Nunca se deriva shortId del sobre cifrado.
+    private val gattAddressBySuffix = mutableMapOf<String, String>()
+    private var peerAddressListenerUnsubscribe: (() -> Unit)? = null
     private var heartbeatJob: Job? = null
     private var peerObserveJob: Job? = null
     private var autoFallbackJob: Job? = null
@@ -504,6 +513,8 @@ class RideSessionController(
                         } else {
                             address.takeLast(4)
                         }
+                        synchronized(gattAddressBySuffix) { gattAddressBySuffix[suffix] = address }
+                        // Camino rápido: trama no cifrada con shortId legible.
                         val peerShortId = shortId ?: engine.resolveShortIdForAddressSuffix(suffix)
                         if (peerShortId != null) {
                             gatt.onMeshPeerAddress(address, peerShortId)
@@ -511,6 +522,14 @@ class RideSessionController(
                     }
                     adv.onPeerAddressDiscovered = addressCallback
                     advPeerAddressCallback = addressCallback
+                }
+                // Camino diferido: heartbeats cifrados. La MAC ya está guardada; la identidad
+                // llega cuando el engine valida el manifiesto y registra el sufijo.
+                peerAddressListenerUnsubscribe = engine.onAuthenticatedPeerAddress { authShortId, suffix ->
+                    val mac = synchronized(gattAddressBySuffix) { gattAddressBySuffix[suffix] }
+                    if (mac != null) {
+                        scope.launch { gatt.onMeshPeerAddress(mac, authShortId) }
+                    }
                 }
                 voiceTransportObserveJob = scope.launch {
                     gatt.incomingPackets?.collect { incoming ->
@@ -982,6 +1001,9 @@ class RideSessionController(
         voiceTransportObserveJob = null
         advPeerAddressCallback?.let { (activeTransport as? BleAdvTransport)?.onPeerAddressDiscovered = null }
         advPeerAddressCallback = null
+        peerAddressListenerUnsubscribe?.invoke()
+        peerAddressListenerUnsubscribe = null
+        synchronized(gattAddressBySuffix) { gattAddressBySuffix.clear() }
         relayEngine?.setVoiceStreamTransport(null)
         gattVoiceTransport?.stop()
         gattVoiceTransport = null
@@ -1240,6 +1262,41 @@ class RideService : Service() {
         )
 
         private fun inAppSimControllerState(): RideSessionState = inAppSimController.state.value
+
+        /**
+         * P0.3: fuente reactiva del engine activo. `LiveMapScreen` debe usar este flow en vez
+         * de leer `getActiveRelayEngine()` durante la composición: el engine se sustituye al
+         * reiniciar BLE y esa lectura puntual deja la suscripción PTT apuntando al anterior.
+         */
+        private val _activeControllerFlow = MutableStateFlow<RideSessionController?>(null)
+
+        /** Lógica pura extraída para verificar re-suscripciones sin arrancar un Service. */
+        internal fun resolveRelayEngine(
+            state: RideSessionState,
+            controller: RideSessionController?,
+            simulatedController: RideSessionController
+        ): MeshRelayEngine? = controller?.relayEngine
+            ?: if (state.isUsingSimulatedTransport) simulatedController.relayEngine
+            else null
+
+        val activeRelayEngineFlow: StateFlow<MeshRelayEngine?> = combine(
+            _sharedState,
+            _activeControllerFlow
+        ) { state, controller -> resolveRelayEngine(state, controller, inAppSimController) }
+            .stateIn(inAppSimScope, SharingStarted.Eagerly, null)
+
+        /**
+         * P0.4: clave PTT derivada del secreto real del manifiesto. Nunca se expone la clave
+         * maestra directamente y nunca se usa un valor fijo cuando no hay rodada activa.
+         */
+        @Volatile
+        private var activePttKey: ByteArray? = null
+
+        fun getActivePttKey(): ByteArray? = activePttKey?.copyOf()
+
+        private fun publishActivePttKey(manifestKey: ByteArray?) {
+            activePttKey = manifestKey?.let { VoiceKeyDerivation.derive(it) }
+        }
 
         fun updateSharedMetrics(report: MeshRelayEngine.MeshFieldReport?) {
             _sharedMetrics.value = report
@@ -1779,7 +1836,10 @@ class RideService : Service() {
             scope = serviceScope,
             bleTransportFactory = { BleAdvTransport(applicationContext) },
             gattVoiceTransportFactory = { shortId ->
-                GattVoiceTransport(applicationContext, serviceScope, shortId)
+                val multipeerEnabled = applicationContext
+                    .getSharedPreferences(GattVoiceTransport.PREFS_FLAGS, Context.MODE_PRIVATE)
+                    .getBoolean(GattVoiceTransport.FLAG_MULTIPEER, false)
+                GattVoiceTransport(applicationContext, serviceScope, shortId, multipeerEnabled)
             },
             gattHeartbeatServerFactory = { shortId ->
                 GattHeartbeatServer.create(applicationContext, shortId)
@@ -1813,6 +1873,7 @@ class RideService : Service() {
             }
         }
         activeController = controller
+        _activeControllerFlow.value = controller
     }
 
     /**
@@ -2012,6 +2073,7 @@ class RideService : Service() {
 
     private fun launchRestoredRideSession(params: PersistedRideParams, manifestKey: ByteArray): Int {
         activeManifestKey = manifestKey
+        publishActivePttKey(manifestKey)
         val eligibility = evaluateContextEligibility(this, params.forceSimulated)
         val effectiveForceSim = eligibility.effectiveForceSimulated
         val bleModeOverride = BleAdvTransport.TransportModeOverride.fromCode(params.bleModeOverrideCode)
@@ -2135,6 +2197,10 @@ class RideService : Service() {
         }
         if (activeController === controller) {
             activeController = null
+            _activeControllerFlow.value = null
+            activeManifestKey = null
+            publishActivePttKey(null)
+            PttAudioEngineHolder.release()
         }
         fallDetector?.stop()
         fallDetector = null

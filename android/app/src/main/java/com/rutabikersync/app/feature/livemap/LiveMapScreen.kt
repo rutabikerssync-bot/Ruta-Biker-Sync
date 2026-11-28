@@ -24,6 +24,7 @@ import com.rutabikersync.app.core.audio.PttStateProvider
 import com.rutabikersync.app.core.audio.VoiceClipPlayerQueue
 import com.rutabikersync.app.core.mesh.audio.AndroidAudioFocusController
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
+import com.rutabikersync.app.core.mesh.audio.PttAudioEngineHolder
 import com.rutabikersync.app.core.mesh.audio.PttState
 import com.rutabikersync.app.ui.components.AppIcons
 import androidx.compose.runtime.DisposableEffect
@@ -170,6 +171,9 @@ fun LiveMapScreen(
     val context = LocalContext.current
     val state by liveMapViewModel.uiState.collectAsState()
     val rideServiceState by RideService.sharedState.collectAsState()
+    // P0.3: leer el engine desde un StateFlow; la lectura puntual en composición dejaba
+    // la suscripción PTT atada al engine anterior tras un reinicio BLE.
+    val activeRelayEngine by RideService.activeRelayEngineFlow.collectAsState()
     val simulatedAlert by com.rutabikersync.app.core.uxtest.UxTestTracker.simulatedAlertEvent.collectAsState()
     val uxParticipant by com.rutabikersync.app.core.uxtest.UxTestTracker.participantId.collectAsState()
     val uxLeaderId by com.rutabikersync.app.core.uxtest.UxTestTracker.leaderShortId.collectAsState()
@@ -196,49 +200,44 @@ fun LiveMapScreen(
     // Fix funcional PTT (Hito 7.0.3): el botón usa el MISMO MeshRelayEngine activo del
     // RideService. PttAudioEngine ya implementa AudioRecord → Opus → ChaCha20 → VoicePacket
     // y la reproducción con JitterBuffer + AudioTrack; aquí solo se cablean ambos extremos.
-    val activeRelayEngine = RideService.getActiveRelayEngine()
     // El ID del engine activo es la fuente de verdad del nodo en la malla: los markers
     // pueden no tener aún el flag isSelf al entrar en la pantalla y caeríamos en el #1
     // en ambos teléfonos (evidencia de campo: VoicePacketRx sender=1 en TECNO y Redmi).
     val selfShortId = activeRelayEngine?.localShortId
         ?: state.markers.firstOrNull { it.isSelf }?.shortId
         ?: 1u
-    val pttEngine = remember(selfShortId, activeRelayEngine?.clubNetworkId) {
-        PttAudioEngine(
-            scope = coroutineScope,
+    val audioFocusController = remember(context) {
+        AndroidAudioFocusController(context.getSystemService(Context.AUDIO_SERVICE) as AudioManager)
+    }
+    // P0.4: la cabina NO crea su propio motor. Usa el dueño único de la app, con la clave
+    // derivada del manifiesto activo. Sin clave real el holder devuelve null (fail-closed).
+    // La instalación va en un efecto y se observa el motor vigente: nunca se guarda una
+    // referencia local que pueda quedar obsoleta si el servicio reinstala el holder.
+    LaunchedEffect(
+        selfShortId,
+        activeRelayEngine?.clubNetworkId,
+        rideServiceState.rideId,
+        activeRelayEngine,
+        audioFocusController
+    ) {
+        PttAudioEngineHolder.install(
             clubNetworkId = activeRelayEngine?.clubNetworkId ?: 0x52425301u,
             localShortId = selfShortId,
-            audioFocusController = AndroidAudioFocusController(
-                context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            ),
-            onSendVoicePacket = { packet ->
-                val engine = RideService.getActiveRelayEngine()
-                if (engine?.emitVoicePacket(packet) != true) {
-                    android.util.Log.w("LiveMapScreen", "VoicePacketTx abortado: no hay relayEngine activo")
-                }
-            }
+            activeRelayEngine = activeRelayEngine,
+            audioFocusController = audioFocusController,
+            pttKey = RideService.getActivePttKey()
         )
     }
+    val pttEngine by PttAudioEngineHolder.engineFlow.collectAsState()
     DisposableEffect(pttEngine) {
         // La cabina solo publica su PTT local; el hub pertenece a App (alcance de aplicación).
         ConvoySignalAudioHub.pttStateProvider =
-            PttStateProvider { pttEngine.pttState.value !is PttState.Idle }
+            PttStateProvider { pttEngine?.pttState?.value?.let { it !is PttState.Idle } == true }
         onDispose {
             // Sin este reset el proveedor quedaría apuntando a una cabina destruida.
+            // NO liberamos el holder aquí: el motor pertenece a la app, no al Composable.
             ConvoySignalAudioHub.pttStateProvider = PttStateProvider { false }
-            pttEngine.release()
         }
-    }
-    // El engine puede sustituirse al reiniciar BLE: re-suscribir la recepción de voz.
-    DisposableEffect(rideServiceState.lifecycleState, rideServiceState.isUsingSimulatedTransport, pttEngine) {
-        val unsubscribe = RideService.getActiveRelayEngine()?.onVoiceReceived { packet ->
-            pttEngine.onVoicePacketReceived(packet)
-            android.util.Log.i(
-                "LiveMapScreen",
-                "VoicePacketRx entregado al reproductor PTT frame=${packet.frameIndex}"
-            )
-        }
-        onDispose { unsubscribe?.invoke() }
     }
 
     // Recepción reactiva de señales de convoy por la malla activa (Hito 2 · Propagación BLE)
@@ -285,25 +284,39 @@ fun LiveMapScreen(
         }
     }
 
-    val pttState by pttEngine.pttState.collectAsState()
+    val pttState by (pttEngine?.pttState
+        ?: kotlinx.coroutines.flow.MutableStateFlow<PttState>(PttState.Idle)).collectAsState()
     val isRecording = pttState is PttState.Transmitting
     var recordingSeconds by remember { mutableIntStateOf(0) }
 
-    fun startCabinaPtt() {
+    fun startCabinaPtt(): Boolean {
+        val engine = pttEngine
+        if (engine == null) {
+            actionFeedback = "⚠ PTT no disponible: falta la clave del manifiesto de la rodada"
+            return false
+        }
+        // P0: no abrir la sesión lógica antes de tiempo. Evita `GattVoice session START ready=false`
+        // y el fallback a advertising, que descarta tramas por backpressure.
+        if (!RideService.isPttVoiceReady()) {
+            actionFeedback = "⚠ PTT en espera: enlace GATT aún no está listo"
+            android.util.Log.w("LiveMapScreen", "PTT bloqueado: isPttVoiceReady=false")
+            return false
+        }
         // Silencio SOS síncrono antes de AudioRecord; PttAudioEngine permanece intacto.
         com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", true)
         RideService.beginPttVoiceStream()
-        pttEngine.startTalking()
+        engine.startTalking()
         coroutineScope.launch {
             kotlinx.coroutines.delay(1_500L)
-            if (pttEngine.pttState.value is PttState.Idle) {
+            if (pttEngine?.pttState?.value is PttState.Idle) {
                 com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", false)
             }
         }
+        return true
     }
 
     fun stopCabinaPtt() {
-        pttEngine.stopTalking()
+        pttEngine?.stopTalking()
         RideService.endPttVoiceStream()
         com.rutabikersync.app.core.audio.SosToneHub.setPttActive("cabina-ptt", false)
     }
@@ -327,10 +340,9 @@ fun LiveMapScreen(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            if (RideService.getActiveRelayEngine() == null) {
+            if (activeRelayEngine == null) {
                 actionFeedback = "⚠ PTT no disponible: inicia la rodada para activar la malla"
-            } else {
-                startCabinaPtt()
+            } else if (startCabinaPtt()) {
                 com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent("LIVE_MAP", "PTT_TRANSMIT_START", "btn_hablar")
                 actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
             }
@@ -400,7 +412,8 @@ fun LiveMapScreen(
     LaunchedEffect(pttEngine) {
         com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
             source = "cabina-ptt",
-            active = pttEngine.pttState.map { it !is PttState.Idle },
+            active = pttEngine?.pttState?.map { it !is PttState.Idle }
+                ?: kotlinx.coroutines.flow.flowOf(false),
             scope = this
         )
     }
@@ -675,7 +688,7 @@ fun LiveMapScreen(
 
     LaunchedEffect(rideServiceState.lifecycleState, rideServiceState.rideId, activeRelayEngine) {
         if (rideServiceState.lifecycleState == RideLifecycleState.RUNNING) {
-            val engine = RideService.getActiveRelayEngine()
+            val engine = activeRelayEngine
             if (engine != null) {
                 liveMapViewModel.controller.bindToMeshEngine(engine, enablePeriodicCadenceLoop = true)
             }
@@ -1824,7 +1837,7 @@ fun LiveMapScreen(
                         onTalkPttClick = {
                             val gateMsg = PttCabinaGate.resolveAction(
                                 isRecording = isRecording,
-                                isRideMeshActive = RideService.getActiveRelayEngine() != null,
+                                isRideMeshActive = activeRelayEngine != null,
                                 onStop = {
                                     stopCabinaPtt()
                                     com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
@@ -1833,7 +1846,7 @@ fun LiveMapScreen(
                                         "btn_hablar"
                                     )
                                     val frames = (pttState as? PttState.Transmitting)?.packetsSent
-                                        ?: pttEngine.voicePacketsSent.get()
+                                        ?: pttEngine?.voicePacketsSent?.get() ?: 0
                                     actionFeedback = "✅ PTT enviado al convoy por la malla activa ($frames tramas Opus cifradas)"
                                 },
                                 onStart = {
@@ -1842,13 +1855,14 @@ fun LiveMapScreen(
                                         Manifest.permission.RECORD_AUDIO
                                     ) == PackageManager.PERMISSION_GRANTED
                                     if (hasMicPermission) {
-                                        startCabinaPtt()
-                                        com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
-                                            "LIVE_MAP",
-                                            "PTT_TRANSMIT_START",
-                                            "btn_hablar"
-                                        )
-                                        actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
+                                        if (startCabinaPtt()) {
+                                            com.rutabikersync.app.core.uxtest.UxTestTracker.logEvent(
+                                                "LIVE_MAP",
+                                                "PTT_TRANSMIT_START",
+                                                "btn_hablar"
+                                            )
+                                            actionFeedback = "🎙 TRANSMITIENDO PTT AL CONVOY (Opus 20 kbps · malla activa)"
+                                        }
                                     } else {
                                         audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }
@@ -2148,7 +2162,7 @@ fun LiveMapScreen(
                     }
                     val accepted = if (ack == null) {
                         false
-                    } else if (RideService.getActiveRelayEngine() != null) {
+                    } else if (activeRelayEngine != null) {
                         RideService.dispatchSosAckPacket(ack)
                     } else {
                         bleMeshService?.sendSosAckPacket(ack) == true
@@ -2454,9 +2468,10 @@ fun LiveMapScreen(
                 rideServiceState.lifecycleState,
                 rideServiceState.rideId,
                 rideServiceState.isUsingSimulatedTransport,
-                rideServiceState.forcedBleMode
+                rideServiceState.forcedBleMode,
+                activeRelayEngine
             ) {
-                RideService.getActiveRelayEngine()
+                activeRelayEngine
             }
             val meshPeersMap by (relayEngine?.peers
                 ?: kotlinx.coroutines.flow.MutableStateFlow(emptyMap<UShort, com.rutabikersync.app.core.mesh.MeshRelayEngine.PeerTrack>()))

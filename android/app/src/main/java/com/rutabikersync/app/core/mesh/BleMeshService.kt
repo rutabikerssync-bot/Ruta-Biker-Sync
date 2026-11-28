@@ -40,6 +40,7 @@ import com.rutabikersync.app.MainActivity
 import com.rutabikersync.app.core.mesh.audio.AndroidAudioFocusController
 import com.rutabikersync.app.core.mesh.audio.AudioFocusController
 import com.rutabikersync.app.core.mesh.audio.PttAudioEngine
+import com.rutabikersync.app.core.mesh.audio.PttAudioEngineHolder
 import com.rutabikersync.app.core.mesh.audio.PttState
 import com.rutabikersync.app.core.mesh.audio.VoicePacket
 import com.rutabikersync.app.core.protocol.MeshPacket
@@ -147,8 +148,8 @@ class BleMeshService : Service() {
         }
     )
 
-    var pttAudioEngine: PttAudioEngine? = null
-        private set
+    // P0.4: nunca cachear el motor. La cabina y el servicio pueden reinstalar el holder.
+    private fun activePttEngine(): PttAudioEngine? = PttAudioEngineHolder.engine
 
     @Volatile
     private var foregroundStarted = false
@@ -277,30 +278,23 @@ class BleMeshService : Service() {
      * que el chat) y su entrada a las tramas recibidas por ese engine.
      */
     private fun ensurePttEngineInitialized() {
-        if (pttAudioEngine != null) return
-        val active = RideService.getActiveRelayEngine()
+        if (PttAudioEngineHolder.engine != null) return
+        val active = RideService.activeRelayEngineFlow.value
         val clubId = active?.clubNetworkId ?: 0x52425301u
         val shortId = active?.localShortId ?: 1u
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        pttAudioEngine = PttAudioEngine(
-            scope = serviceScope,
+        // P0.4: dueño único del motor, clave derivada del manifiesto y sin suscripción RX duplicada.
+        PttAudioEngineHolder.install(
             clubNetworkId = clubId,
             localShortId = shortId,
+            activeRelayEngine = active,
             audioFocusController = AndroidAudioFocusController(audioManager),
-            onSendVoicePacket = { packet ->
-                val engine = RideService.getActiveRelayEngine()
-                val sent = engine?.emitVoicePacket(packet) == true
-                voicePacketsSentCount.incrementAndGet()
-                if (!sent) {
-                    Log.w(TAG, "VoicePacketTx descartado: no hay relayEngine activo en RideService")
-                }
-            }
+            pttKey = RideService.getActivePttKey(),
+            onVoicePacketSent = { voicePacketsSentCount.incrementAndGet() }
         )
         voiceRxUnsubscribe?.invoke()
-        voiceRxUnsubscribe = active?.onVoiceReceived { packet ->
-            pttAudioEngine?.onVoicePacketReceived(packet)
-        }
-        pttAudioEngine?.let { ptt ->
+        voiceRxUnsubscribe = null
+        activePttEngine()?.let { ptt ->
             com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
                 source = "hardware-ptt",
                 active = ptt.pttState.map { it !is PttState.Idle },
@@ -338,17 +332,17 @@ class BleMeshService : Service() {
                 com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", true)
                 RideService.beginPttVoiceStream()
                 ensurePttEngineInitialized()
-                pttAudioEngine?.startTalking()
+                PttAudioEngineHolder.startTalking()
                 serviceScope.launch {
                     delay(1_500L)
-                    if (pttAudioEngine?.pttState?.value is PttState.Idle) {
+                    if (activePttEngine()?.pttState?.value is PttState.Idle) {
                         com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", false)
                     }
                 }
             }
             ACTION_PTT_STOP -> {
                 Log.i(TAG, "ACTION_PTT_STOP recibido")
-                pttAudioEngine?.stopTalking()
+                PttAudioEngineHolder.stopTalking()
                 com.rutabikersync.app.core.audio.SosToneHub.setPttActive("hardware-ptt", false)
                 RideService.endPttVoiceStream()
                 activeAdvertisingSet?.let {
@@ -450,7 +444,7 @@ class BleMeshService : Service() {
                 val peers = directionalTracker.getAllTrackedPeers()
                 if (peers.isEmpty()) {
                     val hbLoss = calculateHeartbeatPlr()
-                    val voicePlr = pttAudioEngine?.calculateVoicePlr() ?: 0f
+                    val voicePlr = PttAudioEngineHolder.calculateVoicePlr()
                     Log.i(
                         TAG,
                         "METRICS: No peers tracked yet | HB Sent=${heartbeatsSentCount.get()}, Recv=${heartbeatsReceivedCount.get()}, LossRate=${"%.2f".format(hbLoss)}% | Voice Sent=${voicePacketsSentCount.get()}, Recv=${voicePacketsReceivedCount.get()}, PLR=${"%.2f".format(voicePlr)}%"
@@ -478,31 +472,20 @@ class BleMeshService : Service() {
         val bootEpoch = getNextBootEpoch()
         engine.startMeshEngine(clubId, shortId, bootEpoch)
 
-        // Inicializar motor de audio PTT con gestión de AudioFocus
+        // P0.4: el motor PTT es único y se reinstala con la clave real del manifiesto.
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        val audioFocusController = AndroidAudioFocusController(audioManager)
-
-        pttAudioEngine?.release()
-        pttAudioEngine = PttAudioEngine(
-            scope = serviceScope,
+        val activeRelay = RideService.activeRelayEngineFlow.value
+        PttAudioEngineHolder.install(
             clubNetworkId = clubId,
             localShortId = shortId,
-            audioFocusController = audioFocusController,
-            onSendVoicePacket = { voicePacket ->
-                val active = RideService.getActiveRelayEngine()
-                val sent = active?.emitVoicePacket(voicePacket) == true
-                voicePacketsSentCount.incrementAndGet()
-                if (!sent) {
-                    Log.w(TAG, "VoicePacketTx sin engine activo: fallback alAdvertising legado")
-                    transmitBleFrame(voicePacket.toBinary())
-                }
-            }
+            activeRelayEngine = activeRelay,
+            audioFocusController = AndroidAudioFocusController(audioManager),
+            pttKey = RideService.getActivePttKey(),
+            onVoicePacketSent = { voicePacketsSentCount.incrementAndGet() }
         )
         voiceRxUnsubscribe?.invoke()
-        voiceRxUnsubscribe = RideService.getActiveRelayEngine()?.onVoiceReceived { packet ->
-            pttAudioEngine?.onVoicePacketReceived(packet)
-        }
-        pttAudioEngine?.let { ptt ->
+        voiceRxUnsubscribe = null
+        activePttEngine()?.let { ptt ->
             com.rutabikersync.app.core.audio.SosToneHub.observePttSource(
                 source = "hardware-ptt",
                 active = ptt.pttState.map { it !is PttState.Idle },
@@ -512,7 +495,7 @@ class BleMeshService : Service() {
 
         // Monitorear estado de PTT para actualizar la notificación
         serviceScope.launch {
-            pttAudioEngine?.pttState?.collect { state ->
+            activePttEngine()?.pttState?.collect { state ->
                 when (state) {
                     is PttState.Transmitting -> {
                         updateNotificationForPtt("🎙️ Transmitiendo voz PTT (Frame #${state.frameIndex})")
@@ -555,8 +538,7 @@ class BleMeshService : Service() {
         relayEngine = null
         voiceRxUnsubscribe?.invoke()
         voiceRxUnsubscribe = null
-        pttAudioEngine?.release()
-        pttAudioEngine = null
+        PttAudioEngineHolder.release()
         foregroundStarted = false
         // R12: purgar fichas médicas y mensajes tácticos en RAM al detener el servicio
         medicalSheetStore.purgeAllOnRideClosed()
@@ -1037,7 +1019,7 @@ class BleMeshService : Service() {
                         TAG,
                         "VoicePacket received from shortId=${header.senderShortId}, frameIndex=${voicePacket.frameIndex}, last=${voicePacket.isLastFrame}, bytes=${serviceData.size}"
                     )
-                    pttAudioEngine?.onVoicePacketReceived(voicePacket)
+                    PttAudioEngineHolder.onVoicePacketReceived(voicePacket)
                 } catch (e: Exception) {
                     Log.w(TAG, "Error deserializando VoicePacket: ${e.message}")
                 }
